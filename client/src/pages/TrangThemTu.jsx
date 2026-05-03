@@ -62,7 +62,10 @@ function TrangThemTu() {
         Thêm từ vựng
       </h2>
 
-      <form onSubmit={xuLyGui} className="max-w-lg space-y-4">
+      <form
+        onSubmit={xuLyGui}
+        className="max-w-lg space-y-4 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-4 shadow-[var(--bong-card)] sm:p-5"
+      >
         <div>
           <label className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
             Từ tiếng Anh *
@@ -73,7 +76,7 @@ function TrangThemTu() {
             value={tuMoi.term_en}
             onChange={xuLyThayDoi}
             placeholder="Ví dụ: apple"
-            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-nen)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-phu)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
+            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-input)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-mo)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
             required
           />
         </div>
@@ -88,7 +91,7 @@ function TrangThemTu() {
             value={tuMoi.meaning_vi}
             onChange={xuLyThayDoi}
             placeholder="Ví dụ: quả táo"
-            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-nen)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-phu)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
+            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-input)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-mo)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
             required
           />
         </div>
@@ -103,7 +106,7 @@ function TrangThemTu() {
             value={tuMoi.example_sentence}
             onChange={xuLyThayDoi}
             placeholder="Ví dụ: I eat an apple every morning."
-            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-nen)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-phu)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
+            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-input)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-mo)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
           />
         </div>
 
@@ -117,13 +120,13 @@ function TrangThemTu() {
             value={tuMoi.note}
             onChange={xuLyThayDoi}
             placeholder="Ghi chú thêm"
-            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-nen)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-phu)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
+            className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-input)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-mo)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-medium text-white hover:opacity-90 transition-opacity sm:w-auto"
+          className="w-full rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] transition-colors sm:w-auto"
         >
           Thêm từ
         </button>

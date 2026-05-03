@@ -6,6 +6,7 @@ import TrangChiTietBo from "./pages/TrangChiTietBo";
 import TrangThemTu from "./pages/TrangThemTu";
 import TrangFlashcard from "./pages/TrangFlashcard";
 import TrangQuiz from "./pages/TrangQuiz";
+import TrangTuLuan from "./pages/TrangTuLuan";
 
 /**
  * UngDung — Routing chinh.
@@ -21,6 +22,7 @@ function UngDung() {
         <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
         <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
         <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />
+        <Route path="/decks/:deckId/tu-luan" element={<TrangTuLuan />} />
       </Route>
     </Routes>
   );

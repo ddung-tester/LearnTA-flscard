@@ -117,14 +117,14 @@ function TrangDanhSachBo() {
         <button
           type="button"
           onClick={moFormThemBo}
-          className="inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+          className="inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           Thêm bộ
         </button>
       </div>
 
       {danhSachDeck.length === 0 ? (
-        <div className="text-center py-14 px-5 border border-dashed border-[var(--mau-vien)] rounded-xl">
+        <div className="text-center py-14 px-5 border border-dashed border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)]">
           <p className="font-medium text-[var(--mau-chu)] mb-1">
             Chưa có bộ từ nào
           </p>
@@ -134,7 +134,7 @@ function TrangDanhSachBo() {
           <button
             type="button"
             onClick={moFormThemBo}
-            className="inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+            className="inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
             Thêm bộ
           </button>
@@ -153,7 +153,7 @@ function TrangDanhSachBo() {
                 tabIndex={0}
                 onClick={() => moChiTietBo(bo.id)}
                 onKeyDown={(event) => xuLyPhimCard(event, bo.id)}
-                className="group cursor-pointer rounded-xl border border-[var(--mau-vien)] px-4 py-4 outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-chinh)]/[0.04] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5 sm:py-5"
+                className="group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5 sm:py-5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-2">
                   <div className="min-w-0">
@@ -225,7 +225,7 @@ function TrangDanhSachBo() {
                   {tienDo && (
                     <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--mau-chu-phu)]">
                       {tienDo.flashcard && (
-                        <span className="rounded-md border border-[var(--mau-chinh)]/25 bg-[var(--mau-chinh)]/5 px-2 py-1">
+                        <span className="rounded-md border border-[var(--mau-thanh-cong)]/25 bg-[var(--mau-thanh-cong)]/5 px-2 py-1">
                           Đã nhớ {tienDo.flashcard.remembered}/{tienDo.flashcard.total} từ
                         </span>
                       )}
@@ -244,8 +244,8 @@ function TrangDanhSachBo() {
       )}
 
       {dangMoForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--mau-chu)]/35 px-4 py-4 sm:items-center sm:py-6">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-nen)] p-4 shadow-xl sm:p-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#020817]/70 px-4 py-4 sm:items-center sm:py-6">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-4 shadow-[var(--bong-modal)] sm:p-5">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
@@ -275,7 +275,7 @@ function TrangDanhSachBo() {
                   value={formBo.name}
                   onChange={capNhatFormBo}
                   required
-                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder="Tên bộ từ"
                 />
               </div>
@@ -290,7 +290,7 @@ function TrangDanhSachBo() {
                   value={formBo.description}
                   onChange={capNhatFormBo}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder="Mô tả ngắn"
                 />
               </div>
@@ -305,7 +305,7 @@ function TrangDanhSachBo() {
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
                 >
                   {boDangSua ? "Lưu thay đổi" : "Thêm bộ"}
                 </button>

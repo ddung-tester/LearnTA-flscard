@@ -14,25 +14,25 @@ function BoCuc() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--mau-nen)]">
-      <header className="border-b border-[var(--mau-vien)] px-4 py-4 sm:px-6">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+    <div className="min-h-screen">
+      <header className="app-shell-header px-4 py-4 sm:px-6">
+        <div className="app-shell-header__inner mx-auto flex items-center justify-between gap-3">
           <Link
             to="/"
-            className="text-lg font-semibold text-[var(--mau-chu)]"
+            className="text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
           >
             Streak Drop
           </Link>
           <Link
             to="/decks"
-            className="text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="rounded-full border border-[var(--mau-vien)] px-3 py-1.5 text-sm text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
           >
             Bộ từ vựng
           </Link>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+      <main className="app-shell-main mx-auto px-4 py-6 sm:px-6 sm:py-8">
         <Outlet />
       </main>
     </div>

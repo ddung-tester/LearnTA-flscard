@@ -154,7 +154,7 @@ function TrangFlashcard() {
         </p>
         <Link
           to="/decks"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-white font-medium hover:opacity-90 transition-opacity"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
           Quay về danh sách
         </Link>
@@ -176,7 +176,7 @@ function TrangFlashcard() {
         </p>
         <Link
           to={`/decks/${boId}`}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-white font-medium hover:opacity-90 transition-opacity"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
           Quay lại bộ từ
         </Link>
@@ -194,7 +194,7 @@ function TrangFlashcard() {
           &larr; {bo.title}
         </Link>
 
-        <section className="mt-6 border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-nen)] px-5 py-8 text-center">
+        <section className="mt-6 border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-5 py-8 text-center shadow-[var(--bong-card)]">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)] mb-3">
             Hoàn thành phiên học
           </p>
@@ -214,11 +214,11 @@ function TrangFlashcard() {
                 {danhSach.length}
               </p>
             </div>
-            <div className="border border-[var(--mau-chinh)]/30 bg-[var(--mau-chinh)]/5 rounded-lg px-4 py-3">
+            <div className="border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-4 py-3">
               <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
                 Nhớ rồi
               </p>
-              <p className="text-2xl font-mono font-bold text-[var(--mau-chinh)]">
+              <p className="text-2xl font-mono font-bold text-[var(--mau-thanh-cong)]">
                 {thongKe.soDaNho}
               </p>
             </div>
@@ -236,7 +236,7 @@ function TrangFlashcard() {
             <button
               type="button"
               onClick={hocLai}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-white font-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
             >
               Học lại
             </button>
@@ -286,11 +286,10 @@ function TrangFlashcard() {
                 type="button"
                 onClick={() => datCheDo(item.key)}
                 aria-pressed={dangChon}
-                className={`text-left rounded-lg border px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${
-                  dangChon
-                    ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chu)]"
-                    : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40"
-                }`}
+                className={`text-left rounded-lg border px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${dangChon
+                    ? "border-[var(--mau-chinh)] bg-[var(--mau-mat-2)] text-[var(--mau-chu)]"
+                    : "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]"
+                  }`}
               >
                 <span className="block text-xs font-mono uppercase tracking-wider">
                   {item.nhan}
@@ -318,11 +317,10 @@ function TrangFlashcard() {
           className="relative w-full aspect-[3/2] min-h-56 sm:min-h-72 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
         >
           <div
-            className={`absolute inset-0 rounded-xl transition-transform duration-300 [transform-style:preserve-3d] ${
-              daLat ? "[transform:rotateY(180deg)]" : "[transform:rotateY(0deg)]"
-            }`}
+            className={`absolute inset-0 rounded-xl transition-transform duration-300 [transform-style:preserve-3d] ${daLat ? "[transform:rotateY(180deg)]" : "[transform:rotateY(0deg)]"
+              }`}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-4 py-6 [backface-visibility:hidden] hover:bg-[var(--mau-vien)]/20 transition-colors sm:px-7 sm:py-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-7 sm:py-8">
               <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-8">
                 {cheDoHienTai.matTruoc}
               </span>
@@ -334,7 +332,7 @@ function TrangFlashcard() {
               </span>
             </div>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-chinh)]/5 px-4 py-6 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-7 sm:py-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-7 sm:py-8">
               <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)] mb-8">
                 {cheDoHienTai.matSau}
               </span>
@@ -352,11 +350,11 @@ function TrangFlashcard() {
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3 mb-5">
-        <div className="border border-[var(--mau-chinh)]/30 bg-[var(--mau-chinh)]/5 rounded-lg px-3 py-3 sm:px-4">
+        <div className="border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-3 py-3 sm:px-4">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Nhớ rồi
           </p>
-          <p className="text-xl font-mono font-bold text-[var(--mau-chinh)]">
+          <p className="text-xl font-mono font-bold text-[var(--mau-thanh-cong)]">
             {thongKe.soDaNho}
           </p>
         </div>
@@ -368,7 +366,7 @@ function TrangFlashcard() {
             {thongKe.soCanOn}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg px-3 py-3 sm:px-4">
+        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-3 py-3 sm:px-4">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Còn lại
           </p>
@@ -383,7 +381,7 @@ function TrangFlashcard() {
           <button
             type="button"
             onClick={() => danhDauThe("remembered")}
-            className="px-5 py-3 rounded-lg bg-[var(--mau-chinh)] text-white font-medium hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+            className="px-5 py-3 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
             Nhớ rồi
           </button>
@@ -400,7 +398,7 @@ function TrangFlashcard() {
       {trangThaiThe && (
         <p className="text-sm text-center text-[var(--mau-chu-phu)] mb-5">
           Thẻ này đã được đánh dấu:{" "}
-          <span className={trangThaiThe === "remembered" ? "text-[var(--mau-chinh)]" : "text-[var(--mau-phu)]"}>
+          <span className={trangThaiThe === "remembered" ? "text-[var(--mau-thanh-cong)]" : "text-[var(--mau-phu)]"}>
             {trangThaiThe === "remembered" ? "Nhớ rồi" : "Chưa nhớ"}
           </span>
         </p>

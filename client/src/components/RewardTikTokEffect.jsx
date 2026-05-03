@@ -3,7 +3,7 @@ import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = {
   triggerCount: 5,
-  opacity: 0.95,
+  opacity: 0.78,
   duration: 8000,
   fadeOutMs: 1000,
   volume: 0.80,
@@ -77,13 +77,20 @@ function RewardTikTokEffect({
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const media = window.matchMedia("(min-width: 1180px)");
-    const capNhat = () => setCoTheHienThi(media.matches);
+    const media = window.matchMedia("(min-width: 1280px)");
+    const capNhat = () => {
+      const doRongConLai = window.innerWidth - window.innerHeight * 1.125;
+      setCoTheHienThi(media.matches && doRongConLai >= 416);
+    };
 
     capNhat();
     media.addEventListener("change", capNhat);
+    window.addEventListener("resize", capNhat);
 
-    return () => media.removeEventListener("change", capNhat);
+    return () => {
+      media.removeEventListener("change", capNhat);
+      window.removeEventListener("resize", capNhat);
+    };
   }, []);
 
   useEffect(() => {
@@ -195,7 +202,19 @@ function RewardTikTokEffect({
   ]);
 
   useEffect(() => {
-    setVideoSanSang(false);
+    if (!videoSrc) {
+      setVideoSanSang(false);
+      return;
+    }
+
+    // Neu video da duoc preload va co du data (HAVE_FUTURE_DATA tro len),
+    // khong reset ve false de tranh nhip do dau tien.
+    const cached = cacheVideoRefs.current[videoSrc];
+    if (cached && cached.readyState >= 3) {
+      setVideoSanSang(true);
+    } else {
+      setVideoSanSang(false);
+    }
   }, [videoSrc]);
 
   useEffect(() => {

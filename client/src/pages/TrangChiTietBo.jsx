@@ -191,7 +191,7 @@ function TrangChiTietBo() {
         </p>
         <Link
           to="/decks"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-white font-medium hover:opacity-90 transition-opacity"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
           Quay về danh sách
         </Link>
@@ -224,7 +224,7 @@ function TrangChiTietBo() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div className="border border-[var(--mau-vien)] rounded-lg px-4 py-3">
+        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Tổng từ
           </p>
@@ -232,15 +232,15 @@ function TrangChiTietBo() {
             {soTu}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg px-4 py-3">
+        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Thuần thục
           </p>
-          <p className="text-2xl font-mono font-bold text-[var(--mau-chinh)]">
+          <p className="text-2xl font-mono font-bold text-[var(--mau-thanh-cong)]">
             {soThuanThuc}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg px-4 py-3">
+        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Cần ôn
           </p>
@@ -248,7 +248,7 @@ function TrangChiTietBo() {
             {soYeu}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg px-4 py-3">
+        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
           <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
             Streak
           </p>
@@ -258,7 +258,7 @@ function TrangChiTietBo() {
         </div>
       </div>
 
-      <div className="border border-[var(--mau-vien)] rounded-xl px-4 py-4 mb-8">
+      <div className="border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-4 mb-8">
         <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
           Tiến độ học tập
         </p>
@@ -266,7 +266,7 @@ function TrangChiTietBo() {
         {tienDo ? (
           <div className="flex flex-wrap gap-2 text-sm text-[var(--mau-chu-phu)]">
             {tienDo.flashcard && (
-              <span className="rounded-md border border-[var(--mau-chinh)]/25 bg-[var(--mau-chinh)]/5 px-3 py-1.5">
+                <span className="rounded-md border border-[var(--mau-thanh-cong)]/25 bg-[var(--mau-thanh-cong)]/5 px-3 py-1.5">
                 Flashcard: nhớ {tienDo.flashcard.remembered}/{tienDo.flashcard.total}
               </span>
             )}
@@ -311,7 +311,7 @@ function TrangChiTietBo() {
           </Link>
         ) : (
           <div
-            className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] rounded-xl px-4 py-5 cursor-not-allowed opacity-60"
+            className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] rounded-xl px-4 py-5 cursor-not-allowed opacity-60"
             title="Cần ít nhất 4 từ để làm quiz"
           >
             <span className="font-semibold text-[var(--mau-chu-phu)]">Làm Quiz</span>
@@ -321,10 +321,20 @@ function TrangChiTietBo() {
           </div>
         )}
 
+        <Link
+          to={`/decks/${boId}/tu-luan`}
+          className="flex flex-col items-center justify-center gap-2 border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-5 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+        >
+          <span className="font-semibold text-[var(--mau-chinh)]">Tự luận</span>
+          <span className="text-xs text-[var(--mau-chu-phu)] text-center">
+            Gõ đáp án · VI ↔ EN
+          </span>
+        </Link>
+
         <button
           type="button"
           onClick={moFormThemTu}
-          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-chinh)]/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           <span className="font-semibold text-[var(--mau-chu)]">Thêm từ</span>
           <span className="text-xs text-[var(--mau-chu-phu)] text-center">
@@ -335,7 +345,7 @@ function TrangChiTietBo() {
         <button
           type="button"
           onClick={moFormImport}
-          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-chinh)]/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           <span className="font-semibold text-[var(--mau-chu)]">Import từ</span>
           <span className="text-xs text-[var(--mau-chu-phu)] text-center">
@@ -350,7 +360,7 @@ function TrangChiTietBo() {
         </h3>
 
         {danhSach.length === 0 ? (
-          <div className="text-center py-10 px-5 border border-dashed border-[var(--mau-vien)] rounded-xl">
+          <div className="text-center py-10 px-5 border border-dashed border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)]">
             <p className="text-[var(--mau-chu-phu)]">Chưa có từ nào.</p>
             <button
               type="button"
@@ -365,7 +375,7 @@ function TrangChiTietBo() {
             {danhSach.map((the, i) => (
               <li
                 key={the.id}
-                className="border border-[var(--mau-vien)] rounded-lg px-4 py-3"
+                className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex flex-wrap items-baseline gap-2 sm:gap-3">
@@ -407,8 +417,8 @@ function TrangChiTietBo() {
       </div>
 
       {dangMoForm && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--mau-chu)]/35 px-4 py-4 sm:items-center sm:py-6">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-nen)] p-4 shadow-xl sm:p-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#020817]/70 px-4 py-4 sm:items-center sm:py-6">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-4 shadow-[var(--bong-modal)] sm:p-5">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
@@ -438,7 +448,7 @@ function TrangChiTietBo() {
                   value={formTu.word}
                   onChange={capNhatFormTu}
                   required
-                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder="example"
                 />
               </div>
@@ -453,7 +463,7 @@ function TrangChiTietBo() {
                   value={formTu.meaning}
                   onChange={capNhatFormTu}
                   required
-                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder="nghĩa tiếng Việt"
                 />
               </div>
@@ -468,7 +478,7 @@ function TrangChiTietBo() {
                   value={formTu.example}
                   onChange={capNhatFormTu}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder="I use this word in a sentence."
                 />
               </div>
@@ -483,7 +493,7 @@ function TrangChiTietBo() {
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
                 >
                   {theDangSua ? "Lưu thay đổi" : "Thêm từ"}
                 </button>
@@ -494,8 +504,8 @@ function TrangChiTietBo() {
       )}
 
       {dangMoImport && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--mau-chu)]/35 px-4 py-4 sm:items-center sm:py-6">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-nen)] p-4 shadow-xl sm:p-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#020817]/70 px-4 py-4 sm:items-center sm:py-6">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-4 shadow-[var(--bong-modal)] sm:p-5">
             <div className="flex items-start justify-between gap-4 mb-5">
               <div>
                 <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
@@ -527,7 +537,7 @@ function TrangChiTietBo() {
                   value={noiDungImport}
                   onChange={(event) => setNoiDungImport(event.target.value)}
                   rows={9}
-                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-nen)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
                   placeholder={"apple - quả táo\nbook, quyển sách\ncat | con mèo"}
                 />
                 <p className="mt-2 text-xs text-[var(--mau-chu-phu)]">
@@ -538,7 +548,7 @@ function TrangChiTietBo() {
               {ketQuaImport && (
                 <div className="rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-vien)]/20 px-3 py-2 text-sm text-[var(--mau-chu-phu)]">
                   Import thành công:{" "}
-                  <span className="font-semibold text-[var(--mau-chinh)]">
+                  <span className="font-semibold text-[var(--mau-thanh-cong)]">
                     {ketQuaImport.thanhCong}
                   </span>
                   . Bỏ qua:{" "}
@@ -559,7 +569,7 @@ function TrangChiTietBo() {
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-opacity"
+                  className="w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
                 >
                   Import từ
                 </button>

@@ -1,47 +1,101 @@
-/* Be Vietnam Pro — primary font (Vietnamese fidelity) */
-/* JetBrains Mono — secondary font for streak counters, mode labels */
+/* Be Vietnam Pro - primary font (Vietnamese fidelity) */
+/* JetBrains Mono - secondary font for counters, mode labels */
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap&subset=vietnamese');
 
 @import "tailwindcss";
 
-/*
- * Design tokens tu DESIGN.md (Streak Drop — Vocabulary Learning App).
- * Mau sac dung oklch convert sang hex de tuong thich Tailwind v4.
- *
- * Quy uoc:
- *   --mau-chinh    = Study Teal-Green (primary accent)
- *   --mau-phu      = Challenge Amber-Orange (secondary, 3-streak)
- *   --mau-nen      = Warm Paper (background)
- *   --mau-chu      = Ink Dark (text)
- *   --mau-chu-phu  = Muted Text (secondary text)
- *   --mau-vien     = Soft Border (borders, dividers)
- */
 :root {
-  /* Primary — Study Teal-Green (oklch 55% 0.14 175 ≈ #1a9a8a) */
-  --mau-chinh: #1a9a8a;
+  --mau-nen: hsl(214, 87%, 85%);
+  --mau-mat: #d8f3fb;
+  --mau-mat-2: #c0e7f3;
+  --mau-mat-hover: #acdce9;
+  --mau-input: #ecfaff;
+  --mau-chinh: #0f5f94;
+  --mau-chinh-hover: #0a4f7d;
+  --mau-nhan: #256fa6;
+  --mau-chu: #0b2940;
+  --mau-chu-phu: #2f526a;
+  --mau-chu-mo: #6b8799;
+  --mau-chu-tren-chinh: #f3fbff;
+  --mau-vien: rgba(15, 95, 148, 0.24);
+  --mau-vien-manh: rgba(15, 95, 148, 0.44);
+  --mau-thanh-cong: #34d399;
+  --mau-loi: #f87171;
+  --mau-canh-bao: #fbbf24;
+  --mau-phu: var(--mau-canh-bao);
+  --bong-card: 0 16px 34px rgba(7, 59, 95, 0.16);
+  --bong-modal: 0 24px 70px rgba(7, 59, 95, 0.28);
+}
 
-  /* Secondary — Challenge Amber-Orange (oklch 68% 0.18 60 ≈ #d48a2c) */
-  --mau-phu: #d48a2c;
+* {
+  box-sizing: border-box;
+}
 
-  /* Neutral — Warm Paper (oklch 97% 0.008 80 ≈ #f8f6f1) */
-  --mau-nen: #f8f6f1;
-
-  /* Neutral — Ink Dark (oklch 18% 0.012 250 ≈ #1c1e26) */
-  --mau-chu: #1c1e26;
-
-  /* Neutral — Muted Text (oklch 55% 0.008 250 ≈ #787c8a) */
-  --mau-chu-phu: #787c8a;
-
-  /* Neutral — Soft Border (oklch 88% 0.006 80 ≈ #dddbd5) */
-  --mau-vien: #dddbd5;
+html {
+  background-color: var(--mau-nen);
 }
 
 body {
   font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
-  background-color: var(--mau-nen);
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top left, rgba(219, 247, 255, 0.56), transparent 28rem),
+    radial-gradient(circle at bottom right, rgba(105, 93, 165, 0.14), transparent 32rem),
+    linear-gradient(180deg, #82dafe 0%, var(--mau-nen) 46%, var(--mau-nen) 100%);
   color: var(--mau-chu);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell-header {
+  background: transparent;
+}
+
+.app-shell-header__inner,
+.app-shell-main {
+  width: 100%;
+  max-width: 48rem;
+}
+
+@media (min-width: 1280px) and (min-height: 640px) {
+  .app-shell-header__inner,
+  .app-shell-main {
+    max-width: min(48rem, max(26rem, calc(100vw - (100dvh * 9 / 8) - 3rem)));
+  }
+}
+
+::selection {
+  background-color: rgba(15, 95, 148, 0.22);
+  color: var(--mau-chu);
+}
+
+input,
+textarea,
+select {
+  background-color: var(--mau-input);
+  border-color: var(--mau-vien);
+  color: var(--mau-chu);
+  caret-color: var(--mau-chinh);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--mau-chu-mo);
+  opacity: 1;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  border-color: var(--mau-chinh);
+  box-shadow: 0 0 0 3px rgba(15, 95, 148, 0.18);
 }
 
 button:not(:disabled),
@@ -66,11 +120,12 @@ a[href][class*="rounded"],
 }
 
 @media (hover: hover) {
+
   button:not(:disabled):hover,
   a[href][class*="rounded"]:hover,
   [role="link"]:hover,
   [role="button"]:not([aria-disabled="true"]):hover {
-    filter: brightness(0.97) saturate(1.04);
+    filter: brightness(1.05) saturate(1.04);
   }
 }
 
@@ -83,7 +138,10 @@ a[href][class*="rounded"]:active,
 
 /* Prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
