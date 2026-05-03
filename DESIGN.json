@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-02T03:59:00Z",
+  "title": "Design System: Streak Drop",
+  "seed": true,
+  "_note": "SEED sidecar — re-run $impeccable document once components exist to populate html/css snippet fields.",
+  "extensions": {
+    "colorMeta": {
+      "study-teal-green": {
+        "role": "primary",
+        "displayName": "Study Teal-Green",
+        "canonical": "oklch(55% 0.14 175)",
+        "hex": "[TBD during implementation]",
+        "usage": "Correct answer states, streak counter fills, progress bars, active mode highlights.",
+        "tonalRamp": ["[TBD — 8-step ramp dark to light, same hue/chroma, stepped lightness 15%–95%]"]
+      },
+      "challenge-amber-orange": {
+        "role": "secondary",
+        "displayName": "Challenge Amber-Orange",
+        "canonical": "oklch(68% 0.18 60)",
+        "hex": "[TBD during implementation]",
+        "usage": "3-streak combo pulse, attention states, streak meter fill approaching 5.",
+        "tonalRamp": ["[TBD]"]
+      },
+      "streak-drop-coral-purple": {
+        "role": "tertiary",
+        "displayName": "Streak Drop Coral-Purple",
+        "canonical": "gradient from coral-red to purple-edge [TBD]",
+        "hex": "[TBD during implementation]",
+        "usage": "Exclusively the 5-streak Streak Drop overlay container/border. Forbidden elsewhere.",
+        "tonalRamp": ["[TBD]"]
+      },
+      "warm-paper": {
+        "role": "neutral-bg",
+        "displayName": "Warm Paper",
+        "canonical": "oklch(97% 0.008 80)",
+        "hex": "[TBD during implementation]",
+        "usage": "Page background. Never pure white.",
+        "tonalRamp": ["[TBD]"]
+      },
+      "ink-dark": {
+        "role": "neutral-text",
+        "displayName": "Ink Dark",
+        "canonical": "oklch(18% 0.012 250)",
+        "hex": "[TBD during implementation]",
+        "usage": "All body text, headings, labels. Never pure black.",
+        "tonalRamp": ["[TBD]"]
+      },
+      "soft-border": {
+        "role": "neutral-border",
+        "displayName": "Soft Border",
+        "canonical": "oklch(88% 0.006 80)",
+        "hex": "[TBD during implementation]",
+        "usage": "Card borders, input strokes, dividers.",
+        "tonalRamp": ["[TBD]"]
+      },
+      "muted-text": {
+        "role": "neutral-secondary",
+        "displayName": "Muted Text",
+        "canonical": "oklch(55% 0.008 250)",
+        "hex": "[TBD during implementation]",
+        "usage": "Secondary labels, hints, placeholder text, revealed correct answers on incorrect.",
+        "tonalRamp": ["[TBD]"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles and empty-state headlines only. Rare." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, deck titles, quiz screen headers." },
+      "title": { "displayName": "Title", "purpose": "The term being studied. Most prominent element on a learning screen. Minimum 2rem breathing room above and below." },
+      "body": { "displayName": "Body", "purpose": "Deck descriptions, card examples, notes. EN and VI mixed. Max 65ch." },
+      "label": { "displayName": "Label", "font": "mono", "purpose": "Mode labels (ENGLISH → VIETNAMESE), button text, status chips. Uppercase, mono font." },
+      "mono-stat": { "displayName": "Mono Stat", "font": "mono", "purpose": "Streak counter digits, score readouts." }
+    },
+    "shadows": [
+      {
+        "name": "overlay-modal",
+        "value": "0 8px 40px rgba(0,0,0,0.32)",
+        "purpose": "Streak Drop overlay and modal dialogs only. The only shadow in the system."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.25, 0, 0, 1)",
+        "purpose": "Default easing for state transitions (hover, focus, answer feedback). ease-out-quart family."
+      },
+      {
+        "name": "card-flip",
+        "value": "300ms cubic-bezier(0.25, 0, 0, 1)",
+        "purpose": "Flashcard 3D flip. Never bounce, never elastic."
+      },
+      {
+        "name": "combo-pulse",
+        "value": "400ms cubic-bezier(0.25, 0, 0, 1)",
+        "purpose": "3-streak combo glow pulse on streak meter. One pulse only, not looping."
+      },
+      {
+        "name": "streak-drop-in",
+        "value": "250ms cubic-bezier(0.25, 0, 0, 1)",
+        "purpose": "Streak Drop overlay entry. Scale from 0.95 to 1.0 + fade in. Never slide from off-screen."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "480px", "purpose": "Mobile portrait — single column, larger tap targets." },
+      { "name": "md", "value": "768px", "purpose": "Tablet — deck list may go 2-column." },
+      { "name": "lg", "value": "1024px", "purpose": "Desktop — max content width applies (65ch body, ~680px card area)." }
+    ],
+    "rewardAssets": {
+      "_note": "All asset paths are local only. Never fetch external URLs. App must not crash if files are missing.",
+      "correctSoft": "public/rewards/correct-soft.mp3",
+      "combo3": "public/rewards/combo-3.mp3",
+      "drop5Audio": "public/rewards/drop-5.mp3",
+      "drop5Video": "public/rewards/drop-video-1.mp4",
+      "fallbackBehavior": "If file is missing: skip audio/video entirely, show CSS-only visual fallback (color burst / animated text). Log a dev warning. No runtime error."
+    },
+    "streakSystem": {
+      "steps": [
+        { "streak": 1, "event": "correct-soft", "effect": "Micro teal-green flash on streak counter. Soft audio if asset exists." },
+        { "streak": 3, "event": "combo-3", "effect": "Amber-orange combo pulse glow on streak meter. Louder audio if asset exists." },
+        { "streak": 5, "event": "streak-drop", "effect": "Streak Drop overlay fires. Coral-purple container, optional video/audio. Always dismissible. Reset streak to 0 after dismiss." }
+      ],
+      "resetConditions": ["wrong answer", "after streak-drop dismiss"],
+      "enterBinding": "In written-answer mode, Enter submits. If the submit is the 5th correct answer, Enter triggers the Streak Drop overlay. This is the intended UX — Enter is sacred for answer submission only.",
+      "clickBinding": "In multiple-choice mode, clicking the 5th correct answer triggers the Streak Drop overlay immediately after feedback."
+    }
+  },
+  "components": [
+    {
+      "name": "Flashcard",
+      "kind": "custom",
+      "description": "One card per screen. Front: term + mode label. Back: definition + example. CSS 3D flip on Space/click.",
+      "html": "[TBD — implement in Phase 1]",
+      "css": "[TBD — expand Tailwind utilities to literal CSS after implementation]"
+    },
+    {
+      "name": "Multiple-choice Option Row",
+      "kind": "custom",
+      "description": "Full-width tappable row for one answer option. States: default, correct (teal-green tint), incorrect (red tint + correct revealed).",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    },
+    {
+      "name": "Written-answer Input",
+      "kind": "input",
+      "description": "Single centered text input below the term. Enter submits. Mono font. Correct: teal-green feedback. Incorrect: muted correct answer revealed.",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    },
+    {
+      "name": "Streak Meter",
+      "kind": "custom",
+      "description": "5-segment progress bar or dot row. Fills teal-green per correct answer. Pulses amber-orange at 3-streak. Resets after drop or wrong answer.",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    },
+    {
+      "name": "Streak Drop Overlay",
+      "kind": "custom",
+      "description": "Modal overlay for 5-streak reward. Coral-purple border, modal shadow, optional video/audio, always-visible close button (min 44x44px).",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "description": "Teal-green fill, ink-dark/white text, 0.5rem radius. Used for Start, Submit, Next.",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "description": "Transparent, soft border, muted text. Used for Skip, Back, Cancel.",
+      "html": "[TBD]",
+      "css": "[TBD]"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Study Room That Rewards You",
+    "overview": "A lean, focused learning product. The base experience is a warm, paper-toned workspace where every surface serves the card in front of the user. Reward moments are the single intentional break in that discipline. The contrast between the calm base and the energetic reward is the product's emotional signature.",
+    "keyCharacteristics": [
+      "Paper-warm neutral base. Ink-dark text. No pure whites or pure blacks.",
+      "Teal-green for correctness and progress. Amber-orange for combo build-up. Coral-purple for 5-streak Streak Drop only.",
+      "Be Vietnam Pro for bilingual EN/VI fidelity throughout.",
+      "Flat by default. Modal shadow for Streak Drop overlay only.",
+      "Flashcard, Multiple-choice, and Written-answer are three equal core surfaces.",
+      "English→Vietnamese and Vietnamese→English modes are first-class.",
+      "Streak Drop overlay is always dismissible, short, and functional without assets."
+    ],
+    "rules": [
+      { "name": "The Two-Mode Palette Rule", "body": "Study mode is restrained — teal-green ≤10% of screen. Reward mode breaks this rule only inside Streak Drop overlays.", "section": "colors" },
+      { "name": "The Reward Escalation Rule", "body": "Color escalates in exactly three steps: teal-green (correct) → amber-orange (3-streak) → coral-purple (5-streak overlay). No other escalation path.", "section": "colors" },
+      { "name": "The No-Blue Rule", "body": "Quizlet's brand blue and any hue in oklch hue 240–280 is forbidden as an accent.", "section": "colors" },
+      { "name": "The Vietnamese Fidelity Rule", "body": "Be Vietnam Pro must load with &subset=vietnamese. Never fall back to a system sans that corrupts diacritics.", "section": "typography" },
+      { "name": "The Title Isolation Rule", "body": "On learning screens, the term (Title weight) must have at least 2rem breathing room above and below. No other heading-weight text on the same screen.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Shadows appear only on Streak Drop overlay and modal dialogs. Use tinted backgrounds and soft borders for depth everywhere else.", "section": "elevation" },
+      { "name": "The Fallback Integrity Rule", "body": "The app must not crash when public/rewards/ assets are missing. Check existence before binding audio/video src. Show CSS-only fallback if absent.", "section": "components" },
+      { "name": "The Learning-First Rule", "body": "Streak Drop overlay must be dismissible within 1 second of appearing. After dismissal, user returns to learning with zero extra clicks.", "section": "components" }
+    ],
+    "dos": [
+      "Use Be Vietnam Pro with &subset=vietnamese for all text.",
+      "Treat Flashcard, Multiple-choice, and Written-answer as three equal core surfaces.",
+      "Always show the mode label on every learning screen.",
+      "Bind Enter exclusively to answer submission on quiz screens.",
+      "Implement audio/video as graceful enhancement — app works fully without public/rewards/ files.",
+      "Keep Streak Drop overlay dismissible, short, and skippable.",
+      "Design public/rewards/ slots so replacing assets requires zero code changes.",
+      "Respect prefers-reduced-motion — trigger visual color burst without motion if set."
+    ],
+    "donts": [
+      "Don't use Quizlet's brand blue or any hue in oklch hue 240–280 as an accent.",
+      "Don't implement Duolingo-style persistent gamification (streak-loss warnings, XP bars, daily push notifications, heart/life systems).",
+      "Don't let the Streak Drop overlay block the study surface for more than 15 seconds without user action.",
+      "Don't hardcode real TikTok, YouTube, or online copyrighted music/video URLs.",
+      "Don't treat written-answer mode as a bonus — it receives identical layout and polish to multiple-choice.",
+      "Don't add a sidebar, persistent stat panel, or dense data overlay to learning screens.",
+      "Don't bind Enter on quiz screens to anything except answer submission.",
+      "Don't use gradient text (background-clip: text). Coral-purple gradient is for Streak Drop container only.",
+      "Don't use side-stripe borders (border-left/right > 1px as accent). Use full borders or background tints.",
+      "Don't add external analytics or CDN-hosted media that auto-loads audio/video.",
+      "Don't build a chaotic or meme-aesthetic UI. The base is calm and focused. The reward is brief and controlled."
+    ]
+  }
+}

@@ -1,1 +1,91 @@
+/* Be Vietnam Pro — primary font (Vietnamese fidelity) */
+/* JetBrains Mono — secondary font for streak counters, mode labels */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap&subset=vietnamese');
+
 @import "tailwindcss";
+
+/*
+ * Design tokens tu DESIGN.md (Streak Drop — Vocabulary Learning App).
+ * Mau sac dung oklch convert sang hex de tuong thich Tailwind v4.
+ *
+ * Quy uoc:
+ *   --mau-chinh    = Study Teal-Green (primary accent)
+ *   --mau-phu      = Challenge Amber-Orange (secondary, 3-streak)
+ *   --mau-nen      = Warm Paper (background)
+ *   --mau-chu      = Ink Dark (text)
+ *   --mau-chu-phu  = Muted Text (secondary text)
+ *   --mau-vien     = Soft Border (borders, dividers)
+ */
+:root {
+  /* Primary — Study Teal-Green (oklch 55% 0.14 175 ≈ #1a9a8a) */
+  --mau-chinh: #1a9a8a;
+
+  /* Secondary — Challenge Amber-Orange (oklch 68% 0.18 60 ≈ #d48a2c) */
+  --mau-phu: #d48a2c;
+
+  /* Neutral — Warm Paper (oklch 97% 0.008 80 ≈ #f8f6f1) */
+  --mau-nen: #f8f6f1;
+
+  /* Neutral — Ink Dark (oklch 18% 0.012 250 ≈ #1c1e26) */
+  --mau-chu: #1c1e26;
+
+  /* Neutral — Muted Text (oklch 55% 0.008 250 ≈ #787c8a) */
+  --mau-chu-phu: #787c8a;
+
+  /* Neutral — Soft Border (oklch 88% 0.006 80 ≈ #dddbd5) */
+  --mau-vien: #dddbd5;
+}
+
+body {
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  background-color: var(--mau-nen);
+  color: var(--mau-chu);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button:not(:disabled),
+a[href],
+[role="link"],
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+button:not(:disabled),
+a[href][class*="rounded"],
+[role="link"],
+[role="button"]:not([aria-disabled="true"]) {
+  transition-property: color, background-color, border-color, opacity, filter, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (hover: hover) {
+  button:not(:disabled):hover,
+  a[href][class*="rounded"]:hover,
+  [role="link"]:hover,
+  [role="button"]:not([aria-disabled="true"]):hover {
+    filter: brightness(0.97) saturate(1.04);
+  }
+}
+
+button:not(:disabled):active,
+a[href][class*="rounded"]:active,
+[role="link"]:active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(1px);
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

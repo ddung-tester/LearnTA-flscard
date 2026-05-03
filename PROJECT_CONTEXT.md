@@ -447,28 +447,28 @@ client/src/utils/quizGenerator.js
 Pseudo logic:
 
 ```js
-function generateQuizQuestions(cards) {
-  if (!cards || cards.length < 4) {
+function taoSachCauHoi(danhSachThe) {
+  if (!danhSachThe || danhSachThe.length < 4) {
     return [];
   }
 
-  return cards.map((card) => {
-    const correctAnswer = card.meaning_vi;
+  return danhSachThe.map((the) => {
+    const dapAnDung = the.meaning_vi;
 
-    const wrongAnswers = cards
-      .filter((item) => item.id !== card.id)
-      .map((item) => item.meaning_vi)
+    const dapAnSai = danhSachThe
+      .filter((phanTu) => phanTu.id !== the.id)
+      .map((phanTu) => phanTu.meaning_vi)
       .sort(() => Math.random() - 0.5)
       .slice(0, 3);
 
-    const options = [correctAnswer, ...wrongAnswers]
+    const danhSachDapAn = [dapAnDung, ...dapAnSai]
       .sort(() => Math.random() - 0.5);
 
     return {
-      question: card.term_en,
-      correctAnswer,
-      options,
-      cardId: card.id,
+      cauHoi: the.term_en,
+      dapAnDung,
+      danhSachDapAn,
+      maThe: the.id,
     };
   });
 }

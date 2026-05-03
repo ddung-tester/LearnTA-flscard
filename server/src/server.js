@@ -1,9 +1,9 @@
 require("dotenv").config();
 
-const app = require("./app");
+const ungDung = require("./app");
 
-const PORT = process.env.PORT || 5000;
+const CONG = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+ungDung.listen(CONG, () => {
+  console.log(`Server running on http://localhost:${CONG}`);
 });
