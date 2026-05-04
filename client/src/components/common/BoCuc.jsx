@@ -19,20 +19,23 @@ function BoCuc() {
         <div className="app-shell-header__inner mx-auto flex items-center justify-between gap-3">
           <Link
             to="/"
-            className="text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
+            className="ui-link text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
           >
             Streak Drop
           </Link>
           <Link
             to="/decks"
-            className="rounded-full border border-[var(--mau-vien)] px-3 py-1.5 text-sm text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3 py-1.5 text-sm text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
           >
             Bộ từ vựng
           </Link>
         </div>
       </header>
 
-      <main className="app-shell-main mx-auto px-4 py-6 sm:px-6 sm:py-8">
+      <main
+        key={viTri.pathname}
+        className="app-shell-main ui-page-enter mx-auto px-4 py-6 sm:px-6 sm:py-8"
+      >
         <Outlet />
       </main>
     </div>

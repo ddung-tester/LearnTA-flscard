@@ -12,6 +12,9 @@ export const CAU_HINH_REWARD_QUIZ = {
   manifestSrc: "/rewards/videos.json",
 };
 
+const VIDEO_READY_STATE_CAN_DRAW = 2;
+const REWARD_CANVAS_MAX_DPR = 1.25;
+
 function tronDanhSach(danhSach) {
   return [...danhSach].sort(() => Math.random() - 0.5);
 }
@@ -86,7 +89,10 @@ function RewardTikTokEffect({
   function veVideoLenCanvas(video, canvas) {
     if (!canvas || !video.videoWidth || !video.videoHeight) return;
 
-    const tiLeManHinh = window.devicePixelRatio || 1;
+    const tiLeManHinh = Math.min(
+      window.devicePixelRatio || 1,
+      REWARD_CANVAS_MAX_DPR
+    );
     const rong = canvas.clientWidth * tiLeManHinh;
     const cao = canvas.clientHeight * tiLeManHinh;
 
@@ -136,7 +142,7 @@ function RewardTikTokEffect({
 
     async function napDanhSachVideo() {
       try {
-        const response = await fetch(config.manifestSrc, { cache: "no-store" });
+        const response = await fetch(config.manifestSrc, { cache: "force-cache" });
         if (!response.ok) throw new Error("Khong doc duoc reward manifest");
 
         const data = await response.json();
@@ -161,6 +167,7 @@ function RewardTikTokEffect({
           video.preload = "auto";
           video.muted = true;
           video.playsInline = true;
+          video.loop = true;
           video.src = src;
           video.load();
           cacheVideoRefs.current[src] = video;
@@ -213,10 +220,10 @@ function RewardTikTokEffect({
       const video = videoRef.current;
       if (video) {
         video.pause();
-        video.currentTime = 0;
-
-        if (video.readyState < 3) {
-          video.load();
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Ignore seek errors while the browser is still attaching metadata.
         }
       }
     }
@@ -229,14 +236,11 @@ function RewardTikTokEffect({
     }
 
     if (lanKichHoat > 0 && lanKichHoat !== lanDaDungVideoRef.current) {
-      const videoDangDung = xemVideoTiepTheo(danhSachVideo);
+      const videoDangDung = videoSrc || xemVideoTiepTheo(danhSachVideo);
 
       lanDaDungVideoRef.current = lanKichHoat;
 
-      if (videoDangDung && videoDangDung !== videoSrc) {
-        setVideoSrc(videoDangDung);
-        setVideoSanSang(false);
-      } else if (!videoSrc && videoDangDung) {
+      if (!videoSrc && videoDangDung) {
         setVideoSrc(videoDangDung);
       }
 
@@ -263,7 +267,7 @@ function RewardTikTokEffect({
     }
 
     const video = videoRef.current;
-    if (video && video.readyState >= 3) {
+    if (video && video.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
       setVideoSanSang(true);
     } else {
       setVideoSanSang(false);
@@ -395,7 +399,9 @@ function RewardTikTokEffect({
           loop
           playsInline
           onLoadedData={(event) => {
-            if (event.currentTarget.readyState >= 3) setVideoSanSang(true);
+            if (event.currentTarget.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
+              setVideoSanSang(true);
+            }
           }}
           onCanPlay={() => setVideoSanSang(true)}
           onCanPlayThrough={() => setVideoSanSang(true)}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import ModeSwitch from "../components/common/ModeSwitch";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -10,12 +11,12 @@ const DS_CHE_DO_QUIZ = [
   {
     key: "en-vi",
     nhan: "English → Vietnamese",
-    moTa: "Xem tiếng Anh, chọn nghĩa tiếng Việt",
+    shortLabel: "EN → VI",
   },
   {
     key: "vi-en",
     nhan: "Vietnamese → English",
-    moTa: "Xem tiếng Việt, chọn từ tiếng Anh",
+    shortLabel: "VI → EN",
   },
 ];
 
@@ -67,15 +68,33 @@ function TrangQuiz() {
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
   const progressRewardRef = useRef(null);
-
-  const cheDoHienTai =
-    DS_CHE_DO_QUIZ.find((item) => item.key === cheDo) ?? DS_CHE_DO_QUIZ[0];
+  const amThanhDungRef = useRef(null);
 
   const danhSachCauHoi = useMemo(
     () => taoDanhSachCauHoi(danhSachThe, cheDo),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [boId, lanLam, cheDo]
   );
+
+  useEffect(() => {
+    const audio = new Audio("/sound/bigo.mp3");
+    audio.preload = "auto";
+    audio.volume = 0.9;
+    amThanhDungRef.current = audio;
+
+    return () => {
+      audio.pause();
+      amThanhDungRef.current = null;
+    };
+  }, []);
+
+  function phatAmThanhDung() {
+    const audio = amThanhDungRef.current;
+    if (!audio) return;
+
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
 
   function lamLai() {
     setLanLam((giaTri) => giaTri + 1);
@@ -88,10 +107,9 @@ function TrangQuiz() {
     setLanReward(0);
   }
 
-  function doiCheDo(key) {
+  function doiCheDoHoc(key) {
     if (key === cheDo) return;
     setCheDo(key);
-    // Reset quiz khi doi che do
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -121,6 +139,7 @@ function TrangQuiz() {
 
     setDapAnDaChon(dapAn);
     if (dapAn === danhSachCauHoi[chiSo].dapAnDung) {
+      phatAmThanhDung();
       setSoCauDung((diemHienTai) => {
         const diemMoi = diemHienTai + 1;
 
@@ -194,7 +213,7 @@ function TrangQuiz() {
         </p>
         <Link
           to="/decks"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
+          className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
           Quay về danh sách
         </Link>
@@ -216,7 +235,7 @@ function TrangQuiz() {
         </p>
         <Link
           to={`/decks/${boId}`}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
+          className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
           Quay lại bộ từ
         </Link>
@@ -235,11 +254,11 @@ function TrangQuiz() {
           config={CAU_HINH_REWARD_QUIZ}
           progressTargetRef={progressRewardRef}
         />
-        <div className="relative z-10 mx-auto max-w-2xl">
+        <div className="ui-content-enter relative z-10 mx-auto max-w-2xl">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Link
               to={`/decks/${boId}`}
-              className="text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+              className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
             >
               &larr; {bo.title}
             </Link>
@@ -255,24 +274,7 @@ function TrangQuiz() {
               Reward {batReward ? "Bật" : "Tắt"}
             </button>
           </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <label
-              htmlFor="moc-reward-summary"
-              className="ui-label"
-            >
-              Số câu đúng để có phần thưởng
-            </label>
-            <input
-              id="moc-reward-summary"
-              type="number"
-              min="1"
-              value={soCauDungNhanThuong}
-              onChange={capNhatMocReward}
-              className="w-full sm:w-24 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2 text-sm text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-            />
-          </div>
-
-          <section className="mt-6 border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-5 py-8 text-center shadow-[var(--bong-card)]">
+          <section className="ui-content-enter mt-6 border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-5 py-8 text-center shadow-[var(--bong-card)]">
             <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)] mb-3">
               Tổng kết quiz
             </p>
@@ -286,23 +288,23 @@ function TrangQuiz() {
               </span>
             </p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <div className="ui-form-actions sm:justify-center">
               <button
                 type="button"
                 onClick={lamLai}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--primary w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
               >
                 Làm lại
               </button>
               <Link
                 to={`/decks/${boId}`}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--ghost w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
               >
                 Quay lại bộ từ
               </Link>
               <Link
                 to={`/decks/${boId}/flashcard`}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--ghost w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
               >
                 Ôn bằng Flashcard
               </Link>
@@ -330,95 +332,69 @@ function TrangQuiz() {
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             to={`/decks/${boId}`}
-            className="text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
           >
             &larr; {bo.title}
           </Link>
-          <button
-            type="button"
-            aria-pressed={batReward}
-            onClick={doiCheDoReward}
-            className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
-                ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
-                : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
-              }`}
-          >
-            Reward {batReward ? "Bật" : "Tắt"}
-          </button>
-        </div>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-          <label
-            htmlFor="moc-reward"
-            className="ui-label"
-          >
-            Số câu đúng để có phần thưởng
-          </label>
-          <input
-            id="moc-reward"
-            type="number"
-            min="1"
-            value={soCauDungNhanThuong}
-            onChange={capNhatMocReward}
-            className="w-full sm:w-24 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2 text-sm text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-          />
-        </div>
-
-        <div className="mt-4 mb-5">
-          <p className="ui-label mb-2">
-            Chế độ trắc nghiệm
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {DS_CHE_DO_QUIZ.map((item) => {
-              const dangChon = cheDo === item.key;
-
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => doiCheDo(item.key)}
-                  aria-pressed={dangChon}
-                  className={`text-left rounded-lg border px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${dangChon
-                      ? "border-[var(--mau-chinh)] bg-[var(--mau-mat-2)] text-[var(--mau-chu)]"
-                      : "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]"
-                    }`}
-                >
-                  <span className="block ui-mode-title">
-                    {item.nhan}
-                  </span>
-                  <span className="block text-[11px] text-[var(--mau-chu-phu)] mt-0.5">
-                    {item.moTa}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="ui-study-toolbar self-end sm:self-auto">
+            <ModeSwitch
+              value={cheDo}
+              onChange={doiCheDoHoc}
+              options={DS_CHE_DO_QUIZ}
+              ariaLabel="Đổi chế độ trắc nghiệm"
+              variant="compact"
+            />
+            <button
+              type="button"
+              aria-pressed={batReward}
+              onClick={doiCheDoReward}
+              className={`ui-chip ui-chip--control ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
+                  ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
+                  : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
+                }`}
+            >
+              Reward {batReward ? "Bật" : "Tắt"}
+            </button>
+            <div className="ui-compact-field">
+              <label
+                htmlFor="moc-reward-quiz"
+                className="ui-label"
+              >
+                Mốc thưởng
+              </label>
+              <input
+                id="moc-reward-quiz"
+                type="number"
+                min="1"
+                value={soCauDungNhanThuong}
+                onChange={capNhatMocReward}
+                className="ui-input--compact rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+              />
+            </div>
           </div>
         </div>
-
         <div className="mt-5 mb-8">
           <div className="flex items-center justify-between gap-3 mb-3">
             <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachCauHoi.length}
             </span>
-            <span className="ui-chip ui-chip--primary ui-chip--small text-right">
-              {cheDoHienTai.nhan}
-            </span>
           </div>
           <div className="h-2 rounded-full bg-[var(--mau-mat-2)] overflow-hidden border border-[var(--mau-vien)]">
             <div
               ref={progressRewardRef}
-              className="h-full rounded-full bg-[var(--mau-chinh)] transition-all duration-200"
+              className="ui-progress-fill h-full rounded-full bg-[var(--mau-chinh)]"
               style={{ width: `${tienDo}%` }}
             />
           </div>
         </div>
 
-        <section className="text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">
+        <section key={cauHienTai.id} className="ui-content-enter text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">
           <h2 className="break-words text-3xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-4xl">
             {cauHienTai.cauHoi}
           </h2>
         </section>
 
-        <div className="space-y-3 mb-6">
+        <div key={`answers-${cauHienTai.id}`} className="ui-content-enter space-y-3 mb-6">
           {cauHienTai.danhSachDapAn.map((dapAn, index) => {
             const laDapAnDung = dapAn === cauHienTai.dapAnDung;
             const laDapAnNguoiDungChon = dapAn === dapAnDaChon;
@@ -427,9 +403,9 @@ function TrangQuiz() {
               "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
 
             if (daTraLoi && laDapAnDung) {
-              lopTrangThai = "border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10 text-[var(--mau-chu)]";
+              lopTrangThai = "ui-answer-correct border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10 text-[var(--mau-chu)]";
             } else if (daTraLoi && laDapAnNguoiDungChon && !laDapAnDung) {
-              lopTrangThai = "border-[var(--mau-loi)] bg-[var(--mau-loi)]/10 text-[var(--mau-chu)]";
+              lopTrangThai = "ui-answer-wrong border-[var(--mau-loi)] bg-[var(--mau-loi)]/10 text-[var(--mau-chu)]";
             } else if (daTraLoi) {
               lopTrangThai = "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] opacity-60";
             }
@@ -439,7 +415,7 @@ function TrangQuiz() {
                 key={`${cauHienTai.id}-${dapAn}`}
                 type="button"
                 onClick={() => chonDapAn(dapAn)}
-                className={`min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
+                className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
               >
                 <span className="text-xs font-mono text-[var(--mau-chu-phu)] mr-3">
                   {index + 1}
@@ -451,7 +427,7 @@ function TrangQuiz() {
         </div>
 
         {daTraLoi && (
-          <div className="text-center">
+          <div className="ui-feedback-pop text-center">
             <p
               className={`text-sm font-medium mb-4 ${traLoiDung ? "text-[var(--mau-thanh-cong)]" : "text-[var(--mau-loi)]"
                 }`}

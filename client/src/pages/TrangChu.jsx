@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
  */
 function TrangChu() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10">
+    <div className="ui-page-enter min-h-screen flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-6 py-8 text-center shadow-[var(--bong-card)] sm:px-8 sm:py-10">
         <h1 className="text-[clamp(2rem,5vw,3rem)] font-bold text-[var(--mau-chu)] mb-3 leading-tight">
           Streak Drop
@@ -21,7 +21,7 @@ function TrangChu() {
 
         <Link
           to="/decks"
-          className="inline-block bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] px-6 py-3 rounded-lg font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+          className="ui-button ui-button--primary inline-flex bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] px-6 py-3 rounded-lg font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           Bắt đầu học
         </Link>
