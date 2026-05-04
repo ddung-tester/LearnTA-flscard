@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
+import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 
 const DS_CHE_DO = [
@@ -139,16 +140,24 @@ function TrangFlashcard() {
           </Link>
         </div>
         <div className="ui-page-header__actions">
-          <div className="ui-study-toggle">
-            <span className="ui-study-toggle__label">Ngôn ngữ</span>
-            <ModeSwitch
-              value={cheDo}
-              onChange={doiCheDoHoc}
-              options={DS_CHE_DO}
-              ariaLabel="Đổi chế độ flashcard"
-              variant="compact"
-            />
-          </div>
+          <StudySettingsPopover label="Cài đặt flashcard">
+            <section className="ui-settings-popover__section">
+              <p className="ui-settings-popover__title">Học tập</p>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Ngôn ngữ</span>
+                  <span className="ui-settings-popover__hint">Đổi mặt trước và mặt sau</span>
+                </div>
+                <ModeSwitch
+                  value={cheDo}
+                  onChange={doiCheDoHoc}
+                  options={DS_CHE_DO}
+                  ariaLabel="Đổi chế độ flashcard"
+                  variant="compact"
+                />
+              </div>
+            </section>
+          </StudySettingsPopover>
         </div>
       </div>
 

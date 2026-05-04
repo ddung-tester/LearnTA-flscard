@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import RewardProgressBar from "../components/common/RewardProgressBar";
+import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -408,42 +409,54 @@ function TrangQuiz() {
           >
             &larr; {bo.title}
           </Link>
-          <div className="ui-study-toolbar self-end sm:self-auto">
-            <div className="ui-study-toggle">
-              <span className="ui-study-toggle__label">Ngôn ngữ</span>
-              <ModeSwitch
-                value={cheDo}
-                onChange={doiCheDoHoc}
-                options={DS_CHE_DO_QUIZ}
-                ariaLabel="Đổi chế độ trắc nghiệm"
-                variant="compact"
-              />
-            </div>
-            <div className="ui-study-toggle">
-              <span className="ui-study-toggle__label">Reward</span>
-              <ToggleSwitch
-                checked={batReward}
-                onChange={doiCheDoReward}
-                ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
-              />
-            </div>
-            <div className="ui-compact-field">
-              <label
-                htmlFor="moc-reward-quiz"
-                className="ui-label"
-              >
-                Mốc thưởng
-              </label>
-              <input
-                id="moc-reward-quiz"
-                type="number"
-                min="1"
-                value={soCauDungNhanThuong}
-                onChange={capNhatMocReward}
-                className="ui-input--compact rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              />
-            </div>
-          </div>
+          <StudySettingsPopover label="Cài đặt trắc nghiệm">
+            <section className="ui-settings-popover__section">
+              <p className="ui-settings-popover__title">Học tập</p>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Ngôn ngữ</span>
+                  <span className="ui-settings-popover__hint">Đổi chiều câu hỏi và đáp án</span>
+                </div>
+                <ModeSwitch
+                  value={cheDo}
+                  onChange={doiCheDoHoc}
+                  options={DS_CHE_DO_QUIZ}
+                  ariaLabel="Đổi chế độ trắc nghiệm"
+                  variant="compact"
+                />
+              </div>
+            </section>
+            <section className="ui-settings-popover__section">
+              <p className="ui-settings-popover__title">Phần thưởng</p>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Reward</span>
+                  <span className="ui-settings-popover__hint">Bật hoặc tắt hiệu ứng thưởng</span>
+                </div>
+                <ToggleSwitch
+                  checked={batReward}
+                  onChange={doiCheDoReward}
+                  ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
+                />
+              </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <label htmlFor="moc-reward-quiz" className="ui-settings-popover__label">
+                    Mốc thưởng
+                  </label>
+                  <span className="ui-settings-popover__hint">Số câu đúng để kích hoạt thưởng</span>
+                </div>
+                <input
+                  id="moc-reward-quiz"
+                  type="number"
+                  min="1"
+                  value={soCauDungNhanThuong}
+                  onChange={capNhatMocReward}
+                  className="ui-input--compact rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                />
+              </div>
+            </section>
+          </StudySettingsPopover>
         </div>
         <div className="mt-5 mb-8">
           <div className="mb-3 flex items-center justify-between gap-3">
