@@ -129,7 +129,7 @@ function TrangFlashcard() {
   const tienDo = ((chiSo + 1) / danhSach.length) * 100;
 
   return (
-    <div className="ui-page-stack max-w-2xl mx-auto">
+    <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-4">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
           <Link
@@ -168,24 +168,27 @@ function TrangFlashcard() {
         </div>
         <div className="h-2.5 overflow-hidden rounded-full border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
           <div
-            className="ui-progress-fill h-full rounded-full bg-[var(--mau-chinh)]"
+            className="ui-progress-fill h-full rounded-full bg-[linear-gradient(90deg,rgba(120,236,255,0.98),rgba(35,181,240,0.98)_46%,rgba(11,129,212,0.98))] shadow-[0_0_0.6rem_rgba(47,190,243,0.18)]"
             style={{ width: `${tienDo}%` }}
           />
         </div>
       </div>
 
-      <div key={`${cheDo}-${chiSo}`} className="ui-content-enter [perspective:1200px] mb-5">
+      <div
+        key={`${cheDo}-${chiSo}`}
+        className="ui-content-enter [perspective:1200px] flex-1 min-h-0"
+      >
         <button
           type="button"
           onClick={latThe}
           aria-pressed={daLat}
-          className="ui-card-interactive relative w-full aspect-[3/2] min-h-56 sm:min-h-72 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+          className="ui-card-interactive relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem]"
         >
           <div
             className={`absolute inset-0 rounded-xl transition-transform duration-300 ease-[var(--tuong-tac-ease-soft)] [transform-style:preserve-3d] ${daLat ? "[transform:rotateY(180deg)]" : "[transform:rotateY(0deg)]"
               }`}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-7 sm:py-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9">
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
                 {matTruoc}
               </span>
@@ -194,7 +197,7 @@ function TrangFlashcard() {
               </span>
             </div>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-7 sm:py-8">
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9">
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
                 {matSau}
               </span>
@@ -208,7 +211,7 @@ function TrangFlashcard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 pb-1">
         <button
           type="button"
           onClick={() => diChuyen(-1)}

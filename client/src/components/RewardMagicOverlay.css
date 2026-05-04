@@ -18,7 +18,7 @@
     radial-gradient(circle at var(--reward-source-x) var(--reward-source-y), rgba(243, 251, 255, 0.2), rgba(143, 211, 255, 0.1) 10rem, transparent 22rem),
     radial-gradient(circle at 0% 50%, rgba(91, 188, 255, 0.14), transparent 25rem),
     radial-gradient(circle at 100% 50%, rgba(217, 135, 255, 0.1), transparent 25rem);
-  opacity: 0.86;
+  opacity: 0.42;
 }
 
 .reward-magic__study-frame {
@@ -30,11 +30,11 @@
   transform: translate(-50%, -50%);
   border-radius: 1.25rem;
   background:
-    radial-gradient(ellipse at center, rgba(243, 251, 255, 0.14), rgba(143, 211, 255, 0.12) 36%, transparent 68%),
-    linear-gradient(90deg, transparent, rgba(91, 188, 255, 0.12), transparent);
+    radial-gradient(ellipse at center, rgba(243, 251, 255, 0.06), rgba(143, 211, 255, 0.05) 36%, transparent 68%),
+    linear-gradient(90deg, transparent, rgba(91, 188, 255, 0.05), transparent);
   box-shadow:
-    -24px 0 38px rgba(7, 59, 95, 0.08),
-    24px 0 38px rgba(7, 59, 95, 0.08);
+    -24px 0 38px rgba(7, 59, 95, 0.04),
+    24px 0 38px rgba(7, 59, 95, 0.04);
 }
 
 .reward-magic__source-glow {

@@ -210,7 +210,7 @@ function RewardMagicOverlay({
         const waitingTimeline = gsap.timeline({ repeat: -1, yoyo: true });
 
         waitingTimeline
-          .to(studyFrame, { autoAlpha: 0.22, scale: 1, duration: 0.24 }, 0)
+          .to(studyFrame, { autoAlpha: 0.1, scale: 1, duration: 0.24 }, 0)
           .to(sourceGlow, { autoAlpha: 0.9, scale: 0.98, duration: 0.32 }, 0)
           .to(warmupPaths, { autoAlpha: 0.72, strokeDashoffset: 0, duration: 0.9, ease: "sine.inOut" }, 0.12);
 
@@ -224,7 +224,7 @@ function RewardMagicOverlay({
         const quickTimeline = gsap.timeline();
 
         quickTimeline
-          .to(studyFrame, { autoAlpha: 0.36, duration: 0.12 })
+          .to(studyFrame, { autoAlpha: 0.12, duration: 0.12 })
           .to(
             portals,
             {
@@ -247,7 +247,7 @@ function RewardMagicOverlay({
       });
 
       timeline
-        .to(studyFrame, { autoAlpha: 0.34, scale: 1, duration: 0.24 }, 0)
+        .to(studyFrame, { autoAlpha: 0.14, scale: 1, duration: 0.24 }, 0)
         .to(sourceGlow, { autoAlpha: 1, scale: 1.05, duration: 0.34 }, 0)
         .to(
           sparks,

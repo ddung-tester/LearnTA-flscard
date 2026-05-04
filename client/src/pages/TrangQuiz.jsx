@@ -64,7 +64,6 @@ function TrangQuiz() {
   const [soCauDung, setSoCauDung] = useState(0);
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [hienReward, setHienReward] = useState(false);
-  const [diemRewardGanNhat, setDiemRewardGanNhat] = useState(0);
   const [lanReward, setLanReward] = useState(0);
   const [batReward, setBatReward] = useState(true);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
@@ -138,7 +137,6 @@ function TrangQuiz() {
 
     rewardLaunchTimerRef.current = setTimeout(() => {
       setRewardProgressPhase("beamLaunch");
-      setDiemRewardGanNhat(diemMoi);
       setLanReward((lanHienTai) => lanHienTai + 1);
       setHienReward(true);
     }, 560);
@@ -169,7 +167,6 @@ function TrangQuiz() {
     setSoCauDung(0);
     setDaHoanThanh(false);
     setHienReward(false);
-    setDiemRewardGanNhat(0);
     setLanReward(0);
   }
 
@@ -183,7 +180,6 @@ function TrangQuiz() {
     setSoCauDung(0);
     setDaHoanThanh(false);
     setHienReward(false);
-    setDiemRewardGanNhat(0);
     setLanReward(0);
   }
 
@@ -201,7 +197,6 @@ function TrangQuiz() {
     const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
     datLaiProgressReward();
     setSoCauDungNhanThuong(giaTriMoi);
-    setDiemRewardGanNhat(0);
     setHienReward(false);
   }
 
@@ -213,14 +208,11 @@ function TrangQuiz() {
       phatAmThanhDung();
       setSoCauDung((diemHienTai) => {
         const diemMoi = diemHienTai + 1;
-        const tienDoMoi = Math.min(
-          rewardProgressValueRef.current + 1,
-          soCauDungNhanThuong
-        );
+        const tienDoMoi =
+          ((diemMoi - 1) % soCauDungNhanThuong) + 1;
         const coReward =
           batReward &&
-          tienDoMoi >= soCauDungNhanThuong &&
-          diemMoi !== diemRewardGanNhat;
+          diemMoi % soCauDungNhanThuong === 0;
 
         batDauTienTrinhReward(tienDoMoi, coReward);
 
@@ -314,8 +306,6 @@ function TrangQuiz() {
   }
 
   if (daHoanThanh) {
-    const soCanOn = danhSachCauHoi.length - soCauDung;
-
     return (
       <>
         <RewardTikTokEffect
@@ -326,56 +316,51 @@ function TrangQuiz() {
           onHideComplete={xuLyRewardDongXong}
         />
         <div className="ui-content-enter relative z-10 mx-auto max-w-2xl">
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Link
-              to={`/decks/${boId}`}
-              className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
-            >
-              &larr; {bo.title}
-            </Link>
-            <button
-              type="button"
-              aria-pressed={batReward}
-              onClick={doiCheDoReward}
-              className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
-                  ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
-                  : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
-                }`}
-            >
-              Reward {batReward ? "Bật" : "Tắt"}
-            </button>
-          </div>
-          <section className="ui-content-enter mt-6 border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-5 py-8 text-center shadow-[var(--bong-card)]">
-            <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)] mb-3">
+          <Link
+            to={`/decks/${boId}`}
+            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+          >
+            &larr; {bo.title}
+          </Link>
+          <section className="ui-content-enter mt-6 rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-6 py-8 text-center shadow-[var(--bong-card)] sm:px-8 sm:py-9">
+            <p className="mb-3 text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
               Tổng kết quiz
             </p>
-            <h2 className="text-2xl font-semibold text-[var(--mau-chu)] mb-3">
+            <h2 className="text-2xl font-semibold text-[var(--mau-chu)] sm:text-[2rem]">
               Bạn nhớ đúng {soCauDung}/{danhSachCauHoi.length} từ
             </h2>
-            <p className="text-[var(--mau-chu-phu)] mb-8">
-              Cần ôn lại:{" "}
-              <span className="font-semibold text-[var(--mau-phu)]">
-                {soCanOn} từ
-              </span>
-            </p>
+            <div className="ui-stat-grid mx-auto mt-7 mb-8 max-w-xl">
+              <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
+                <p className="ui-stat-label mb-1">Tổng câu</p>
+                <p className="ui-stat-value text-[var(--mau-chu)]">
+                  {danhSachCauHoi.length}
+                </p>
+              </div>
+              <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
+                <p className="ui-stat-label mb-1">Đúng</p>
+                <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
+                  {soCauDung}
+                </p>
+              </div>
+            </div>
 
-            <div className="ui-form-actions sm:justify-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
               <button
                 type="button"
                 onClick={lamLai}
-                className="ui-button ui-button--primary w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--primary w-full sm:min-w-[9rem] sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
               >
                 Làm lại
               </button>
               <Link
                 to={`/decks/${boId}`}
-                className="ui-button ui-button--ghost w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--ghost w-full sm:min-w-[11rem] sm:w-auto px-5 py-2.5 rounded-xl border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors text-center"
               >
                 Quay lại bộ từ
               </Link>
               <Link
                 to={`/decks/${boId}/flashcard`}
-                className="ui-button ui-button--ghost w-full sm:w-auto px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--ghost w-full sm:min-w-[12rem] sm:w-auto px-5 py-2.5 rounded-xl border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors text-center"
               >
                 Ôn bằng Flashcard
               </Link>
