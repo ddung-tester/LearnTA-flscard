@@ -242,16 +242,6 @@
   animation: reward-fallback-pulse 1100ms ease-out infinite alternate;
 }
 
-.reward-magic--fade-out .reward-magic__portal,
-.reward-magic--fade-out .reward-magic__media,
-.reward-magic--fade-out .reward-magic__study-frame,
-.reward-magic--fade-out .reward-magic__source-glow,
-.reward-magic--fade-out .reward-magic__path,
-.reward-magic--fade-out .reward-magic__spark,
-.reward-magic--fade-out .reward-magic__burst {
-  opacity: 0 !important;
-}
-
 @keyframes reward-portal-pulse {
   from {
     opacity: 0.72;

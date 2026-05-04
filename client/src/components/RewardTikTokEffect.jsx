@@ -24,7 +24,8 @@ function RewardTikTokEffect({
   active,
   lanKichHoat = 0,
   config = CAU_HINH_REWARD_QUIZ,
-  progressTargetRef,
+  progressEndpointRef,
+  onHideComplete,
 }) {
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
@@ -125,7 +126,8 @@ function RewardTikTokEffect({
     setChoPhepPhatVideo(false);
     setLoiVideo(false);
     lanTimelineRewardRef.current = 0;
-  }, []);
+    onHideComplete?.();
+  }, [onHideComplete]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -255,7 +257,7 @@ function RewardTikTokEffect({
       lanTimelineRewardRef.current = lanKichHoat;
       setChoPhepPhatVideo(false);
 
-      const node = progressTargetRef?.current;
+      const node = progressEndpointRef?.current;
       setOriginRect(node ? node.getBoundingClientRect() : null);
 
       const video = videoRef.current;
@@ -297,7 +299,7 @@ function RewardTikTokEffect({
     coTheHienThi,
     danhSachVideo,
     lanKichHoat,
-    progressTargetRef,
+    progressEndpointRef,
     videoSanSang,
     videoSrc,
   ]);
@@ -311,10 +313,14 @@ function RewardTikTokEffect({
     const video = videoRef.current;
     if (video && video.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
       setVideoSanSang(true);
-    } else {
-      setVideoSanSang(false);
-      video?.load();
+      window.requestAnimationFrame(() => {
+        veTatCaCanvas(video);
+      });
+      return undefined;
     }
+
+    setVideoSanSang(false);
+    video?.load();
   }, [videoSrc]);
 
   useEffect(() => {
@@ -454,9 +460,17 @@ function RewardTikTokEffect({
           onLoadedData={(event) => {
             if (event.currentTarget.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
               setVideoSanSang(true);
+              window.requestAnimationFrame(() => {
+                veTatCaCanvas(event.currentTarget);
+              });
             }
           }}
-          onCanPlay={() => setVideoSanSang(true)}
+          onCanPlay={(event) => {
+            setVideoSanSang(true);
+            window.requestAnimationFrame(() => {
+              veTatCaCanvas(event.currentTarget);
+            });
+          }}
           onCanPlayThrough={() => setVideoSanSang(true)}
           onError={() => setLoiVideo(true)}
         />

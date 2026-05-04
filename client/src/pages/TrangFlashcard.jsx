@@ -139,13 +139,16 @@ function TrangFlashcard() {
           </Link>
         </div>
         <div className="ui-page-header__actions">
-          <ModeSwitch
-            value={cheDo}
-            onChange={doiCheDoHoc}
-            options={DS_CHE_DO}
-            ariaLabel="Đổi chế độ flashcard"
-            variant="compact"
-          />
+          <div className="ui-study-toggle">
+            <span className="ui-study-toggle__label">Ngôn ngữ</span>
+            <ModeSwitch
+              value={cheDo}
+              onChange={doiCheDoHoc}
+              options={DS_CHE_DO}
+              ariaLabel="Đổi chế độ flashcard"
+              variant="compact"
+            />
+          </div>
         </div>
       </div>
 

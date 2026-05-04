@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
+import ToggleSwitch from "../components/common/ToggleSwitch";
+import RewardProgressBar from "../components/common/RewardProgressBar";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -67,8 +69,13 @@ function TrangQuiz() {
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
-  const progressRewardRef = useRef(null);
+  const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
+  const [rewardProgressValue, setRewardProgressValue] = useState(0);
+  const progressEndpointRef = useRef(null);
+  const rewardProgressValueRef = useRef(0);
   const amThanhDungRef = useRef(null);
+  const rewardLaunchTimerRef = useRef(null);
+  const rewardProgressTimerRef = useRef(null);
 
   const danhSachCauHoi = useMemo(
     () => taoDanhSachCauHoi(danhSachThe, cheDo),
@@ -96,7 +103,65 @@ function TrangQuiz() {
     audio.play().catch(() => {});
   }
 
+  function xoaTimerProgressReward() {
+    if (rewardLaunchTimerRef.current) {
+      clearTimeout(rewardLaunchTimerRef.current);
+      rewardLaunchTimerRef.current = null;
+    }
+
+    if (rewardProgressTimerRef.current) {
+      clearTimeout(rewardProgressTimerRef.current);
+      rewardProgressTimerRef.current = null;
+    }
+  }
+
+  function datLaiProgressReward() {
+    xoaTimerProgressReward();
+    setRewardProgressPhase("idle");
+    setRewardProgressValue(0);
+    rewardProgressValueRef.current = 0;
+  }
+
+  function batDauTienTrinhReward(diemMoi, coReward) {
+    xoaTimerProgressReward();
+    setRewardProgressValue(Math.min(diemMoi, soCauDungNhanThuong));
+    rewardProgressValueRef.current = Math.min(diemMoi, soCauDungNhanThuong);
+    setRewardProgressPhase("correctPulse");
+
+    if (!coReward) {
+      rewardProgressTimerRef.current = setTimeout(() => {
+        setRewardProgressPhase("idle");
+      }, 680);
+      return;
+    }
+
+    rewardLaunchTimerRef.current = setTimeout(() => {
+      setRewardProgressPhase("beamLaunch");
+      setDiemRewardGanNhat(diemMoi);
+      setLanReward((lanHienTai) => lanHienTai + 1);
+      setHienReward(true);
+    }, 560);
+  }
+
+  function xuLyRewardDongXong() {
+    xoaTimerProgressReward();
+    setRewardProgressPhase("rewardComplete");
+    rewardProgressTimerRef.current = setTimeout(() => {
+      setRewardProgressPhase("idle");
+      setRewardProgressValue(0);
+      rewardProgressValueRef.current = 0;
+    }, 780);
+  }
+
+  useEffect(
+    () => () => {
+      xoaTimerProgressReward();
+    },
+    []
+  );
+
   function lamLai() {
+    datLaiProgressReward();
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -109,6 +174,7 @@ function TrangQuiz() {
 
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
+    datLaiProgressReward();
     setCheDo(key);
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
@@ -122,13 +188,17 @@ function TrangQuiz() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
-      if (dangBat) setHienReward(false);
+      if (dangBat) {
+        setHienReward(false);
+        datLaiProgressReward();
+      }
       return !dangBat;
     });
   }
 
   function capNhatMocReward(event) {
     const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
+    datLaiProgressReward();
     setSoCauDungNhanThuong(giaTriMoi);
     setDiemRewardGanNhat(0);
     setHienReward(false);
@@ -142,17 +212,16 @@ function TrangQuiz() {
       phatAmThanhDung();
       setSoCauDung((diemHienTai) => {
         const diemMoi = diemHienTai + 1;
-
-        if (
+        const tienDoMoi = Math.min(
+          rewardProgressValueRef.current + 1,
+          soCauDungNhanThuong
+        );
+        const coReward =
           batReward &&
-          diemMoi >= soCauDungNhanThuong &&
-          diemMoi % soCauDungNhanThuong === 0 &&
-          diemMoi !== diemRewardGanNhat
-        ) {
-          setDiemRewardGanNhat(diemMoi);
-          setLanReward((lanHienTai) => lanHienTai + 1);
-          setHienReward(true);
-        }
+          tienDoMoi >= soCauDungNhanThuong &&
+          diemMoi !== diemRewardGanNhat;
+
+        batDauTienTrinhReward(tienDoMoi, coReward);
 
         return diemMoi;
       });
@@ -252,7 +321,8 @@ function TrangQuiz() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
-          progressTargetRef={progressRewardRef}
+          progressEndpointRef={progressEndpointRef}
+          onHideComplete={xuLyRewardDongXong}
         />
         <div className="ui-content-enter relative z-10 mx-auto max-w-2xl">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -318,7 +388,8 @@ function TrangQuiz() {
   const cauHienTai = danhSachCauHoi[chiSo];
   const daTraLoi = dapAnDaChon !== null;
   const traLoiDung = dapAnDaChon === cauHienTai.dapAnDung;
-  const tienDo = ((chiSo + 1) / danhSachCauHoi.length) * 100;
+  const tongSoCauHoi = danhSachCauHoi.length;
+  const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
 
   return (
     <>
@@ -326,7 +397,8 @@ function TrangQuiz() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
-        progressTargetRef={progressRewardRef}
+        progressEndpointRef={progressEndpointRef}
+        onHideComplete={xuLyRewardDongXong}
       />
       <div className="relative z-10 mx-auto max-w-2xl">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -337,24 +409,24 @@ function TrangQuiz() {
             &larr; {bo.title}
           </Link>
           <div className="ui-study-toolbar self-end sm:self-auto">
-            <ModeSwitch
-              value={cheDo}
-              onChange={doiCheDoHoc}
-              options={DS_CHE_DO_QUIZ}
-              ariaLabel="Đổi chế độ trắc nghiệm"
-              variant="compact"
-            />
-            <button
-              type="button"
-              aria-pressed={batReward}
-              onClick={doiCheDoReward}
-              className={`ui-chip ui-chip--control ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
-                  ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
-                  : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
-                }`}
-            >
-              Reward {batReward ? "Bật" : "Tắt"}
-            </button>
+            <div className="ui-study-toggle">
+              <span className="ui-study-toggle__label">Ngôn ngữ</span>
+              <ModeSwitch
+                value={cheDo}
+                onChange={doiCheDoHoc}
+                options={DS_CHE_DO_QUIZ}
+                ariaLabel="Đổi chế độ trắc nghiệm"
+                variant="compact"
+              />
+            </div>
+            <div className="ui-study-toggle">
+              <span className="ui-study-toggle__label">Reward</span>
+              <ToggleSwitch
+                checked={batReward}
+                onChange={doiCheDoReward}
+                ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
+              />
+            </div>
             <div className="ui-compact-field">
               <label
                 htmlFor="moc-reward-quiz"
@@ -374,18 +446,19 @@ function TrangQuiz() {
           </div>
         </div>
         <div className="mt-5 mb-8">
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachCauHoi.length}
             </span>
           </div>
-          <div className="h-2 rounded-full bg-[var(--mau-mat-2)] overflow-hidden border border-[var(--mau-vien)]">
-            <div
-              ref={progressRewardRef}
-              className="ui-progress-fill h-full rounded-full bg-[var(--mau-chinh)]"
-              style={{ width: `${tienDo}%` }}
-            />
-          </div>
+          <RewardProgressBar
+            currentValue={soCauDung}
+            totalValue={tongSoCauHoi}
+            progressPercent={tienDoReward}
+            phase={rewardProgressPhase}
+            endpointRef={progressEndpointRef}
+            label="Tiến độ"
+          />
         </div>
 
         <section key={cauHienTai.id} className="ui-content-enter text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">

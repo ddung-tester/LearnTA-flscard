@@ -327,6 +327,186 @@ a[href][class*="rounded"]:active,
   transition: width 260ms var(--tuong-tac-ease-soft);
 }
 
+.ui-reward-progress {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.ui-reward-progress__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ui-reward-progress__label {
+  color: var(--mau-chu-phu);
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.ui-reward-progress__value {
+  color: var(--mau-chinh);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ui-reward-progress__track {
+  position: relative;
+  height: 0.96rem;
+  overflow: visible;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(247, 252, 255, 0.98), rgba(214, 239, 248, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(243, 251, 255, 0.94),
+    inset 0 -1px 0 rgba(15, 95, 148, 0.04),
+    0 2px 7px rgba(7, 59, 95, 0.05);
+}
+
+.ui-reward-progress__fill {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  overflow: visible;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(165, 236, 252, 0.98), rgba(69, 184, 232, 0.98) 48%, rgba(31, 137, 199, 0.98));
+  box-shadow:
+    0 0 0 rgba(52, 211, 153, 0),
+    0 0 0 rgba(91, 188, 255, 0),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
+  transition:
+    width 320ms var(--tuong-tac-ease-soft),
+    box-shadow 220ms var(--tuong-tac-ease-soft),
+    filter 220ms var(--tuong-tac-ease-soft);
+}
+
+.ui-reward-progress__fill-core,
+.ui-reward-progress__glow,
+.ui-reward-progress__shimmer,
+.ui-reward-progress__wave,
+.ui-reward-progress__endpoint {
+  pointer-events: none;
+}
+
+.ui-reward-progress__fill-core {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(243, 251, 255, 0.12) 40%, rgba(7, 59, 95, 0.08));
+}
+
+.ui-reward-progress__glow {
+  position: absolute;
+  inset: -0.12rem;
+  border-radius: inherit;
+  opacity: 0;
+  background: linear-gradient(90deg, rgba(160, 236, 255, 0.26), rgba(99, 219, 212, 0.22));
+  filter: blur(0.28rem);
+  transition: opacity 180ms var(--tuong-tac-ease-soft);
+}
+
+.ui-reward-progress__shimmer,
+.ui-reward-progress__wave {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+}
+
+.ui-reward-progress__shimmer {
+  left: -14%;
+  width: 22%;
+  background: linear-gradient(90deg, transparent, rgba(243, 251, 255, 0.74), transparent);
+  transform: skewX(-14deg) translateX(0);
+}
+
+.ui-reward-progress__wave {
+  background: linear-gradient(90deg, transparent, rgba(243, 251, 255, 0.18), rgba(103, 225, 220, 0.18), transparent);
+}
+
+.ui-reward-progress__endpoint {
+  position: absolute;
+  right: 0.08rem;
+  top: 50%;
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.96) 0%, rgba(182, 241, 255, 0.88) 40%, rgba(57, 169, 217, 0.92) 78%, rgba(15, 95, 148, 0.72) 100%);
+  box-shadow:
+    0 0 0 0 rgba(143, 232, 255, 0.18),
+    0 0 0.44rem rgba(91, 188, 255, 0.18);
+  transition:
+    box-shadow 180ms var(--tuong-tac-ease-soft),
+    transform 180ms var(--tuong-tac-ease-soft),
+    opacity 180ms var(--tuong-tac-ease-soft);
+}
+
+.ui-reward-progress--correctPulse .ui-reward-progress__fill {
+  filter: saturate(1.08) brightness(1.02);
+  box-shadow:
+    0 0 0.42rem rgba(160, 236, 255, 0.28),
+    0 0 0.86rem rgba(91, 188, 255, 0.22),
+    inset 0 1px 0 rgba(243, 251, 255, 0.54);
+}
+
+.ui-reward-progress--correctPulse .ui-reward-progress__glow,
+.ui-reward-progress--beamLaunch .ui-reward-progress__glow {
+  opacity: 1;
+}
+
+.ui-reward-progress--correctPulse .ui-reward-progress__shimmer {
+  opacity: 0.82;
+  animation: reward-progress-shimmer 520ms var(--tuong-tac-ease-soft) 1;
+}
+
+.ui-reward-progress--correctPulse .ui-reward-progress__endpoint {
+  animation: reward-progress-endpoint-pulse 420ms var(--tuong-tac-ease-soft) 2;
+}
+
+.ui-reward-progress--beamLaunch .ui-reward-progress__fill {
+  box-shadow:
+    0 0 0.46rem rgba(123, 223, 244, 0.24),
+    0 0 0.92rem rgba(91, 188, 255, 0.2),
+    inset 0 1px 0 rgba(243, 251, 255, 0.58);
+}
+
+.ui-reward-progress--beamLaunch .ui-reward-progress__endpoint {
+  transform: translateY(-50%) scale(1.08);
+  box-shadow:
+    0 0 0 0.18rem rgba(180, 241, 255, 0.16),
+    0 0 0.74rem rgba(91, 188, 255, 0.28),
+    0 0 1.04rem rgba(103, 225, 220, 0.16);
+  animation: reward-progress-endpoint-launch 420ms var(--tuong-tac-ease-soft) 1;
+}
+
+.ui-reward-progress--rewardComplete {
+  animation: reward-progress-track-settle 760ms var(--tuong-tac-ease-soft) 1;
+}
+
+.ui-reward-progress--rewardComplete .ui-reward-progress__fill {
+  box-shadow:
+    0 0 0.34rem rgba(160, 236, 255, 0.24),
+    0 0 0.7rem rgba(91, 188, 255, 0.16),
+    inset 0 1px 0 rgba(243, 251, 255, 0.5);
+}
+
+.ui-reward-progress--rewardComplete .ui-reward-progress__wave {
+  opacity: 0.62;
+  animation: reward-progress-wave 640ms var(--tuong-tac-ease-soft) 1;
+}
+
+.ui-reward-progress--rewardComplete .ui-reward-progress__endpoint {
+  animation: reward-progress-complete-pop 560ms var(--tuong-tac-ease-soft) 1;
+}
+
 .ui-import-zone {
   min-height: 13rem;
 }
@@ -458,6 +638,21 @@ a[href][class*="rounded"]:active,
   gap: 0.65rem 0.8rem;
 }
 
+.ui-study-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.ui-study-toggle__label {
+  color: var(--mau-chu-phu);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 .ui-compact-field {
   display: inline-flex;
   align-items: center;
@@ -486,6 +681,39 @@ a[href][class*="rounded"]:active,
   padding: 0.34rem 0.85rem;
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+.ui-toggle-switch {
+  position: relative;
+  display: inline-flex;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 1.45rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: rgba(216, 243, 251, 0.58);
+  padding: 0.14rem;
+  box-shadow: inset 0 1px 2px rgba(7, 59, 95, 0.08);
+}
+
+.ui-toggle-switch__thumb {
+  position: absolute;
+  left: 0.14rem;
+  top: 0.14rem;
+  width: calc(50% - 0.14rem);
+  height: calc(100% - 0.28rem);
+  border: 1px solid rgba(15, 95, 148, 0.22);
+  border-radius: 999px;
+  background: var(--mau-input);
+  box-shadow: 0 8px 18px rgba(7, 59, 95, 0.14);
+  transform: translateX(0);
+  transition: transform 220ms var(--tuong-tac-ease-soft),
+    box-shadow 180ms var(--tuong-tac-ease),
+    background-color 180ms var(--tuong-tac-ease);
+}
+
+.ui-toggle-switch--checked .ui-toggle-switch__thumb {
+  transform: translateX(calc(100% + 0.12rem));
 }
 
 .ui-section-stack {
@@ -641,6 +869,11 @@ a[href][class*="rounded"]:active,
 @media (hover: hover) {
 
   .ui-mode-switch:hover .ui-mode-switch__thumb {
+    box-shadow: 0 10px 22px rgba(7, 59, 95, 0.16);
+  }
+
+  .ui-toggle-switch:hover .ui-toggle-switch__thumb,
+  .ui-mode-switch--compact:hover .ui-mode-switch__thumb {
     box-shadow: 0 10px 22px rgba(7, 59, 95, 0.16);
   }
 
@@ -854,6 +1087,80 @@ a[href][class*="rounded"]:active,
   }
 }
 
+@keyframes reward-progress-shimmer {
+  from {
+    transform: skewX(-16deg) translateX(-130%);
+  }
+  to {
+    transform: skewX(-14deg) translateX(500%);
+  }
+}
+
+@keyframes reward-progress-endpoint-pulse {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+    box-shadow:
+      0 0 0 0 rgba(143, 232, 255, 0.12),
+      0 0 0.32rem rgba(91, 188, 255, 0.14);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.08);
+    box-shadow:
+      0 0 0 0.12rem rgba(143, 232, 255, 0.1),
+      0 0 0.5rem rgba(91, 188, 255, 0.2);
+  }
+}
+
+@keyframes reward-progress-endpoint-launch {
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  55% {
+    transform: translateY(-50%) scale(1.12);
+  }
+  100% {
+    transform: translateY(-50%) scale(1.02);
+  }
+}
+
+@keyframes reward-progress-wave {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes reward-progress-track-settle {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.01);
+  }
+}
+
+@keyframes reward-progress-complete-pop {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+  35% {
+    transform: translateY(-50%) scale(1.1);
+  }
+  70% {
+    transform: translateY(-50%) scale(0.99);
+  }
+}
+
 @keyframes ui-backdrop-in {
   from {
     opacity: 0;
@@ -965,6 +1272,12 @@ a[href][class*="rounded"]:active,
   .ui-page-enter,
   .ui-content-enter,
   .ui-feedback-pop,
+  .ui-reward-progress--correctPulse .ui-reward-progress__shimmer,
+  .ui-reward-progress--correctPulse .ui-reward-progress__endpoint,
+  .ui-reward-progress--beamLaunch .ui-reward-progress__endpoint,
+  .ui-reward-progress--rewardComplete .ui-reward-progress__wave,
+  .ui-reward-progress--rewardComplete .ui-reward-progress__endpoint,
+  .ui-reward-progress--rewardComplete,
   .ui-toast,
   .ui-answer-correct,
   .ui-answer-wrong,

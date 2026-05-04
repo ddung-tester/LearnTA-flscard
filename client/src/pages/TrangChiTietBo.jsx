@@ -370,13 +370,12 @@ function TrangChiTietBo() {
                       {the.meaning_vi}
                     </span>
                   </div>
-                  <button
-                    type="button"
+                  <NutIconQuanLyTu
+                    label={`Sửa từ ${the.term_en}`}
                     onClick={() => moFormSuaTu(the)}
-                    className="ui-button ui-button--ghost w-full rounded-md border border-[var(--mau-vien)] px-3 py-1.5 text-xs font-medium text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors sm:w-auto sm:shrink-0"
                   >
-                    Sửa
-                  </button>
+                    <IconEdit />
+                  </NutIconQuanLyTu>
                 </div>
 
                 {the.example_sentence && (
@@ -555,6 +554,24 @@ function TrangChiTietBo() {
       </AnimatedModal>
       <ToastMessage message={toast} onDone={() => setToast("")} />
     </div>
+  );
+}
+
+function IconEdit() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 

@@ -302,8 +302,8 @@ function RewardMagicOverlay({
           3.38
         )
         .to(sourceGlow, { autoAlpha: 0.2, scale: 1.28, duration: 0.48 }, 3.42)
-        .to(media, { autoAlpha: 1, scale: 1, duration: 0.4 }, 3.62)
-        .call(() => onPortalOpen?.(), null, 3.82);
+        .call(() => onPortalOpen?.(), null, 3.5)
+        .to(media, { autoAlpha: 1, scale: 1, duration: 0.4 }, 3.62);
 
       return () => timeline.kill();
     },

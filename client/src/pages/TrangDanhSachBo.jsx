@@ -10,6 +10,42 @@ const FORM_BO_RONG = {
   description: "",
 };
 
+function IconPlus() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function IconEdit() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 function TrangDanhSachBo() {
   const navigate = useNavigate();
   const [danhSachDeck, setDanhSachDeck] = useState(() => [...danhSachBo]);
@@ -112,9 +148,11 @@ function TrangDanhSachBo() {
           <button
             type="button"
             onClick={moFormThemBo}
-            className="ui-button ui-button--primary inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            aria-label="Thêm bộ từ"
+            title="Thêm bộ từ"
+            className="ui-button ui-button--primary inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            Thêm bộ
+            <IconPlus />
           </button>
         </div>
       </div>
@@ -130,9 +168,11 @@ function TrangDanhSachBo() {
           <button
             type="button"
             onClick={moFormThemBo}
-            className="ui-button ui-button--primary inline-flex items-center justify-center rounded-lg bg-[var(--mau-chinh)] px-4 py-2.5 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            aria-label="Thêm bộ từ"
+            title="Thêm bộ từ"
+            className="ui-button ui-button--primary inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            Thêm bộ
+            <IconPlus />
           </button>
         </div>
       ) : (
@@ -174,9 +214,11 @@ function TrangDanhSachBo() {
                         event.stopPropagation();
                         moFormSuaBo(bo);
                       }}
-                      className="ui-button ui-button--ghost rounded-md border border-[var(--mau-vien)] px-3 py-1 text-xs font-medium text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                      aria-label={`Sửa bộ ${bo.title}`}
+                      title="Sửa bộ"
+                      className="ui-button ui-button--ghost inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
                     >
-                      Sửa
+                      <IconEdit />
                     </button>
                   </div>
                 </div>

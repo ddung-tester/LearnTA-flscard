@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
+import ToggleSwitch from "../components/common/ToggleSwitch";
+import RewardProgressBar from "../components/common/RewardProgressBar";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -67,10 +69,15 @@ function TrangTuLuan() {
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
+  const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
+  const [rewardProgressValue, setRewardProgressValue] = useState(0);
 
   const inputRef = useRef(null);
-  const progressRewardRef = useRef(null);
+  const progressEndpointRef = useRef(null);
+  const rewardProgressValueRef = useRef(0);
   const amThanhDungRef = useRef(null);
+  const rewardLaunchTimerRef = useRef(null);
+  const rewardProgressTimerRef = useRef(null);
 
   const cheDoHienTai =
     DS_CHE_DO.find((item) => item.key === cheDo) ?? DS_CHE_DO[0];
@@ -101,6 +108,63 @@ function TrangTuLuan() {
     audio.currentTime = 0;
     audio.play().catch(() => {});
   }
+
+  function xoaTimerProgressReward() {
+    if (rewardLaunchTimerRef.current) {
+      clearTimeout(rewardLaunchTimerRef.current);
+      rewardLaunchTimerRef.current = null;
+    }
+
+    if (rewardProgressTimerRef.current) {
+      clearTimeout(rewardProgressTimerRef.current);
+      rewardProgressTimerRef.current = null;
+    }
+  }
+
+  function datLaiProgressReward() {
+    xoaTimerProgressReward();
+    setRewardProgressPhase("idle");
+    setRewardProgressValue(0);
+    rewardProgressValueRef.current = 0;
+  }
+
+  function batDauTienTrinhReward(diemMoi, coReward) {
+    xoaTimerProgressReward();
+    setRewardProgressValue(Math.min(diemMoi, soCauDungNhanThuong));
+    rewardProgressValueRef.current = Math.min(diemMoi, soCauDungNhanThuong);
+    setRewardProgressPhase("correctPulse");
+
+    if (!coReward) {
+      rewardProgressTimerRef.current = setTimeout(() => {
+        setRewardProgressPhase("idle");
+      }, 680);
+      return;
+    }
+
+    rewardLaunchTimerRef.current = setTimeout(() => {
+      setRewardProgressPhase("beamLaunch");
+      setDiemRewardGanNhat(diemMoi);
+      setLanReward((lanHienTai) => lanHienTai + 1);
+      setHienReward(true);
+    }, 560);
+  }
+
+  function xuLyRewardDongXong() {
+    xoaTimerProgressReward();
+    setRewardProgressPhase("rewardComplete");
+    rewardProgressTimerRef.current = setTimeout(() => {
+      setRewardProgressPhase("idle");
+      setRewardProgressValue(0);
+      rewardProgressValueRef.current = 0;
+    }, 780);
+  }
+
+  useEffect(
+    () => () => {
+      xoaTimerProgressReward();
+    },
+    []
+  );
 
   // Auto-focus vao input khi sang cau moi
   useEffect(() => {
@@ -188,17 +252,16 @@ function TrangTuLuan() {
       phatAmThanhDung();
       setSoCauDung((hienTai) => {
         const diemMoi = hienTai + 1;
-
-        if (
+        const tienDoMoi = Math.min(
+          rewardProgressValueRef.current + 1,
+          soCauDungNhanThuong
+        );
+        const coReward =
           batReward &&
-          diemMoi >= soCauDungNhanThuong &&
-          diemMoi % soCauDungNhanThuong === 0 &&
-          diemMoi !== diemRewardGanNhat
-        ) {
-          setDiemRewardGanNhat(diemMoi);
-          setLanReward((lanHienTai) => lanHienTai + 1);
-          setHienReward(true);
-        }
+          tienDoMoi >= soCauDungNhanThuong &&
+          diemMoi !== diemRewardGanNhat;
+
+        batDauTienTrinhReward(tienDoMoi, coReward);
 
         return diemMoi;
       });
@@ -252,6 +315,7 @@ function TrangTuLuan() {
   }
 
   function lamLai() {
+    datLaiProgressReward();
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setCauTraLoi("");
@@ -268,6 +332,7 @@ function TrangTuLuan() {
 
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
+    datLaiProgressReward();
     setCheDo(key);
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
@@ -285,13 +350,17 @@ function TrangTuLuan() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
-      if (dangBat) setHienReward(false);
+      if (dangBat) {
+        setHienReward(false);
+        datLaiProgressReward();
+      }
       return !dangBat;
     });
   }
 
   function capNhatMocReward(event) {
     const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
+    datLaiProgressReward();
     setSoCauDungNhanThuong(giaTriMoi);
     setDiemRewardGanNhat(0);
     setHienReward(false);
@@ -357,7 +426,8 @@ function TrangTuLuan() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
-          progressTargetRef={progressRewardRef}
+          progressEndpointRef={progressEndpointRef}
+          onHideComplete={xuLyRewardDongXong}
         />
         <div className="ui-content-enter relative z-10 mx-auto max-w-2xl">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -476,7 +546,8 @@ function TrangTuLuan() {
   const theHienTai = danhSachThe[chiSo];
   const cauHoi = layCauHoi(theHienTai);
   const dapAnDung = layDapAnDung(theHienTai);
-  const tienDo = ((chiSo + 1) / danhSachThe.length) * 100;
+  const tongSoCauHoi = danhSachThe.length;
+  const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
 
   return (
     <>
@@ -484,9 +555,10 @@ function TrangTuLuan() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
-        progressTargetRef={progressRewardRef}
+        progressEndpointRef={progressEndpointRef}
+        onHideComplete={xuLyRewardDongXong}
       />
-      <div className="relative z-10 mx-auto max-w-2xl">
+      <div className="relative z-10 mx-auto max-w-4xl">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             to={`/decks/${boId}`}
@@ -495,24 +567,24 @@ function TrangTuLuan() {
             &larr; {bo.title}
           </Link>
           <div className="ui-study-toolbar self-end sm:self-auto">
-            <ModeSwitch
-              value={cheDo}
-              onChange={doiCheDoHoc}
-              options={DS_CHE_DO}
-              ariaLabel="Đổi chế độ tự luận"
-              variant="compact"
-            />
-            <button
-              type="button"
-              aria-pressed={batReward}
-              onClick={doiCheDoReward}
-              className={`ui-chip ui-chip--control ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
-                ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
-                : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
-                }`}
-            >
-              Reward {batReward ? "Bật" : "Tắt"}
-            </button>
+            <div className="ui-study-toggle">
+              <span className="ui-study-toggle__label">Ngôn ngữ</span>
+              <ModeSwitch
+                value={cheDo}
+                onChange={doiCheDoHoc}
+                options={DS_CHE_DO}
+                ariaLabel="Đổi chế độ tự luận"
+                variant="compact"
+              />
+            </div>
+            <div className="ui-study-toggle">
+              <span className="ui-study-toggle__label">Reward</span>
+              <ToggleSwitch
+                checked={batReward}
+                onChange={doiCheDoReward}
+                ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
+              />
+            </div>
             <div className="ui-compact-field">
               <label
                 htmlFor="moc-reward-tuluan"
@@ -532,73 +604,79 @@ function TrangTuLuan() {
           </div>
         </div>
         <div className="mb-8">
-          <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachThe.length}
             </span>
           </div>
-          <div className="h-2 rounded-full bg-[var(--mau-mat-2)] overflow-hidden border border-[var(--mau-vien)]">
-            <div
-              ref={progressRewardRef}
-              className="ui-progress-fill h-full rounded-full bg-[var(--mau-chinh)]"
-              style={{ width: `${tienDo}%` }}
-            />
-          </div>
+          <RewardProgressBar
+            currentValue={soCauDung}
+            totalValue={tongSoCauHoi}
+            progressPercent={tienDoReward}
+            phase={rewardProgressPhase}
+            endpointRef={progressEndpointRef}
+            label="Tiến độ"
+          />
         </div>
 
         {/* Cau hoi */}
-        <section key={`${cheDo}-${chiSo}`} className="ui-content-enter text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">
-          <h2 className="break-words text-4xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-[2.9rem]">
+        <section
+          key={`${cheDo}-${chiSo}`}
+          className="ui-content-enter mb-5 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-6 py-9 text-center shadow-[var(--bong-card)] sm:px-8 sm:py-10"
+        >
+          <h2 className="break-words text-4xl font-semibold leading-snug text-[var(--mau-chu)] sm:text-[3rem]">
             {cauHoi}
           </h2>
         </section>
 
         {/* Form nhap dap an */}
-        <form onSubmit={kiemTraDapAn} className="mb-6">
+        <form onSubmit={kiemTraDapAn} className="mb-4">
           <label
             htmlFor="cau-tra-loi"
             className="block ui-label mb-2"
           >
             {cheDoHienTai.labelTraLoi}
           </label>
-          <input
-            ref={inputRef}
-            id="cau-tra-loi"
-            type="text"
-            value={cauTraLoi}
-            onChange={(e) => {
-              setCauTraLoi(e.target.value);
-              if (daBoQua) setDaBoQua(false);
-            }}
-            disabled={daKiemTra}
-            autoComplete="off"
-            spellCheck="false"
-            placeholder="Nhập câu trả lời..."
-            className={`w-full rounded-lg border px-4 py-3.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] disabled:opacity-70 disabled:cursor-default transition-colors ${daKiemTra && ketQuaDung
-              ? "border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/5"
-              : daKiemTra && !ketQuaDung
-                ? "border-[var(--mau-loi)] bg-[var(--mau-loi)]/5"
-                : "border-[var(--mau-vien)] bg-[var(--mau-input)]"
-              }`}
-          />
-          {!daKiemTra && (
-            <div className="flex gap-2 mt-3 justify-end">
-              <button
-                type="button"
-                onClick={boQua}
-                className="ui-button ui-button--ghost px-5 py-2.5 rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-              >
-                Bỏ qua
-              </button>
-              <button
-                type="submit"
-                disabled={!cauTraLoi.trim()}
-                className="ui-button ui-button--primary px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-              >
-                Kiểm tra
-              </button>
-            </div>
-          )}
+          <div className="rounded-xl border border-[var(--mau-vien)]/70 bg-[var(--mau-mat)]/40 p-3 sm:p-3.5">
+            <input
+              ref={inputRef}
+              id="cau-tra-loi"
+              type="text"
+              value={cauTraLoi}
+              onChange={(e) => {
+                setCauTraLoi(e.target.value);
+                if (daBoQua) setDaBoQua(false);
+              }}
+              disabled={daKiemTra}
+              autoComplete="off"
+              spellCheck="false"
+              placeholder="Nhập câu trả lời..."
+              className={`min-h-[3.75rem] w-full rounded-xl border px-5 py-3.5 text-lg text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] disabled:cursor-default disabled:opacity-70 transition-colors ${daKiemTra && ketQuaDung
+                ? "border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/5"
+                : daKiemTra && !ketQuaDung
+                  ? "border-[var(--mau-loi)] bg-[var(--mau-loi)]/5"
+                  : "border-[var(--mau-vien)] bg-[var(--mau-input)]"
+                }`}
+            />
+            {!daKiemTra && (
+              <div className="mt-2.5 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={boQua}
+                  className="ui-button ui-button--ghost min-h-11 rounded-lg border border-[var(--mau-vien)] px-4 py-2 text-sm text-[var(--mau-chu-phu)] hover:border-[var(--mau-chinh)]/40 hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors sm:min-w-[6.5rem]"
+                >
+                  Bỏ qua
+                </button>
+                <button
+                  type="submit"
+                  disabled={!cauTraLoi.trim()}
+                  className="ui-button ui-button--primary min-h-11 rounded-lg bg-[var(--mau-chinh)] px-4 py-2 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors sm:min-w-[7.5rem]"
+                >
+                  Kiểm tra
+                </button>
+              </div>
+            )}
+          </div>
         </form>
 
         {/* Feedback */}
@@ -644,7 +722,7 @@ function TrangTuLuan() {
         )}
 
         {/* Diem hien tai */}
-        <div className="flex items-center justify-center gap-6 text-sm text-[var(--mau-chu-phu)] border-t border-[var(--mau-vien)]/60 pt-5">
+        <div className="mt-2 flex items-center justify-center gap-6 border-t border-[var(--mau-vien)]/60 pt-4 text-sm text-[var(--mau-chu-phu)]">
           <span>
             Đúng:{" "}
             <span className="font-mono font-bold text-[var(--mau-thanh-cong)]">

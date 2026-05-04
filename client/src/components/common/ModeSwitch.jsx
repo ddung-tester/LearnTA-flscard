@@ -18,7 +18,7 @@ function ModeSwitch({
       <button
         type="button"
         onClick={() => onChange(nextOption.key)}
-        className="ui-mode-switch ui-mode-switch--compact"
+        className="ui-mode-switch ui-mode-switch--compact focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
         aria-label={`${ariaLabel}: ${activeOption?.nhan}`}
       >
         <span
