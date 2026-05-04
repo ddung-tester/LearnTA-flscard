@@ -20,6 +20,7 @@ function RewardTikTokEffect({
   active,
   lanKichHoat = 0,
   config = CAU_HINH_REWARD_QUIZ,
+  progressTargetRef,
 }) {
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
@@ -32,9 +33,9 @@ function RewardTikTokEffect({
   const [coTheHienThi, setCoTheHienThi] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoSanSang, setVideoSanSang] = useState(false);
-  const [dangChuanBi, setDangChuanBi] = useState(false);
   const [dangFadeOut, setDangFadeOut] = useState(false);
   const [choPhepPhatVideo, setChoPhepPhatVideo] = useState(false);
+  const [originRect, setOriginRect] = useState(null);
   const lanTimelineRewardRef = useRef(0);
 
   const batDauPhatVideo = useCallback(() => {
@@ -80,6 +81,33 @@ function RewardTikTokEffect({
     if (hangDoiVideoRef.current.length === 0 && danhSach.length > 0) {
       hangDoiVideoRef.current = taoHangDoiVideo(danhSach);
     }
+  }
+
+  function veVideoLenCanvas(video, canvas) {
+    if (!canvas || !video.videoWidth || !video.videoHeight) return;
+
+    const tiLeManHinh = window.devicePixelRatio || 1;
+    const rong = canvas.clientWidth * tiLeManHinh;
+    const cao = canvas.clientHeight * tiLeManHinh;
+
+    if (canvas.width !== rong || canvas.height !== cao) {
+      canvas.width = rong;
+      canvas.height = cao;
+    }
+
+    const context = canvas.getContext("2d");
+    const tiLe = Math.max(rong / video.videoWidth, cao / video.videoHeight);
+    const rongVe = video.videoWidth * tiLe;
+    const caoVe = video.videoHeight * tiLe;
+    const x = (rong - rongVe) / 2;
+    const y = (cao - caoVe) / 2;
+
+    context.drawImage(video, x, y, rongVe, caoVe);
+  }
+
+  function veTatCaCanvas(video) {
+    veVideoLenCanvas(video, canvasRefs.current.left);
+    veVideoLenCanvas(video, canvasRefs.current.right);
   }
 
   useEffect(() => {
@@ -158,7 +186,6 @@ function RewardTikTokEffect({
   useEffect(() => {
     if (!active) {
       setLoiVideo(false);
-      setDangChuanBi(false);
       setDangFadeOut(false);
       setChoPhepPhatVideo(false);
       lanTimelineRewardRef.current = 0;
@@ -179,14 +206,25 @@ function RewardTikTokEffect({
     if (lanKichHoat !== lanTimelineRewardRef.current) {
       lanTimelineRewardRef.current = lanKichHoat;
       setChoPhepPhatVideo(false);
+
+      const node = progressTargetRef?.current;
+      setOriginRect(node ? node.getBoundingClientRect() : null);
+
+      const video = videoRef.current;
+      if (video) {
+        video.pause();
+        video.currentTime = 0;
+
+        if (video.readyState < 3) {
+          video.load();
+        }
+      }
     }
 
-    setDangChuanBi(!videoSanSang);
     setDangFadeOut(false);
 
     if (danhSachVideo.length === 0) {
       setLoiVideo(true);
-      setDangChuanBi(false);
       return undefined;
     }
 
@@ -213,6 +251,7 @@ function RewardTikTokEffect({
     coTheHienThi,
     danhSachVideo,
     lanKichHoat,
+    progressTargetRef,
     videoSanSang,
     videoSrc,
   ]);
@@ -223,15 +262,31 @@ function RewardTikTokEffect({
       return;
     }
 
-    // Neu video da duoc preload va co du data (HAVE_FUTURE_DATA tro len),
-    // khong reset ve false de tranh nhip do dau tien.
-    const cached = cacheVideoRefs.current[videoSrc];
-    if (cached && cached.readyState >= 3) {
+    const video = videoRef.current;
+    if (video && video.readyState >= 3) {
       setVideoSanSang(true);
     } else {
       setVideoSanSang(false);
+      video?.load();
     }
   }, [videoSrc]);
+
+  useEffect(() => {
+    if (!active || !videoSrc || !videoSanSang || choPhepPhatVideo) {
+      return undefined;
+    }
+
+    const video = videoRef.current;
+    if (!video) return undefined;
+
+    let animationId = window.requestAnimationFrame(() => {
+      veTatCaCanvas(video);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationId);
+    };
+  }, [active, choPhepPhatVideo, videoSanSang, videoSrc]);
 
   useEffect(() => {
     if (lanKichHoat === 0) {
@@ -256,39 +311,15 @@ function RewardTikTokEffect({
     const thoiGianBatDauFade = Math.max(0, videoDuration - fadeOutMs);
     let animationId;
     let fadeTimer;
-    let volumeTimer;
-
-    function veCanvas(canvas) {
-      if (!canvas || !video.videoWidth || !video.videoHeight) return;
-
-      const tiLeManHinh = window.devicePixelRatio || 1;
-      const rong = canvas.clientWidth * tiLeManHinh;
-      const cao = canvas.clientHeight * tiLeManHinh;
-
-      if (canvas.width !== rong || canvas.height !== cao) {
-        canvas.width = rong;
-        canvas.height = cao;
-      }
-
-      const context = canvas.getContext("2d");
-      const tiLe = Math.max(rong / video.videoWidth, cao / video.videoHeight);
-      const rongVe = video.videoWidth * tiLe;
-      const caoVe = video.videoHeight * tiLe;
-      const x = (rong - rongVe) / 2;
-      const y = (cao - caoVe) / 2;
-
-      context.drawImage(video, x, y, rongVe, caoVe);
-    }
+    let volumeAnimationId;
 
     function veKhungHinh() {
-      veCanvas(canvasRefs.current.left);
-      veCanvas(canvasRefs.current.right);
+      veTatCaCanvas(video);
       animationId = window.requestAnimationFrame(veKhungHinh);
     }
 
     video.volume = volume;
     video.muted = false;
-    video.currentTime = 0;
 
     video
       .play()
@@ -300,7 +331,6 @@ function RewardTikTokEffect({
         setLoiVideo(true);
       });
 
-    setDangChuanBi(false);
     setDangFadeOut(false);
     veKhungHinh();
 
@@ -308,21 +338,23 @@ function RewardTikTokEffect({
       const batDauFade = performance.now();
       setDangFadeOut(true);
 
-      volumeTimer = window.setInterval(() => {
+      function giamAmLuong() {
         const daQua = performance.now() - batDauFade;
         const tiLeConLai = Math.max(0, 1 - daQua / fadeOutMs);
         video.volume = volume * tiLeConLai;
 
-        if (tiLeConLai <= 0) {
-          window.clearInterval(volumeTimer);
+        if (tiLeConLai > 0) {
+          volumeAnimationId = window.requestAnimationFrame(giamAmLuong);
         }
-      }, 50);
+      }
+
+      volumeAnimationId = window.requestAnimationFrame(giamAmLuong);
     }, thoiGianBatDauFade);
 
     return () => {
       window.cancelAnimationFrame(animationId);
+      window.cancelAnimationFrame(volumeAnimationId);
       window.clearTimeout(fadeTimer);
-      window.clearInterval(volumeTimer);
       video.pause();
       video.volume = volume;
     };
@@ -359,18 +391,25 @@ function RewardTikTokEffect({
           className="reward-tiktok-effect__source-video"
           src={videoSrc}
           preload="auto"
+          muted
           loop
           playsInline
+          onLoadedData={(event) => {
+            if (event.currentTarget.readyState >= 3) setVideoSanSang(true);
+          }}
           onCanPlay={() => setVideoSanSang(true)}
+          onCanPlayThrough={() => setVideoSanSang(true)}
           onError={() => setLoiVideo(true)}
         />
       )}
-      {active && !dangChuanBi && (
+      {active && (
         <RewardMagicOverlay
           active={active}
           fadeOut={dangFadeOut}
           hasError={loiVideo || !videoSrc}
           videoSrc={videoSrc}
+          videoReady={videoSanSang || loiVideo || !videoSrc}
+          originRect={originRect}
           canvasRefs={canvasRefs}
           onPortalOpen={batDauPhatVideo}
         />

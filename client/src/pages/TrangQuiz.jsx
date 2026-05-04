@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
@@ -66,6 +66,7 @@ function TrangQuiz() {
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
+  const progressRewardRef = useRef(null);
 
   const cheDoHienTai =
     DS_CHE_DO_QUIZ.find((item) => item.key === cheDo) ?? DS_CHE_DO_QUIZ[0];
@@ -116,7 +117,7 @@ function TrangQuiz() {
   }
 
   function chonDapAn(dapAn) {
-    if (dapAnDaChon !== null) return;
+    if (dapAnDaChon !== null || hienReward) return;
 
     setDapAnDaChon(dapAn);
     if (dapAn === danhSachCauHoi[chiSo].dapAnDung) {
@@ -150,14 +151,14 @@ function TrangQuiz() {
   }
 
   useEffect(() => {
-    if (dapAnDaChon === null || daHoanThanh) return undefined;
+    if (dapAnDaChon === null || daHoanThanh || hienReward) return undefined;
 
     const timer = setTimeout(() => {
       sangCauTiepTheo();
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [dapAnDaChon, daHoanThanh]);
+  }, [dapAnDaChon, daHoanThanh, hienReward]);
 
   useEffect(() => {
     if (!bo || !daHoanThanh || danhSachCauHoi.length === 0) return;
@@ -232,6 +233,7 @@ function TrangQuiz() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
+          progressTargetRef={progressRewardRef}
         />
         <div className="relative z-10 mx-auto max-w-2xl">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -322,6 +324,7 @@ function TrangQuiz() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
+        progressTargetRef={progressRewardRef}
       />
       <div className="relative z-10 mx-auto max-w-2xl">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -402,6 +405,7 @@ function TrangQuiz() {
           </div>
           <div className="h-2 rounded-full bg-[var(--mau-mat-2)] overflow-hidden border border-[var(--mau-vien)]">
             <div
+              ref={progressRewardRef}
               className="h-full rounded-full bg-[var(--mau-chinh)] transition-all duration-200"
               style={{ width: `${tienDo}%` }}
             />
@@ -435,8 +439,7 @@ function TrangQuiz() {
                 key={`${cauHienTai.id}-${dapAn}`}
                 type="button"
                 onClick={() => chonDapAn(dapAn)}
-                disabled={daTraLoi}
-                className={`min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] disabled:cursor-default transition-colors ${lopTrangThai}`}
+                className={`min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
               >
                 <span className="text-xs font-mono text-[var(--mau-chu-phu)] mr-3">
                   {index + 1}

@@ -66,6 +66,7 @@ function TrangTuLuan() {
   );
 
   const inputRef = useRef(null);
+  const progressRewardRef = useRef(null);
 
   const cheDoHienTai =
     DS_CHE_DO.find((item) => item.key === cheDo) ?? DS_CHE_DO[0];
@@ -137,7 +138,7 @@ function TrangTuLuan() {
 
   function kiemTraDapAn(event) {
     event.preventDefault();
-    if (daKiemTra || danhSachThe.length === 0) return;
+    if (daKiemTra || hienReward || danhSachThe.length === 0) return;
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
@@ -190,7 +191,7 @@ function TrangTuLuan() {
   }
 
   function boQua() {
-    if (daKiemTra) return;
+    if (daKiemTra || hienReward) return;
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
@@ -364,6 +365,7 @@ function TrangTuLuan() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
+          progressTargetRef={progressRewardRef}
         />
         <div className="relative z-10 mx-auto max-w-2xl">
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -507,6 +509,7 @@ function TrangTuLuan() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
+        progressTargetRef={progressRewardRef}
       />
       <div className="relative z-10 mx-auto max-w-2xl">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -556,6 +559,7 @@ function TrangTuLuan() {
           </div>
           <div className="h-2 rounded-full bg-[var(--mau-mat-2)] overflow-hidden border border-[var(--mau-vien)]">
             <div
+              ref={progressRewardRef}
               className="h-full rounded-full bg-[var(--mau-chinh)] transition-all duration-200"
               style={{ width: `${tienDo}%` }}
             />
