@@ -26,6 +26,28 @@ function layDiemNguon(originRect) {
   };
 }
 
+function layDiemDichPortal(portalRect, side) {
+  if (typeof window === "undefined") return { x: 0, y: 0 };
+
+  if (!portalRect) {
+    const portalCenterX = window.innerHeight * 9 / 32;
+    return {
+      x: side === "left" ? portalCenterX : window.innerWidth - portalCenterX,
+      y: window.innerHeight / 2,
+    };
+  }
+
+  const inset = Math.min(28, portalRect.width * 0.14);
+
+  return {
+    x:
+      side === "left"
+        ? portalRect.right - inset
+        : portalRect.left + inset,
+    y: portalRect.top + portalRect.height / 2,
+  };
+}
+
 function ngauNhien(min, max) {
   return min + Math.random() * (max - min);
 }
@@ -83,6 +105,7 @@ function setPathAnimation(path) {
 
 function RewardMagicOverlay({
   active,
+  sequenceKey = 0,
   fadeOut = false,
   hasError = false,
   videoSrc = "",
@@ -93,6 +116,9 @@ function RewardMagicOverlay({
   onComplete,
 }) {
   const rootRef = useRef(null);
+  const portalRefs = useRef({});
+  const lanChoVideoRef = useRef(null);
+  const lanDaChayIntroRef = useRef(null);
 
   function luuCanvas(viTri, node) {
     if (!canvasRefs?.current) return;
@@ -104,6 +130,14 @@ function RewardMagicOverlay({
     }
   }
 
+  function luuPortal(viTri, node) {
+    if (node) {
+      portalRefs.current[viTri] = node;
+    } else {
+      delete portalRefs.current[viTri];
+    }
+  }
+
   useGSAP(
     () => {
       if (!active || !rootRef.current) return undefined;
@@ -111,12 +145,14 @@ function RewardMagicOverlay({
       const root = rootRef.current;
       const q = gsap.utils.selector(root);
       const source = layDiemNguon(originRect);
-      const portalCenterX = window.innerHeight * 9 / 32;
-      const leftTarget = { x: portalCenterX, y: window.innerHeight / 2 };
-      const rightTarget = {
-        x: window.innerWidth - portalCenterX,
-        y: window.innerHeight / 2,
-      };
+      const leftTarget = layDiemDichPortal(
+        portalRefs.current.left?.getBoundingClientRect(),
+        "left"
+      );
+      const rightTarget = layDiemDichPortal(
+        portalRefs.current.right?.getBoundingClientRect(),
+        "right"
+      );
       const warmupPath = taoPathVongQuanhProgress(source);
       const leftPath = taoPathToiVideo(source, leftTarget, "left");
       const rightPath = taoPathToiVideo(source, rightTarget, "right");
@@ -168,6 +204,9 @@ function RewardMagicOverlay({
       gsap.set(bursts, { autoAlpha: 0, scale: 0.25, transformOrigin: "50% 50%" });
 
       if (!videoReady && !prefersReducedMotion) {
+        if (lanChoVideoRef.current === sequenceKey) return undefined;
+        lanChoVideoRef.current = sequenceKey;
+
         const waitingTimeline = gsap.timeline({ repeat: -1, yoyo: true });
 
         waitingTimeline
@@ -177,6 +216,9 @@ function RewardMagicOverlay({
 
         return () => waitingTimeline.kill();
       }
+
+      if (lanDaChayIntroRef.current === sequenceKey) return undefined;
+      lanDaChayIntroRef.current = sequenceKey;
 
       if (prefersReducedMotion) {
         const quickTimeline = gsap.timeline();
@@ -265,7 +307,7 @@ function RewardMagicOverlay({
 
       return () => timeline.kill();
     },
-    { scope: rootRef, dependencies: [active, videoSrc, videoReady, originRect, onPortalOpen] }
+    { scope: rootRef, dependencies: [active, sequenceKey, videoReady, originRect] }
   );
 
   useGSAP(
@@ -359,6 +401,7 @@ function RewardMagicOverlay({
         <div
           className={`reward-magic__portal reward-magic__portal--${viTri}`}
           key={viTri}
+          ref={(node) => luuPortal(viTri, node)}
         >
           <div className="reward-magic__portal-ring" />
           <div className="reward-magic__media">

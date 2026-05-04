@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
@@ -36,10 +37,12 @@ function RewardTikTokEffect({
   const [coTheHienThi, setCoTheHienThi] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoSanSang, setVideoSanSang] = useState(false);
+  const [dangRenderReward, setDangRenderReward] = useState(false);
   const [dangFadeOut, setDangFadeOut] = useState(false);
   const [choPhepPhatVideo, setChoPhepPhatVideo] = useState(false);
   const [originRect, setOriginRect] = useState(null);
   const lanTimelineRewardRef = useRef(0);
+  const cleanupFadeOutRef = useRef(null);
 
   const batDauPhatVideo = useCallback(() => {
     setChoPhepPhatVideo(true);
@@ -116,6 +119,14 @@ function RewardTikTokEffect({
     veVideoLenCanvas(video, canvasRefs.current.right);
   }
 
+  const hoanTatDongReward = useCallback(() => {
+    setDangRenderReward(false);
+    setDangFadeOut(false);
+    setChoPhepPhatVideo(false);
+    setLoiVideo(false);
+    lanTimelineRewardRef.current = 0;
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
@@ -191,11 +202,25 @@ function RewardTikTokEffect({
   }, [coTheHienThi, danhSachVideo, videoSrc]);
 
   useEffect(() => {
-    if (!active) {
-      setLoiVideo(false);
+    const fadeOutMs = config.fadeOutMs ?? CAU_HINH_REWARD_QUIZ.fadeOutMs;
+
+    if (cleanupFadeOutRef.current) {
+      window.clearTimeout(cleanupFadeOutRef.current);
+      cleanupFadeOutRef.current = null;
+    }
+
+    if (active) {
+      setDangRenderReward(true);
       setDangFadeOut(false);
-      setChoPhepPhatVideo(false);
-      lanTimelineRewardRef.current = 0;
+      setLoiVideo(false);
+      return undefined;
+    }
+
+    if (!dangRenderReward) return undefined;
+
+    setDangFadeOut(true);
+    cleanupFadeOutRef.current = window.setTimeout(() => {
+      hoanTatDongReward();
 
       if (danhSachVideo.length > 0) {
         const videoTiepTheo = xemVideoTiepTheo(danhSachVideo);
@@ -204,9 +229,25 @@ function RewardTikTokEffect({
           setVideoSrc(videoTiepTheo);
         }
       }
+    }, fadeOutMs);
 
-      return undefined;
-    }
+    return () => {
+      if (cleanupFadeOutRef.current) {
+        window.clearTimeout(cleanupFadeOutRef.current);
+        cleanupFadeOutRef.current = null;
+      }
+    };
+  }, [
+    active,
+    dangRenderReward,
+    danhSachVideo,
+    videoSrc,
+    config.fadeOutMs,
+    hoanTatDongReward,
+  ]);
+
+  useEffect(() => {
+    if (!active || !dangRenderReward) return undefined;
 
     if (!coTheHienThi) return undefined;
 
@@ -252,6 +293,7 @@ function RewardTikTokEffect({
     return undefined;
   }, [
     active,
+    dangRenderReward,
     coTheHienThi,
     danhSachVideo,
     lanKichHoat,
@@ -297,6 +339,15 @@ function RewardTikTokEffect({
       lanDaDungVideoRef.current = 0;
     }
   }, [lanKichHoat]);
+
+  useEffect(
+    () => () => {
+      if (cleanupFadeOutRef.current) {
+        window.clearTimeout(cleanupFadeOutRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!active || !videoSrc || !videoSanSang || !choPhepPhatVideo) {
@@ -373,14 +424,16 @@ function RewardTikTokEffect({
     config.volume,
   ]);
 
-  if (!coTheHienThi) return null;
+  if (!coTheHienThi || !dangRenderReward) return null;
 
   const style = {
     "--reward-opacity": config.opacity ?? CAU_HINH_REWARD_QUIZ.opacity,
     "--reward-fade-duration": `${config.fadeOutMs ?? CAU_HINH_REWARD_QUIZ.fadeOutMs}ms`,
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  const rewardLayer = (
     <div
       className={`reward-tiktok-effect ${loiVideo ? "reward-tiktok-effect--fallback" : ""} ${
         dangFadeOut ? "reward-tiktok-effect--fade-out" : ""
@@ -408,9 +461,10 @@ function RewardTikTokEffect({
           onError={() => setLoiVideo(true)}
         />
       )}
-      {active && (
+      {dangRenderReward && (
         <RewardMagicOverlay
-          active={active}
+          active={dangRenderReward}
+          sequenceKey={lanKichHoat}
           fadeOut={dangFadeOut}
           hasError={loiVideo || !videoSrc}
           videoSrc={videoSrc}
@@ -422,6 +476,8 @@ function RewardTikTokEffect({
       )}
     </div>
   );
+
+  return createPortal(rewardLayer, document.body);
 }
 
 export default RewardTikTokEffect;

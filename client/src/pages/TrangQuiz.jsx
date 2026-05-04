@@ -174,7 +174,7 @@ function TrangQuiz() {
 
     const timer = setTimeout(() => {
       sangCauTiepTheo();
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [dapAnDaChon, daHoanThanh, hienReward]);
