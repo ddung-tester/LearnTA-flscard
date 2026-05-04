@@ -205,28 +205,28 @@ function TrangFlashcard() {
             Đây là tóm tắt nhanh của phiên này. Streak Drop sẽ là lớp thưởng trong giai đoạn sau.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-8 text-left">
-            <div className="border border-[var(--mau-vien)] rounded-lg px-4 py-3">
-              <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-8">
+            <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg px-4 py-3">
+              <p className="ui-stat-label mb-1">
                 Tổng thẻ
               </p>
-              <p className="text-2xl font-mono font-bold text-[var(--mau-chu)]">
+              <p className="ui-stat-value text-[var(--mau-chu)]">
                 {danhSach.length}
               </p>
             </div>
-            <div className="border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-4 py-3">
-              <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+            <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-4 py-3">
+              <p className="ui-stat-label mb-1">
                 Nhớ rồi
               </p>
-              <p className="text-2xl font-mono font-bold text-[var(--mau-thanh-cong)]">
+              <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
                 {thongKe.soDaNho}
               </p>
             </div>
-            <div className="border border-[var(--mau-phu)]/35 bg-[var(--mau-phu)]/10 rounded-lg px-4 py-3">
-              <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+            <div className="ui-stat-card border border-[var(--mau-phu)]/35 bg-[var(--mau-phu)]/10 rounded-lg px-4 py-3">
+              <p className="ui-stat-label mb-1">
                 Chưa nhớ
               </p>
-              <p className="text-2xl font-mono font-bold text-[var(--mau-phu)]">
+              <p className="ui-stat-value text-[var(--mau-phu)]">
                 {thongKe.soCanOn}
               </p>
             </div>
@@ -273,7 +273,7 @@ function TrangFlashcard() {
       </Link>
 
       <div className="mt-4 mb-5">
-        <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-2">
+        <p className="ui-label mb-2">
           Chế độ học
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -291,7 +291,7 @@ function TrangFlashcard() {
                     : "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]"
                   }`}
               >
-                <span className="block text-xs font-mono uppercase tracking-wider">
+                <span className="block ui-mode-title">
                   {item.nhan}
                 </span>
               </button>
@@ -301,10 +301,10 @@ function TrangFlashcard() {
       </div>
 
       <div className="flex items-center justify-between gap-3 mb-4">
-        <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]">
+        <span className="ui-chip ui-chip--muted ui-chip--small">
           {chiSo + 1} / {danhSach.length}
         </span>
-        <span className="text-right text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
+        <span className="ui-chip ui-chip--primary ui-chip--small text-right">
           {cheDoHienTai.nhan}
         </span>
       </div>
@@ -321,7 +321,7 @@ function TrangFlashcard() {
               }`}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-7 sm:py-8">
-              <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-8">
+              <span className="ui-chip ui-chip--muted mb-8">
                 {cheDoHienTai.matTruoc}
               </span>
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
@@ -333,7 +333,7 @@ function TrangFlashcard() {
             </div>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-4 py-6 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-7 sm:py-8">
-              <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)] mb-8">
+              <span className="ui-chip ui-chip--primary mb-8">
                 {cheDoHienTai.matSau}
               </span>
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
@@ -350,27 +350,27 @@ function TrangFlashcard() {
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3 mb-5">
-        <div className="border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-3 py-3 sm:px-4">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-3 py-3 sm:px-4">
+          <p className="ui-stat-label mb-1">
             Nhớ rồi
           </p>
-          <p className="text-xl font-mono font-bold text-[var(--mau-thanh-cong)]">
+          <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
             {thongKe.soDaNho}
           </p>
         </div>
-        <div className="border border-[var(--mau-phu)]/35 bg-[var(--mau-phu)]/10 rounded-lg px-3 py-3 sm:px-4">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-phu)]/35 bg-[var(--mau-phu)]/10 rounded-lg px-3 py-3 sm:px-4">
+          <p className="ui-stat-label mb-1">
             Chưa nhớ
           </p>
-          <p className="text-xl font-mono font-bold text-[var(--mau-phu)]">
+          <p className="ui-stat-value text-[var(--mau-phu)]">
             {thongKe.soCanOn}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-3 py-3 sm:px-4">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-3 py-3 sm:px-4">
+          <p className="ui-stat-label mb-1">
             Còn lại
           </p>
-          <p className="text-xl font-mono font-bold text-[var(--mau-chu)]">
+          <p className="ui-stat-value text-[var(--mau-chu)]">
             {thongKe.soConLai}
           </p>
         </div>

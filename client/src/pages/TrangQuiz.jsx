@@ -245,7 +245,7 @@ function TrangQuiz() {
               type="button"
               aria-pressed={batReward}
               onClick={doiCheDoReward}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
+              className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
                   ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
                   : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
                 }`}
@@ -256,7 +256,7 @@ function TrangQuiz() {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
             <label
               htmlFor="moc-reward-summary"
-              className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]"
+              className="ui-label"
             >
               Số câu đúng để có phần thưởng
             </label>
@@ -335,7 +335,7 @@ function TrangQuiz() {
             type="button"
             aria-pressed={batReward}
             onClick={doiCheDoReward}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
+            className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
                 ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
                 : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
               }`}
@@ -346,7 +346,7 @@ function TrangQuiz() {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <label
             htmlFor="moc-reward"
-            className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]"
+            className="ui-label"
           >
             Số câu đúng để có phần thưởng
           </label>
@@ -361,7 +361,7 @@ function TrangQuiz() {
         </div>
 
         <div className="mt-4 mb-5">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-2">
+          <p className="ui-label mb-2">
             Chế độ trắc nghiệm
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -379,7 +379,7 @@ function TrangQuiz() {
                       : "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]"
                     }`}
                 >
-                  <span className="block text-xs font-mono uppercase tracking-wider">
+                  <span className="block ui-mode-title">
                     {item.nhan}
                   </span>
                   <span className="block text-[11px] text-[var(--mau-chu-phu)] mt-0.5">
@@ -393,10 +393,10 @@ function TrangQuiz() {
 
         <div className="mt-5 mb-8">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]">
+            <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachCauHoi.length}
             </span>
-            <span className="text-right text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
+            <span className="ui-chip ui-chip--primary ui-chip--small text-right">
               {cheDoHienTai.nhan}
             </span>
           </div>

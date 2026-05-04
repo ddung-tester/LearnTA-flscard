@@ -169,7 +169,7 @@ function TrangDanhSachBo() {
 
                   <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
                     {bo.streak > 0 && (
-                      <span className="text-xs font-mono text-[var(--mau-phu)] bg-[var(--mau-phu)]/10 border border-[var(--mau-phu)]/25 px-2 py-0.5 rounded-md">
+                      <span className="ui-chip ui-chip--warning ui-chip--small">
                         {bo.streak} streak
                       </span>
                     )}
@@ -187,21 +187,19 @@ function TrangDanhSachBo() {
                 </div>
 
                 <div>
-                  <div className="flex flex-wrap items-center gap-2 mt-3">
-                    <span className="text-xs font-mono text-[var(--mau-chu-phu)] bg-[var(--mau-vien)]/50 px-2 py-0.5 rounded">
+                  <div className="ui-chip-row mt-3">
+                    <span className="ui-chip ui-chip--muted ui-chip--small">
                       {soThe} từ
                     </span>
-                    <span className="hidden sm:inline text-[var(--mau-vien)]">·</span>
-
                     {DS_CHE_DO_HOC.map((cd) => {
                       const khaDung = cd.nhan !== "Trắc nghiệm" || coTheQuiz;
                       return (
                         <span
                           key={cd.nhan}
-                          className={`text-xs font-mono px-2 py-0.5 rounded border ${
+                          className={`ui-chip ui-chip--small ${
                             khaDung
-                              ? "border-[var(--mau-chinh)]/30 text-[var(--mau-chinh)]"
-                              : "border-[var(--mau-vien)] text-[var(--mau-vien)] line-through"
+                              ? "ui-chip--primary"
+                              : "ui-chip--disabled"
                           }`}
                         >
                           {cd.nhan}
@@ -209,12 +207,10 @@ function TrangDanhSachBo() {
                       );
                     })}
 
-                    <span className="hidden sm:inline text-[var(--mau-vien)]">·</span>
-
                     {DS_HUONG.map((h) => (
                       <span
                         key={h.nhan}
-                        className="text-xs font-mono px-2 py-0.5 rounded border border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
+                        className="ui-chip ui-chip--small"
                       >
                         {h.nhan}
                       </span>
@@ -223,14 +219,14 @@ function TrangDanhSachBo() {
                   </div>
 
                   {tienDo && (
-                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--mau-chu-phu)]">
+                    <div className="ui-chip-row mt-4">
                       {tienDo.flashcard && (
-                        <span className="rounded-md border border-[var(--mau-thanh-cong)]/25 bg-[var(--mau-thanh-cong)]/5 px-2 py-1">
+                        <span className="ui-chip ui-chip--success ui-chip--small">
                           Đã nhớ {tienDo.flashcard.remembered}/{tienDo.flashcard.total} từ
                         </span>
                       )}
                       {tienDo.quiz && (
-                        <span className="rounded-md border border-[var(--mau-vien)] bg-[var(--mau-vien)]/25 px-2 py-1">
+                        <span className="ui-chip ui-chip--muted ui-chip--small">
                           Quiz gần nhất: {tienDo.quiz.correct}/{tienDo.quiz.total}
                         </span>
                       )}

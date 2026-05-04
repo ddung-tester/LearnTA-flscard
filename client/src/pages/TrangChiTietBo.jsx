@@ -9,6 +9,58 @@ const FORM_TU_RONG = {
   example: "",
 };
 
+function IconPlus() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function IconUpload() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 16V4" />
+      <path d="m7 9 5-5 5 5" />
+      <path d="M5 20h14" />
+    </svg>
+  );
+}
+
+function NutIconQuanLyTu({ label, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+    >
+      {children}
+      <span className="ui-action-tooltip">{label}</span>
+    </button>
+  );
+}
+
 function parseDongImport(dong) {
   const noiDung = dong.trim();
   if (!noiDung) return null;
@@ -216,67 +268,63 @@ function TrangChiTietBo() {
         ← Danh sách bộ từ
       </Link>
 
-      <h2 className="text-2xl font-semibold text-[var(--mau-chu)] mt-2">
+      <h2 className="text-2xl font-semibold text-[var(--mau-chu)] mt-2 mb-5">
         {bo.title}
       </h2>
-      {bo.description && (
-        <p className="text-[var(--mau-chu-phu)] mt-1 mb-5">{bo.description}</p>
-      )}
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
+          <p className="ui-stat-label mb-1">
             Tổng từ
           </p>
-          <p className="text-2xl font-mono font-bold text-[var(--mau-chu)]">
+          <p className="ui-stat-value text-[var(--mau-chu)]">
             {soTu}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
+          <p className="ui-stat-label mb-1">
             Thuần thục
           </p>
-          <p className="text-2xl font-mono font-bold text-[var(--mau-thanh-cong)]">
+          <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
             {soThuanThuc}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
+          <p className="ui-stat-label mb-1">
             Cần ôn
           </p>
-          <p className="text-2xl font-mono font-bold text-[var(--mau-phu)]">
+          <p className="ui-stat-value text-[var(--mau-phu)]">
             {soYeu}
           </p>
         </div>
-        <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+        <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat)] px-4 py-3">
+          <p className="ui-stat-label mb-1">
             Streak
           </p>
-          <p className="text-2xl font-mono font-bold text-[var(--mau-chu)]">
+          <p className="ui-stat-value text-[var(--mau-chu)]">
             {streak > 0 ? streak : "-"}
           </p>
         </div>
       </div>
 
-      <div className="border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-4 mb-8">
+      <div className="border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-4 mb-6">
         <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
           Tiến độ học tập
         </p>
 
         {tienDo ? (
-          <div className="flex flex-wrap gap-2 text-sm text-[var(--mau-chu-phu)]">
+          <div className="ui-chip-row">
             {tienDo.flashcard && (
-                <span className="rounded-md border border-[var(--mau-thanh-cong)]/25 bg-[var(--mau-thanh-cong)]/5 px-3 py-1.5">
+                <span className="ui-chip ui-chip--success">
                 Flashcard: nhớ {tienDo.flashcard.remembered}/{tienDo.flashcard.total}
               </span>
             )}
             {tienDo.quiz && (
-              <span className="rounded-md border border-[var(--mau-vien)] bg-[var(--mau-vien)]/25 px-3 py-1.5">
+              <span className="ui-chip ui-chip--muted">
                 Quiz gần nhất: {tienDo.quiz.correct}/{tienDo.quiz.total}
               </span>
             )}
             {ngayHocGanNhat && (
-              <span className="rounded-md border border-[var(--mau-phu)]/25 bg-[var(--mau-phu)]/10 px-3 py-1.5">
+              <span className="ui-chip ui-chip--warning">
                 Lần học gần nhất: {ngayHocGanNhat}
               </span>
             )}
@@ -288,7 +336,7 @@ function TrangChiTietBo() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
         <Link
           to={`/decks/${boId}/flashcard`}
           className="flex flex-col items-center justify-center gap-2 border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-5 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
@@ -331,33 +379,22 @@ function TrangChiTietBo() {
           </span>
         </Link>
 
-        <button
-          type="button"
-          onClick={moFormThemTu}
-          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          <span className="font-semibold text-[var(--mau-chu)]">Thêm từ</span>
-          <span className="text-xs text-[var(--mau-chu-phu)] text-center">
-            Thêm từ vựng mới
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={moFormImport}
-          className="flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] rounded-xl px-4 py-5 hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          <span className="font-semibold text-[var(--mau-chu)]">Import từ</span>
-          <span className="text-xs text-[var(--mau-chu-phu)] text-center">
-            Dán nhiều từ cùng lúc
-          </span>
-        </button>
       </div>
 
       <div>
-        <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-4">
-          Từ vựng ({soTu})
-        </h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-[var(--mau-chu)]">
+            Từ vựng ({soTu})
+          </h3>
+          <div className="flex items-center gap-2">
+            <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
+              <IconPlus />
+            </NutIconQuanLyTu>
+            <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
+              <IconUpload />
+            </NutIconQuanLyTu>
+          </div>
+        </div>
 
         {danhSach.length === 0 ? (
           <div className="text-center py-10 px-5 border border-dashed border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)]">

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = {
   triggerCount: 5,
   opacity: 0.78,
-  duration: 8000,
+  duration: 10800,
+  videoDuration: 8000,
   fadeOutMs: 1000,
   volume: 0.80,
   manifestSrc: "/rewards/videos.json",
@@ -32,6 +34,12 @@ function RewardTikTokEffect({
   const [videoSanSang, setVideoSanSang] = useState(false);
   const [dangChuanBi, setDangChuanBi] = useState(false);
   const [dangFadeOut, setDangFadeOut] = useState(false);
+  const [choPhepPhatVideo, setChoPhepPhatVideo] = useState(false);
+  const lanTimelineRewardRef = useRef(0);
+
+  const batDauPhatVideo = useCallback(() => {
+    setChoPhepPhatVideo(true);
+  }, []);
 
   function taoHangDoiVideo(danhSach) {
     const hangDoi = tronDanhSach(danhSach);
@@ -152,6 +160,8 @@ function RewardTikTokEffect({
       setLoiVideo(false);
       setDangChuanBi(false);
       setDangFadeOut(false);
+      setChoPhepPhatVideo(false);
+      lanTimelineRewardRef.current = 0;
 
       if (danhSachVideo.length > 0) {
         const videoTiepTheo = xemVideoTiepTheo(danhSachVideo);
@@ -166,11 +176,17 @@ function RewardTikTokEffect({
 
     if (!coTheHienThi) return undefined;
 
+    if (lanKichHoat !== lanTimelineRewardRef.current) {
+      lanTimelineRewardRef.current = lanKichHoat;
+      setChoPhepPhatVideo(false);
+    }
+
     setDangChuanBi(!videoSanSang);
     setDangFadeOut(false);
 
     if (danhSachVideo.length === 0) {
       setLoiVideo(true);
+      setDangChuanBi(false);
       return undefined;
     }
 
@@ -224,7 +240,7 @@ function RewardTikTokEffect({
   }, [lanKichHoat]);
 
   useEffect(() => {
-    if (!active || !videoSrc || !videoSanSang) {
+    if (!active || !videoSrc || !videoSanSang || !choPhepPhatVideo) {
       return undefined;
     }
 
@@ -235,7 +251,9 @@ function RewardTikTokEffect({
     const volume = config.volume ?? CAU_HINH_REWARD_QUIZ.volume;
     const fadeOutMs = config.fadeOutMs ?? CAU_HINH_REWARD_QUIZ.fadeOutMs;
     const duration = config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
-    const thoiGianBatDauFade = Math.max(0, duration - fadeOutMs);
+    const videoDuration =
+      config.videoDuration ?? CAU_HINH_REWARD_QUIZ.videoDuration ?? duration;
+    const thoiGianBatDauFade = Math.max(0, videoDuration - fadeOutMs);
     let animationId;
     let fadeTimer;
     let volumeTimer;
@@ -310,6 +328,7 @@ function RewardTikTokEffect({
     };
   }, [
     active,
+    choPhepPhatVideo,
     lanKichHoat,
     videoSrc,
     videoSanSang,
@@ -333,7 +352,6 @@ function RewardTikTokEffect({
       aria-hidden="true"
       style={style}
     >
-      {active && <div className="reward-tiktok-effect__study-frame" />}
       {!loiVideo && videoSrc && (
         <video
           key={videoSrc}
@@ -347,25 +365,16 @@ function RewardTikTokEffect({
           onError={() => setLoiVideo(true)}
         />
       )}
-      {active &&
-        !dangChuanBi &&
-        ["left", "right"].map((viTri) => (
-        <div
-          className={`reward-tiktok-effect__panel reward-tiktok-effect__panel--${viTri}`}
-          key={viTri}
-        >
-          {loiVideo || !videoSrc ? (
-            <div className="reward-tiktok-effect__fallback" />
-          ) : (
-            <canvas
-              ref={(node) => {
-                canvasRefs.current[viTri] = node;
-              }}
-              className="reward-tiktok-effect__canvas"
-            />
-          )}
-        </div>
-        ))}
+      {active && !dangChuanBi && (
+        <RewardMagicOverlay
+          active={active}
+          fadeOut={dangFadeOut}
+          hasError={loiVideo || !videoSrc}
+          videoSrc={videoSrc}
+          canvasRefs={canvasRefs}
+          onPortalOpen={batDauPhatVideo}
+        />
+      )}
     </div>
   );
 }

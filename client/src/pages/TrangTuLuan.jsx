@@ -377,7 +377,7 @@ function TrangTuLuan() {
               type="button"
               aria-pressed={batReward}
               onClick={doiCheDoReward}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
+              className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
                 ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
                 : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
                 }`}
@@ -388,7 +388,7 @@ function TrangTuLuan() {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
             <label
               htmlFor="moc-reward-tuluan-summary"
-              className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]"
+              className="ui-label"
             >
               Số câu đúng để có phần thưởng
             </label>
@@ -407,28 +407,28 @@ function TrangTuLuan() {
               Bạn đúng {soCauDung}/{danhSachThe.length} từ
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-8 text-left">
-              <div className="border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat-2)] px-4 py-3">
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-8">
+              <div className="ui-stat-card border border-[var(--mau-vien)] rounded-lg bg-[var(--mau-mat-2)] px-4 py-3">
+                <p className="ui-stat-label mb-1">
                   Tổng câu
                 </p>
-                <p className="text-2xl font-mono font-bold text-[var(--mau-chu)]">
+                <p className="ui-stat-value text-[var(--mau-chu)]">
                   {danhSachThe.length}
                 </p>
               </div>
-              <div className="border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-4 py-3">
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+              <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5 rounded-lg px-4 py-3">
+                <p className="ui-stat-label mb-1">
                   Đúng
                 </p>
-                <p className="text-2xl font-mono font-bold text-[var(--mau-thanh-cong)]">
+                <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
                   {soCauDung}
                 </p>
               </div>
-              <div className="border border-[var(--mau-loi)]/35 bg-[var(--mau-loi)]/10 rounded-lg px-4 py-3">
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+              <div className="ui-stat-card border border-[var(--mau-loi)]/35 bg-[var(--mau-loi)]/10 rounded-lg px-4 py-3">
+                <p className="ui-stat-label mb-1">
                   Sai
                 </p>
-                <p className="text-2xl font-mono font-bold text-[var(--mau-loi)]">
+                <p className="ui-stat-value text-[var(--mau-loi)]">
                   {soSai}
                 </p>
               </div>
@@ -520,7 +520,7 @@ function TrangTuLuan() {
             type="button"
             aria-pressed={batReward}
             onClick={doiCheDoReward}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
+            className={`ui-chip ui-chip--interactive shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${batReward
               ? "border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]"
               : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)]"
               }`}
@@ -531,7 +531,7 @@ function TrangTuLuan() {
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <label
             htmlFor="moc-reward-tuluan"
-            className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]"
+            className="ui-label"
           >
             Số câu đúng để có phần thưởng
           </label>
@@ -547,10 +547,10 @@ function TrangTuLuan() {
 
         <div className="mb-8">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <span className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)]">
+            <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachThe.length}
             </span>
-            <span className="text-right text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
+            <span className="ui-chip ui-chip--primary ui-chip--small text-right">
               {cheDoHienTai.nhan}
             </span>
           </div>
@@ -564,7 +564,7 @@ function TrangTuLuan() {
 
         {/* Cau hoi */}
         <section className="text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">
-          <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-4">
+          <p className="ui-chip ui-chip--muted mb-4">
             {cheDoHienTai.labelCauHoi}
           </p>
           <h2 className="break-words text-3xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-4xl">
@@ -576,7 +576,7 @@ function TrangTuLuan() {
         <form onSubmit={kiemTraDapAn} className="mb-6">
           <label
             htmlFor="cau-tra-loi"
-            className="block text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-2"
+            className="block ui-label mb-2"
           >
             {cheDoHienTai.labelTraLoi}
           </label>
