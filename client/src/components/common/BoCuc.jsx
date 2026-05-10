@@ -13,9 +13,12 @@ function BoCuc() {
     return <Outlet />;
   }
 
+  // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
+  const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
+
   return (
     <div className="min-h-screen">
-      <header className="app-shell-header px-4 py-4 sm:px-6">
+      <header className="app-shell-header px-4 py-3 sm:px-6">
         <div className="app-shell-header__inner mx-auto flex items-center justify-between gap-3">
           <Link
             to="/"
@@ -25,7 +28,7 @@ function BoCuc() {
           </Link>
           <Link
             to="/decks"
-            className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3 py-1.5 text-sm text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
           >
             Bộ từ vựng
           </Link>
@@ -34,7 +37,7 @@ function BoCuc() {
 
       <main
         key={viTri.pathname}
-        className="app-shell-main ui-page-enter mx-auto px-4 py-6 sm:px-6 sm:py-8"
+        className={`app-shell-main ui-page-enter mx-auto px-4 sm:px-6 ${laPhienHoc ? "py-2 sm:py-3" : "py-6 sm:py-8"}`}
       >
         <Outlet />
       </main>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const THOI_GIAN_DONG_MODAL = 190;
 
@@ -48,7 +49,7 @@ function AnimatedModal({ open, onClose, labelledBy, className = "", children }) 
 
   if (!dangRender) return null;
 
-  return (
+  return createPortal(
     <div
       className={`ui-modal-backdrop ${dangDong ? "ui-modal-backdrop--closing" : ""}`}
       onMouseDown={(event) => {
@@ -65,7 +66,8 @@ function AnimatedModal({ open, onClose, labelledBy, className = "", children }) 
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

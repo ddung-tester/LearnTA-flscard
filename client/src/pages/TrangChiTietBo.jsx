@@ -2,13 +2,25 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import {
+  capNhatTrangThaiYeuThichThe,
+  laTuMoiThem,
+  laTuYeuThich,
+  layBoTheoId,
+  layTheoBoId,
+} from "../data/duLieuMau";
 
 const FORM_TU_RONG = {
   word: "",
   meaning: "",
   example: "",
 };
+
+const FILTER_TU = [
+  { key: "tat-ca", label: "Tất cả" },
+  { key: "yeu-thich", label: "Yêu thích" },
+  { key: "moi-them", label: "Mới thêm" },
+];
 
 function IconPlus() {
   return (
@@ -43,6 +55,23 @@ function IconUpload() {
       <path d="M12 16V4" />
       <path d="m7 9 5-5 5 5" />
       <path d="M5 20h14" />
+    </svg>
+  );
+}
+
+function IconHeart({ filled = false }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
     </svg>
   );
 }
@@ -89,6 +118,9 @@ function TrangChiTietBo() {
   const [noiDungImport, setNoiDungImport] = useState("");
   const [ketQuaImport, setKetQuaImport] = useState(null);
   const [toast, setToast] = useState("");
+  const [filterTu, setFilterTu] = useState("tat-ca");
+  const [dangXacNhanXoa, setDangXacNhanXoa] = useState(null); // id của từ đang chờ xóa
+  const [successInfo, setSuccessInfo] = useState({ open: false, message: "" });
 
   useEffect(() => {
     setDanhSach(layTheoBoId(boId));
@@ -98,7 +130,14 @@ function TrangChiTietBo() {
     setDangMoImport(false);
     setNoiDungImport("");
     setKetQuaImport(null);
+    setFilterTu("tat-ca");
+    setDangXacNhanXoa(null);
   }, [boId]);
+
+  function showSuccess(msg) {
+    setSuccessInfo({ open: true, message: msg });
+    setTimeout(() => setSuccessInfo({ open: false, message: "" }), 1200);
+  }
 
   function moFormThemTu() {
     setTheDangSua(null);
@@ -152,19 +191,19 @@ function TrangChiTietBo() {
         hienTai.map((the) =>
           the.id === theDangSua.id
             ? {
-                ...the,
-                term_en: word,
-                meaning_vi: meaning,
-                example_sentence: example,
-              }
+              ...the,
+              term_en: word,
+              meaning_vi: meaning,
+              example_sentence: example,
+            }
             : the
         )
       );
     } else {
       const idMoi = Math.max(0, ...danhSach.map((the) => the.id)) + 1;
+      const thoiDiem = new Date().toISOString();
 
       setDanhSach((hienTai) => [
-        ...hienTai,
         {
           id: idMoi,
           deck_id: boId,
@@ -172,11 +211,14 @@ function TrangChiTietBo() {
           meaning_vi: meaning,
           example_sentence: example,
           note: "",
+          created_at: thoiDiem,
+          is_favorite: false,
         },
+        ...hienTai,
       ]);
     }
 
-    setToast(theDangSua ? "Đã lưu thay đổi từ vựng" : "Đã thêm từ mới");
+    showSuccess(theDangSua ? "Đã cập nhật" : "Đã thêm từ");
     dongFormTu();
   }
 
@@ -200,16 +242,13 @@ function TrangChiTietBo() {
     });
 
     if (danhSachHopLe.length === 0) {
-      setKetQuaImport({
-        thanhCong: 0,
-        boQua: soDongBoQua,
-      });
-      setToast("Chưa có dòng import hợp lệ");
+      setToast("Không có từ hợp lệ");
       return;
     }
 
     setDanhSach((hienTai) => {
       const idLonNhat = Math.max(0, ...hienTai.map((the) => the.id));
+      const thoiDiem = new Date().toISOString();
       const tuMoi = danhSachHopLe.map((the, index) => ({
         id: idLonNhat + index + 1,
         deck_id: boId,
@@ -217,17 +256,58 @@ function TrangChiTietBo() {
         meaning_vi: the.meaning,
         example_sentence: "",
         note: "",
+        created_at: thoiDiem,
+        is_favorite: false,
       }));
 
-      return [...hienTai, ...tuMoi];
+      return [...tuMoi, ...hienTai];
     });
 
     setNoiDungImport("");
-    setKetQuaImport({
-      thanhCong: danhSachHopLe.length,
-      boQua: soDongBoQua,
-    });
-    setToast(`Đã import ${danhSachHopLe.length} từ`);
+    setKetQuaImport(null);
+    setDangMoImport(false);
+    showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
+  }
+
+  function xoaTu(id) {
+    setDangXacNhanXoa(id);
+  }
+
+  function thucHienXoaTu() {
+    if (!dangXacNhanXoa) return;
+    setDanhSach((hienTai) => hienTai.filter((the) => the.id !== dangXacNhanXoa));
+    setDangXacNhanXoa(null);
+    showSuccess("Đã xóa");
+  }
+
+  function locDanhSachTu(danhSachCanLoc) {
+    if (filterTu === "yeu-thich") {
+      return danhSachCanLoc.filter(laTuYeuThich);
+    }
+
+    if (filterTu === "moi-them") {
+      return danhSachCanLoc.filter(laTuMoiThem);
+    }
+
+    return danhSachCanLoc;
+  }
+
+  function toggleYeuThich(the) {
+    const yeuThichMoi = !laTuYeuThich(the);
+
+    setDanhSach((hienTai) =>
+      hienTai.map((item) =>
+        item.id === the.id
+          ? {
+            ...item,
+            is_favorite: yeuThichMoi,
+            isFavorite: yeuThichMoi,
+          }
+          : item
+      )
+    );
+    capNhatTrangThaiYeuThichThe(the.id, yeuThichMoi);
+    setToast(yeuThichMoi ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích");
   }
 
   if (!bo) {
@@ -253,6 +333,9 @@ function TrangChiTietBo() {
   }
 
   const soTu = danhSach.length;
+  const danhSachDaLoc = locDanhSachTu(danhSach);
+  const soTuYeuThich = danhSach.filter(laTuYeuThich).length;
+  const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
   const streak = bo.streak ?? 0;
   const coTheQuiz = soTu >= 4;
 
@@ -262,7 +345,7 @@ function TrangChiTietBo() {
         <div className="ui-page-header__title">
           <Link
             to="/decks"
-            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
             ← Danh sách bộ từ
           </Link>
@@ -304,7 +387,7 @@ function TrangChiTietBo() {
             to={`/decks/${boId}/quiz`}
             className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            <span className="font-semibold text-[var(--mau-chinh)]">Làm Quiz</span>
+            <span className="font-semibold text-[var(--mau-chinh)]">Làm trắc nghiệm</span>
           </Link>
         ) : (
           <div
@@ -327,7 +410,7 @@ function TrangChiTietBo() {
       <div className="ui-section-stack">
         <div className="ui-section-header">
           <h3 className="text-sm font-semibold text-[var(--mau-chu)]">
-            Từ vựng ({soTu})
+            Từ vựng ({danhSachDaLoc.length}/{soTu})
           </h3>
           <div className="ui-control-cluster">
             <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
@@ -337,6 +420,30 @@ function TrangChiTietBo() {
               <IconUpload />
             </NutIconQuanLyTu>
           </div>
+        </div>
+
+        <div className="ui-filter-tabs" aria-label="Lọc từ vựng">
+          {FILTER_TU.map((filter) => {
+            const soLuong =
+              filter.key === "yeu-thich"
+                ? soTuYeuThich
+                : filter.key === "moi-them"
+                  ? soTuMoiThem
+                  : soTu;
+
+            return (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => setFilterTu(filter.key)}
+                aria-pressed={filterTu === filter.key}
+                className="ui-filter-tab"
+              >
+                <span>{filter.label}</span>
+                <span className="ui-filter-tab__count">{soLuong}</span>
+              </button>
+            );
+          })}
         </div>
 
         {danhSach.length === 0 ? (
@@ -350,42 +457,75 @@ function TrangChiTietBo() {
               + Thêm từ vựng đầu tiên
             </button>
           </div>
+        ) : danhSachDaLoc.length === 0 ? (
+          <div className="ui-empty-panel border-dashed">
+            <p className="text-[var(--mau-chu-phu)]">
+              Chưa có từ phù hợp với bộ lọc này.
+            </p>
+          </div>
         ) : (
           <ul className="ui-card-list">
-            {danhSach.map((the, i) => (
-              <li
-                key={the.id}
-                className="ui-reading-card border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <div className="min-w-0 flex flex-wrap items-baseline gap-2 sm:gap-3">
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--mau-vien)] bg-[var(--mau-input)] text-xs font-semibold text-[var(--mau-chinh)]">
-                      {i + 1}
-                    </span>
-                    <span className="break-words font-semibold text-[var(--mau-chu)]">
-                      {the.term_en}
-                    </span>
-                    <span className="hidden sm:inline text-[var(--mau-vien)] shrink-0">-</span>
-                    <span className="break-words text-[var(--mau-chu)]">
-                      {the.meaning_vi}
-                    </span>
+            {danhSachDaLoc.map((the, i) => {
+              const dangYeuThich = laTuYeuThich(the);
+
+              return (
+                <li
+                  key={the.id}
+                  className="ui-reading-card border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="min-w-0 flex flex-wrap items-baseline gap-2 sm:gap-3">
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--mau-vien)] bg-[var(--mau-input)] text-xs font-semibold text-[var(--mau-chinh)]">
+                        {i + 1}
+                      </span>
+                      <span className="break-words font-semibold text-[var(--mau-chu)]">
+                        {the.term_en}
+                      </span>
+                      <span className="hidden sm:inline text-[var(--mau-vien)] shrink-0">-</span>
+                      <span className="break-words text-[var(--mau-chu)]">
+                        {the.meaning_vi}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleYeuThich(the)}
+                        aria-pressed={dangYeuThich}
+                        aria-label={
+                          dangYeuThich
+                            ? `Bỏ yêu thích ${the.term_en}`
+                            : `Yêu thích ${the.term_en}`
+                        }
+                        title={dangYeuThich ? "Bỏ yêu thích" : "Yêu thích"}
+                        className={`ui-favorite-button ${dangYeuThich ? "ui-favorite-button--active" : ""
+                          }`}
+                      >
+                        <IconHeart filled={dangYeuThich} />
+                      </button>
+                      <NutIconQuanLyTu
+                        label={`Sửa từ ${the.term_en}`}
+                        onClick={() => moFormSuaTu(the)}
+                      >
+                        <IconEdit />
+                      </NutIconQuanLyTu>
+                      <NutIconQuanLyTu
+                        label={`Xóa từ ${the.term_en}`}
+                        onClick={() => xoaTu(the.id)}
+                      >
+                        <IconTrash />
+                      </NutIconQuanLyTu>
+                    </div>
                   </div>
-                  <NutIconQuanLyTu
-                    label={`Sửa từ ${the.term_en}`}
-                    onClick={() => moFormSuaTu(the)}
-                  >
-                    <IconEdit />
-                  </NutIconQuanLyTu>
-                </div>
 
-                {the.example_sentence && (
-                  <p className="text-sm text-[var(--mau-chu-phu)] mt-1.5 ml-8 italic">
-                    {the.example_sentence}
-                  </p>
-                )}
+                  {the.example_sentence && (
+                    <p className="text-sm text-[var(--mau-chu-phu)] mt-1.5 ml-8 italic">
+                      {the.example_sentence}
+                    </p>
+                  )}
 
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -395,86 +535,86 @@ function TrangChiTietBo() {
         onClose={dongFormTu}
         className="ui-form-panel max-w-lg shadow-[var(--bong-modal)]"
       >
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
-                  Từ vựng
-                </p>
-                <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
-                  {theDangSua ? "Sửa từ" : "Thêm từ"}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={dongFormTu}
-                className="ui-button ui-button--ghost rounded-md border border-[var(--mau-vien)] px-3 py-1 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+              Từ vựng
+            </p>
+            <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
+              {theDangSua ? "Sửa từ" : "Thêm từ"}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={dongFormTu}
+            className="ui-button ui-button--ghost rounded-md border border-[var(--mau-vien)] px-3 py-1 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
 
-            <form onSubmit={luuTu} className="space-y-4">
-              <div>
-                <label htmlFor="word" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-                  Word
-                </label>
-                <input
-                  id="word"
-                  name="word"
-                  value={formTu.word}
-                  onChange={capNhatFormTu}
-                  required
-                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-                  placeholder="example"
-                />
-              </div>
+        <form onSubmit={luuTu} className="space-y-4">
+          <div>
+            <label htmlFor="word" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
+              Word
+            </label>
+            <input
+              id="word"
+              name="word"
+              value={formTu.word}
+              onChange={capNhatFormTu}
+              required
+              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+              placeholder="example"
+            />
+          </div>
 
-              <div>
-                <label htmlFor="meaning" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-                  Meaning
-                </label>
-                <input
-                  id="meaning"
-                  name="meaning"
-                  value={formTu.meaning}
-                  onChange={capNhatFormTu}
-                  required
-                  className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-                  placeholder="nghĩa tiếng Việt"
-                />
-              </div>
+          <div>
+            <label htmlFor="meaning" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
+              Meaning
+            </label>
+            <input
+              id="meaning"
+              name="meaning"
+              value={formTu.meaning}
+              onChange={capNhatFormTu}
+              required
+              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+              placeholder="nghĩa tiếng Việt"
+            />
+          </div>
 
-              <div>
-                <label htmlFor="example" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-                  Example (optional)
-                </label>
-                <textarea
-                  id="example"
-                  name="example"
-                  value={formTu.example}
-                  onChange={capNhatFormTu}
-                  rows={3}
-                  className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-                  placeholder="I use this word in a sentence."
-                />
-              </div>
+          <div>
+            <label htmlFor="example" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
+              Example (optional)
+            </label>
+            <textarea
+              id="example"
+              name="example"
+              value={formTu.example}
+              onChange={capNhatFormTu}
+              rows={3}
+              className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+              placeholder="I use this word in a sentence."
+            />
+          </div>
 
-              <div className="ui-form-actions">
-                <button
-                  type="button"
-                  onClick={dongFormTu}
-                  className="ui-button ui-button--ghost w-full sm:w-auto rounded-lg border border-[var(--mau-vien)] px-5 py-2.5 text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="ui-button ui-button--primary w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                >
-                  {theDangSua ? "Lưu thay đổi" : "Thêm từ"}
-                </button>
-              </div>
-            </form>
+          <div className="ui-form-actions">
+            <button
+              type="button"
+              onClick={dongFormTu}
+              className="ui-button ui-button--ghost w-full sm:w-auto rounded-lg border border-[var(--mau-vien)] px-5 py-2.5 text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="ui-button ui-button--primary w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            >
+              {theDangSua ? "Lưu thay đổi" : "Thêm từ"}
+            </button>
+          </div>
+        </form>
       </AnimatedModal>
 
       <AnimatedModal
@@ -482,76 +622,114 @@ function TrangChiTietBo() {
         onClose={dongFormImport}
         className="ui-form-panel max-w-lg shadow-[var(--bong-modal)]"
       >
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
-                  Import nhanh
-                </p>
-                <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
-                  Import từ
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={dongFormImport}
-                className="ui-button ui-button--ghost rounded-md border border-[var(--mau-vien)] px-3 py-1 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-              >
-                Đóng
-              </button>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <div>
+            <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
+              Import nhanh
+            </p>
+            <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
+              Import từ
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={dongFormImport}
+            className="ui-button ui-button--ghost rounded-md border border-[var(--mau-vien)] px-3 py-1 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+          >
+            Đóng
+          </button>
+        </div>
+
+        <form onSubmit={importTu} className="space-y-4">
+          <div>
+            <label
+              htmlFor="import-tu"
+              className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5"
+            >
+              Danh sách từ
+            </label>
+            <textarea
+              id="import-tu"
+              value={noiDungImport}
+              onChange={(event) => setNoiDungImport(event.target.value)}
+              rows={9}
+              className="ui-import-zone w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+              placeholder={"apple - quả táo\nbook, quyển sách\ncat | con mèo"}
+            />
+            <p className="mt-2 text-xs text-[var(--mau-chu-phu)]">
+              Mỗi dòng một từ. Hỗ trợ: word - meaning, word, meaning, word | meaning.
+            </p>
+          </div>
+
+          <div className="ui-form-actions">
+            <button
+              type="button"
+              onClick={dongFormImport}
+              className="ui-button ui-button--ghost w-full sm:w-auto rounded-lg border border-[var(--mau-vien)] px-5 py-2.5 text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="ui-button ui-button--primary w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            >
+              Import từ
+            </button>
+          </div>
+        </form>
+      </AnimatedModal>
+      <AnimatedModal
+        open={!!dangXacNhanXoa}
+        onClose={() => setDangXacNhanXoa(null)}
+        className="ui-form-panel max-w-[320px] shadow-[var(--bong-modal)] p-0 overflow-hidden border-none"
+      >
+        <div className="flex flex-col">
+          {/* Accent Header */}
+          <div className="h-1.5 w-full bg-[var(--mau-loi)] opacity-80" />
+          
+          <div className="p-6 text-center">
+            {/* Soft Icon Backdrop */}
+            <div className="mx-auto w-14 h-14 rounded-full bg-[var(--mau-loi)]/10 flex items-center justify-center text-[var(--mau-loi)] mb-4">
+              <IconTrash />
             </div>
 
-            <form onSubmit={importTu} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="import-tu"
-                  className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5"
-                >
-                  Danh sách từ
-                </label>
-                <textarea
-                  id="import-tu"
-                  value={noiDungImport}
-                  onChange={(event) => setNoiDungImport(event.target.value)}
-                  rows={9}
-                  className="ui-import-zone w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-                  placeholder={"apple - quả táo\nbook, quyển sách\ncat | con mèo"}
-                />
-                <p className="mt-2 text-xs text-[var(--mau-chu-phu)]">
-                  Mỗi dòng một từ. Hỗ trợ: word - meaning, word, meaning, word | meaning.
-                </p>
-              </div>
+            <h3 className="text-xl font-bold text-[var(--mau-chu)] mb-8">
+              Xóa từ này?
+            </h3>
 
-              {ketQuaImport && (
-                <div className="ui-feedback-pop rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-vien)]/20 px-3 py-2 text-sm text-[var(--mau-chu-phu)]">
-                  Import thành công:{" "}
-                  <span className="font-semibold text-[var(--mau-thanh-cong)]">
-                    {ketQuaImport.thanhCong}
-                  </span>
-                  . Bỏ qua:{" "}
-                  <span className="font-semibold text-[var(--mau-phu)]">
-                    {ketQuaImport.boQua}
-                  </span>
-                  .
-                </div>
-              )}
-
-              <div className="ui-form-actions">
-                <button
-                  type="button"
-                  onClick={dongFormImport}
-                  className="ui-button ui-button--ghost w-full sm:w-auto rounded-lg border border-[var(--mau-vien)] px-5 py-2.5 text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="ui-button ui-button--primary w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                >
-                  Import từ
-                </button>
-              </div>
-            </form>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setDangXacNhanXoa(null)}
+                className="ui-button ui-button--ghost py-3 rounded-xl border border-[var(--mau-vien)] text-sm font-semibold text-[var(--mau-chu-phu)] hover:bg-[var(--mau-mat-hover)] transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={thucHienXoaTu}
+                className="ui-button ui-button--primary py-3 rounded-xl bg-[var(--mau-loi)] text-white text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all active:scale-[0.95]"
+              >
+                Xóa ngay
+              </button>
+            </div>
+          </div>
+        </div>
       </AnimatedModal>
+
+      <AnimatedModal
+        open={successInfo.open}
+        onClose={() => { }}
+        className="ui-feedback-simple max-w-[180px] rounded-full bg-[var(--mau-chinh)] py-3 shadow-xl border-none"
+      >
+        <div className="flex items-center justify-center gap-2 text-white">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="font-bold text-sm tracking-tight">{successInfo.message}</span>
+        </div>
+      </AnimatedModal>
+
       <ToastMessage message={toast} onDone={() => setToast("")} />
     </div>
   );
@@ -571,6 +749,27 @@ function IconEdit() {
     >
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
     </svg>
   );
 }

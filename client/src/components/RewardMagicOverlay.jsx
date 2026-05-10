@@ -114,11 +114,15 @@ function RewardMagicOverlay({
   canvasRefs,
   onPortalOpen,
   onComplete,
+  combo = 0,
 }) {
   const rootRef = useRef(null);
   const portalRefs = useRef({});
   const lanChoVideoRef = useRef(null);
   const lanDaChayIntroRef = useRef(null);
+
+  const comboScale = Math.min(1 + combo * 0.08, 1.8);
+  const sparkScale = Math.min(1 + combo * 0.12, 2.2);
 
   function luuCanvas(viTri, node) {
     if (!canvasRefs?.current) return;
@@ -177,7 +181,7 @@ function RewardMagicOverlay({
       const studyFrame = q(".reward-magic__study-frame");
 
       gsap.set(root, { autoAlpha: 1 });
-      gsap.set(sourceGlow, { autoAlpha: 0, scale: 0.55 });
+      gsap.set(sourceGlow, { autoAlpha: 0, scale: 0.55 * comboScale });
       gsap.set(studyFrame, { autoAlpha: 0, scale: 0.98 });
       gsap.set(sparks, { autoAlpha: 0, x: 0, y: 0, scale: 0.25, rotate: 0 });
       gsap.set(portals, {
@@ -201,7 +205,7 @@ function RewardMagicOverlay({
         node.setAttribute("cx", rightTarget.x);
         node.setAttribute("cy", rightTarget.y);
       });
-      gsap.set(bursts, { autoAlpha: 0, scale: 0.25, transformOrigin: "50% 50%" });
+      gsap.set(bursts, { autoAlpha: 0, scale: 0.25 * sparkScale, transformOrigin: "50% 50%" });
 
       if (!videoReady && !prefersReducedMotion) {
         if (lanChoVideoRef.current === sequenceKey) return undefined;
@@ -211,7 +215,7 @@ function RewardMagicOverlay({
 
         waitingTimeline
           .to(studyFrame, { autoAlpha: 0.1, scale: 1, duration: 0.24 }, 0)
-          .to(sourceGlow, { autoAlpha: 0.9, scale: 0.98, duration: 0.32 }, 0)
+          .to(sourceGlow, { autoAlpha: 0.9, scale: 0.98 * comboScale, duration: 0.32 }, 0)
           .to(warmupPaths, { autoAlpha: 0.72, strokeDashoffset: 0, duration: 0.9, ease: "sine.inOut" }, 0.12);
 
         return () => waitingTimeline.kill();
@@ -248,14 +252,14 @@ function RewardMagicOverlay({
 
       timeline
         .to(studyFrame, { autoAlpha: 0.14, scale: 1, duration: 0.24 }, 0)
-        .to(sourceGlow, { autoAlpha: 1, scale: 1.05, duration: 0.34 }, 0)
+        .to(sourceGlow, { autoAlpha: 1, scale: 1.05 * comboScale, duration: 0.34 }, 0)
         .to(
           sparks,
           {
             autoAlpha: 1,
-            x: () => ngauNhien(-52, 52),
-            y: () => ngauNhien(-42, 42),
-            scale: () => ngauNhien(0.52, 0.95),
+            x: () => ngauNhien(-52 * sparkScale, 52 * sparkScale),
+            y: () => ngauNhien(-42 * sparkScale, 42 * sparkScale),
+            scale: () => ngauNhien(0.52, 0.95) * sparkScale,
             rotate: () => ngauNhien(-70, 70),
             duration: 0.44,
             stagger: 0.035,
@@ -266,8 +270,8 @@ function RewardMagicOverlay({
           sparks,
           {
             autoAlpha: 0,
-            x: () => ngauNhien(-92, 92),
-            y: () => ngauNhien(-68, 68),
+            x: () => ngauNhien(-92 * sparkScale, 92 * sparkScale),
+            y: () => ngauNhien(-68 * sparkScale, 68 * sparkScale),
             scale: 0.08,
             duration: 0.72,
             stagger: 0.018,
@@ -286,8 +290,8 @@ function RewardMagicOverlay({
           { autoAlpha: 1, strokeDashoffset: 0, duration: 1.5, ease: "power2.inOut" },
           1.86
         )
-        .to(bursts, { autoAlpha: 1, scale: 1, duration: 0.26, stagger: 0.03, ease: "expo.out" }, 3.22)
-        .to(bursts, { autoAlpha: 0, scale: 1.9, duration: 0.38, stagger: 0.03, ease: "power2.out" }, 3.42)
+        .to(bursts, { autoAlpha: 1, scale: 1 * sparkScale, duration: 0.26, stagger: 0.03, ease: "expo.out" }, 3.22)
+        .to(bursts, { autoAlpha: 0, scale: 1.9 * sparkScale, duration: 0.38, stagger: 0.03, ease: "power2.out" }, 3.42)
         .to([...leftPaths, ...rightPaths], { autoAlpha: 0, strokeDashoffset: -48, duration: 0.28 }, 3.34)
         .to(
           portals,
@@ -301,44 +305,169 @@ function RewardMagicOverlay({
           },
           3.38
         )
-        .to(sourceGlow, { autoAlpha: 0.2, scale: 1.28, duration: 0.48 }, 3.42)
+        .to(sourceGlow, { autoAlpha: 0.2, scale: 1.28 * comboScale, duration: 0.48 }, 3.42)
         .call(() => onPortalOpen?.(), null, 3.5)
         .to(media, { autoAlpha: 1, scale: 1, duration: 0.4 }, 3.62);
 
       return () => timeline.kill();
     },
-    { scope: rootRef, dependencies: [active, sequenceKey, videoReady, originRect] }
+    { scope: rootRef, dependencies: [active, sequenceKey, videoReady, originRect, combo] }
   );
 
   useGSAP(
     () => {
       if (!fadeOut || !rootRef.current) return undefined;
 
-      const q = gsap.utils.selector(rootRef.current);
-      const closeTimeline = gsap.timeline({ onComplete });
+      const root = rootRef.current;
+      const q = gsap.utils.selector(root);
+      const source = layDiemNguon(originRect);
+      const portals = q(".reward-magic__portal");
+      const portalRings = q(".reward-magic__portal-ring");
+      const media = q(".reward-magic__media");
+      const studyFrame = q(".reward-magic__study-frame");
+      const sourceGlow = q(".reward-magic__source-glow");
+      const sparks = q(".reward-magic__spark");
+      const paths = q(".reward-magic__path");
+      const bursts = q(".reward-magic__burst");
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
 
-      closeTimeline.to(
-        [
-          q(".reward-magic__portal"),
-          q(".reward-magic__media"),
-          q(".reward-magic__study-frame"),
-          q(".reward-magic__source-glow"),
-          q(".reward-magic__path"),
-          q(".reward-magic__spark"),
-          q(".reward-magic__burst"),
-        ],
-        {
+      root.style.setProperty("--reward-source-x", `${source.x}px`);
+      root.style.setProperty("--reward-source-y", `${source.y}px`);
+
+      if (prefersReducedMotion) {
+        const quickClose = gsap.timeline({ onComplete });
+
+        quickClose.to(root, {
           autoAlpha: 0,
-          scale: 0.96,
-          filter: "blur(6px)",
-          duration: 0.8,
+          duration: 0.18,
           ease: "power2.out",
-        }
+        });
+
+        return () => quickClose.kill();
+      }
+
+      const leftTarget = layDiemDichPortal(
+        portalRefs.current.left?.getBoundingClientRect(),
+        "left"
       );
+      const rightTarget = layDiemDichPortal(
+        portalRefs.current.right?.getBoundingClientRect(),
+        "right"
+      );
+      const leftPath = taoPathToiVideo(source, leftTarget, "left");
+      const rightPath = taoPathToiVideo(source, rightTarget, "right");
+      const leftPaths = q(".reward-magic__path--left");
+      const rightPaths = q(".reward-magic__path--right");
+      const warmupPaths = q(".reward-magic__path--warmup");
+
+      q(".reward-magic__burst--left").forEach((node) => {
+        node.setAttribute("cx", leftTarget.x);
+        node.setAttribute("cy", leftTarget.y);
+      });
+      q(".reward-magic__burst--right").forEach((node) => {
+        node.setAttribute("cx", rightTarget.x);
+        node.setAttribute("cy", rightTarget.y);
+      });
+      leftPaths.forEach((path) => path.setAttribute("d", leftPath));
+      rightPaths.forEach((path) => path.setAttribute("d", rightPath));
+      warmupPaths.forEach((path) => {
+        path.setAttribute("d", taoPathVongQuanhProgress(source));
+      });
+
+      [...leftPaths, ...rightPaths, ...warmupPaths].forEach((path) => {
+        const length = path.getTotalLength();
+        gsap.set(path, {
+          autoAlpha: 0,
+          strokeDasharray: length,
+          strokeDashoffset: -length,
+        });
+      });
+
+      gsap.set(root, { autoAlpha: 1 });
+      gsap.set(sourceGlow, { autoAlpha: 1, scale: 1.05 * comboScale, filter: "blur(7px)" });
+      gsap.set(bursts, { autoAlpha: 0, scale: 0.3 * sparkScale, transformOrigin: "50% 50%" });
+      gsap.set(sparks, {
+        autoAlpha: 0.86,
+        x: () => ngauNhien(-92 * sparkScale, 92 * sparkScale),
+        y: () => ngauNhien(-68 * sparkScale, 68 * sparkScale),
+        scale: () => ngauNhien(0.42, 0.86) * sparkScale,
+        rotate: () => ngauNhien(-70, 70),
+      });
+      gsap.set([...leftPaths, ...rightPaths], { autoAlpha: 0.88, strokeDashoffset: 0 });
+      gsap.set(warmupPaths, { autoAlpha: 0, strokeDashoffset: 0 });
+
+      const closeTimeline = gsap.timeline({
+        defaults: { ease: "power3.out", overwrite: "auto" },
+        onComplete,
+      });
+
+      closeTimeline
+        .to(media, { autoAlpha: 0, scale: 1.03, filter: "blur(8px)", duration: 0.34, ease: "power2.inOut" }, 0)
+        .to(bursts, { autoAlpha: 1, scale: 1 * sparkScale, duration: 0.18, stagger: 0.03, ease: "expo.out" }, 0.06)
+        .to(bursts, { autoAlpha: 0, scale: 1.9 * sparkScale, duration: 0.34, stagger: 0.03, ease: "power2.out" }, 0.22)
+        .to(
+          [...leftPaths, ...rightPaths],
+          { autoAlpha: 0.95, strokeDashoffset: 0, duration: 0.08 },
+          0.06
+        )
+        .to(
+          [...leftPaths, ...rightPaths],
+          { autoAlpha: 0, strokeDashoffset: (index, target) => target.getTotalLength(), duration: 0.62, ease: "power2.inOut" },
+          0.12
+        )
+        .to(warmupPaths, { autoAlpha: 0.82, duration: 0.18, ease: "sine.out" }, 0.38)
+        .to(
+          warmupPaths,
+          { autoAlpha: 0, strokeDashoffset: (index, target) => target.getTotalLength(), duration: 0.42, ease: "sine.inOut" },
+          0.5
+        )
+        .to(
+          portalRings,
+          {
+            autoAlpha: 0,
+            scale: 0.72,
+            filter: "blur(8px)",
+            duration: 0.42,
+            ease: "power2.inOut",
+          },
+          0.18
+        )
+        .to(
+          portals,
+          {
+            autoAlpha: 0,
+            scale: 0.2,
+            clipPath: "inset(42% 42% 42% 42%)",
+            filter: "blur(10px)",
+            duration: 0.56,
+            ease: "expo.inOut",
+          },
+          0.24
+        )
+        .to(
+          sparks,
+          {
+            autoAlpha: 0,
+            x: 0,
+            y: 0,
+            scale: 0.08,
+            rotate: 0,
+            duration: 0.58,
+            stagger: 0.018,
+            ease: "power3.inOut",
+          },
+          0.12
+        )
+        .to(sourceGlow, { autoAlpha: 1, scale: 1.22 * comboScale, duration: 0.22, ease: "sine.out" }, 0.46)
+        .to(sourceGlow, { autoAlpha: 0, scale: 0.55 * comboScale, filter: "blur(12px)", duration: 0.34, ease: "power2.in" }, 0.66)
+        .to(studyFrame, { autoAlpha: 0.08, scale: 0.99, duration: 0.46, ease: "power2.out" }, 0.28)
+        .to(root, { autoAlpha: 0, duration: 0.12, ease: "power2.out" }, 0.9);
 
       return () => closeTimeline.kill();
     },
-    { scope: rootRef, dependencies: [fadeOut, onComplete] }
+    { scope: rootRef, dependencies: [fadeOut, onComplete, originRect, combo] }
   );
 
   if (!active) return null;

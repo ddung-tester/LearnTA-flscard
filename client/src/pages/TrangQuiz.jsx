@@ -7,7 +7,9 @@ import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import ComboDisplay from "../components/common/ComboDisplay";
+import useCombo from "../hooks/useCombo";
+import { locTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 
 const DS_CHE_DO_QUIZ = [
@@ -55,9 +57,12 @@ function TrangQuiz() {
   const { deckId } = useParams();
   const boId = Number(deckId);
   const bo = layBoTheoId(boId);
-  const danhSachThe = layTheoBoId(boId);
+  const danhSachGoc = layTheoBoId(boId);
 
   const [cheDo, setCheDo] = useState("en-vi");
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
+  const [batRandom, setBatRandom] = useState(false);
+  const [lanTronQuiz, setLanTronQuiz] = useState(0);
   const [lanLam, setLanLam] = useState(0);
   const [chiSo, setChiSo] = useState(0);
   const [dapAnDaChon, setDapAnDaChon] = useState(null);
@@ -71,16 +76,26 @@ function TrangQuiz() {
   );
   const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
   const [rewardProgressValue, setRewardProgressValue] = useState(0);
+  const [dangChuyenCau, setDangChuyenCau] = useState(false);
+  const { combo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const progressEndpointRef = useRef(null);
   const rewardProgressValueRef = useRef(0);
   const amThanhDungRef = useRef(null);
   const rewardLaunchTimerRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
+  const questionTransitionTimerRef = useRef(null);
+
+  const danhSachLocQuiz = locTuYeuThich(danhSachGoc, chiHocTuYeuThich);
+  const danhSachThe = useMemo(() => {
+    if (!batRandom) return danhSachLocQuiz;
+    return [...danhSachLocQuiz].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batRandom, lanTronQuiz, chiHocTuYeuThich, boId]);
 
   const danhSachCauHoi = useMemo(
     () => taoDanhSachCauHoi(danhSachThe, cheDo),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [boId, lanLam, cheDo]
+    [boId, lanLam, cheDo, chiHocTuYeuThich, batRandom, lanTronQuiz]
   );
 
   useEffect(() => {
@@ -122,6 +137,13 @@ function TrangQuiz() {
     rewardProgressValueRef.current = 0;
   }
 
+  function xoaTimerChuyenCau() {
+    if (questionTransitionTimerRef.current) {
+      clearTimeout(questionTransitionTimerRef.current);
+      questionTransitionTimerRef.current = null;
+    }
+  }
+
   function batDauTienTrinhReward(diemMoi, coReward) {
     xoaTimerProgressReward();
     setRewardProgressValue(Math.min(diemMoi, soCauDungNhanThuong));
@@ -160,7 +182,9 @@ function TrangQuiz() {
   );
 
   function lamLai() {
+    xoaTimerChuyenCau();
     datLaiProgressReward();
+    setDangChuyenCau(false);
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -168,11 +192,14 @@ function TrangQuiz() {
     setDaHoanThanh(false);
     setHienReward(false);
     setLanReward(0);
+    resetAll();
   }
 
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
+    xoaTimerChuyenCau();
     datLaiProgressReward();
+    setDangChuyenCau(false);
     setCheDo(key);
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
@@ -181,6 +208,7 @@ function TrangQuiz() {
     setDaHoanThanh(false);
     setHienReward(false);
     setLanReward(0);
+    resetAll();
   }
 
   function doiCheDoReward() {
@@ -200,8 +228,42 @@ function TrangQuiz() {
     setHienReward(false);
   }
 
+  function doiChiHocTuYeuThich() {
+    xoaTimerChuyenCau();
+    datLaiProgressReward();
+    setDangChuyenCau(false);
+    setChiHocTuYeuThich((dangBat) => !dangBat);
+    setLanLam((giaTri) => giaTri + 1);
+    setChiSo(0);
+    setDapAnDaChon(null);
+    setSoCauDung(0);
+    setDaHoanThanh(false);
+    setHienReward(false);
+    setLanReward(0);
+    resetAll();
+  }
+
+  function doiRandom() {
+    setBatRandom((prev) => {
+      const moi = !prev;
+      if (moi) setLanTronQuiz((n) => n + 1);
+      return moi;
+    });
+    xoaTimerChuyenCau();
+    datLaiProgressReward();
+    setDangChuyenCau(false);
+    setLanLam((giaTri) => giaTri + 1);
+    setChiSo(0);
+    setDapAnDaChon(null);
+    setSoCauDung(0);
+    setDaHoanThanh(false);
+    setHienReward(false);
+    setLanReward(0);
+    resetAll();
+  }
+
   function chonDapAn(dapAn) {
-    if (dapAnDaChon !== null || hienReward) return;
+    if (dapAnDaChon !== null || hienReward || dangChuyenCau) return;
 
     setDapAnDaChon(dapAn);
     if (dapAn === danhSachCauHoi[chiSo].dapAnDung) {
@@ -218,6 +280,9 @@ function TrangQuiz() {
 
         return diemMoi;
       });
+      incrementCombo();
+    } else {
+      resetCombo();
     }
   }
 
@@ -229,17 +294,34 @@ function TrangQuiz() {
 
     setChiSo((chiSoHienTai) => chiSoHienTai + 1);
     setDapAnDaChon(null);
+    setDangChuyenCau(false);
+  }
+
+  function chuyenCauMem() {
+    xoaTimerChuyenCau();
+    setDangChuyenCau(true);
+    questionTransitionTimerRef.current = setTimeout(() => {
+      sangCauTiepTheo();
+      questionTransitionTimerRef.current = null;
+    }, 220);
   }
 
   useEffect(() => {
     if (dapAnDaChon === null || daHoanThanh || hienReward) return undefined;
 
     const timer = setTimeout(() => {
-      sangCauTiepTheo();
-    }, 1000);
+      chuyenCauMem();
+    }, 760);
 
     return () => clearTimeout(timer);
   }, [dapAnDaChon, daHoanThanh, hienReward]);
+
+  useEffect(
+    () => () => {
+      xoaTimerChuyenCau();
+    },
+    []
+  );
 
   useEffect(() => {
     if (!bo || !daHoanThanh || danhSachCauHoi.length === 0) return;
@@ -284,23 +366,42 @@ function TrangQuiz() {
   }
 
   if (danhSachThe.length < 4) {
+    const dangLocYeuThich = chiHocTuYeuThich && danhSachGoc.length >= 4;
+
     return (
-      <div className="max-w-xl mx-auto text-center py-16">
-        <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
-          Quiz trắc nghiệm
-        </p>
-        <h2 className="text-2xl font-semibold text-[var(--mau-chu)] mb-3">
-          Cần ít nhất 4 từ để làm quiz
-        </h2>
-        <p className="text-[var(--mau-chu-phu)] mb-6">
-          Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu.
-        </p>
-        <Link
-          to={`/decks/${boId}`}
-          className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
-        >
-          Quay lại bộ từ
-        </Link>
+      <div className="ui-study-empty-wrap">
+        <section className="ui-study-empty-card">
+          <p className="ui-study-empty-card__eyebrow">
+            Quiz trắc nghiệm
+          </p>
+          <h2 className="ui-study-empty-card__title">
+            {dangLocYeuThich
+              ? "Cần ít nhất 4 từ yêu thích"
+              : "Cần ít nhất 4 từ để làm quiz"}
+          </h2>
+          <p className="ui-study-empty-card__copy">
+            {dangLocYeuThich
+              ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ để bắt đầu."
+              : "Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu."}
+          </p>
+          <div className="ui-study-empty-card__actions">
+            {dangLocYeuThich && (
+              <button
+                type="button"
+                onClick={doiChiHocTuYeuThich}
+                className="ui-button ui-button--ghost ui-study-empty-card__button"
+              >
+                Tắt lọc yêu thích
+              </button>
+            )}
+            <Link
+              to={`/decks/${boId}`}
+              className="ui-button ui-button--primary ui-study-empty-card__button"
+            >
+              Quay lại bộ từ
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }
@@ -314,11 +415,12 @@ function TrangQuiz() {
           config={CAU_HINH_REWARD_QUIZ}
           progressEndpointRef={progressEndpointRef}
           onHideComplete={xuLyRewardDongXong}
+          combo={combo}
         />
-        <div className="ui-content-enter relative z-10 mx-auto max-w-2xl">
+        <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <Link
             to={`/decks/${boId}`}
-            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-back-link ui-back-link--quiet"
           >
             &larr; {bo.title}
           </Link>
@@ -385,12 +487,13 @@ function TrangQuiz() {
         config={CAU_HINH_REWARD_QUIZ}
         progressEndpointRef={progressEndpointRef}
         onHideComplete={xuLyRewardDongXong}
+        combo={combo}
       />
-      <div className="relative z-10 mx-auto max-w-2xl">
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-8">
+        <div className="ui-study-toolbar mb-6">
           <Link
             to={`/decks/${boId}`}
-            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-study-back-link"
           >
             &larr; {bo.title}
           </Link>
@@ -408,6 +511,28 @@ function TrangQuiz() {
                   options={DS_CHE_DO_QUIZ}
                   ariaLabel="Đổi chế độ trắc nghiệm"
                   variant="compact"
+                />
+              </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Chỉ học từ yêu thích</span>
+                  <span className="ui-settings-popover__hint">Quiz chỉ sinh câu từ các từ đã thả tim</span>
+                </div>
+                <ToggleSwitch
+                  checked={chiHocTuYeuThich}
+                  onChange={doiChiHocTuYeuThich}
+                  ariaLabel={`Chỉ học từ yêu thích ${chiHocTuYeuThich ? "bật" : "tắt"}`}
+                />
+              </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Thứ tự ngẫu nhiên</span>
+                  <span className="ui-settings-popover__hint">Xáo trộn thứ tự câu hỏi mỗi lần chơi</span>
+                </div>
+                <ToggleSwitch
+                  checked={batRandom}
+                  onChange={doiRandom}
+                  ariaLabel={`Ngẫu nhiên ${batRandom ? "bật" : "tắt"}`}
                 />
               </div>
             </section>
@@ -443,7 +568,7 @@ function TrangQuiz() {
             </section>
           </StudySettingsPopover>
         </div>
-        <div className="mt-5 mb-8">
+        <div className="mb-8">
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="ui-chip ui-chip--muted ui-chip--small">
               Câu {chiSo + 1}/{danhSachCauHoi.length}
@@ -456,16 +581,26 @@ function TrangQuiz() {
             phase={rewardProgressPhase}
             endpointRef={progressEndpointRef}
             label="Tiến độ"
+            combo={combo}
           />
+          <div className="mt-2 flex justify-end">
+            <ComboDisplay combo={combo} phase={comboPhase} />
+          </div>
         </div>
 
-        <section key={cauHienTai.id} className="ui-content-enter text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9">
-          <h2 className="break-words text-3xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-4xl">
+        <section
+          key={cauHienTai.id}
+          className={`ui-question-flow text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+        >
+          <h2 className="text-3xl font-semibold text-[var(--mau-chu)] sm:text-[2.25rem] leading-snug">
             {cauHienTai.cauHoi}
           </h2>
         </section>
 
-        <div key={`answers-${cauHienTai.id}`} className="ui-content-enter space-y-3 mb-6">
+        <div
+          key={`answers-${cauHienTai.id}`}
+          className={`ui-question-flow space-y-3 mb-6 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+        >
           {cauHienTai.danhSachDapAn.map((dapAn, index) => {
             const laDapAnDung = dapAn === cauHienTai.dapAnDung;
             const laDapAnNguoiDungChon = dapAn === dapAnDaChon;

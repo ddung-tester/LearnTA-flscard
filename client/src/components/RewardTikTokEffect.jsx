@@ -4,7 +4,7 @@ import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = {
-  triggerCount: 5,
+  triggerCount: 2,
   opacity: 0.78,
   duration: 10800,
   videoDuration: 8000,
@@ -26,6 +26,7 @@ function RewardTikTokEffect({
   config = CAU_HINH_REWARD_QUIZ,
   progressEndpointRef,
   onHideComplete,
+  combo = 0,
 }) {
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
@@ -367,9 +368,18 @@ function RewardTikTokEffect({
     const volume = config.volume ?? CAU_HINH_REWARD_QUIZ.volume;
     const fadeOutMs = config.fadeOutMs ?? CAU_HINH_REWARD_QUIZ.fadeOutMs;
     const duration = config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
-    const videoDuration =
+    const configVideoDuration =
       config.videoDuration ?? CAU_HINH_REWARD_QUIZ.videoDuration ?? duration;
-    const thoiGianBatDauFade = Math.max(0, videoDuration - fadeOutMs);
+
+    // Ưu tiên dùng thời lượng thực tế của video để tránh bị cắt sớm.
+    // Nếu metadata chưa load xong (NaN hoặc 0) thì dùng giá trị config dự phòng.
+    const actualVideoDuration =
+      video.duration && isFinite(video.duration)
+        ? video.duration * 1000
+        : configVideoDuration;
+
+    const thoiGianBatDauFade = Math.max(0, actualVideoDuration - fadeOutMs);
+
     let animationId;
     let fadeTimer;
     let volumeAnimationId;
@@ -486,6 +496,7 @@ function RewardTikTokEffect({
           originRect={originRect}
           canvasRefs={canvasRefs}
           onPortalOpen={batDauPhatVideo}
+          combo={combo}
         />
       )}
     </div>

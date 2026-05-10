@@ -27,7 +27,7 @@ function TrangThemTu() {
         <p className="text-[var(--mau-chu-phu)]">Không tìm thấy bộ từ.</p>
         <Link
           to="/decks"
-          className="ui-link inline-block mt-4 text-[var(--mau-chinh)] hover:underline"
+          className="ui-back-link ui-back-link--quiet mt-4"
         >
           ← Quay lại
         </Link>
@@ -58,7 +58,7 @@ function TrangThemTu() {
         <div className="ui-page-header__title">
           <Link
             to={`/decks/${boId}`}
-            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
             ← {bo.title}
           </Link>

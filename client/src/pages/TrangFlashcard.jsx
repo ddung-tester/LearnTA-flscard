@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import ToggleSwitch from "../components/common/ToggleSwitch";
+import { locTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 
 const DS_CHE_DO = [
   {
@@ -32,11 +33,22 @@ function TrangFlashcard() {
   const { deckId } = useParams();
   const boId = Number(deckId);
   const bo = layBoTheoId(boId);
-  const danhSach = layTheoBoId(boId);
+  const danhSachGoc = layTheoBoId(boId);
 
   const [chiSo, setChiSo] = useState(0);
   const [daLat, setDaLat] = useState(false);
   const [cheDo, setCheDo] = useState("vi-en");
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
+  const [batRandom, setBatRandom] = useState(false);
+  const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
+
+  const danhSachLoc = locTuYeuThich(danhSachGoc, chiHocTuYeuThich);
+  // useMemo để chỉ re-shuffle khi lanTron hoặc danh sách nguồn thay đổi
+  const danhSach = useMemo(() => {
+    if (!batRandom) return danhSachLoc;
+    return [...danhSachLoc].sort(() => Math.random() - 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batRandom, lanTron, chiHocTuYeuThich, boId]);
 
   function latThe() {
     setDaLat((dangLat) => !dangLat);
@@ -54,6 +66,22 @@ function TrangFlashcard() {
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
     setCheDo(key);
+    setChiSo(0);
+    setDaLat(false);
+  }
+
+  function doiChiHocTuYeuThich() {
+    setChiHocTuYeuThich((dangBat) => !dangBat);
+    setChiSo(0);
+    setDaLat(false);
+  }
+
+  function doiRandom() {
+    setBatRandom((prev) => {
+      const moi = !prev;
+      if (moi) setLanTron((n) => n + 1); // trigger shuffle mới
+      return moi;
+    });
     setChiSo(0);
     setDaLat(false);
   }
@@ -101,24 +129,41 @@ function TrangFlashcard() {
     );
   }
 
-  if (danhSach.length === 0) {
+  if (danhSachGoc.length === 0 || danhSach.length === 0) {
+    const dangThieuTuYeuThich = danhSachGoc.length > 0 && danhSach.length === 0;
+
     return (
-      <div className="max-w-xl mx-auto text-center py-16">
-        <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
-          Flashcard
-        </p>
-        <h2 className="text-2xl font-semibold text-[var(--mau-chu)] mb-3">
-          Bộ từ này chưa có từ nào
-        </h2>
-        <p className="text-[var(--mau-chu-phu)] mb-6">
-          Thêm một vài cặp từ Anh Việt trước khi bắt đầu học flashcard.
-        </p>
-        <Link
-          to={`/decks/${boId}`}
-          className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
-        >
-          Quay lại bộ từ
-        </Link>
+      <div className="ui-study-empty-wrap">
+        <section className="ui-study-empty-card">
+          <p className="ui-study-empty-card__eyebrow">
+            Flashcard
+          </p>
+          <h2 className="ui-study-empty-card__title">
+            {dangThieuTuYeuThich ? "Chưa có từ yêu thích" : "Bộ từ này chưa có từ nào"}
+          </h2>
+          <p className="ui-study-empty-card__copy">
+            {dangThieuTuYeuThich
+              ? "Tắt lọc yêu thích hoặc đánh dấu vài từ trước khi học."
+              : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
+          </p>
+          <div className="ui-study-empty-card__actions">
+            {dangThieuTuYeuThich && (
+              <button
+                type="button"
+                onClick={doiChiHocTuYeuThich}
+                className="ui-button ui-button--ghost ui-study-empty-card__button"
+              >
+                Tắt lọc yêu thích
+              </button>
+            )}
+            <Link
+              to={`/decks/${boId}`}
+              className="ui-button ui-button--primary ui-study-empty-card__button"
+            >
+              Quay lại bộ từ
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }
@@ -129,17 +174,17 @@ function TrangFlashcard() {
   const tienDo = ((chiSo + 1) / danhSach.length) * 100;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-4">
-      <div className="ui-page-header">
-        <div className="ui-page-header__title">
+    <div className="ui-study-session ui-study-session--compact mx-auto flex max-w-3xl flex-col gap-4">
+      <div className="ui-study-toolbar">
+        <div>
           <Link
             to={`/decks/${boId}`}
-            className="ui-link text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] transition-colors"
+            className="ui-study-back-link"
           >
             &larr; {bo.title}
           </Link>
         </div>
-        <div className="ui-page-header__actions">
+        <div className="ui-control-cluster">
           <StudySettingsPopover label="Cài đặt flashcard">
             <section className="ui-settings-popover__section">
               <p className="ui-settings-popover__title">Học tập</p>
@@ -156,6 +201,28 @@ function TrangFlashcard() {
                   variant="compact"
                 />
               </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Chỉ học từ yêu thích</span>
+                  <span className="ui-settings-popover__hint">Flashcard chỉ lấy từ đã thả tim</span>
+                </div>
+                <ToggleSwitch
+                  checked={chiHocTuYeuThich}
+                  onChange={doiChiHocTuYeuThich}
+                  ariaLabel={`Chỉ học từ yêu thích ${chiHocTuYeuThich ? "bật" : "tắt"}`}
+                />
+              </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Thứ tự ngẫu nhiên</span>
+                  <span className="ui-settings-popover__hint">Xáo trộn thứ tự thẻ mỗi lần học</span>
+                </div>
+                <ToggleSwitch
+                  checked={batRandom}
+                  onChange={doiRandom}
+                  ariaLabel={`Ngẫu nhiên ${batRandom ? "bật" : "tắt"}`}
+                />
+              </div>
             </section>
           </StudySettingsPopover>
         </div>
@@ -166,9 +233,9 @@ function TrangFlashcard() {
           <span>Tiến độ</span>
           <span>{Math.round(tienDo)}%</span>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
+        <div className="ui-study-progress">
           <div
-            className="ui-progress-fill h-full rounded-full bg-[linear-gradient(90deg,rgba(120,236,255,0.98),rgba(35,181,240,0.98)_46%,rgba(11,129,212,0.98))] shadow-[0_0_0.6rem_rgba(47,190,243,0.18)]"
+            className="ui-progress-fill ui-study-progress__fill"
             style={{ width: `${tienDo}%` }}
           />
         </div>
