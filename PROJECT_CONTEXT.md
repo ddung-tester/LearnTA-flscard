@@ -1,219 +1,376 @@
 # PROJECT_CONTEXT.md
 
-## 1. Tên dự án
+## 1. Ten du an
 
 **English Flashcard & Quiz App**
 
-Ứng dụng web học từ vựng tiếng Anh theo kiểu flashcard giống Quizlet ở mức cơ bản. Người dùng có thể nhập bộ từ vựng tiếng Anh - tiếng Việt, học bằng lật thẻ và làm bài trắc nghiệm tự động sinh từ danh sách từ đã nhập.
+Ung dung web hoc tu vung tieng Anh cho nguoi hoc Viet Nam. Nguoi dung tao bo tu, them cap tu Anh - Viet, hoc bang flashcard, lam quiz trac nghiem, lam quiz tu luan va nhan reward effect khi dat moc cau dung.
 
-Dự án được xây dựng để luyện React, JavaScript, Node.js, Express và MySQL. Ưu tiên code dễ hiểu, dễ mở rộng, không over-engineering.
-
----
-
-## 2. Mục tiêu dự án
-
-### Mục tiêu MVP
-
-Làm được một ứng dụng web có các chức năng chính:
-
-1. Tạo bộ từ vựng.
-2. Thêm từ vựng gồm:
-   - Từ tiếng Anh.
-   - Nghĩa tiếng Việt.
-   - Ví dụ tiếng Anh nếu có.
-   - Ghi chú nếu có.
-3. Xem danh sách từ vựng trong từng bộ.
-4. Học bằng flashcard:
-   - Mặt trước hiển thị tiếng Anh.
-   - Bấm để lật sang nghĩa tiếng Việt.
-   - Có nút "Đã nhớ" và "Chưa nhớ".
-5. Tạo bài quiz trắc nghiệm từ bộ từ vựng:
-   - Hiển thị câu hỏi tiếng Anh.
-   - Chọn nghĩa tiếng Việt đúng.
-   - Có 4 đáp án.
-   - Tính điểm cuối bài.
-6. Lưu dữ liệu vào MySQL thông qua backend Node.js + Express.
-
-### Mục tiêu sau MVP
-
-Sau khi bản cơ bản chạy ổn, có thể mở rộng:
-
-1. Đăng ký, đăng nhập người dùng.
-2. Mỗi người dùng có bộ từ riêng.
-3. Lưu lịch sử học.
-4. Lưu kết quả quiz.
-5. Thống kê từ nào hay sai.
-6. Import từ vựng bằng textarea hoặc file CSV.
-7. Public/share bộ từ vựng.
-8. Responsive tốt trên mobile.
-9. Thêm AI hỗ trợ sinh ví dụ, giải thích nghĩa, tạo quiz nâng cao.
+Du an duoc xay dung de luyen React, JavaScript, Node.js, Express va MySQL. Trang thai hien tai: **frontend mock da lam phan lon luong san pham**, backend/database moi o muc scaffold de ket noi sau.
 
 ---
 
-## 3. Tech stack
+## 2. Trang thai hien tai
+
+```txt
+Status: Frontend mock gan hoan thien
+Current focus: React/Vite client
+Backend status: Express scaffold + health check + db-test, chua co CRUD API
+Data status: Mock data trong frontend, progress/favorite luu localStorage
+Next recommended task: Ket noi backend CRUD cho decks/cards hoac hoan thien polish frontend truoc khi persist
+```
+
+### Da co the dung thu
+
+- Trang chu va layout ung dung.
+- Danh sach bo tu.
+- Chi tiet bo tu.
+- Them/sua bo tu tren state frontend.
+- Them/sua/xoa/import tu trong bo tren state frontend.
+- Yeu thich tu va loc theo yeu thich.
+- Flashcard 2 chieu hoc.
+- Quiz trac nghiem 2 chieu hoc.
+- Quiz tu luan 2 chieu hoc.
+- Cai dat hoc: chi hoc tu yeu thich, thu tu ngau nhien.
+- Reward khi tra loi dung du moc.
+- Combo display va reward progress.
+- Luu tien do quiz gan nhat bang `localStorage`.
+- Luu favorite cards bang `localStorage`.
+
+### Chua xong / can luu y
+
+- Them/sua/xoa/import deck/card hien chi cap nhat state trong UI; refresh trang se mat thay doi.
+- Backend chua co route CRUD cho decks/cards.
+- Frontend chua goi API backend.
+- Chua co auth.
+- Chua co luu du lieu that vao MySQL tu giao dien.
+- Mot so file dang co thay doi chua commit trong reward/quiz/tu-luan; khi sua tiep can doc diff truoc de tranh ghi de.
+
+---
+
+## 3. Muc tieu san pham
+
+Nguoi hoc co the tao mot bo tu, them nhanh tu moi, on tap bang flashcard, kiem tra bang trac nghiem hoac tu luan trong mot phien 10-20 phut. Trai nghiem can ro rang, it ma sat, than thien nhung khong tre con.
+
+Thanh cong cua MVP:
+
+- Nguoi dung tao/moi mot deck.
+- Them duoc card Anh - Viet.
+- Hoc flashcard duoc theo 2 chieu.
+- Lam quiz trac nghiem duoc khi deck co it nhat 4 tu.
+- Lam tu luan duoc voi dap an nhap tay.
+- Co tong ket ket qua.
+- Du lieu deck/card duoc persist qua backend/MySQL.
+
+Hien tai frontend da mo phong duoc hau het luong tren, nhung persist data chua xong.
+
+---
+
+## 4. Tech stack thuc te
 
 ### Frontend
 
-- React
+- React 19
+- Vite 8
 - JavaScript
-- Vite
-- React Router DOM
-- Tailwind CSS
-- Axios
-- Framer Motion, dùng sau nếu cần animation lật thẻ đẹp hơn
+- React Router DOM 7
+- Tailwind CSS 4
+- GSAP va `@gsap/react` cho reward animation
+- Axios da cai nhung hien chua dung trong luong chinh
+- localStorage cho progress va favorite
 
 ### Backend
 
 - Node.js
-- Express.js
+- Express 5
 - MySQL
-- mysql2 (query MySQL trực tiếp, không dùng ORM)
+- `mysql2/promise`
 - CORS
 - dotenv
+- nodemon cho dev
 
-### Công cụ hỗ trợ
+### Database
 
-- VS Code
-- MySQL Workbench hoặc DBeaver
-- Postman hoặc Thunder Client
-- Git + GitHub
-- Codex / Cursor / Antigraviti để hỗ trợ code
-
----
-
-## 4. Nguyên tắc phát triển
-
-1. Ưu tiên code dễ đọc, dễ hiểu.
-2. Không viết quá phức tạp khi chưa cần.
-3. Mỗi component chỉ nên làm một nhiệm vụ chính.
-4. Logic xử lý quiz nên tách khỏi UI.
-5. API backend cần rõ ràng, đặt tên dễ hiểu.
-6. Không hard-code dữ liệu lâu dài trong frontend.
-7. Không đưa mật khẩu database lên GitHub.
-8. Không commit thư mục `node_modules`.
-9. Không commit file `.env`.
-10. Khi dùng AI sửa code, AI phải đọc file này trước.
+- MySQL schema nam tai `server/database/schema.sql`
+- Database: `english_flashcard_quiz_app`
+- Bang hien co: `decks`, `cards`
 
 ---
 
-## 5. Cấu trúc thư mục đề xuất
+## 5. Cau truc repo hien tai
 
 ```txt
-english-flashcard-quiz-app/
-├── client/
-│   ├── public/
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   │   ├── common/
-│   │   │   ├── deck/
-│   │   │   ├── flashcard/
-│   │   │   └── quiz/
-│   │   ├── pages/
-│   │   │   ├── HomePage.jsx
-│   │   │   ├── DeckListPage.jsx
-│   │   │   ├── DeckDetailPage.jsx
-│   │   │   ├── FlashcardPage.jsx
-│   │   │   └── QuizPage.jsx
-│   │   ├── services/
-│   │   │   ├── api.js
-│   │   │   ├── deckApi.js
-│   │   │   └── cardApi.js
-│   │   ├── utils/
-│   │   │   └── quizGenerator.js
-│   │   ├── hooks/
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── package.json
-│   └── vite.config.js
-│
-├── server/
-│   ├── database/
-│   │   ├── schema.sql
-│   │   └── seed.sql
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js
-│   │   ├── controllers/
-│   │   │   ├── deckController.js
-│   │   │   └── cardController.js
-│   │   ├── routes/
-│   │   │   ├── deckRoutes.js
-│   │   │   └── cardRoutes.js
-│   │   ├── services/
-│   │   ├── utils/
-│   │   ├── app.js
-│   │   └── server.js
-│   ├── .env.example
-│   └── package.json
-│
-├── docs/
-│   ├── API.md
-│   ├── DATABASE.md
-│   └── TODO.md
-│
-├── PROJECT_CONTEXT.md
-├── README.md
-└── .gitignore
+prj_hocTA/
+  client/
+    public/
+      favicon.svg
+      icons.svg
+      sound/
+        bigo.mp3
+      rewards/
+        videos.json
+        video1.mp4 ... video5.mp4
+    src/
+      assets/
+        hero.png
+        react.svg
+        vite.svg
+      components/
+        common/
+          AnimatedModal.jsx
+          BoCuc.jsx
+          ComboDisplay.jsx
+          ModeSwitch.jsx
+          RewardProgressBar.jsx
+          StudySettingsPopover.jsx
+          ToastMessage.jsx
+          ToggleSwitch.jsx
+          TypingEffect.jsx
+        RewardMagicOverlay.jsx
+        RewardMagicOverlay.css
+        RewardTikTokEffect.jsx
+        RewardTikTokEffect.css
+      data/
+        duLieuMau.js
+      hooks/
+        useCombo.js
+      pages/
+        TrangChu.jsx
+        TrangDanhSachBo.jsx
+        TrangChiTietBo.jsx
+        TrangThemTu.jsx
+        TrangFlashcard.jsx
+        TrangQuiz.jsx
+        TrangTuLuan.jsx
+      utils/
+        tienDoHocTap.js
+      App.jsx
+      index.css
+      main.jsx
+    package.json
+    vite.config.js
+
+  server/
+    database/
+      schema.sql
+      seed.sql
+    src/
+      config/
+        db.js
+      app.js
+      server.js
+    package.json
+
+  docs/
+    .gitkeep
+
+  PRODUCT.md
+  DESIGN.md
+  DESIGN.json
+  README.md
+  CLAUDE.md
+  PROJECT_CONTEXT.md
 ```
 
 ---
 
-## 6. Luồng hoạt động chính
+## 6. Routes frontend
 
-### 6.1. Luồng tạo bộ từ vựng
+```txt
+/                         Trang chu
+/decks                    Danh sach bo tu
+/decks/:deckId            Chi tiet bo tu
+/decks/:deckId/add-word   Trang them tu rieng, dang co trong route
+/decks/:deckId/flashcard  Hoc flashcard
+/decks/:deckId/quiz       Quiz trac nghiem
+/decks/:deckId/tu-luan    Quiz tu luan
+```
 
-1. Người dùng vào trang danh sách bộ từ.
-2. Bấm "Tạo bộ từ mới".
-3. Nhập tên bộ từ và mô tả.
-4. Frontend gọi API tạo deck.
-5. Backend lưu vào bảng `decks`.
-6. Frontend điều hướng sang trang chi tiết bộ từ.
-
-### 6.2. Luồng thêm từ vựng
-
-1. Người dùng mở một deck.
-2. Nhập từ tiếng Anh và nghĩa tiếng Việt.
-3. Bấm thêm từ.
-4. Frontend gọi API tạo card.
-5. Backend lưu vào bảng `cards`.
-6. Frontend refresh danh sách cards.
-
-### 6.3. Luồng học flashcard
-
-1. Người dùng chọn một deck.
-2. Bấm "Học flashcard".
-3. Frontend lấy danh sách cards của deck.
-4. Hiển thị từng card.
-5. Ban đầu hiện `term_en`.
-6. Khi bấm lật, hiện `meaning_vi`.
-7. Người dùng chọn "Đã nhớ" hoặc "Chưa nhớ".
-8. Chuyển sang card tiếp theo.
-
-### 6.4. Luồng làm quiz
-
-1. Người dùng chọn một deck.
-2. Bấm "Làm quiz".
-3. Frontend lấy danh sách cards.
-4. Từ mỗi card, tạo câu hỏi:
-   - Câu hỏi: từ tiếng Anh.
-   - Đáp án đúng: nghĩa tiếng Việt của card đó.
-   - Đáp án sai: lấy nghĩa tiếng Việt từ các card khác.
-5. Người dùng chọn đáp án.
-6. Hệ thống kiểm tra đúng/sai.
-7. Cuối bài hiển thị điểm.
+`App.jsx` boc cac route bang `BoCuc`. Tat ca route hien dung mock data tu `client/src/data/duLieuMau.js`.
 
 ---
 
-## 7. Database schema đề xuất
+## 7. Du lieu frontend hien tai
 
-### Giai đoạn MVP chưa cần đăng nhập
+### Mock data
 
-Ban đầu chỉ cần 2 bảng:
+File: `client/src/data/duLieuMau.js`
+
+Exports chinh:
+
+- `danhSachBo`: danh sach deck mau.
+- `danhSachThe`: danh sach card mau.
+- `layTheoBoId(boId)`: lay cards theo deck, sap xep tu moi truoc.
+- `layBoTheoId(boId)`: lay deck theo id.
+- `laTuYeuThich(the)`: kiem tra favorite.
+- `laTuMoiThem(the)`: kiem tra tu moi them trong 3 ngay gan nhat.
+- `capNhatTrangThaiYeuThichThe(cardId, isFavorite)`: cap nhat favorite trong mock data va localStorage.
+- `locTuYeuThich(danhSach, chiHocTuYeuThich)`: loc danh sach theo favorite.
+
+### localStorage
+
+File: `client/src/utils/tienDoHocTap.js`
+
+- Key tien do: `hoc_tu_vung_progress`
+- Key favorite card: `hocTA.cardFavorites`
+- Tien do quiz luu duoc: `correct`, `review`, `total`, `lastQuizAt`
+- Tien do flashcard utility co san: `luuTienDoFlashcard`, nhung luong flashcard hien tai chua thay dung ro trong trang.
+
+---
+
+## 8. Chuc nang frontend chinh
+
+### 8.1. Danh sach bo tu
+
+File: `client/src/pages/TrangDanhSachBo.jsx`
+
+- Hien danh sach deck tu `danhSachBo`.
+- Hien so tu trong tung deck.
+- Hien ket qua quiz gan nhat neu co localStorage progress.
+- Them deck moi bang modal.
+- Sua title/description cua deck bang modal.
+- Click card hoac nhan Enter/Space de vao chi tiet deck.
+- Thay doi them/sua deck chi nam trong state cua trang.
+
+### 8.2. Chi tiet bo tu
+
+File: `client/src/pages/TrangChiTietBo.jsx`
+
+- Hien thong tin deck va tong so tu.
+- Hien action hoc Flashcard, lam trac nghiem, lam Tu luan.
+- Trac nghiem yeu cau it nhat 4 tu.
+- Them/sua/xoa tu bang modal va confirm modal.
+- Import nhanh nhieu tu qua textarea.
+- Format import ho tro:
+  - `word - meaning`
+  - `word, meaning`
+  - `word | meaning`
+- Loc danh sach theo Tat ca / Yeu thich / Moi them.
+- Toggle yeu thich tung tu, co persist vao localStorage.
+- Thay doi card chi nam trong state cua trang, khong ghi nguoc vao backend.
+
+### 8.3. Flashcard
+
+File: `client/src/pages/TrangFlashcard.jsx`
+
+- Hoc theo 2 chieu:
+  - `vi-en`: Vietnamese -> English
+  - `en-vi`: English -> Vietnamese
+- Click hoac phim Space de lat the.
+- ArrowRight/ArrowLeft de sang/lui the.
+- Co progress bar theo vi tri card.
+- Co cai dat:
+  - Doi chieu hoc.
+  - Chi hoc tu yeu thich.
+  - Thu tu ngau nhien.
+- Co empty state khi deck rong hoac loc favorite khong con tu.
+
+### 8.4. Quiz trac nghiem
+
+File: `client/src/pages/TrangQuiz.jsx`
+
+- Tao cau hoi tu danh sach card trong component.
+- Yeu cau it nhat 4 tu de co 1 dap an dung va 3 dap an nhieu.
+- Hoc theo 2 chieu:
+  - English -> Vietnamese
+  - Vietnamese -> English
+- Moi cau co 4 lua chon.
+- Chon dap an xong khoa cau hoi, hien dung/sai, roi tu chuyen cau.
+- Luu ket qua quiz vao localStorage khi hoan thanh.
+- Co cai dat:
+  - Doi chieu hoc.
+  - Chi hoc tu yeu thich.
+  - Thu tu ngau nhien.
+  - Bat/tat reward.
+  - Chinh moc so cau dung de kich hoat reward.
+- Co combo display va reward progress.
+- Phat audio `/sound/bigo.mp3` khi dung.
+
+### 8.5. Quiz tu luan
+
+File: `client/src/pages/TrangTuLuan.jsx`
+
+- Nguoi dung go dap an vao input.
+- So sanh dap an bang ham chuan hoa: trim, lowercase, gom khoang trang.
+- Hoc theo 2 chieu:
+  - Nghia -> Tu
+  - Tu -> Nghia
+- Dung thi tinh diem, tang combo, co reward progress.
+- Sai thi shake input, reset combo, khong hien dap an ngay.
+- Co nut Bo qua de hien dap an dung.
+- Co cai dat:
+  - Doi chieu hoc.
+  - Chi tu yeu thich.
+  - Thu tu ngau nhien.
+  - Bat/tat reward.
+  - Chinh moc reward.
+
+### 8.6. Reward system
+
+Files:
+
+- `client/src/components/RewardTikTokEffect.jsx`
+- `client/src/components/RewardTikTokEffect.css`
+- `client/src/components/RewardMagicOverlay.jsx`
+- `client/src/components/RewardMagicOverlay.css`
+- `client/src/components/common/RewardProgressBar.jsx`
+- `client/src/components/common/ComboDisplay.jsx`
+- `client/src/hooks/useCombo.js`
+
+Hanh vi:
+
+- Reward kich hoat khi so cau dung dat moc.
+- Config mac dinh trong `CAU_HINH_REWARD_QUIZ`.
+- Manifest video: `/rewards/videos.json`.
+- Video local: `client/public/rewards/video1.mp4` ... `video5.mp4`.
+- Audio dung: `client/public/sound/bigo.mp3`.
+- Overlay dung GSAP, canvas draw video, portal vao `document.body`.
+- Co xu ly `prefers-reduced-motion`.
+- Tren man hinh rong, reward co the hien hai ben; tren compact dung portal center/fallback.
+
+---
+
+## 9. Backend hien tai
+
+Files:
+
+- `server/src/server.js`
+- `server/src/app.js`
+- `server/src/config/db.js`
+- `server/database/schema.sql`
+- `server/database/seed.sql`
+
+Routes dang co:
+
+```txt
+GET /api/health
+GET /api/db-test
+```
+
+`/api/health` tra ve status server.
+
+`/api/db-test` chay `SELECT 1 AS result` qua MySQL pool de kiem tra ket noi.
+
+Chua co:
+
+- `GET /api/decks`
+- `GET /api/decks/:deckId`
+- `POST /api/decks`
+- `PUT /api/decks/:deckId`
+- `DELETE /api/decks/:deckId`
+- `GET /api/decks/:deckId/cards`
+- `POST /api/decks/:deckId/cards`
+- `PUT /api/cards/:cardId`
+- `DELETE /api/cards/:cardId`
+
+---
+
+## 10. Database schema hien tai
+
+`server/database/schema.sql` tao database va 2 bang:
 
 ```sql
-CREATE TABLE decks (
+CREATE TABLE IF NOT EXISTS decks (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT,
@@ -221,7 +378,7 @@ CREATE TABLE decks (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE cards (
+CREATE TABLE IF NOT EXISTS cards (
   id INT AUTO_INCREMENT PRIMARY KEY,
   deck_id INT NOT NULL,
   term_en VARCHAR(255) NOT NULL,
@@ -230,560 +387,573 @@ CREATE TABLE cards (
   note TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (deck_id) REFERENCES decks(id) ON DELETE CASCADE
+  CONSTRAINT fk_cards_deck
+    FOREIGN KEY (deck_id)
+    REFERENCES decks(id)
+    ON DELETE CASCADE
 );
 ```
 
-### Giai đoạn có đăng nhập
+Can can nhac them sau:
 
-Sau MVP, thêm bảng `users`:
+- `is_favorite` neu muon favorite persist trong DB.
+- `card_progress` neu muon tien do tung tu.
+- `quiz_results` neu muon lich su quiz.
+- `users` va `user_id` sau MVP neu lam auth.
 
-```sql
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+---
+
+## 11. Huong dan chay project
+
+### Frontend
+
+```bash
+cd client
+npm install
+npm run dev
 ```
 
-Sau đó thêm `user_id` vào bảng `decks`:
+Mac dinh Vite chay tai:
 
-```sql
-ALTER TABLE decks
-ADD COLUMN user_id INT,
-ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+```txt
+http://localhost:5173
 ```
 
-### Bảng mở rộng sau này
+Build:
 
-```sql
-CREATE TABLE quiz_results (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  deck_id INT NOT NULL,
-  score INT NOT NULL,
-  total_questions INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (deck_id) REFERENCES decks(id) ON DELETE CASCADE
-);
+```bash
+cd client
+npm run build
+```
 
-CREATE TABLE card_progress (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  card_id INT NOT NULL,
-  correct_count INT DEFAULT 0,
-  wrong_count INT DEFAULT 0,
-  last_reviewed_at TIMESTAMP NULL,
-  mastery_level INT DEFAULT 0,
-  FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
-);
+### Backend
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Mac dinh server chay tai:
+
+```txt
+http://localhost:5000
+```
+
+Can file `.env` neu cau hinh DB khac mac dinh:
+
+```txt
+PORT=5000
+CLIENT_URL=http://localhost:5173
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=english_flashcard_quiz_app
 ```
 
 ---
 
-## 8. SQL Schema
+## 12. Nguyen tac phat trien tiep
 
-SQL schema nằm trong `server/database/schema.sql`. Chạy file này trong MySQL Workbench để tạo database và bảng.
-
-Backend query MySQL trực tiếp bằng `mysql2/promise`, không dùng ORM.
-
----
-
-## 9. API cần có trong MVP
-
-### Deck API
-
-```txt
-GET    /api/decks
-GET    /api/decks/:deckId
-POST   /api/decks
-PUT    /api/decks/:deckId
-DELETE /api/decks/:deckId
-```
-
-### Card API
-
-```txt
-GET    /api/decks/:deckId/cards
-POST   /api/decks/:deckId/cards
-PUT    /api/cards/:cardId
-DELETE /api/cards/:cardId
-```
-
-### API mở rộng sau này
-
-```txt
-POST   /api/auth/register
-POST   /api/auth/login
-GET    /api/me
-
-POST   /api/quiz-results
-GET    /api/decks/:deckId/quiz-results
-
-POST   /api/cards/:cardId/progress
-GET    /api/decks/:deckId/progress
-```
+1. Frontend da la luong san pham chinh; khong rewrite UI neu khong can.
+2. Khi them backend CRUD, giu shape field tuong thich mock data: `id`, `deck_id`, `term_en`, `meaning_vi`, `example_sentence`, `note`, `created_at`, `updated_at`.
+3. Tach API client vao `client/src/services/` khi bat dau ket noi backend.
+4. Khong them auth truoc khi decks/cards persist on dinh.
+5. Khong chuyen sang TypeScript, Next.js, ORM hoac database khac neu chua duoc yeu cau.
+6. Reward la lop trai nghiem phu; khong de reward lam hong flow quiz.
+7. Moi thay doi lon trong quiz/reward phai test ca desktop va mobile vi CSS/animation phuc tap.
+8. Giu code de doc, uu tien component/hook san co hon abstraction moi.
+9. Khong commit `node_modules`, `.env`, file media ban quyen tu internet.
+10. Khi sua code, doc file lien quan va `git status --short` truoc de tranh ghi de thay doi chua commit.
 
 ---
 
-## 10. Component frontend đề xuất
+## 13. Uu tien phat trien tiep
 
-### Common components
+### Lua chon A: Persist data bang backend/MySQL
+
+Nen lam neu muc tieu tiep theo la MVP that:
+
+1. Tao routes/controllers cho decks.
+2. Tao routes/controllers cho cards.
+3. Tao `client/src/services/api.js`, `deckApi.js`, `cardApi.js`.
+4. Chuyen `TrangDanhSachBo` sang lay decks tu API.
+5. Chuyen `TrangChiTietBo` sang lay cards tu API.
+6. Them loading/error states.
+7. Dam bao refresh khong mat deck/card.
+
+### Lua chon B: Hoan thien frontend polish
+
+Nen lam neu muc tieu tiep theo la demo/portfolio:
+
+1. Kiem tra responsive cac trang hoc.
+2. Don lai UI copy Anh/Viet cho dong nhat.
+3. Hoan thien summary cua flashcard va tu luan.
+4. Kiem tra reduced-motion va keyboard accessibility.
+5. Chup screenshot/demo.
+
+---
+
+## 14. Prompt mau cho AI code assistant
 
 ```txt
-Button.jsx
-Input.jsx
-Textarea.jsx
-Modal.jsx
-Loading.jsx
-EmptyState.jsx
-ConfirmDialog.jsx
+Read PROJECT_CONTEXT.md first.
+
+This project is mostly complete on the frontend mock side. The current app uses React/Vite with mock data in client/src/data/duLieuMau.js, localStorage for progress/favorites, and an Express/MySQL backend scaffold that does not yet expose CRUD APIs.
+
+Do not rewrite the frontend unless required.
+Do not change unrelated files.
+Preserve the current Vietnamese naming style where it already exists.
+Before editing, inspect the relevant files and git status.
+After editing, summarize what changed and how to test.
 ```
 
-### Deck components
+Prompt ket noi backend:
 
 ```txt
-DeckCard.jsx
-DeckForm.jsx
-DeckList.jsx
-DeckHeader.jsx
-```
+Read PROJECT_CONTEXT.md first.
 
-### Card components
+Implement backend persistence for decks/cards with Express + mysql2, then connect the existing React pages to those APIs.
 
-```txt
-CardForm.jsx
-CardList.jsx
-CardItem.jsx
-```
-
-### Flashcard components
-
-```txt
-FlashcardViewer.jsx
-FlashcardControls.jsx
-FlashcardProgress.jsx
-```
-
-### Quiz components
-
-```txt
-QuizQuestion.jsx
-QuizOption.jsx
-QuizProgress.jsx
-QuizResult.jsx
+Requirements:
+- Keep the current field names compatible with mock data.
+- Add routes/controllers/services only as needed.
+- Keep auth out of scope.
+- Preserve existing quiz/flashcard/reward behavior.
+- Add loading/error handling in frontend.
+- Provide manual test steps.
 ```
 
 ---
 
-## 11. Pages frontend đề xuất
+## 15. Ghi chu encode
 
-### HomePage.jsx
-
-Trang giới thiệu ngắn:
-
-- Tên app.
-- Nút vào danh sách bộ từ.
-- Mô tả chức năng chính.
-
-### DeckListPage.jsx
-
-Trang danh sách deck:
-
-- Hiển thị toàn bộ bộ từ.
-- Nút tạo deck.
-- Nút sửa/xóa deck.
-- Nút vào chi tiết deck.
-
-### DeckDetailPage.jsx
-
-Trang chi tiết deck:
-
-- Hiển thị tên deck.
-- Form thêm từ.
-- Danh sách từ.
-- Nút học flashcard.
-- Nút làm quiz.
-
-### FlashcardPage.jsx
-
-Trang học flashcard:
-
-- Hiển thị một card tại một thời điểm.
-- Bấm để lật thẻ.
-- Nút card trước/card sau.
-- Nút đã nhớ/chưa nhớ.
-
-### QuizPage.jsx
-
-Trang làm quiz:
-
-- Hiển thị câu hỏi.
-- Hiển thị 4 đáp án.
-- Kiểm tra đúng/sai.
-- Hiển thị kết quả cuối bài.
+File nay dung tieng Viet khong dau phan lon de tranh loi encoding trong terminal Windows. UI source code van co the dung tieng Viet co dau khi can hien thi cho nguoi dung.
 
 ---
 
-## 12. Logic tạo quiz
+## 16. Frontend context chi tiet de thiet ke database
 
-File nên đặt tại:
+Muc nay duoc cap nhat sau khi doc source frontend trong `client/`. Dung muc nay lam nguon context rieng cho AI khi can thiet ke database/API, tranh suy luan sai tu UI mock.
+
+### 16.1. Tong quan frontend hien tai
+
+- App la React/Vite SPA, route bang `react-router-dom`.
+- Chua co API service layer. `axios` da cai trong `client/package.json` nhung chua duoc dung trong flow chinh.
+- Data chinh den tu `client/src/data/duLieuMau.js`.
+- State them/sua/xoa/import deck/card dang nam trong component state, refresh la mat.
+- Favorite card va quiz progress dang persist bang `localStorage`.
+- UI text trong nhieu file dang bi mojibake/loi encoding khi doc terminal, vi du chu Viet hien thanh `Bá»™`, `ÄÃ£`. Khi sua UI can giu/khac phuc encoding co chu dich, khong sua lan man trong task backend/database.
+
+### 16.2. Routes va man hinh
+
+Routes trong `client/src/App.jsx`:
 
 ```txt
-client/src/utils/quizGenerator.js
+/                         TrangChu
+/decks                    TrangDanhSachBo
+/decks/:deckId            TrangChiTietBo
+/decks/:deckId/add-word   TrangThemTu
+/decks/:deckId/flashcard  TrangFlashcard
+/decks/:deckId/quiz       TrangQuiz
+/decks/:deckId/tu-luan    TrangTuLuan
 ```
 
-Ý tưởng:
+`BoCuc.jsx` la layout chung. Trang chu co layout rieng. Cac route hoc `flashcard`, `quiz`, `tu-luan` dung shell rieng de vua viewport.
 
-1. Nhận vào danh sách cards.
-2. Với mỗi card:
-   - Lấy `term_en` làm câu hỏi.
-   - Lấy `meaning_vi` làm đáp án đúng.
-   - Lấy 3 nghĩa tiếng Việt khác làm đáp án sai.
-3. Trộn thứ tự đáp án.
-4. Trả về danh sách câu hỏi.
+### 16.3. Entity frontend dang su dung
 
-Pseudo logic:
+#### Deck
+
+Shape dang dung:
 
 ```js
-function taoSachCauHoi(danhSachThe) {
-  if (!danhSachThe || danhSachThe.length < 4) {
-    return [];
-  }
-
-  return danhSachThe.map((the) => {
-    const dapAnDung = the.meaning_vi;
-
-    const dapAnSai = danhSachThe
-      .filter((phanTu) => phanTu.id !== the.id)
-      .map((phanTu) => phanTu.meaning_vi)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-
-    const danhSachDapAn = [dapAnDung, ...dapAnSai]
-      .sort(() => Math.random() - 0.5);
-
-    return {
-      cauHoi: the.term_en,
-      dapAnDung,
-      danhSachDapAn,
-      maThe: the.id,
-    };
-  });
+{
+  id,
+  title,
+  description,
+  created_at,
+  updated_at,
+  streak,
+  masteredCount
 }
 ```
 
-Lưu ý:
+Trong do:
 
-- Nếu deck có dưới 4 từ, không nên cho làm quiz 4 đáp án.
-- Có thể hiển thị thông báo: "Cần ít nhất 4 từ để tạo quiz".
+- `id`: number.
+- `title`: ten bo tu.
+- `description`: mo ta ngan, co the rong.
+- `streak`: hien thi tren danh sach/chi tiet, hien chi la placeholder mock.
+- `masteredCount`: placeholder mock, chua thay dung ro trong UI chinh.
 
----
+Frontend actions can backend sau nay:
 
-## 13. Lộ trình làm dự án
+- Lay danh sach deck.
+- Tao deck.
+- Sua `title`, `description`.
+- Tinh so card theo deck.
+- Lay quiz progress gan nhat theo deck de hien badge `correct/total`.
 
-### Phase 0: Setup project
+#### Card
 
-- [ ] Tạo repo GitHub.
-- [ ] Tạo thư mục `client`.
-- [ ] Tạo React app bằng Vite.
-- [ ] Cài Tailwind CSS.
-- [ ] Tạo thư mục `server`.
-- [ ] Setup Express server.
-- [ ] Setup MySQL database.
-- [ ] Tạo SQL schema trong `server/database/schema.sql`.
-- [ ] Tạo `.gitignore`.
-- [ ] Tạo `.env.example`.
+Shape dang dung:
 
-### Phase 1: Frontend mock data
-
-- [ ] Tạo layout cơ bản.
-- [ ] Tạo route bằng React Router.
-- [ ] Tạo trang danh sách deck bằng mock data.
-- [ ] Tạo trang chi tiết deck bằng mock data.
-- [ ] Tạo form thêm từ vựng.
-- [ ] Tạo màn hình flashcard.
-- [ ] Tạo màn hình quiz.
-- [ ] Tạo logic generate quiz ở frontend.
-
-### Phase 2: Backend API
-
-- [ ] Tạo Express app.
-- [ ] Tạo route `/api/decks`.
-- [ ] Tạo route `/api/decks/:deckId`.
-- [ ] Tạo route `/api/decks/:deckId/cards`.
-- [ ] Tạo route `/api/cards/:cardId`.
-- [ ] Tạo controller cho deck.
-- [ ] Tạo controller cho card.
-- [ ] Test API bằng Postman hoặc Thunder Client.
-
-### Phase 3: Database
-
-- [ ] Tạo database MySQL.
-- [ ] Chạy `schema.sql` trong MySQL Workbench.
-- [ ] Kết nối controller với mysql2 pool.
-- [ ] Test tạo deck thật.
-- [ ] Test thêm card thật.
-- [ ] Test xóa deck thì cards bị xóa theo.
-
-### Phase 4: Kết nối frontend với backend
-
-- [ ] Tạo file `client/src/services/api.js`.
-- [ ] Tạo `deckApi.js`.
-- [ ] Tạo `cardApi.js`.
-- [ ] Gọi API lấy danh sách deck.
-- [ ] Gọi API tạo deck.
-- [ ] Gọi API lấy cards trong deck.
-- [ ] Gọi API thêm card.
-- [ ] Gọi API sửa/xóa card.
-- [ ] Xử lý loading/error.
-
-### Phase 5: Hoàn thiện UX
-
-- [ ] Thêm thông báo khi tạo/xóa thành công.
-- [ ] Thêm confirm khi xóa.
-- [ ] Thêm empty state khi chưa có deck/card.
-- [ ] Thêm validate form.
-- [ ] Thêm responsive mobile.
-- [ ] Làm flashcard đẹp hơn.
-- [ ] Làm quiz result rõ ràng hơn.
-
-### Phase 6: Auth sau MVP
-
-- [ ] Tạo bảng users.
-- [ ] Làm register.
-- [ ] Làm login.
-- [ ] Hash password bằng bcrypt.
-- [ ] Dùng JWT hoặc session.
-- [ ] Deck thuộc về user.
-- [ ] Chỉ user tạo deck mới được sửa/xóa deck đó.
-
----
-
-## 14. Gợi ý giao diện
-
-### Màu sắc
-
-Có thể chọn style đơn giản:
-
-```txt
-Nền chính: #F8FAFC
-Màu chính: #2563EB
-Màu phụ: #10B981
-Text chính: #0F172A
-Text phụ: #64748B
-Viền: #E2E8F0
+```js
+{
+  id,
+  deck_id,
+  term_en,
+  meaning_vi,
+  example_sentence,
+  note,
+  created_at,
+  updated_at,
+  is_favorite,
+  isFavorite
+}
 ```
 
-### Phong cách UI
+Trong do:
 
-- Sạch.
-- Dễ nhìn.
-- Nhiều khoảng trắng.
-- Card bo góc.
-- Button rõ trạng thái.
-- Form đơn giản.
-- Không dùng quá nhiều hiệu ứng ở bản đầu.
+- `term_en` va `meaning_vi` la 2 field bat buoc trong UI.
+- `example_sentence` hien trong danh sach tu va mat sau flashcard neu co.
+- `note` co trong mock/form rieng `TrangThemTu`, nhung modal them/sua trong `TrangChiTietBo` hien tai chua expose note.
+- `is_favorite` la field chinh trong mock; `isFavorite` duoc gan them de tuong thich khi toggle.
+- `created_at` duoc dung de loc "Moi them" trong 3 ngay gan nhat.
 
----
+Frontend actions can backend sau nay:
 
-## 15. Quy tắc đặt tên
+- Lay cards theo `deck_id`, sap xep tu moi truoc.
+- Tao card mot le.
+- Sua card.
+- Xoa card.
+- Import nhieu card trong mot request hoac loop nhieu request.
+- Toggle favorite.
+- Loc favorite/new co the lam client-side luc dau, nhung DB nen co field phu hop.
 
-### Database
+### 16.4. localStorage hien tai
 
-Dùng snake_case:
+`client/src/utils/tienDoHocTap.js`:
 
-```txt
-term_en
-meaning_vi
-created_at
-updated_at
-deck_id
+- Key progress: `hoc_tu_vung_progress`
+- Shape theo deck id:
+
+```js
+{
+  [deckId]: {
+    flashcard: {
+      remembered,
+      review,
+      total,
+      lastStudiedAt
+    },
+    quiz: {
+      correct,
+      review,
+      total,
+      lastQuizAt
+    },
+    lastActivityAt
+  }
+}
 ```
 
-### JavaScript
+`client/src/data/duLieuMau.js`:
 
-Dùng camelCase:
+- Key favorite: `hocTA.cardFavorites`
+- Shape:
 
-```txt
-termEn
-meaningVi
-createdAt
-updatedAt
-deckId
+```js
+{
+  [cardId]: true
+}
 ```
 
-### Component React
+Database nen thay the dan 2 localStorage key nay khi lam persist:
 
-Dùng PascalCase:
+- Favorite nen gan theo user/card neu co auth, hoac theo card neu MVP single-user.
+- Quiz/learning progress nen co bang rieng neu muon lich su/analytics, hoac field aggregate neu chi can badge gan nhat.
 
-```txt
-DeckCard.jsx
-FlashcardViewer.jsx
-QuizQuestion.jsx
+### 16.5. Flow danh sach deck
+
+File: `client/src/pages/TrangDanhSachBo.jsx`
+
+- Khoi tao `danhSachDeck` tu `danhSachBo`.
+- Them deck moi bang modal voi form `{ name, description }`.
+- Sua deck bang modal, update `title`, `description`, `updated_at`.
+- Khong co xoa deck trong UI hien tai.
+- Moi deck card hien:
+  - title
+  - description
+  - streak neu > 0
+  - so tu, tinh bang `layTheoBoId(bo.id).length`
+  - quiz gan nhat tu `layTienDoDeck(bo.id)`
+
+Implication database/API:
+
+- `GET /decks` nen tra them `card_count` va optional `latest_quiz_result`.
+- `POST /decks` nhan `title`, `description`.
+- `PUT/PATCH /decks/:id` nhan `title`, `description`.
+
+### 16.6. Flow chi tiet deck va quan ly card
+
+File: `client/src/pages/TrangChiTietBo.jsx`
+
+- Lay deck bang `layBoTheoId(boId)`.
+- Lay cards bang `layTheoBoId(boId)`.
+- Hien stats:
+  - tong so tu
+  - streak
+- Action hoc:
+  - Flashcard: luon cho vao neu co route.
+  - Quiz trac nghiem: can it nhat 4 tu.
+  - Tu luan: co route rieng.
+- Quan ly card trong modal:
+  - Them card: `word`, `meaning`, `example`.
+  - Sua card: `word`, `meaning`, `example`.
+  - Xoa card: confirm modal.
+  - Toggle favorite.
+- Import nhieu dong:
+  - Ho tro `word - meaning`
+  - Ho tro `word, meaning`
+  - Ho tro `word | meaning`
+  - Card import co `example_sentence: ""`, `note: ""`, `is_favorite: false`.
+- Filter local:
+  - `tat-ca`
+  - `yeu-thich`
+  - `moi-them`
+
+Implication database/API:
+
+- Cards can unique constraint can can nhac: co nen unique `(deck_id, term_en)` hay cho duplicate.
+- Can endpoint import batch neu muon UX tot.
+- Can `created_at` chinh xac de filter "moi them".
+- Favorite nen persist vi UI co filter theo favorite.
+
+### 16.7. Flow flashcard
+
+File: `client/src/pages/TrangFlashcard.jsx`
+
+- Dung cards cua deck, co the filter favorite.
+- Hai chieu hoc:
+  - `vi-en`: mat truoc `meaning_vi`, mat sau `term_en`.
+  - `en-vi`: mat truoc `term_en`, mat sau `meaning_vi`.
+- Setting trong popover:
+  - doi chieu hoc
+  - chi hoc tu yeu thich
+  - random order
+- Keyboard:
+  - Space lat the
+  - ArrowRight/ArrowLeft di chuyen
+- Hien progress theo vi tri card.
+- Chua thay luu flashcard progress trong component hien tai du helper `luuTienDoFlashcard` da co.
+
+Implication database:
+
+- Neu can tracking flashcard sau nay, can session/progress rieng: cards da xem, remembered/review.
+- Phase persist deck/card co the bo qua flashcard tracking truoc.
+
+### 16.8. Flow quiz trac nghiem
+
+File: `client/src/pages/TrangQuiz.jsx`
+
+- Can it nhat 4 card sau khi filter.
+- Sinh cau hoi client-side tu cards.
+- Hai chieu:
+  - `en-vi`: cau hoi `term_en`, dap an `meaning_vi`.
+  - `vi-en`: cau hoi `meaning_vi`, dap an `term_en`.
+- Moi cau co 4 lua chon: 1 dung + 3 nhieu tu cards khac.
+- Khi chon dap an:
+  - Khoa cau hien tai.
+  - Dung: tang `soCauDung`, tang combo, phat `/sound/bigo.mp3`, cap nhat reward progress.
+  - Sai: reset combo, hien dap an dung.
+- Khi hoan thanh:
+  - Goi `luuTienDoQuiz(deckId, { correct, review, total })`.
+- Settings:
+  - direction
+  - chi hoc favorite
+  - random
+  - bat/tat reward
+  - moc reward, default tu `CAU_HINH_REWARD_QUIZ.triggerCount`
+
+Implication database:
+
+- Nen co bang/shape luu quiz result aggregate:
+  - `deck_id`
+  - `mode`/`direction`
+  - `question_type` = `multiple_choice`
+  - `total`
+  - `correct`
+  - `review` hoac computed `total - correct`
+  - `created_at`
+- Neu muon chi tiet cau sai/dung, can bang answer details theo card.
+
+### 16.9. Flow quiz tu luan
+
+File: `client/src/pages/TrangTuLuan.jsx`
+
+- Dung cards cua deck, co filter favorite va random.
+- Hai chieu:
+  - `vi-en`: cau hoi `meaning_vi`, dap an `term_en`.
+  - `en-vi`: cau hoi `term_en`, dap an `meaning_vi`.
+- Check dap an bang normalize: trim, lowercase, gom khoang trang.
+- Sai:
+  - reset combo
+  - shake input
+  - khong hien dap an dung ngay neu chua bam bo qua
+- Bo qua:
+  - hien dap an dung
+  - van cho nhap lai/kiem tra tiep
+- Dung:
+  - tang score
+  - tang combo
+  - reward progress
+- Co `danhSachKetQua` trong state voi shape:
+
+```js
+{
+  id,
+  cauHoi,
+  dapAnDung,
+  cauTraLoi,
+  dung
+}
 ```
 
-### File thường
+Hien tai `TrangTuLuan` chua luu progress vao localStorage khi hoan thanh.
 
-Có thể dùng camelCase:
+Implication database:
 
-```txt
-deckApi.js
-cardApi.js
-quizGenerator.js
+- Neu luu lich su tu luan, dung chung bang result voi `question_type = written`.
+- Neu luu chi tiet, can answer detail co `card_id`, `prompt`, `expected_answer`, `user_answer`, `is_correct`.
+
+### 16.10. Reward/combo system
+
+Files:
+
+- `RewardTikTokEffect.jsx`
+- `RewardMagicOverlay.jsx`
+- `RewardProgressBar.jsx`
+- `ComboDisplay.jsx`
+- `useCombo.js`
+
+Hanh vi:
+
+- Reward chi la UI effect client-side, khong yeu cau DB cho MVP persist deck/card.
+- Config default:
+
+```js
+{
+  triggerCount: 2,
+  opacity: 0.78,
+  duration: 10800,
+  videoDuration: 8000,
+  fadeOutMs: 1000,
+  volume: 0.80,
+  manifestSrc: "/rewards/videos.json"
+}
 ```
 
----
+- Manifest reward: `client/public/rewards/videos.json`.
+- Video local: `video1.mp4` den `video5.mp4`.
+- Audio dung: `client/public/sound/bigo.mp3`.
+- Co reduced-motion handling.
 
-## 16. Các lỗi cần tránh
+Implication database:
 
-1. Không làm đăng nhập ngay từ đầu nếu MVP chưa xong.
-2. Không làm UI quá cầu kỳ trước khi logic chạy được.
-3. Không để quiz logic nằm lẫn trong component quá dài.
-4. Không gọi API lung tung trong nhiều component nếu có thể gom vào service.
-5. Không lưu dữ liệu thật trong localStorage khi đã có backend.
-6. Gom SQL query vào controller/service, không rải rác nhiều nơi.
-7. Không để `.env` lên GitHub.
-8. Không dùng quá nhiều thư viện khi chưa cần.
-9. Không để component dài quá 300 dòng.
-10. Không sửa nhiều tính năng cùng lúc.
+- Khong can luu reward media/config trong database o MVP.
+- Neu sau nay can personalization, co the luu user settings: reward enabled, reward trigger count.
 
----
+### 16.11. Settings frontend dang la session state
 
-## 17. Prompt cho AI code assistant
+Nhung setting sau dang reset khi reload/vao lai trang:
 
-Khi dùng Codex, Cursor hoặc Antigraviti, hãy yêu cầu AI đọc file này trước.
+- Direction flashcard/quiz/tu-luan.
+- Chi hoc favorite.
+- Random order.
+- Reward enabled.
+- Reward trigger count.
 
-Prompt mẫu:
+Database khong bat buoc luu cac setting nay cho MVP. Neu co users/auth sau nay, co the them bang `user_settings` hoac JSON settings theo user.
 
-```txt
-Read PROJECT_CONTEXT.md first.
+### 16.12. Database implications uu tien
 
-You are helping me build an English Flashcard & Quiz App using React JavaScript, Node.js Express, and MySQL (mysql2, no ORM).
+Uu tien nen thiet ke theo tung muc:
 
-Follow the project structure and development rules in PROJECT_CONTEXT.md.
+1. MVP persist deck/card:
+   - `decks`
+   - `cards`
+   - optional `is_favorite` tren `cards` neu single-user.
+2. MVP progress gan nhat:
+   - `study_results` hoac `quiz_results` de thay localStorage `hoc_tu_vung_progress`.
+3. Sau khi co auth:
+   - `users`
+   - deck ownership `user_id`
+   - favorite tach bang `user_card_favorites`
+   - progress/results gan `user_id`.
+4. Neu can analytics chi tiet:
+   - `study_sessions`
+   - `study_answers`
+   - card-level stats: attempts, correct_count, wrong_count, last_seen_at, mastery_level.
 
-Do not over-engineer.
-Do not change unrelated files.
-Keep the code beginner-friendly and easy to understand.
-Before editing, explain briefly what files you will touch.
-After editing, summarize what changed and how to test it.
+### 16.13. API shape nen tuong thich frontend
+
+De ket noi frontend it sua nhat, backend nen tra field snake_case giong mock hien tai:
+
+Deck response:
+
+```js
+{
+  id,
+  title,
+  description,
+  created_at,
+  updated_at,
+  card_count,
+  streak,
+  masteredCount,
+  latest_quiz
+}
 ```
 
-Prompt sửa bug:
+Card response:
 
-```txt
-Read PROJECT_CONTEXT.md first.
-
-I have a bug in this project. Please inspect the relevant files only, find the root cause, and fix it with minimal changes.
-
-Requirements:
-- Keep the current architecture.
-- Do not rewrite the whole project.
-- Do not change unrelated logic.
-- Explain the bug cause briefly.
-- Provide test steps after fixing.
+```js
+{
+  id,
+  deck_id,
+  term_en,
+  meaning_vi,
+  example_sentence,
+  note,
+  is_favorite,
+  created_at,
+  updated_at
+}
 ```
 
-Prompt thêm tính năng:
+Quiz result response/request:
 
-```txt
-Read PROJECT_CONTEXT.md first.
-
-I want to add the following feature: [describe feature here].
-
-Please implement it according to the existing project structure.
-
-Requirements:
-- Keep code simple.
-- Reuse existing components/services when possible.
-- Do not break current features.
-- Add clear test steps.
+```js
+{
+  deck_id,
+  mode,
+  question_type,
+  direction,
+  correct,
+  review,
+  total,
+  created_at
+}
 ```
 
----
+### 16.14. Luu y khi AI tiep tuc code
 
-## 18. README ngắn cho dự án
-
-Nội dung README nên có:
-
-```txt
-# English Flashcard & Quiz App
-
-A web app for learning English vocabulary with flashcards and quizzes.
-
-## Tech Stack
-
-- React
-- JavaScript
-- Vite
-- Tailwind CSS
-- Node.js
-- Express
-- MySQL
-- mysql2
-
-## Main Features
-
-- Create vocabulary decks
-- Add English/Vietnamese vocabulary cards
-- Learn with flashcards
-- Generate quiz questions from vocabulary cards
-- Store data in MySQL
-
-## Project Structure
-
-- client: React frontend
-- server: Node.js Express backend
-- docs: project documents
-
-## How to run
-
-Instructions will be added during development.
-```
-
----
-
-## 19. Tiêu chí hoàn thành MVP
-
-Dự án được coi là hoàn thành MVP khi:
-
-- [ ] Tạo được deck mới.
-- [ ] Hiển thị danh sách deck.
-- [ ] Xem được chi tiết deck.
-- [ ] Thêm được từ vựng vào deck.
-- [ ] Sửa/xóa được từ vựng.
-- [ ] Học được bằng flashcard.
-- [ ] Làm được quiz từ danh sách từ.
-- [ ] Có tính điểm quiz.
-- [ ] Dữ liệu được lưu trong MySQL.
-- [ ] Refresh trang không mất dữ liệu.
-- [ ] Có README hướng dẫn chạy project.
-
----
-
-## 20. Trạng thái hiện tại
-
-```txt
-Status: Planning
-Current phase: Phase 0 - Setup project
-Next task: Create project folder, initialize React client and Express server
-```
-
----
-
-## 21. Ghi chú cho AI
-
-Khi AI hỗ trợ dự án này:
-
-1. Luôn ưu tiên làm từng bước nhỏ.
-2. Không tự ý đổi stack.
-3. Không chuyển sang TypeScript nếu chưa được yêu cầu.
-4. Không chuyển sang Next.js nếu chưa được yêu cầu.
-5. Không thay MySQL bằng MongoDB/PostgreSQL nếu chưa được yêu cầu.
-6. Không thêm auth trước khi MVP ổn định.
-7. Không thêm AI feature trước khi flashcard và quiz chạy ổn.
-8. Khi thêm file mới, phải đúng cấu trúc thư mục.
-9. Khi sửa code, phải giữ nguyên style hiện có.
-10. Khi hướng dẫn, ưu tiên giải thích cho người mới học React/Node/MySQL.
+- Khong rewrite frontend khi thiet ke database/API.
+- Khi ket noi API, tao service layer moi trong `client/src/services/`.
+- Giu field names tuong thich mock data de giam sua UI.
+- Can doc diff truoc khi sua cac file frontend vi hien worktree co nhieu file frontend modified.
+- Khong dua reward media vao database.
+- Khong thiet ke auth phuc tap truoc khi persist decks/cards on dinh.
