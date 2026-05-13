@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
+import { useAuth } from "../contexts/AuthContext";
 import {
   laTuMoiThem,
   laTuYeuThich,
@@ -114,6 +115,8 @@ function parseDongImport(dong) {
 
 function TrangChiTietBo() {
   const { deckId } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSach, setDanhSach] = useState([]);
@@ -169,13 +172,37 @@ function TrangChiTietBo() {
     setTimeout(() => setSuccessInfo({ open: false, message: "" }), 1200);
   }
 
+  function coQuyenQuanLyBo() {
+    return (
+      isAuthenticated &&
+      bo?.user_id !== null &&
+      String(bo?.user_id) === String(user?.id)
+    );
+  }
+
+  function yeuCauQuyenChinhSua() {
+    if (coQuyenQuanLyBo()) return true;
+
+    if (!isAuthenticated) {
+      navigate("/login", { state: { from: { pathname: `/decks/${boId}` } } });
+    } else {
+      setToast("Chỉ có thể sửa bộ từ của bạn");
+    }
+
+    return false;
+  }
+
   function moFormThemTu() {
+    if (!yeuCauQuyenChinhSua()) return;
+
     setTheDangSua(null);
     setFormTu(FORM_TU_RONG);
     setDangMoForm(true);
   }
 
   function moFormSuaTu(the) {
+    if (!yeuCauQuyenChinhSua()) return;
+
     setTheDangSua(the);
     setFormTu({
       word: the.term_en,
@@ -190,6 +217,8 @@ function TrangChiTietBo() {
   }
 
   function moFormImport() {
+    if (!yeuCauQuyenChinhSua()) return;
+
     setNoiDungImport("");
     setKetQuaImport(null);
     setDangMoImport(true);
@@ -209,6 +238,8 @@ function TrangChiTietBo() {
 
   async function luuTu(event) {
     event.preventDefault();
+
+    if (!yeuCauQuyenChinhSua()) return;
 
     const word = formTu.word.trim();
     const meaning = formTu.meaning.trim();
@@ -248,6 +279,8 @@ function TrangChiTietBo() {
 
   async function importTu(event) {
     event.preventDefault();
+
+    if (!yeuCauQuyenChinhSua()) return;
 
     const cacDong = noiDungImport.split(/\r?\n/);
     const danhSachHopLe = [];
@@ -293,11 +326,15 @@ function TrangChiTietBo() {
   }
 
   function xoaTu(id) {
+    if (!yeuCauQuyenChinhSua()) return;
+
     setDangXacNhanXoa(id);
   }
 
   async function thucHienXoaTu() {
     if (!dangXacNhanXoa) return;
+    if (!yeuCauQuyenChinhSua()) return;
+
     try {
       await xoaCard(dangXacNhanXoa);
       setDanhSach((hienTai) => hienTai.filter((the) => the.id !== dangXacNhanXoa));
@@ -321,6 +358,8 @@ function TrangChiTietBo() {
   }
 
   async function toggleYeuThich(the) {
+    if (!yeuCauQuyenChinhSua()) return;
+
     const yeuThichMoi = !laTuYeuThich(the);
 
     setDanhSach((hienTai) =>
@@ -410,6 +449,7 @@ function TrangChiTietBo() {
   const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
   const streak = bo.streak ?? 0;
   const coTheQuiz = soTu >= 4;
+  const coTheQuanLy = coQuyenQuanLyBo();
 
   return (
     <div className="ui-page-stack">
@@ -484,14 +524,16 @@ function TrangChiTietBo() {
           <h3 className="text-sm font-semibold text-[var(--mau-chu)]">
             Từ vựng ({danhSachDaLoc.length}/{soTu})
           </h3>
-          <div className="ui-control-cluster">
-            <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
-              <IconPlus />
-            </NutIconQuanLyTu>
-            <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
-              <IconUpload />
-            </NutIconQuanLyTu>
-          </div>
+          {coTheQuanLy && (
+            <div className="ui-control-cluster">
+              <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
+                <IconPlus />
+              </NutIconQuanLyTu>
+              <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
+                <IconUpload />
+              </NutIconQuanLyTu>
+            </div>
+          )}
         </div>
 
         <div className="ui-filter-tabs" aria-label="Lọc từ vựng">
@@ -521,13 +563,15 @@ function TrangChiTietBo() {
         {danhSach.length === 0 ? (
           <div className="ui-empty-panel border-dashed">
             <p className="text-[var(--mau-chu-phu)]">Chưa có từ nào.</p>
-            <button
-              type="button"
-              onClick={moFormThemTu}
-              className="ui-link mt-3 text-sm text-[var(--mau-chinh)] hover:underline"
-            >
-              + Thêm từ vựng đầu tiên
-            </button>
+            {coTheQuanLy && (
+              <button
+                type="button"
+                onClick={moFormThemTu}
+                className="ui-link mt-3 text-sm text-[var(--mau-chinh)] hover:underline"
+              >
+                + Thêm từ vựng đầu tiên
+              </button>
+            )}
           </div>
         ) : danhSachDaLoc.length === 0 ? (
           <div className="ui-empty-panel border-dashed">
@@ -558,35 +602,37 @@ function TrangChiTietBo() {
                         {the.meaning_vi}
                       </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleYeuThich(the)}
-                        aria-pressed={dangYeuThich}
-                        aria-label={
-                          dangYeuThich
-                            ? `Bỏ yêu thích ${the.term_en}`
-                            : `Yêu thích ${the.term_en}`
-                        }
-                        title={dangYeuThich ? "Bỏ yêu thích" : "Yêu thích"}
-                        className={`ui-favorite-button ${dangYeuThich ? "ui-favorite-button--active" : ""
-                          }`}
-                      >
-                        <IconHeart filled={dangYeuThich} />
-                      </button>
-                      <NutIconQuanLyTu
-                        label={`Sửa từ ${the.term_en}`}
-                        onClick={() => moFormSuaTu(the)}
-                      >
-                        <IconEdit />
-                      </NutIconQuanLyTu>
-                      <NutIconQuanLyTu
-                        label={`Xóa từ ${the.term_en}`}
-                        onClick={() => xoaTu(the.id)}
-                      >
-                        <IconTrash />
-                      </NutIconQuanLyTu>
-                    </div>
+                    {coTheQuanLy && (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleYeuThich(the)}
+                          aria-pressed={dangYeuThich}
+                          aria-label={
+                            dangYeuThich
+                              ? `Bỏ yêu thích ${the.term_en}`
+                              : `Yêu thích ${the.term_en}`
+                          }
+                          title={dangYeuThich ? "Bỏ yêu thích" : "Yêu thích"}
+                          className={`ui-favorite-button ${dangYeuThich ? "ui-favorite-button--active" : ""
+                            }`}
+                        >
+                          <IconHeart filled={dangYeuThich} />
+                        </button>
+                        <NutIconQuanLyTu
+                          label={`Sửa từ ${the.term_en}`}
+                          onClick={() => moFormSuaTu(the)}
+                        >
+                          <IconEdit />
+                        </NutIconQuanLyTu>
+                        <NutIconQuanLyTu
+                          label={`Xóa từ ${the.term_en}`}
+                          onClick={() => xoaTu(the.id)}
+                        >
+                          <IconTrash />
+                        </NutIconQuanLyTu>
+                      </div>
+                    )}
                   </div>
 
                   {the.example_sentence && (
@@ -781,7 +827,7 @@ function TrangChiTietBo() {
               <button
                 type="button"
                 onClick={thucHienXoaTu}
-                className="ui-button ui-button--primary py-3 rounded-xl bg-[var(--mau-loi)] text-white text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-600 transition-all active:scale-[0.95]"
+                className="ui-button ui-button--danger py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.95]"
               >
                 Xóa ngay
               </button>
@@ -795,7 +841,7 @@ function TrangChiTietBo() {
         onClose={() => { }}
         className="ui-feedback-simple max-w-[180px] rounded-full bg-[var(--mau-chinh)] py-3 shadow-xl border-none"
       >
-        <div className="flex items-center justify-center gap-2 text-white">
+        <div className="flex items-center justify-center gap-2 text-[var(--mau-chu-tren-chinh)]">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
           </svg>

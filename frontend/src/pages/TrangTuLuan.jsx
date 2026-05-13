@@ -668,7 +668,7 @@ function TrangTuLuan() {
           {!daKiemTra && (
             <div className="flex gap-3">
               <button type="button" onClick={boQua} className="ui-button ui-button--ghost flex-1 py-3 border rounded-xl">Bỏ qua</button>
-              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-white font-bold rounded-xl">Kiểm tra</button>
+              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
             </div>
           )}
 
@@ -676,13 +676,13 @@ function TrangTuLuan() {
           {daKiemTra && !ketQuaDung && !daBoQua && (
             <div className="flex gap-3">
               <button type="button" onClick={boQua} className="ui-button ui-button--ghost flex-1 py-3 border rounded-xl">Bỏ qua</button>
-              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-white font-bold rounded-xl">Kiểm tra</button>
+              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
             </div>
           )}
 
           {/* Đã bỏ qua (đang xem đáp án): chỉ nút Kiểm tra full width */}
           {daKiemTra && !ketQuaDung && daBoQua && (
-            <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary w-full py-3 bg-[var(--mau-chinh)] text-white font-bold rounded-xl">Kiểm tra</button>
+            <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary w-full py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
           )}
 
           {/* Đúng rồi: hiện thông báo */}

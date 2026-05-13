@@ -1,28 +1,6 @@
 USE english_flashcard_quiz_app;
 
 -- =========================
--- USERS
--- =========================
-
-INSERT INTO users (
-  username,
-  email,
-  password_hash,
-  total_xp,
-  current_streak,
-  longest_streak
-)
-VALUES
-(
-  'demo_user',
-  'demo@example.com',
-  '$2b$10$demo_hash_change_later',
-  320,
-  5,
-  12
-);
-
--- =========================
 -- DECKS
 -- =========================
 
@@ -37,7 +15,7 @@ INSERT INTO decks (
 )
 VALUES
 (
-  1,
+  NULL,
   'Frontend Basics',
   'HTML CSS JavaScript React',
   'code',
@@ -46,7 +24,7 @@ VALUES
   8
 ),
 (
-  1,
+  NULL,
   'Backend & API',
   'Node.js Express REST API',
   'server',
@@ -55,7 +33,7 @@ VALUES
   5
 ),
 (
-  1,
+  NULL,
   'Computer Science',
   'Core CS vocabulary',
   'cpu',
@@ -122,28 +100,6 @@ INSERT INTO quiz_results (
   total
 )
 VALUES
-(1, 1, 'multiple_choice', 'en-vi', 8, 2, 10),
-(1, 2, 'multiple_choice', 'vi-en', 6, 4, 10),
-(1, 3, 'written', 'en-vi', 7, 3, 10);
-
--- =========================
--- USER SETTINGS
--- =========================
-
-INSERT INTO user_settings (
-  user_id,
-  default_direction,
-  only_favorite,
-  random_order,
-  reward_enabled,
-  reward_trigger_count
-)
-VALUES
-(
-  1,
-  'en-vi',
-  false,
-  true,
-  true,
-  2
-);
+(NULL, 1, 'multiple_choice', 'en-vi', 8, 2, 10),
+(NULL, 2, 'multiple_choice', 'vi-en', 6, 4, 10),
+(NULL, 3, 'written', 'en-vi', 7, 3, 10);

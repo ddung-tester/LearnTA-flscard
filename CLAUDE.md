@@ -60,6 +60,18 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Project Guardrails
+
+**This repo has active Milestone B work in progress. Preserve it.**
+
+- Check `git status --short` and inspect related files before editing.
+- Do not revert or reformat dirty files unless the current task requires that exact line.
+- Use `frontend/` for React/Vite commands and `backend/` for Express/MySQL commands.
+- Keep the existing Vietnamese naming style in UI components and user-facing copy.
+- Keep auth policy explicit: anonymous users see public sample decks where `user_id IS NULL`; logged-in users see only their own decks where `user_id` matches the token user.
+- Do not add a seeded demo login account unless a task asks for one. Manual auth testing should register a fresh user.
+- Keep login/register UI compact and task-focused. Use existing `ui-form-panel`, `ui-button`, and design tokens instead of creating a new visual system.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

@@ -4,11 +4,11 @@ const {
   cleanText,
   createHttpError,
   parseBoolean,
-  parseOptionalUserId,
   parsePositiveInt,
 } = require("../utils/http");
 
-const DECK_WITH_STATS_SQL = `
+function deckWithStatsSql() {
+  return `
   SELECT
     d.*,
     COALESCE(card_counts.card_count, 0) AS card_count,
@@ -29,17 +29,19 @@ const DECK_WITH_STATS_SQL = `
     SELECT latest.id
     FROM quiz_results latest
     WHERE latest.deck_id = d.id
+      AND latest.user_id <=> ?
     ORDER BY latest.created_at DESC, latest.id DESC
     LIMIT 1
   )
 `;
+}
 
 function normalizeDeck(row) {
   if (!row) return null;
 
   return {
     id: row.id,
-    user_id: row.user_id,
+    user_id: row.user_id === null ? null : row.user_id,
     title: row.title,
     description: row.description || "",
     icon: row.icon,
@@ -64,8 +66,41 @@ function normalizeDeck(row) {
   };
 }
 
-async function findDeckById(deckId) {
-  const [rows] = await pool.query(`${DECK_WITH_STATS_SQL} WHERE d.id = ?`, [
+function currentUserId(req) {
+  return req.user?.id ?? null;
+}
+
+function sameId(left, right) {
+  if (left === null || left === undefined || right === null || right === undefined) {
+    return false;
+  }
+
+  return String(left) === String(right);
+}
+
+function canReadDeck(deck, userId) {
+  return sameId(deck.user_id, userId);
+}
+
+function canWriteDeck(deck, userId) {
+  return deck.user_id !== null && sameId(deck.user_id, userId);
+}
+
+function assertDeckReadable(deck, userId) {
+  if (!canReadDeck(deck, userId)) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+}
+
+function assertDeckWritable(deck, userId) {
+  if (!canWriteDeck(deck, userId)) {
+    throw createHttpError(403, "Chi co the sua bo tu cua ban");
+  }
+}
+
+async function findDeckById(deckId, { quizUserId = null } = {}) {
+  const [rows] = await pool.query(`${deckWithStatsSql()} WHERE d.id = ?`, [
+    quizUserId,
     deckId,
   ]);
 
@@ -73,9 +108,18 @@ async function findDeckById(deckId) {
 }
 
 async function listDecks(req, res) {
+  const userId = currentUserId(req);
+
+  if (userId === null) {
+    res.json([]);
+    return;
+  }
+
   const [rows] = await pool.query(
-    `${DECK_WITH_STATS_SQL}
-     ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`
+    `${deckWithStatsSql()}
+     WHERE d.user_id = ?
+     ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
+    [userId, userId]
   );
 
   res.json(rows.map(normalizeDeck));
@@ -83,12 +127,14 @@ async function listDecks(req, res) {
 
 async function getDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  const deck = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
 
   if (!deck) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
 
+  assertDeckReadable(deck, userId);
   res.json(deck);
 }
 
@@ -98,7 +144,7 @@ async function createDeck(req, res) {
     throw createHttpError(400, "title la bat buoc");
   }
 
-  const userId = parseOptionalUserId(req.body.user_id);
+  const userId = currentUserId(req);
   const description = cleanText(req.body.description);
   const icon = cleanNullableText(req.body.icon);
   const themeColor = cleanNullableText(req.body.theme_color);
@@ -111,17 +157,20 @@ async function createDeck(req, res) {
     [userId, title, description, icon, themeColor, isPublic]
   );
 
-  const deck = await findDeckById(result.insertId);
+  const deck = await findDeckById(result.insertId, { quizUserId: userId });
   res.status(201).json(deck);
 }
 
 async function updateDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  const current = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const current = await findDeckById(deckId, { quizUserId: userId });
 
   if (!current) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
+
+  assertDeckWritable(current, userId);
 
   const title = cleanText(req.body.title ?? req.body.name);
   if (!title) {
@@ -147,12 +196,21 @@ async function updateDeck(req, res) {
     [title, description, icon, themeColor, isPublic, deckId]
   );
 
-  const deck = await findDeckById(deckId);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
   res.json(deck);
 }
 
 async function deleteDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
+  const userId = currentUserId(req);
+  const current = await findDeckById(deckId, { quizUserId: userId });
+
+  if (!current) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+
+  assertDeckWritable(current, userId);
+
   const [result] = await pool.execute("DELETE FROM decks WHERE id = ?", [deckId]);
 
   if (result.affectedRows === 0) {
@@ -169,4 +227,9 @@ module.exports = {
   updateDeck,
   deleteDeck,
   findDeckById,
+  currentUserId,
+  canReadDeck,
+  canWriteDeck,
+  assertDeckReadable,
+  assertDeckWritable,
 };

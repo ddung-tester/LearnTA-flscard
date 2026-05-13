@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
+import { useAuth } from "../contexts/AuthContext";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import {
   capNhatDeck,
@@ -52,6 +53,7 @@ function IconEdit() {
 
 function TrangDanhSachBo() {
   const navigate = useNavigate();
+  const { isAuthReady, isAuthenticated, user } = useAuth();
   const [danhSachDeck, setDanhSachDeck] = useState([]);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const [loiTaiDecks, setLoiTaiDecks] = useState("");
@@ -76,16 +78,40 @@ function TrangDanhSachBo() {
   }
 
   useEffect(() => {
+    if (!isAuthReady) return;
+
     taiDanhSachDeck();
-  }, []);
+  }, [isAuthReady, isAuthenticated, user?.id]);
+
+  function laBoCuaUser(bo) {
+    return (
+      isAuthenticated &&
+      bo.user_id !== null &&
+      String(bo.user_id) === String(user?.id)
+    );
+  }
+
+  function chuyenSangDangNhap() {
+    navigate("/login", { state: { from: { pathname: "/decks" } } });
+  }
 
   function moFormThemBo() {
+    if (!isAuthenticated) {
+      chuyenSangDangNhap();
+      return;
+    }
+
     setBoDangSua(null);
     setFormBo(FORM_BO_RONG);
     setDangMoForm(true);
   }
 
   function moFormSuaBo(bo) {
+    if (!laBoCuaUser(bo)) {
+      setToast("Chỉ có thể sửa bộ từ của bạn");
+      return;
+    }
+
     setBoDangSua(bo);
     setFormBo({
       name: bo.title,
@@ -108,6 +134,11 @@ function TrangDanhSachBo() {
 
   async function luuBo(event) {
     event.preventDefault();
+
+    if (!isAuthenticated) {
+      chuyenSangDangNhap();
+      return;
+    }
 
     const name = formBo.name.trim();
     const description = formBo.description.trim();
@@ -156,12 +187,20 @@ function TrangDanhSachBo() {
     moChiTietBo(boId);
   }
 
+  const tieuDeTrang = "Bộ từ vựng của bạn";
+  const tieuDeRong = isAuthenticated
+    ? "Bạn chưa có bộ từ nào"
+    : "Bạn cần đăng nhập để xem bộ từ";
+  const moTaRong = isAuthenticated
+    ? "Tạo bộ từ đầu tiên để bắt đầu học."
+    : "Mỗi tài khoản có danh sách bộ từ riêng.";
+
   return (
     <div className="ui-page-stack">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
           <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">
-            Bộ từ vựng của bạn
+            {tieuDeTrang}
           </h2>
         </div>
         <div className="ui-page-header__actions">
@@ -197,10 +236,10 @@ function TrangDanhSachBo() {
       ) : danhSachDeck.length === 0 ? (
         <div className="ui-empty-panel border-dashed">
           <p className="font-medium text-[var(--mau-chu)] mb-1">
-            Chưa có bộ từ nào
+            {tieuDeRong}
           </p>
           <p className="text-sm text-[var(--mau-chu-phu)] mb-4">
-            Tạo bộ từ đầu tiên để bắt đầu học.
+            {moTaRong}
           </p>
           <button
             type="button"
@@ -245,18 +284,20 @@ function TrangDanhSachBo() {
                         {bo.streak} streak
                       </span>
                     )}
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        moFormSuaBo(bo);
-                      }}
-                      aria-label={`Sửa bộ ${bo.title}`}
-                      title="Sửa bộ"
-                      className="ui-button ui-button--ghost inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                    >
-                      <IconEdit />
-                    </button>
+                    {laBoCuaUser(bo) && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          moFormSuaBo(bo);
+                        }}
+                        aria-label={`Sửa bộ ${bo.title}`}
+                        title="Sửa bộ"
+                        className="ui-button ui-button--ghost inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                      >
+                        <IconEdit />
+                      </button>
+                    )}
                   </div>
                 </div>
 

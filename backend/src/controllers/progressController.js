@@ -1,6 +1,10 @@
 const pool = require("../config/db");
 const { findCardById } = require("./cardController");
-const { findDeckById } = require("./deckController");
+const {
+  assertDeckReadable,
+  currentUserId,
+  findDeckById,
+} = require("./deckController");
 const {
   findProgress,
   normalizeProgress,
@@ -9,7 +13,6 @@ const {
 const {
   createHttpError,
   parseBoolean,
-  parseOptionalUserId,
   parsePositiveInt,
 } = require("../utils/http");
 
@@ -31,11 +34,23 @@ async function ensureCardExists(cardId) {
   return card;
 }
 
+async function ensureCardReadable(cardId, userId) {
+  const card = await ensureCardExists(cardId);
+  const deck = await findDeckById(card.deck_id, { quizUserId: userId });
+
+  if (!deck) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+
+  assertDeckReadable(deck, userId);
+  return card;
+}
+
 async function getCardProgress(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  const userId = parseOptionalUserId(req.query.user_id);
+  const userId = currentUserId(req);
 
-  await ensureCardExists(cardId);
+  await ensureCardReadable(cardId, userId);
 
   const progress = await findProgress(pool, userId, cardId);
   res.json(normalizeProgress(progress, userId, cardId));
@@ -43,9 +58,9 @@ async function getCardProgress(req, res) {
 
 async function updateCardProgress(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  const userId = parseOptionalUserId(req.body.user_id ?? req.query.user_id);
+  const userId = currentUserId(req);
 
-  await ensureCardExists(cardId);
+  await ensureCardReadable(cardId, userId);
 
   const connection = await pool.getConnection();
 
@@ -141,12 +156,14 @@ async function updateCardProgress(req, res) {
 
 async function getDeckProgressSummary(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  const userId = parseOptionalUserId(req.query.user_id);
-  const deck = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
 
   if (!deck) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
+
+  assertDeckReadable(deck, userId);
 
   const userWhere =
     userId === null ? "cp.user_id IS NULL" : "cp.user_id = ?";

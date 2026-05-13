@@ -1,12 +1,15 @@
 const pool = require("../config/db");
-const { findDeckById } = require("./deckController");
+const {
+  assertDeckReadable,
+  currentUserId,
+  findDeckById,
+} = require("./deckController");
 const { findCardById } = require("./cardController");
 const { updateProgressFromAnswer } = require("../utils/cardProgress");
 const {
   cleanText,
   createHttpError,
   parseBoolean,
-  parseOptionalUserId,
   parsePositiveInt,
 } = require("../utils/http");
 
@@ -98,6 +101,13 @@ function parseCount(value, fieldName) {
   return number;
 }
 
+function assertSessionOwner(session, userId) {
+  if (session.user_id === null && userId === null) return;
+  if (session.user_id !== null && String(session.user_id) === String(userId)) return;
+
+  throw createHttpError(403, "Khong co quyen cap nhat phien hoc nay");
+}
+
 async function findSessionById(sessionId, connection = pool) {
   const [rows] = await connection.query(
     "SELECT * FROM study_sessions WHERE id = ?",
@@ -108,13 +118,15 @@ async function findSessionById(sessionId, connection = pool) {
 
 async function createStudySession(req, res) {
   const deckId = parsePositiveInt(req.body.deck_id, "deck_id");
-  const deck = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
 
   if (!deck) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
 
-  const userId = parseOptionalUserId(req.body.user_id);
+  assertDeckReadable(deck, userId);
+
   const mode = parseMode(req.body.mode);
   const direction = parseDirection(req.body.direction);
   const onlyFavorite = parseBoolean(req.body.only_favorite, false);
@@ -139,6 +151,8 @@ async function finishStudySession(req, res) {
   if (!current) {
     throw createHttpError(404, "Khong tim thay phien hoc");
   }
+
+  assertSessionOwner(current, currentUserId(req));
 
   const correct = parseCount(req.body.correct, "correct");
   const review = parseCount(req.body.review, "review");
@@ -179,6 +193,8 @@ async function addStudyAnswers(req, res) {
     if (!session) {
       throw createHttpError(404, "Khong tim thay phien hoc");
     }
+
+    assertSessionOwner(session, currentUserId(req));
 
     const insertedIds = [];
 
@@ -237,13 +253,15 @@ async function addStudyAnswers(req, res) {
 
 async function createQuizResult(req, res) {
   const deckId = parsePositiveInt(req.body.deck_id, "deck_id");
-  const deck = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
 
   if (!deck) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
 
-  const userId = parseOptionalUserId(req.body.user_id);
+  assertDeckReadable(deck, userId);
+
   const questionType = parseQuestionType(req.body.question_type);
   const direction = parseDirection(req.body.direction);
   const correct = parseCount(req.body.correct, "correct");
@@ -266,19 +284,22 @@ async function createQuizResult(req, res) {
 
 async function getLatestQuizResult(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  const deck = await findDeckById(deckId);
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
 
   if (!deck) {
     throw createHttpError(404, "Khong tim thay bo tu");
   }
 
+  assertDeckReadable(deck, userId);
+
   const [rows] = await pool.query(
     `SELECT *
      FROM quiz_results
-     WHERE deck_id = ?
+     WHERE deck_id = ? AND user_id <=> ?
      ORDER BY created_at DESC, id DESC
      LIMIT 1`,
-    [deckId]
+    [deckId, userId]
   );
 
   res.json(normalizeQuizResult(rows[0]));

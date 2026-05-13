@@ -1,0 +1,425 @@
+/* ========================
+   Video Background Component
+   ======================== */
+
+.video-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--mau-nen);
+  pointer-events: none;
+}
+
+.video-bg__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: opacity 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity;
+}
+
+.video-bg__video--active {
+  opacity: 1;
+}
+
+.video-bg__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.video-bg__overlay--default {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(20% 0.035 220 / 0.2),
+      oklch(96% 0.02 96 / 0.14) 44%,
+      oklch(20% 0.035 220 / 0.18)
+    ),
+    radial-gradient(circle at 50% 35%, oklch(82% 0.08 172 / 0.14), transparent 34rem);
+}
+
+.video-bg__overlay--auth {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(18% 0.035 220 / 0.48),
+      oklch(21% 0.032 210 / 0.2) 42%,
+      oklch(18% 0.035 220 / 0.5)
+    ),
+    radial-gradient(circle at 50% 42%, oklch(83% 0.09 174 / 0.12), transparent 32rem);
+}
+
+.video-bg__overlay--study {
+  background:
+    linear-gradient(
+      180deg,
+      oklch(17% 0.035 220 / 0.28),
+      oklch(96% 0.02 96 / 0.1) 48%,
+      oklch(17% 0.035 220 / 0.22)
+    ),
+    radial-gradient(circle at 72% 26%, oklch(72% 0.1 162 / 0.16), transparent 28rem);
+}
+
+.video-bg-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+}
+
+/* Page wrapper: single viewport, centered */
+.video-bg-page {
+  position: relative;
+  z-index: 1;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Auth form card: warm paper tint */
+.video-auth-card {
+  background: oklch(97.2% 0.022 94 / 0.94);
+  border: 1px solid oklch(56% 0.07 168 / 0.3);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 24px 60px oklch(17% 0.035 220 / 0.28),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.74);
+  width: 100%;
+  max-width: 26rem;
+  padding: 2rem;
+}
+
+body.has-video-background {
+  background: var(--mau-nen) !important;
+}
+
+body.has-video-background--immersive {
+  background: oklch(21% 0.035 220) !important;
+  overflow: hidden !important;
+}
+
+body.has-video-background--app {
+  overflow-x: hidden;
+}
+
+/* Immersive pages use their own viewport-sized layout. */
+body.has-video-background--immersive .app-shell,
+body.has-video-background--immersive .app-shell-main,
+body.has-video-background--immersive .ui-route-transition,
+body.has-video-background--immersive .ui-page-enter {
+  transform: none !important;
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+}
+
+body.has-video-background .app-shell-header {
+  position: relative;
+  z-index: 5;
+  background:
+    linear-gradient(180deg, oklch(17% 0.035 220 / 0.58), oklch(17% 0.035 220 / 0));
+}
+
+body.has-video-background--immersive .app-shell-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+body.has-video-background .app-shell-header__inner > .ui-link {
+  color: oklch(97.5% 0.018 96 / 0.97) !important;
+  text-shadow: 0 1px 5px oklch(17% 0.035 220 / 0.56);
+}
+
+body.has-video-background .app-shell-header nav > .ui-button--ghost,
+body.has-video-background .app-shell-header nav > .relative > .ui-button--ghost {
+  background: oklch(97.5% 0.018 96 / 0.14) !important;
+  border-color: oklch(96% 0.018 96 / 0.3) !important;
+  color: oklch(97.5% 0.018 96 / 0.97) !important;
+  box-shadow: 0 8px 22px oklch(17% 0.035 220 / 0.18);
+}
+
+body.has-video-background .app-shell-header nav > .ui-button--primary {
+  background: oklch(70% 0.12 164) !important;
+  border: 1px solid oklch(86% 0.07 152 / 0.58);
+  color: oklch(20% 0.035 214) !important;
+  box-shadow:
+    0 12px 28px oklch(17% 0.035 220 / 0.24),
+    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+}
+
+body.has-video-background .app-shell-header nav > .ui-button--ghost:hover,
+body.has-video-background .app-shell-header nav > .relative > .ui-button--ghost:hover {
+  background: oklch(97.5% 0.018 96 / 0.22) !important;
+  border-color: oklch(90% 0.05 152 / 0.46) !important;
+  color: oklch(99% 0.012 96 / 0.98) !important;
+}
+
+body.has-video-background--app .app-shell-main {
+  position: relative;
+  z-index: 1;
+}
+
+body.has-video-background--immersive .video-auth-card {
+  color: var(--mau-chu);
+}
+
+body.has-video-background--immersive .video-auth-card h2,
+body.has-video-background--immersive .video-auth-card label {
+  color: oklch(21% 0.035 220) !important;
+}
+
+body.has-video-background--immersive .video-auth-card p {
+  color: oklch(40% 0.038 216) !important;
+}
+
+body.has-video-background--immersive .video-auth-card input {
+  background: oklch(98% 0.018 95 / 0.94) !important;
+  border-color: oklch(51% 0.07 168 / 0.28) !important;
+  color: oklch(21% 0.035 220) !important;
+  box-shadow: inset 0 1px 0 oklch(99% 0.012 94 / 0.7);
+}
+
+body.has-video-background--immersive .video-auth-card input::placeholder {
+  color: oklch(55% 0.028 218 / 0.72) !important;
+}
+
+body.has-video-background--immersive .video-auth-card input:focus,
+body.has-video-background--immersive .video-auth-card input:focus-visible {
+  border-color: oklch(58% 0.12 164 / 0.88) !important;
+  box-shadow:
+    0 0 0 3px oklch(58% 0.12 164 / 0.18),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.76);
+}
+
+body.has-video-background--immersive .video-auth-card .ui-button--primary,
+body.has-video-background--immersive .video-bg-page .ui-button--primary {
+  background: oklch(62% 0.13 164) !important;
+  border: 1px solid oklch(79% 0.09 152 / 0.56);
+  color: oklch(18% 0.035 220) !important;
+  box-shadow:
+    0 18px 42px oklch(17% 0.035 220 / 0.28),
+    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+}
+
+body.has-video-background--immersive .video-auth-card .ui-button--primary:hover,
+body.has-video-background--immersive .video-bg-page .ui-button--primary:hover {
+  background: oklch(67% 0.13 164) !important;
+}
+
+body.has-video-background--immersive .video-auth-card .ui-link {
+  color: oklch(43% 0.115 174) !important;
+}
+
+body.has-video-background--immersive .video-auth-card [role="alert"] {
+  background: oklch(94% 0.045 24 / 0.82) !important;
+  border-color: oklch(62% 0.15 24 / 0.36) !important;
+  color: oklch(44% 0.14 24) !important;
+}
+
+body.has-video-background--app .ui-page-header h2,
+body.has-video-background--app .ui-section-header > h3,
+body.has-video-background--app .ui-study-session > h2 {
+  color: oklch(97.5% 0.018 96 / 0.97) !important;
+  text-shadow:
+    0 1px 2px oklch(17% 0.035 220 / 0.78),
+    0 7px 24px oklch(17% 0.035 220 / 0.58);
+}
+
+body.has-video-background--app .ui-page-header__title > p,
+body.has-video-background--app .ui-study-session > p {
+  color: oklch(93% 0.022 96 / 0.9) !important;
+  text-shadow:
+    0 1px 2px oklch(17% 0.035 220 / 0.72),
+    0 5px 18px oklch(17% 0.035 220 / 0.46);
+}
+
+body.has-video-background--app .ui-empty-panel,
+body.has-video-background--app .ui-form-panel,
+body.has-video-background--app .ui-study-empty-card,
+body.has-video-background--app .ui-stat-card,
+body.has-video-background--app .ui-reading-card,
+body.has-video-background--app .ui-card-interactive,
+body.has-video-background--app .ui-action-card,
+body.has-video-background--app .ui-quiz-question-card {
+  background: oklch(96.8% 0.021 92 / 0.93) !important;
+  border-color: oklch(96% 0.018 96 / 0.54) !important;
+  color: var(--mau-chu) !important;
+  box-shadow:
+    0 18px 42px oklch(17% 0.035 220 / 0.26),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+}
+
+body.has-video-background--app .ui-empty-panel p,
+body.has-video-background--app .ui-form-panel p,
+body.has-video-background--app .ui-reading-card p,
+body.has-video-background--app .ui-card-interactive p,
+body.has-video-background--app .ui-stat-label,
+body.has-video-background--app .ui-label,
+body.has-video-background--app .ui-settings-popover__hint {
+  color: oklch(39% 0.035 218) !important;
+}
+
+body.has-video-background--app .ui-empty-panel h2,
+body.has-video-background--app .ui-form-panel h2,
+body.has-video-background--app .ui-form-panel h3,
+body.has-video-background--app .ui-reading-card h2,
+body.has-video-background--app .ui-card-interactive h3,
+body.has-video-background--app .ui-quiz-question-card h2,
+body.has-video-background--app .ui-settings-popover__label {
+  color: oklch(23% 0.03 220) !important;
+}
+
+body.has-video-background--app .ui-reading-card:hover,
+body.has-video-background--app .ui-card-interactive:hover,
+body.has-video-background--app .ui-action-card:hover {
+  background: oklch(95.5% 0.034 112 / 0.96) !important;
+  border-color: oklch(66% 0.105 164 / 0.54) !important;
+}
+
+body.has-video-background--app .ui-button--primary {
+  background: oklch(62% 0.13 164) !important;
+  border: 1px solid oklch(79% 0.09 152 / 0.58);
+  color: oklch(18% 0.035 220) !important;
+  box-shadow:
+    0 14px 32px oklch(17% 0.035 220 / 0.26),
+    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+}
+
+body.has-video-background--app .ui-button--primary:hover {
+  background: oklch(67% 0.13 164) !important;
+  box-shadow:
+    0 18px 40px oklch(17% 0.035 220 / 0.3),
+    inset 0 1px 0 oklch(96% 0.026 106 / 0.5);
+}
+
+body.has-video-background--app .ui-button--ghost,
+body.has-video-background--app .ui-back-link,
+body.has-video-background--app .ui-study-back-link,
+body.has-video-background--app .ui-icon-action,
+body.has-video-background--app .ui-filter-tabs,
+body.has-video-background--app .ui-mode-switch,
+body.has-video-background--app .ui-mode-rotate-button {
+  background: oklch(96.8% 0.021 92 / 0.88) !important;
+  border-color: oklch(96% 0.018 96 / 0.56) !important;
+  color: oklch(23% 0.03 220 / 0.94) !important;
+  box-shadow:
+    0 10px 24px oklch(17% 0.035 220 / 0.2),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+}
+
+body.has-video-background--app .ui-back-link:hover,
+body.has-video-background--app .ui-study-back-link:hover,
+body.has-video-background--app .ui-button--ghost:hover,
+body.has-video-background--app .ui-icon-action:hover,
+body.has-video-background--app .ui-mode-rotate-button:hover {
+  background: oklch(98% 0.018 95 / 0.96) !important;
+  border-color: oklch(66% 0.105 164 / 0.56) !important;
+  color: oklch(32% 0.095 174) !important;
+}
+
+body.has-video-background--app .ui-filter-tab[aria-pressed="true"],
+body.has-video-background--app .ui-mode-switch__thumb {
+  background: oklch(98.5% 0.015 95 / 0.98) !important;
+  border-color: oklch(52% 0.09 164 / 0.34) !important;
+  color: oklch(37% 0.105 174) !important;
+}
+
+body.has-video-background--app input,
+body.has-video-background--app textarea,
+body.has-video-background--app select {
+  background-color: oklch(98% 0.018 95 / 0.94) !important;
+  border-color: oklch(23% 0.03 220 / 0.24) !important;
+  color: oklch(23% 0.03 220) !important;
+}
+
+body.has-video-background--app input:focus,
+body.has-video-background--app input:focus-visible,
+body.has-video-background--app textarea:focus,
+body.has-video-background--app textarea:focus-visible,
+body.has-video-background--app select:focus,
+body.has-video-background--app select:focus-visible {
+  border-color: oklch(58% 0.12 164 / 0.84) !important;
+  box-shadow: 0 0 0 3px oklch(58% 0.12 164 / 0.24);
+}
+
+body.has-video-background--app .ui-settings-popover__panel {
+  background: oklch(96.8% 0.021 92 / 0.96) !important;
+  border-color: oklch(96% 0.018 96 / 0.58) !important;
+  box-shadow:
+    0 24px 56px oklch(17% 0.035 220 / 0.32),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+}
+
+body.has-video-background--app .ui-chip {
+  background: oklch(98% 0.018 95 / 0.76) !important;
+  border-color: oklch(47% 0.06 174 / 0.22) !important;
+  color: oklch(39% 0.035 218) !important;
+}
+
+body.has-video-background--app .ui-chip--primary,
+body.has-video-background--app .ui-chip--success {
+  background: oklch(92.5% 0.05 158 / 0.76) !important;
+  border-color: oklch(62% 0.1 158 / 0.42) !important;
+  color: oklch(34% 0.105 164) !important;
+}
+
+body.has-video-background--app .ui-chip--warning {
+  background: oklch(94% 0.055 72 / 0.78) !important;
+  border-color: oklch(73% 0.11 72 / 0.46) !important;
+  color: oklch(40% 0.09 70) !important;
+}
+
+body.has-video-background--app .ui-chip--danger {
+  background: oklch(94% 0.04 24 / 0.78) !important;
+  border-color: oklch(64% 0.14 24 / 0.42) !important;
+  color: oklch(43% 0.13 24) !important;
+}
+
+body.has-video-background--app .ui-action-card {
+  border-color: oklch(62% 0.1 164 / 0.42) !important;
+  background: oklch(95.5% 0.034 112 / 0.9) !important;
+}
+
+body.has-video-background--app .ui-action-card span,
+body.has-video-background--app .ui-link {
+  color: oklch(38% 0.11 174) !important;
+}
+
+.video-bg-home-text {
+  color: oklch(98% 0.018 96 / 0.98) !important;
+  text-shadow:
+    0 2px 8px oklch(17% 0.035 220 / 0.58),
+    0 14px 42px oklch(17% 0.035 220 / 0.44);
+}
+
+.video-bg-home-kicker {
+  color: oklch(91% 0.032 98 / 0.9) !important;
+  text-shadow: 0 2px 12px oklch(17% 0.035 220 / 0.54);
+}
+
+.video-home-typing .typing-effect__text,
+.video-home-typing .typing-effect__cursor {
+  color: oklch(88% 0.09 164 / 0.96);
+  filter: drop-shadow(0 2px 16px oklch(17% 0.035 220 / 0.48));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-bg__video {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,5 +1,10 @@
 const pool = require("../config/db");
-const { findDeckById } = require("./deckController");
+const {
+  assertDeckReadable,
+  assertDeckWritable,
+  currentUserId,
+  findDeckById,
+} = require("./deckController");
 const {
   cleanNullableText,
   cleanText,
@@ -39,6 +44,41 @@ async function ensureDeckExists(deckId) {
   return deck;
 }
 
+async function ensureDeckReadable(deckId, req) {
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
+
+  if (!deck) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+
+  assertDeckReadable(deck, userId);
+  return deck;
+}
+
+async function ensureDeckWritable(deckId, req) {
+  const userId = currentUserId(req);
+  const deck = await findDeckById(deckId, { quizUserId: userId });
+
+  if (!deck) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+
+  assertDeckWritable(deck, userId);
+  return deck;
+}
+
+async function ensureCardWritable(cardId, req) {
+  const card = await findCardById(cardId);
+
+  if (!card) {
+    throw createHttpError(404, "Khong tim thay tu vung");
+  }
+
+  await ensureDeckWritable(card.deck_id, req);
+  return card;
+}
+
 async function findCardById(cardId, connection = pool) {
   const [rows] = await connection.query("SELECT * FROM cards WHERE id = ?", [
     cardId,
@@ -72,7 +112,7 @@ function readCardPayload(body, { requireTerms = true } = {}) {
 
 async function listCardsByDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  await ensureDeckExists(deckId);
+  await ensureDeckReadable(deckId, req);
 
   const [rows] = await pool.query(
     `SELECT *
@@ -87,7 +127,7 @@ async function listCardsByDeck(req, res) {
 
 async function createCard(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  await ensureDeckExists(deckId);
+  await ensureDeckWritable(deckId, req);
 
   const payload = readCardPayload(req.body);
 
@@ -113,7 +153,7 @@ async function createCard(req, res) {
 
 async function importCards(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
-  await ensureDeckExists(deckId);
+  await ensureDeckWritable(deckId, req);
 
   const inputCards = Array.isArray(req.body.cards) ? req.body.cards : [];
   const validCards = inputCards
@@ -174,11 +214,7 @@ async function importCards(req, res) {
 
 async function updateCard(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  const current = await findCardById(cardId);
-
-  if (!current) {
-    throw createHttpError(404, "Khong tim thay tu vung");
-  }
+  await ensureCardWritable(cardId, req);
 
   const payload = readCardPayload(req.body);
 
@@ -204,11 +240,7 @@ async function updateCard(req, res) {
 
 async function toggleFavorite(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  const current = await findCardById(cardId);
-
-  if (!current) {
-    throw createHttpError(404, "Khong tim thay tu vung");
-  }
+  await ensureCardWritable(cardId, req);
 
   const isFavorite = parseBoolean(req.body.is_favorite ?? req.body.isFavorite);
 
@@ -223,6 +255,8 @@ async function toggleFavorite(req, res) {
 
 async function deleteCard(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
+  await ensureCardWritable(cardId, req);
+
   const [result] = await pool.execute("DELETE FROM cards WHERE id = ?", [
     cardId,
   ]);
@@ -243,4 +277,5 @@ module.exports = {
   deleteCard,
   findCardById,
   normalizeCard,
+  ensureDeckExists,
 };
