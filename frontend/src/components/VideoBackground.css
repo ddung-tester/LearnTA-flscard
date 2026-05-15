@@ -32,6 +32,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  will-change: opacity;
 }
 
 .video-bg__overlay--default {
@@ -86,17 +87,81 @@
   justify-content: center;
 }
 
-/* Auth form card: warm paper tint */
-.video-auth-card {
-  background: oklch(97.2% 0.022 94 / 0.94);
-  border: 1px solid oklch(56% 0.07 168 / 0.3);
-  border-radius: 1.5rem;
-  box-shadow:
-    0 24px 60px oklch(17% 0.035 220 / 0.28),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.74);
+.video-bg-page--auth {
+  justify-content: center;
+  padding-block: clamp(1.1rem, 3vh, 2rem);
+}
+
+.auth-mascot-wrap {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
   max-width: 26rem;
-  padding: 2rem;
+}
+
+.login-mascot {
+  position: relative;
+  z-index: 3;
+  width: clamp(12.75rem, 24vw, 15.5rem);
+  height: clamp(12.75rem, 24vw, 15.5rem);
+  margin-bottom: clamp(-2.15rem, -3.6vw, -1.75rem);
+  pointer-events: none;
+  filter:
+    sepia(0.28)
+    saturate(0.68)
+    hue-rotate(-16deg)
+    brightness(1.08)
+    contrast(0.93)
+    drop-shadow(0 0.45rem 0.38rem oklch(17% 0.035 220 / 0.08));
+}
+
+.login-mascot__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Auth form card: warm paper tint */
+.video-auth-card {
+  position: relative;
+  z-index: 2;
+  background: oklch(97.2% 0.022 94 / 0.94);
+  border: 1px solid oklch(56% 0.07 168 / 0.3);
+  border-radius: 1.35rem;
+  box-shadow:
+    0 24px 60px oklch(17% 0.035 220 / 0.28),
+    inset 0 12px 18px -18px oklch(17% 0.035 220 / 0.2),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.74);
+  width: 100%;
+  max-width: 25rem;
+  padding: clamp(1.35rem, 3vw, 1.7rem);
+}
+
+.video-auth-card--with-mascot {
+  position: relative;
+  overflow: visible;
+}
+
+.auth-mascot-wrap--register {
+  max-width: 25rem;
+}
+
+.auth-mascot-wrap--register .login-mascot {
+  width: clamp(8.5rem, 18vw, 11rem);
+  height: clamp(8.5rem, 18vw, 11rem);
+  margin-bottom: clamp(-1.55rem, -2.5vw, -1.1rem);
+}
+
+.video-auth-card--register {
+  overflow: visible;
+  padding: clamp(0.95rem, 2vw, 1.2rem);
+}
+
+.video-auth-card--register input {
+  padding-block: 0.55rem;
 }
 
 body.has-video-background {
@@ -166,6 +231,23 @@ body.has-video-background .app-shell-header nav > .relative > .ui-button--ghost:
   background: oklch(97.5% 0.018 96 / 0.22) !important;
   border-color: oklch(90% 0.05 152 / 0.46) !important;
   color: oklch(99% 0.012 96 / 0.98) !important;
+}
+
+body.has-video-background--app .app-shell-header nav > .ui-button--ghost,
+body.has-video-background--app .app-shell-header nav > .relative > .ui-button--ghost {
+  background: oklch(96.8% 0.021 92 / 0.88) !important;
+  border-color: oklch(96% 0.018 96 / 0.56) !important;
+  color: oklch(23% 0.03 220 / 0.94) !important;
+  box-shadow:
+    0 10px 24px oklch(17% 0.035 220 / 0.2),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+}
+
+body.has-video-background--app .app-shell-header nav > .ui-button--ghost:hover,
+body.has-video-background--app .app-shell-header nav > .relative > .ui-button--ghost:hover {
+  background: oklch(98% 0.018 95 / 0.96) !important;
+  border-color: oklch(66% 0.105 164 / 0.56) !important;
+  color: oklch(32% 0.095 174) !important;
 }
 
 body.has-video-background--app .app-shell-main {
@@ -397,6 +479,58 @@ body.has-video-background--app .ui-action-card {
 body.has-video-background--app .ui-action-card span,
 body.has-video-background--app .ui-link {
   color: oklch(38% 0.11 174) !important;
+}
+
+@media (max-width: 720px) {
+  .video-bg-page--auth {
+    justify-content: center;
+    padding-block: 0.75rem;
+  }
+
+  .auth-mascot-wrap {
+    display: flex;
+    max-width: 25rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .login-mascot {
+    width: clamp(10.75rem, 46vw, 12.5rem);
+    height: clamp(10.75rem, 46vw, 12.5rem);
+    margin-bottom: -1.85rem;
+  }
+
+  .video-auth-card {
+    max-width: 25rem;
+    padding: 1.35rem;
+  }
+
+  .video-auth-card--register {
+    padding: 0.95rem;
+  }
+
+}
+
+@media (max-width: 380px) {
+  .video-bg-page--auth {
+    padding-block: 0.5rem;
+  }
+
+  .login-mascot {
+    width: 8.75rem;
+    height: 8.75rem;
+    margin-bottom: -1.35rem;
+  }
+
+  .video-auth-card {
+    padding: 1.15rem;
+  }
+
+  .video-auth-card--register {
+    padding: 0.85rem;
+  }
+
 }
 
 .video-bg-home-text {

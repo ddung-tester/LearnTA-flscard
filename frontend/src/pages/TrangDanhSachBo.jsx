@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
 import { useAuth } from "../contexts/AuthContext";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import {
   capNhatDeck,
   layDanhSachDeck,
   taoDeck,
+  xoaDeck,
 } from "../services/deckApi";
 
 const FORM_BO_RONG = {
   name: "",
   description: "",
 };
+
+function chuanHoaTenBo(name) {
+  return String(name || "").trim().toLocaleLowerCase("vi-VN");
+}
 
 function IconPlus() {
   return (
@@ -51,8 +56,48 @@ function IconEdit() {
   );
 }
 
+function IconTrash() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      <line x1="10" x2="10" y1="11" y2="17" />
+      <line x1="14" x2="14" y1="11" y2="17" />
+    </svg>
+  );
+}
+
+function IconMoreVertical() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="12" cy="5" r="1" />
+      <circle cx="12" cy="19" r="1" />
+    </svg>
+  );
+}
+
 function TrangDanhSachBo() {
-  const navigate = useNavigate();
+  const { navigateWithLoading } = usePageTransition();
   const { isAuthReady, isAuthenticated, user } = useAuth();
   const [danhSachDeck, setDanhSachDeck] = useState([]);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
@@ -60,7 +105,11 @@ function TrangDanhSachBo() {
   const [dangLuuBo, setDangLuuBo] = useState(false);
   const [dangMoForm, setDangMoForm] = useState(false);
   const [boDangSua, setBoDangSua] = useState(null);
+  const [boDangXoa, setBoDangXoa] = useState(null);
+  const [dangXoaBo, setDangXoaBo] = useState(false);
+  const [menuBoDangMo, setMenuBoDangMo] = useState(null);
   const [formBo, setFormBo] = useState(FORM_BO_RONG);
+  const [loiFormBo, setLoiFormBo] = useState("");
   const [toast, setToast] = useState("");
 
   async function taiDanhSachDeck() {
@@ -83,6 +132,28 @@ function TrangDanhSachBo() {
     taiDanhSachDeck();
   }, [isAuthReady, isAuthenticated, user?.id]);
 
+  useEffect(() => {
+    if (menuBoDangMo === null) return undefined;
+
+    function dongMenuDangMo() {
+      setMenuBoDangMo(null);
+    }
+
+    function dongMenuBangEscape(event) {
+      if (event.key === "Escape") {
+        setMenuBoDangMo(null);
+      }
+    }
+
+    document.addEventListener("click", dongMenuDangMo);
+    document.addEventListener("keydown", dongMenuBangEscape);
+
+    return () => {
+      document.removeEventListener("click", dongMenuDangMo);
+      document.removeEventListener("keydown", dongMenuBangEscape);
+    };
+  }, [menuBoDangMo]);
+
   function laBoCuaUser(bo) {
     return (
       isAuthenticated &&
@@ -92,7 +163,7 @@ function TrangDanhSachBo() {
   }
 
   function chuyenSangDangNhap() {
-    navigate("/login", { state: { from: { pathname: "/decks" } } });
+    navigateWithLoading("/login", { state: { from: { pathname: "/decks" } } });
   }
 
   function moFormThemBo() {
@@ -103,6 +174,7 @@ function TrangDanhSachBo() {
 
     setBoDangSua(null);
     setFormBo(FORM_BO_RONG);
+    setLoiFormBo("");
     setDangMoForm(true);
   }
 
@@ -117,15 +189,51 @@ function TrangDanhSachBo() {
       name: bo.title,
       description: bo.description || "",
     });
+    setLoiFormBo("");
     setDangMoForm(true);
+  }
+
+  function toggleMenuBo(event, boId) {
+    event.stopPropagation();
+    setMenuBoDangMo((hienTai) =>
+      String(hienTai ?? "") === String(boId) ? null : boId
+    );
+  }
+
+  function chonSuaBo(event, bo) {
+    event.stopPropagation();
+    setMenuBoDangMo(null);
+    moFormSuaBo(bo);
+  }
+
+  function chonXoaBo(event, bo) {
+    event.stopPropagation();
+    setMenuBoDangMo(null);
+    moXacNhanXoaBo(bo);
+  }
+
+  function moXacNhanXoaBo(bo) {
+    if (!laBoCuaUser(bo)) {
+      setToast("Chỉ có thể xóa bộ từ của bạn");
+      return;
+    }
+
+    setBoDangXoa(bo);
   }
 
   function dongFormBo() {
     setDangMoForm(false);
+    setLoiFormBo("");
+  }
+
+  function dongXacNhanXoaBo() {
+    if (dangXoaBo) return;
+    setBoDangXoa(null);
   }
 
   function capNhatFormBo(event) {
     const { name, value } = event.target;
+    setLoiFormBo("");
     setFormBo((hienTai) => ({
       ...hienTai,
       [name]: value,
@@ -144,6 +252,17 @@ function TrangDanhSachBo() {
     const description = formBo.description.trim();
 
     if (!name) return;
+
+    const tenDaTonTai = danhSachDeck.some(
+      (bo) =>
+        chuanHoaTenBo(bo.title) === chuanHoaTenBo(name) &&
+        String(bo.id) !== String(boDangSua?.id ?? "")
+    );
+
+    if (tenDaTonTai) {
+      setLoiFormBo("Bạn đã có bộ từ với tên này");
+      return;
+    }
 
     setDangLuuBo(true);
 
@@ -166,17 +285,41 @@ function TrangDanhSachBo() {
         setDanhSachDeck((hienTai) => [deckMoi, ...hienTai]);
       }
 
-    setToast(boDangSua ? "Đã lưu thay đổi bộ từ" : "Đã thêm bộ từ mới");
-    dongFormBo();
+      setToast(boDangSua ? "Đã lưu thay đổi bộ từ" : "Đã thêm bộ từ mới");
+      dongFormBo();
     } catch (error) {
+      if (error.status === 409) {
+        setLoiFormBo("Bạn đã có bộ từ với tên này");
+        return;
+      }
+
       setToast(error.message);
     } finally {
       setDangLuuBo(false);
     }
   }
 
+  async function thucHienXoaBo() {
+    if (!boDangXoa) return;
+
+    setDangXoaBo(true);
+
+    try {
+      await xoaDeck(boDangXoa.id);
+      setDanhSachDeck((hienTai) =>
+        hienTai.filter((bo) => String(bo.id) !== String(boDangXoa.id))
+      );
+      setToast("Đã xóa bộ từ");
+      setBoDangXoa(null);
+    } catch (error) {
+      setToast(error.message);
+    } finally {
+      setDangXoaBo(false);
+    }
+  }
+
   function moChiTietBo(boId) {
-    navigate(`/decks/${boId}`);
+    navigateWithLoading(`/decks/${boId}`);
   }
 
   function xuLyPhimCard(event, boId) {
@@ -209,7 +352,7 @@ function TrangDanhSachBo() {
             onClick={moFormThemBo}
             aria-label="Thêm bộ từ"
             title="Thêm bộ từ"
-            className="ui-button ui-button--primary inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
           >
             <IconPlus />
           </button>
@@ -246,13 +389,13 @@ function TrangDanhSachBo() {
             onClick={moFormThemBo}
             aria-label="Thêm bộ từ"
             title="Thêm bộ từ"
-            className="ui-button ui-button--primary inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+            className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
           >
             <IconPlus />
           </button>
         </div>
       ) : (
-        <ul className="ui-content-enter ui-card-list">
+        <ul className="ui-content-enter ui-deck-grid">
           {danhSachDeck.map((bo) => {
             const soThe = bo.card_count ?? 0;
             const tienDo = bo.latest_quiz ? { quiz: bo.latest_quiz } : layTienDoDeck(bo.id);
@@ -264,7 +407,7 @@ function TrangDanhSachBo() {
                 tabIndex={0}
                 onClick={() => moChiTietBo(bo.id)}
                 onKeyDown={(event) => xuLyPhimCard(event, bo.id)}
-                className="ui-card-interactive group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5"
+                className="ui-card-interactive ui-deck-card group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 pt-0.5">
@@ -272,7 +415,7 @@ function TrangDanhSachBo() {
                       {bo.title}
                     </h3>
                     {bo.description && (
-                      <p className="mt-1 max-w-[42rem] text-sm leading-6 text-[var(--mau-chu-phu)]">
+                      <p className="ui-deck-card__description mt-1 text-sm leading-6 text-[var(--mau-chu-phu)]">
                         {bo.description}
                       </p>
                     )}
@@ -285,18 +428,47 @@ function TrangDanhSachBo() {
                       </span>
                     )}
                     {laBoCuaUser(bo) && (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          moFormSuaBo(bo);
-                        }}
-                        aria-label={`Sửa bộ ${bo.title}`}
-                        title="Sửa bộ"
-                        className="ui-button ui-button--ghost inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-                      >
-                        <IconEdit />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={(event) => toggleMenuBo(event, bo.id)}
+                          aria-label={`Mở menu bộ ${bo.title}`}
+                          aria-haspopup="menu"
+                          aria-expanded={String(menuBoDangMo) === String(bo.id)}
+                          title="Tùy chọn"
+                          className="ui-button ui-button--ghost inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                        >
+                          <IconMoreVertical />
+                        </button>
+
+                        {String(menuBoDangMo) === String(bo.id) && (
+                          <div
+                            role="menu"
+                            aria-label={`Tùy chọn bộ ${bo.title}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="ui-deck-action-menu absolute left-0 top-11 z-20 w-36 overflow-hidden rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-1 shadow-[var(--bong-modal)]"
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(event) => chonSuaBo(event, bo)}
+                              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--mau-chu)] transition-colors hover:bg-[var(--mau-mat-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)]"
+                            >
+                              <IconEdit />
+                              <span>Sửa</span>
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={(event) => chonXoaBo(event, bo)}
+                              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-[var(--mau-loi)] transition-colors hover:bg-[var(--mau-loi)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-loi)]"
+                            >
+                              <IconTrash />
+                              <span>Xóa</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -371,6 +543,15 @@ function TrangDanhSachBo() {
                 />
               </div>
 
+              {loiFormBo && (
+                <p
+                  role="alert"
+                  className="rounded-lg border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/10 px-3 py-2 text-sm font-medium text-[var(--mau-loi)]"
+                >
+                  {loiFormBo}
+                </p>
+              )}
+
               <div className="ui-form-actions">
                 <button
                   type="button"
@@ -388,6 +569,47 @@ function TrangDanhSachBo() {
                 </button>
               </div>
             </form>
+      </AnimatedModal>
+      <AnimatedModal
+        open={!!boDangXoa}
+        onClose={dongXacNhanXoaBo}
+        className="ui-form-panel max-w-[340px] shadow-[var(--bong-modal)] p-0 overflow-hidden border-none"
+      >
+        <div className="flex flex-col">
+          <div className="h-1.5 w-full bg-[var(--mau-loi)] opacity-80" />
+
+          <div className="p-6 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--mau-loi)]/10 text-[var(--mau-loi)]">
+              <IconTrash />
+            </div>
+
+            <h3 className="mb-2 text-xl font-bold text-[var(--mau-chu)]">
+              Xóa bộ từ này?
+            </h3>
+            <p className="mb-8 text-sm leading-6 text-[var(--mau-chu-phu)]">
+              {boDangXoa?.title}
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={dongXacNhanXoaBo}
+                disabled={dangXoaBo}
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 text-sm font-semibold text-[var(--mau-chu-phu)] transition-all hover:bg-[var(--mau-mat-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={thucHienXoaBo}
+                disabled={dangXoaBo}
+                className="ui-button ui-button--danger rounded-xl py-3 text-sm font-bold transition-all active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {dangXoaBo ? "Đang xóa..." : "Xóa ngay"}
+              </button>
+            </div>
+          </div>
+        </div>
       </AnimatedModal>
       <ToastMessage message={toast} onDone={() => setToast("")} />
     </div>

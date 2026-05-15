@@ -6,7 +6,7 @@ USE english_flashcard_quiz_app;
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  username VARCHAR(50) NOT NULL UNIQUE,
+  fullname VARCHAR(50) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   avatar_url VARCHAR(500),
@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS decks (
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE SET NULL,
 
+  UNIQUE KEY unique_user_deck_title (user_id, title),
   INDEX idx_decks_user_id (user_id)
 ) ENGINE=InnoDB;
 

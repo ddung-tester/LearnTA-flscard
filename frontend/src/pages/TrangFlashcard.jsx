@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
@@ -7,6 +8,10 @@ import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { taoStudySession } from "../services/studyApi";
+import {
+  clampProgressPercent,
+  getProgressColor,
+} from "../utils/progressColor";
 
 const DS_CHE_DO = [
   {
@@ -47,6 +52,7 @@ function TrangFlashcard() {
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
   const [batRandom, setBatRandom] = useState(false);
   const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
+  const giamChuyenDong = useReducedMotion();
 
   async function taiDuLieuHoc() {
     setDangTaiDuLieu(true);
@@ -259,6 +265,12 @@ function TrangFlashcard() {
   const matTruoc = cheDo === "en-vi" ? theHienTai.term_en : theHienTai.meaning_vi;
   const matSau = cheDo === "en-vi" ? theHienTai.meaning_vi : theHienTai.term_en;
   const tienDo = ((chiSo + 1) / danhSach.length) * 100;
+  const tienDoAnToan = clampProgressPercent(tienDo);
+  const tiLeTienDo = tienDoAnToan / 100;
+  const mauTienDo = getProgressColor(tienDoAnToan);
+  const thietLapLatThe = giamChuyenDong
+    ? { duration: 0 }
+    : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
 
   return (
     <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
@@ -315,15 +327,22 @@ function TrangFlashcard() {
         </div>
       </div>
 
-      <div className="ui-section-stack ui-flashcard-progress">
-        <div className="mb-2 flex items-center justify-between gap-3 text-xs font-medium text-[var(--mau-chu-phu)]">
+      <div
+        className="ui-section-stack ui-flashcard-progress"
+        style={{ "--progress-current-color": mauTienDo }}
+      >
+        <div className="ui-study-progress__meta mb-2 flex items-center justify-between gap-3 text-xs font-medium">
           <span>Tiến độ</span>
-          <span>{Math.round(tienDo)}%</span>
+          <span>{Math.round(tienDoAnToan)}%</span>
         </div>
         <div className="ui-study-progress">
           <div
             className="ui-progress-fill ui-study-progress__fill"
-            style={{ width: `${tienDo}%` }}
+            style={{
+              "--progress-scale": tiLeTienDo,
+              "--progress-gradient-scale": Math.max(tiLeTienDo, 0.01),
+              width: `${tienDoAnToan}%`,
+            }}
           />
         </div>
       </div>
@@ -336,11 +355,14 @@ function TrangFlashcard() {
           type="button"
           onClick={latThe}
           aria-pressed={daLat}
-          className="ui-card-interactive relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem]"
+          className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem]"
         >
-          <div
-            className={`absolute inset-0 rounded-xl transition-transform duration-300 ease-[var(--tuong-tac-ease-soft)] [transform-style:preserve-3d] ${daLat ? "[transform:rotateY(180deg)]" : "[transform:rotateY(0deg)]"
-              }`}
+          <motion.div
+            className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
+            initial={false}
+            animate={{ rotateY: daLat ? 180 : 0 }}
+            transition={thietLapLatThe}
+            style={{ transformStyle: "preserve-3d" }}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9">
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
@@ -361,7 +383,7 @@ function TrangFlashcard() {
                 </p>
               )}
             </div>
-          </div>
+          </motion.div>
         </button>
       </div>
 

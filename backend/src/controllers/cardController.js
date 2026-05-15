@@ -17,6 +17,10 @@ function normalizeCard(row) {
   if (!row) return null;
 
   const isFavorite = Boolean(row.is_favorite);
+  const correctCount = Number(row.correct_count || 0);
+  const reviewCount = Number(row.review_count || 0);
+  const wrongCount = Number(row.wrong_count || 0);
+  const masteryLevel = Number(row.mastery_level || 0);
 
   return {
     id: row.id,
@@ -29,6 +33,21 @@ function normalizeCard(row) {
     part_of_speech: row.part_of_speech,
     is_favorite: isFavorite,
     isFavorite,
+    progress: {
+      id: row.progress_id || null,
+      mastery_level: masteryLevel,
+      review_count: reviewCount,
+      correct_count: correctCount,
+      wrong_count: wrongCount,
+      last_reviewed_at: row.last_reviewed_at || null,
+      next_review_at: row.next_review_at || null,
+    },
+    mastery_level: masteryLevel,
+    review_count: reviewCount,
+    correct_count: correctCount,
+    wrong_count: wrongCount,
+    is_new: correctCount < 5,
+    isNew: correctCount < 5,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -79,7 +98,29 @@ async function ensureCardWritable(cardId, req) {
   return card;
 }
 
-async function findCardById(cardId, connection = pool) {
+async function findCardById(cardId, connection = pool, options = {}) {
+  if (Object.prototype.hasOwnProperty.call(options, "userId")) {
+    const [rows] = await connection.query(
+      `SELECT
+         c.*,
+         cp.id AS progress_id,
+         cp.mastery_level,
+         cp.review_count,
+         cp.correct_count,
+         cp.wrong_count,
+         cp.last_reviewed_at,
+         cp.next_review_at
+       FROM cards c
+       LEFT JOIN card_progress cp
+         ON cp.card_id = c.id AND cp.user_id <=> ?
+       WHERE c.id = ?
+       LIMIT 1`,
+      [options.userId ?? null, cardId]
+    );
+
+    return normalizeCard(rows[0]);
+  }
+
   const [rows] = await connection.query("SELECT * FROM cards WHERE id = ?", [
     cardId,
   ]);
@@ -113,13 +154,30 @@ function readCardPayload(body, { requireTerms = true } = {}) {
 async function listCardsByDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
   await ensureDeckReadable(deckId, req);
+  const userId = currentUserId(req);
+  const progressJoinCondition =
+    userId === null || userId === undefined
+      ? "cp.user_id IS NULL"
+      : "cp.user_id = ?";
+  const params =
+    userId === null || userId === undefined ? [deckId] : [userId, deckId];
 
   const [rows] = await pool.query(
-    `SELECT *
-     FROM cards
-     WHERE deck_id = ?
-     ORDER BY created_at DESC, id DESC`,
-    [deckId]
+    `SELECT
+       c.*,
+       cp.id AS progress_id,
+       cp.mastery_level,
+       cp.review_count,
+       cp.correct_count,
+       cp.wrong_count,
+       cp.last_reviewed_at,
+       cp.next_review_at
+     FROM cards c
+     LEFT JOIN card_progress cp
+       ON cp.card_id = c.id AND ${progressJoinCondition}
+     WHERE c.deck_id = ?
+     ORDER BY c.created_at DESC, c.id DESC`,
+    params
   );
 
   res.json(rows.map(normalizeCard));
@@ -234,7 +292,7 @@ async function updateCard(req, res) {
     ]
   );
 
-  const card = await findCardById(cardId);
+  const card = await findCardById(cardId, pool, { userId: currentUserId(req) });
   res.json(card);
 }
 
@@ -249,7 +307,7 @@ async function toggleFavorite(req, res) {
     cardId,
   ]);
 
-  const card = await findCardById(cardId);
+  const card = await findCardById(cardId, pool, { userId: currentUserId(req) });
   res.json(card);
 }
 

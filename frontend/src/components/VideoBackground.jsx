@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { BACKGROUND_QUIZ_VIDEO } from "../constants/backgrounds";
 import "./VideoBackground.css";
 
@@ -240,7 +241,16 @@ function VideoBackground({
             onReady={activatePendingVideo}
           />
         )}
-        <div className={`video-bg__overlay video-bg__overlay--${variant}`} />
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={variant}
+            className={`video-bg__overlay video-bg__overlay--${variant}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </AnimatePresence>
       </div>
       <div className={`video-bg-content video-bg-content--${mode}`}>
         {children}

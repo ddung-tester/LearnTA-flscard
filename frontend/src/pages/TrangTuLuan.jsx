@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useParams, Link } from "react-router-dom";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
 import useCombo from "../hooks/useCombo";
+import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
 import RewardProgressBar from "../components/common/RewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
@@ -23,6 +25,29 @@ const DS_CHE_DO = [
 ];
 
 function chuanHoa(t) { return t.trim().toLowerCase().replace(/\s+/g, " "); }
+
+function taoGoiYDapAn(dapAn) {
+  const text = String(dapAn || "");
+  if (!text.trim()) return "";
+
+  const cacPhan = text.match(/\S+|\s+/g) || [];
+  const tongSoTu = cacPhan.filter((phan) => /\S/.test(phan)).length;
+  const soTuGoiY = Math.max(1, Math.ceil(tongSoTu * 0.3));
+  let soTuDaHien = 0;
+
+  const cacPhanGoiY = cacPhan.map((phan) => {
+    if (!/\S/.test(phan)) return phan;
+
+    if (soTuDaHien < soTuGoiY) {
+      soTuDaHien += 1;
+      return phan;
+    }
+
+    return "_".repeat(phan.length);
+  });
+
+  return cacPhanGoiY.join("").trim();
+}
 
 function TrangTuLuan() {
   const { deckId } = useParams();
@@ -47,7 +72,9 @@ function TrangTuLuan() {
   const [soCauDung, setSoCauDung] = useState(0);
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
-  const [daBoQua, setDaBoQua] = useState(false);
+  const [hienGoiY, setHienGoiY] = useState(false);
+  const [hienCanhBaoNhap, setHienCanhBaoNhap] = useState(false);
+  const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
   const [shakeKey, setShakeKey] = useState(0); // tăng mỗi lần sai để retrigger animation
 
   const [hienReward, setHienReward] = useState(false);
@@ -65,8 +92,7 @@ function TrangTuLuan() {
   const rewardProgressTimerRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
-  const amThanhBufferRef = useRef(null);   // Web Audio decoded buffer — phát tức thì
-  const audioCtxRef = useRef(null);        // AudioContext dùng chung
+  const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
 
@@ -95,29 +121,6 @@ function TrangTuLuan() {
     taiDuLieuTuLuan();
   }, [boId]);
 
-  // Decode âm thanh vào Web Audio buffer một lần khi mount.
-  // AudioContext + decodeAudioData → phát ngay lập tức, không lag.
-  useEffect(() => {
-    let ctx;
-    fetch("/sound/bigo.mp3")
-      .then((r) => r.arrayBuffer())
-      .then((buf) => {
-        ctx = new AudioContext();
-        audioCtxRef.current = ctx;
-        return ctx.decodeAudioData(buf);
-      })
-      .then((decoded) => {
-        amThanhBufferRef.current = decoded;
-      })
-      .catch(() => {});
-
-    return () => {
-      ctx?.close();
-      amThanhBufferRef.current = null;
-      audioCtxRef.current = null;
-    };
-  }, []);
-
   useEffect(() => {
     let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
     // Shuffle chỉ khi batRandom bật, giữ nguyên thứ tự khi tắt
@@ -128,6 +131,8 @@ function TrangTuLuan() {
     setDanhSachKetQua([]);
     setDaKiemTra(false);
     setCauTraLoi("");
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
     setDangChuyenCau(false);
     setDangChoReward(false);
     setStudySessionId(null);
@@ -303,6 +308,11 @@ function TrangTuLuan() {
   function layCauHoi(the) { return cheDo === "vi-en" ? the.meaning_vi : the.term_en; }
   function layDapAnDung(the) { return cheDo === "vi-en" ? the.term_en : the.meaning_vi; }
 
+  function capNhatCauTraLoi(value) {
+    setCauTraLoi(value);
+    if (value.trim()) setHienCanhBaoNhap(false);
+  }
+
   function kiemTraDapAn(event) {
     event.preventDefault();
     if (
@@ -315,6 +325,13 @@ function TrangTuLuan() {
       return;
     }
 
+    if (!cauTraLoi.trim()) {
+      setHienCanhBaoNhap(true);
+      setLanCanhBaoNhap((lan) => lan + 1);
+      inputRef.current?.focus();
+      return;
+    }
+
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
     const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
@@ -322,7 +339,8 @@ function TrangTuLuan() {
     if (dung) {
       setDaKiemTra(true);
       setKetQuaDung(true);
-      setDaBoQua(false);
+      setHienGoiY(false);
+      setHienCanhBaoNhap(false);
       phatAmThanhDung();
       setSoCauDung((hienTai) => {
         const diemMoi = hienTai + 1;
@@ -344,7 +362,8 @@ function TrangTuLuan() {
       ]);
       setDaKiemTra(true);
       setKetQuaDung(false);
-      setDaBoQua(false);
+      setHienGoiY(false);
+      setHienCanhBaoNhap(false);
       setCauTraLoi("");
       setShakeKey((k) => k + 1);
       resetCombo();
@@ -368,19 +387,26 @@ function TrangTuLuan() {
         },
       ]);
     }
-    setDaKiemTra(true);
+    setDaKiemTra(false);
     setKetQuaDung(false);
-    setDaBoQua(true);
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
     setCauTraLoi("");
     resetCombo();
+    chuyenCauMem({ boQuaKhoaReward: true, boQuaCau: true });
+  }
+
+  function hienThiGoiY() {
+    if (dangChuyenCau || hienReward || dangChoReward || ketQuaDung) return;
+    setHienGoiY(true);
     inputRef.current?.focus();
   }
 
-  function sangCauTiepTheo() {
-    if (ketQuaDung) {
+  function sangCauTiepTheo({ boQuaCau = false } = {}) {
+    if (ketQuaDung || boQuaCau) {
       if (chiSo + 1 >= danhSachThe.length) {
         // Câu cuối: nếu reward đang hiển thị, defer hoàn thành đến sau khi reward đóng
-        if (hienReward || dangChoReward) {
+        if (!boQuaCau && (hienReward || dangChoReward)) {
           choHoanThanhRef.current = true;
           return;
         }
@@ -392,17 +418,18 @@ function TrangTuLuan() {
     setCauTraLoi("");
     setDaKiemTra(false);
     setKetQuaDung(false);
-    setDaBoQua(false);
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
     setDangChuyenCau(false);
   }
 
-  function chuyenCauMem({ boQuaKhoaReward = false } = {}) {
+  function chuyenCauMem({ boQuaKhoaReward = false, boQuaCau = false } = {}) {
     if (!boQuaKhoaReward && (hienReward || dangChoReward)) return;
 
     xoaTimerChuyenCau();
     setDangChuyenCau(true);
     questionTransitionTimerRef.current = setTimeout(() => {
-      sangCauTiepTheo();
+      sangCauTiepTheo({ boQuaCau });
     }, 220);
   }
 
@@ -411,6 +438,8 @@ function TrangTuLuan() {
     setChiSo(0);
     setCauTraLoi("");
     setDaKiemTra(false);
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
     setSoCauDung(0);
     setDaHoanThanh(false);
     setDanhSachKetQua([]);
@@ -421,25 +450,6 @@ function TrangTuLuan() {
     setStudySessionId(null);
     setLoiLuuKetQua("");
     daLuuKetQuaRef.current = false;
-  }
-
-  function phatAmThanhDung() {
-    try {
-      const ctx = audioCtxRef.current;
-      const buffer = amThanhBufferRef.current;
-      if (!ctx || !buffer) return;
-
-      // Resume context nếu bị treo do browser autoplay policy
-      if (ctx.state === "suspended") ctx.resume();
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 0.9;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.start(0);
-    } catch {}
   }
 
   function doiCheDoHoc(key) {
@@ -525,14 +535,49 @@ function TrangTuLuan() {
     return (
       <>
         <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
-        <div className="ui-study-session mx-auto max-w-2xl py-12 text-center">
-          <h2 className="text-3xl font-bold mb-6">Hoàn thành! Bạn đúng {soCauDung}/{danhSachThe.length}</h2>
-          {loiLuuKetQua && (
-            <p className="mb-4 text-sm text-[var(--mau-loi)]">
-              Không thể lưu kết quả lên backend. Kết quả trên màn hình vẫn được giữ.
+        <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
+          <Link
+            to={`/decks/${boId}`}
+            className="ui-back-link ui-back-link--quiet"
+          >
+            &larr; {bo.title}
+          </Link>
+          <section className="ui-content-enter mt-6 rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-6 py-8 text-center shadow-[var(--bong-card)] sm:px-8 sm:py-9">
+            <p className="mb-3 text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
+              Tổng kết tự luận
             </p>
-          )}
-          <button onClick={lamLai} className="ui-button ui-button--primary px-6 py-3 rounded-xl">Làm lại</button>
+            <h2 className="text-2xl font-semibold text-[var(--mau-chu)] sm:text-[2rem]">
+              Hoàn thành bài học
+            </h2>
+            {loiLuuKetQua && (
+              <p className="mt-3 text-sm text-[var(--mau-loi)]">
+                Không thể lưu kết quả lên backend. Kết quả trên màn hình vẫn được giữ.
+              </p>
+            )}
+            <div className="ui-stat-grid mx-auto mt-8 mb-8 max-w-xl">
+              <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
+                <p className="ui-stat-label mb-1">Tổng câu</p>
+                <p className="ui-stat-value text-[var(--mau-chu)]">
+                  {danhSachThe.length}
+                </p>
+              </div>
+              <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
+                <p className="ui-stat-label mb-1">Đúng</p>
+                <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
+                  {soCauDung}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={lamLai}
+                className="ui-button ui-button--primary w-full rounded-xl px-5 py-2.5 font-semibold sm:w-auto sm:min-w-[10rem]"
+              >
+                Làm lại
+              </button>
+            </div>
+          </section>
         </div>
       </>
     );
@@ -619,10 +664,7 @@ function TrangTuLuan() {
           </StudySettingsPopover>
         </div>
 
-        <div className="mb-4">
-          <div className="mb-2 flex items-center justify-between">
-             <span className="ui-chip ui-chip--muted ui-chip--small">Câu {chiSo + 1}/{tongSoCauHoi}</span>
-          </div>
+        <div className="ui-written-progress mb-4">
           <RewardProgressBar
             currentValue={soCauDung}
             totalValue={tongSoCauHoi}
@@ -632,7 +674,11 @@ function TrangTuLuan() {
             combo={combo}
           />
           <div className="mt-1.5 flex justify-end">
-            <ComboDisplay combo={combo} phase={comboPhase} />
+            <ComboDisplay
+              combo={combo}
+              phase={comboPhase}
+              progressPercent={tienDoReward}
+            />
           </div>
         </div>
 
@@ -647,42 +693,120 @@ function TrangTuLuan() {
         </section>
 
         <form onSubmit={kiemTraDapAn} className="space-y-3">
-          <input
-            key={shakeKey}
-            ref={inputRef}
-            type="text"
-            value={cauTraLoi}
-            onChange={(e) => setCauTraLoi(e.target.value)}
-            disabled={daKiemTra && ketQuaDung}
-            placeholder="Nhập đáp án..."
-            className={`w-full rounded-xl border p-4 text-xl focus:ring-2 focus:ring-[var(--mau-chinh)] outline-none transition-all ${
-              daKiemTra
-                ? (ketQuaDung
-                  ? "border-green-500 bg-green-50"
-                  : "border-red-400 bg-red-50/50 ui-input-shake")
-                : "border-[var(--mau-vien)] bg-[var(--mau-input)]"
-            }`}
-          />
+          <div className="relative">
+            {hienCanhBaoNhap && (
+              <div
+                key={lanCanhBaoNhap}
+                className="ui-input-tooltip absolute bottom-full left-4 z-20 mb-2 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-3 py-2 text-sm font-semibold text-[var(--mau-chu)] shadow-[var(--bong-nut-phu)]"
+                role="alert"
+              >
+                Vui lòng nhập đáp án
+              </div>
+            )}
+            <input
+              key={`${shakeKey}-${lanCanhBaoNhap}`}
+              ref={inputRef}
+              type="text"
+              value={cauTraLoi}
+              onChange={(e) => capNhatCauTraLoi(e.target.value)}
+              disabled={daKiemTra && ketQuaDung}
+              placeholder="Nhập đáp án..."
+              className={`w-full rounded-xl border p-4 text-xl outline-none transition-all focus:ring-2 focus:ring-[var(--mau-chinh)] ${
+                daKiemTra
+                  ? (ketQuaDung
+                    ? "border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10"
+                    : "border-[var(--mau-loi)] bg-[var(--mau-loi)]/10 ui-input-shake")
+                  : hienCanhBaoNhap
+                    ? "border-[var(--mau-canh-bao)] bg-[var(--mau-canh-bao)]/10 ui-input-shake"
+                    : "border-[var(--mau-vien)] bg-[var(--mau-input)]"
+              }`}
+            />
+          </div>
 
-          {/* Chưa kiểm tra: hiện cả 2 nút */}
+          <AnimatePresence initial={false}>
+            {hienGoiY && !ketQuaDung && (
+              <motion.div
+                layout
+                initial={{ opacity: 1, y: -8, scaleY: 0.94 }}
+                animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                exit={{ opacity: 1, y: -8, scaleY: 0.92 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                style={{ originY: 0 }}
+                className="overflow-hidden rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-4 py-3 text-center"
+              >
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mau-chinh)]">
+                  Gợi ý
+                </p>
+                <span
+                  className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-chinh)]"
+                  style={{ wordSpacing: "0.35em" }}
+                >
+                  {taoGoiYDapAn(layDapAnDung(danhSachThe[chiSo]))}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Chưa kiểm tra: có gợi ý, bỏ qua, kiểm tra */}
           {!daKiemTra && (
-            <div className="flex gap-3">
-              <button type="button" onClick={boQua} className="ui-button ui-button--ghost flex-1 py-3 border rounded-xl">Bỏ qua</button>
-              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
-            </div>
+            <motion.div
+              layout
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="grid gap-3 sm:grid-cols-3"
+            >
+              <button
+                type="button"
+                onClick={hienThiGoiY}
+                disabled={hienGoiY}
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-100"
+              >
+                Gợi ý
+              </button>
+              <button
+                type="button"
+                onClick={boQua}
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)]"
+              >
+                Bỏ qua
+              </button>
+              <button
+                type="submit"
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-bold text-[var(--mau-chu-phu)]"
+              >
+                Kiểm tra
+              </button>
+            </motion.div>
           )}
 
-          {/* Trả lời sai (chưa bỏ qua): vẫn hiện cả 2 nút */}
-          {daKiemTra && !ketQuaDung && !daBoQua && (
-            <div className="flex gap-3">
-              <button type="button" onClick={boQua} className="ui-button ui-button--ghost flex-1 py-3 border rounded-xl">Bỏ qua</button>
-              <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary flex-1 py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
-            </div>
-          )}
-
-          {/* Đã bỏ qua (đang xem đáp án): chỉ nút Kiểm tra full width */}
-          {daKiemTra && !ketQuaDung && daBoQua && (
-            <button type="submit" disabled={!cauTraLoi.trim()} className="ui-button ui-button--primary w-full py-3 bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-bold rounded-xl">Kiểm tra</button>
+          {/* Trả lời sai: vẫn cho gợi ý, bỏ qua hoặc kiểm tra lại */}
+          {daKiemTra && !ketQuaDung && (
+            <motion.div
+              layout
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              className="grid gap-3 sm:grid-cols-3"
+            >
+              <button
+                type="button"
+                onClick={hienThiGoiY}
+                disabled={hienGoiY}
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-100"
+              >
+                Gợi ý
+              </button>
+              <button
+                type="button"
+                onClick={boQua}
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)]"
+              >
+                Bỏ qua
+              </button>
+              <button
+                type="submit"
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-bold text-[var(--mau-chu-phu)]"
+              >
+                Kiểm tra
+              </button>
+            </motion.div>
           )}
 
           {/* Đúng rồi: hiện thông báo */}
@@ -692,16 +816,6 @@ function TrangTuLuan() {
             </div>
           )}
         </form>
-
-        {/* Gợi ý đáp án — CHỈ hiện khi bỏ qua, không hiện khi trả lời sai */}
-        {daKiemTra && daBoQua && (
-          <div className="mt-4 text-center py-3 rounded-xl border border-[var(--mau-loi)]/15 bg-[var(--mau-loi)]/5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--mau-loi)] opacity-50 mb-1">Đáp án đúng</p>
-            <span className="text-2xl font-black text-[var(--mau-loi)] tracking-tight">
-              {layDapAnDung(danhSachThe[chiSo])}
-            </span>
-          </div>
-        )}
       </div>
     </>
   );

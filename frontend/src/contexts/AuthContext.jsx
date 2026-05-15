@@ -84,10 +84,9 @@ export function AuthProvider({ children }) {
   const dangKy = useCallback(
     async (payload) => {
       const data = await dangKyTaiKhoan(payload);
-      saveAuth(data);
       return data.user;
     },
-    [saveAuth]
+    []
   );
 
   const value = useMemo(

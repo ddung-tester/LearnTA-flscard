@@ -9,6 +9,7 @@ import RewardTikTokEffect, {
 } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
 import useCombo from "../hooks/useCombo";
+import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
@@ -91,7 +92,7 @@ function TrangQuiz() {
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const progressEndpointRef = useRef(null);
   const rewardProgressValueRef = useRef(0);
-  const amThanhDungRef = useRef(null);
+  const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const rewardLaunchTimerRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
@@ -174,26 +175,6 @@ function TrangQuiz() {
     danhSachCauHoi.length,
     daHoanThanh,
   ]);
-
-  useEffect(() => {
-    const audio = new Audio("/sound/bigo.mp3");
-    audio.preload = "auto";
-    audio.volume = 0.9;
-    amThanhDungRef.current = audio;
-
-    return () => {
-      audio.pause();
-      amThanhDungRef.current = null;
-    };
-  }, []);
-
-  function phatAmThanhDung() {
-    const audio = amThanhDungRef.current;
-    if (!audio) return;
-
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-  }
 
   function xoaTimerProgressReward() {
     if (rewardLaunchTimerRef.current) {
@@ -620,14 +601,14 @@ function TrangQuiz() {
               Tổng kết quiz
             </p>
             <h2 className="text-2xl font-semibold text-[var(--mau-chu)] sm:text-[2rem]">
-              Bạn nhớ đúng {soCauDung}/{danhSachCauHoi.length} từ
+              Hoàn thành bài học
             </h2>
             {loiLuuKetQua && (
               <p className="mt-3 text-sm text-[var(--mau-loi)]">
                 Không thể lưu kết quả lên backend. Kết quả trên màn hình vẫn được giữ.
               </p>
             )}
-            <div className="ui-stat-grid mx-auto mt-7 mb-8 max-w-xl">
+            <div className="ui-stat-grid mx-auto mt-8 mb-8 max-w-xl">
               <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
                 <p className="ui-stat-label mb-1">Tổng câu</p>
                 <p className="ui-stat-value text-[var(--mau-chu)]">
@@ -642,26 +623,14 @@ function TrangQuiz() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+            <div className="flex justify-center">
               <button
                 type="button"
                 onClick={lamLai}
-                className="ui-button ui-button--primary w-full sm:min-w-[9rem] sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
+                className="ui-button ui-button--primary w-full rounded-xl bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] transition-colors hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
               >
                 Làm lại
               </button>
-              <Link
-                to={`/decks/${boId}`}
-                className="ui-button ui-button--ghost w-full sm:min-w-[11rem] sm:w-auto px-5 py-2.5 rounded-xl border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors text-center"
-              >
-                Quay lại bộ từ
-              </Link>
-              <Link
-                to={`/decks/${boId}/flashcard`}
-                className="ui-button ui-button--ghost w-full sm:min-w-[12rem] sm:w-auto px-5 py-2.5 rounded-xl border border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors text-center"
-              >
-                Ôn bằng Flashcard
-              </Link>
             </div>
           </section>
         </div>
@@ -766,11 +735,6 @@ function TrangQuiz() {
           </StudySettingsPopover>
         </div>
         <div className="ui-quiz-progress mb-8">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="ui-chip ui-chip--muted ui-chip--small">
-              Câu {chiSo + 1}/{danhSachCauHoi.length}
-            </span>
-          </div>
           <RewardProgressBar
             currentValue={soCauDung}
             totalValue={tongSoCauHoi}
@@ -781,7 +745,11 @@ function TrangQuiz() {
             combo={combo}
           />
           <div className="mt-2 flex justify-end">
-            <ComboDisplay combo={combo} phase={comboPhase} />
+            <ComboDisplay
+              combo={combo}
+              phase={comboPhase}
+              progressPercent={tienDoReward}
+            />
           </div>
         </div>
 

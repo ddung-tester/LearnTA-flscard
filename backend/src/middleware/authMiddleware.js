@@ -13,7 +13,7 @@ function normalizeAuthUser(row) {
 
   return {
     id: row.id,
-    username: row.username,
+    fullname: row.fullname,
     email: row.email,
     avatar_url: row.avatar_url,
     created_at: row.created_at,
@@ -27,7 +27,7 @@ function readBearerToken(req) {
 
   const [scheme, token] = authorization.split(" ");
   if (scheme !== "Bearer" || !token) {
-    throw createHttpError(401, "Token khong hop le");
+    throw createHttpError(401, "Token không hợp lệ");
   }
 
   return token;
@@ -39,16 +39,16 @@ async function loadUserFromToken(token) {
   try {
     payload = jwt.verify(token, getJwtSecret());
   } catch (error) {
-    throw createHttpError(401, "Token khong hop le hoac da het han");
+    throw createHttpError(401, "Token không hợp lệ hoặc đã hết hạn");
   }
 
   const userId = Number(payload.id || payload.sub);
   if (!Number.isInteger(userId) || userId <= 0) {
-    throw createHttpError(401, "Token khong hop le");
+    throw createHttpError(401, "Token không hợp lệ");
   }
 
   const [rows] = await pool.query(
-    `SELECT id, username, email, avatar_url, created_at, updated_at
+    `SELECT id, fullname, email, avatar_url, created_at, updated_at
      FROM users
      WHERE id = ?
      LIMIT 1`,
@@ -57,7 +57,7 @@ async function loadUserFromToken(token) {
 
   const user = normalizeAuthUser(rows[0]);
   if (!user) {
-    throw createHttpError(401, "Nguoi dung khong ton tai");
+    throw createHttpError(401, "Người dùng không tồn tại");
   }
 
   return user;
@@ -68,7 +68,7 @@ function requireAuth(req, res, next) {
     .then(async () => {
       const token = readBearerToken(req);
       if (!token) {
-        throw createHttpError(401, "Can dang nhap");
+        throw createHttpError(401, "Cần đăng nhập");
       }
 
       req.user = await loadUserFromToken(token);

@@ -6,7 +6,7 @@ const { cleanText, createHttpError } = require("../utils/http");
 const SALT_ROUNDS = 10;
 const FALLBACK_JWT_SECRET = "dev_secret_change_later";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,50}$/;
+const DISPLAY_NAME_PATTERN = /^[\p{L}\p{M}]+(?:[ .'-][\p{L}\p{M}]+)*$/u;
 
 function getJwtSecret() {
   return process.env.JWT_SECRET || FALLBACK_JWT_SECRET;
@@ -21,7 +21,7 @@ function normalizeUser(row) {
 
   return {
     id: row.id,
-    username: row.username,
+    fullname: row.fullname,
     email: row.email,
     avatar_url: row.avatar_url,
     created_at: row.created_at,
@@ -33,7 +33,7 @@ function signToken(user) {
   return jwt.sign(
     {
       id: user.id,
-      username: user.username,
+      fullname: user.fullname,
       email: user.email,
     },
     getJwtSecret(),
@@ -41,22 +41,26 @@ function signToken(user) {
   );
 }
 
-function validateUsername(value) {
-  const username = cleanText(value);
-  if (!USERNAME_PATTERN.test(username)) {
+function validateDisplayName(value) {
+  const displayName = cleanText(value).replace(/\s+/g, " ");
+  if (
+    displayName.length < 2 ||
+    displayName.length > 50 ||
+    !DISPLAY_NAME_PATTERN.test(displayName)
+  ) {
     throw createHttpError(
       400,
-      "username can 3-50 ky tu, chi gom chu cai, so va dau gach duoi"
+      "Họ và tên cần 2-50 ký tự, chỉ gồm chữ cái, khoảng trắng và dấu tên hợp lệ"
     );
   }
 
-  return username;
+  return displayName;
 }
 
 function validateEmail(value) {
   const email = cleanText(value).toLowerCase();
   if (!EMAIL_PATTERN.test(email)) {
-    throw createHttpError(400, "email khong hop le");
+    throw createHttpError(400, "Email không hợp lệ");
   }
 
   return email;
@@ -65,7 +69,7 @@ function validateEmail(value) {
 function validatePassword(value) {
   const password = typeof value === "string" ? value : "";
   if (password.length < 6) {
-    throw createHttpError(400, "password can it nhat 6 ky tu");
+    throw createHttpError(400, "Mật khẩu cần ít nhất 6 ký tự");
   }
 
   return password;
@@ -73,7 +77,7 @@ function validatePassword(value) {
 
 async function findUserById(userId) {
   const [rows] = await pool.query(
-    `SELECT id, username, email, avatar_url, created_at, updated_at
+    `SELECT id, fullname, email, avatar_url, created_at, updated_at
      FROM users
      WHERE id = ?
      LIMIT 1`,
@@ -84,32 +88,28 @@ async function findUserById(userId) {
 }
 
 async function register(req, res) {
-  const username = validateUsername(req.body.username);
+  const fullname = validateDisplayName(req.body.fullname);
   const email = validateEmail(req.body.email);
   const password = validatePassword(req.body.password);
 
   const [duplicates] = await pool.query(
-    `SELECT username, email
+    `SELECT email
      FROM users
-     WHERE username = ? OR email = ?
+     WHERE email = ?
      LIMIT 1`,
-    [username, email]
+    [email]
   );
 
   const duplicate = duplicates[0];
   if (duplicate?.email === email) {
-    throw createHttpError(409, "Email da duoc su dung");
-  }
-
-  if (duplicate?.username === username) {
-    throw createHttpError(409, "Username da duoc su dung");
+    throw createHttpError(409, "Email đã được sử dụng");
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const [result] = await pool.execute(
-    `INSERT INTO users (username, email, password_hash)
+    `INSERT INTO users (fullname, email, password_hash)
      VALUES (?, ?, ?)`,
-    [username, email, passwordHash]
+    [fullname, email, passwordHash]
   );
 
   const user = await findUserById(result.insertId);
@@ -121,10 +121,10 @@ async function register(req, res) {
 
 async function login(req, res) {
   const email = validateEmail(req.body.email);
-  const password = typeof req.body.password === "string" ? req.body.password : "";
+  const password = validatePassword(req.body.password);
 
   const [rows] = await pool.query(
-    `SELECT id, username, email, password_hash, avatar_url, created_at, updated_at
+    `SELECT id, fullname, email, password_hash, avatar_url, created_at, updated_at
      FROM users
      WHERE email = ?
      LIMIT 1`,
@@ -133,12 +133,12 @@ async function login(req, res) {
 
   const row = rows[0];
   if (!row) {
-    throw createHttpError(401, "Email hoac mat khau khong dung");
+    throw createHttpError(401, "Email hoặc mật khẩu không đúng");
   }
 
   const isPasswordValid = await bcrypt.compare(password, row.password_hash);
   if (!isPasswordValid) {
-    throw createHttpError(401, "Email hoac mat khau khong dung");
+    throw createHttpError(401, "Email hoặc mật khẩu không đúng");
   }
 
   const user = normalizeUser(row);
@@ -151,7 +151,7 @@ async function login(req, res) {
 async function me(req, res) {
   const user = await findUserById(req.user.id);
   if (!user) {
-    throw createHttpError(401, "Nguoi dung khong ton tai");
+    throw createHttpError(401, "Người dùng không tồn tại");
   }
 
   res.json({ user });

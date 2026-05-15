@@ -107,6 +107,29 @@ async function findDeckById(deckId, { quizUserId = null } = {}) {
   return normalizeDeck(rows[0]);
 }
 
+async function assertUniqueDeckTitle(userId, title, excludeDeckId = null) {
+  const params = [userId, title];
+  let sql = `
+    SELECT id
+    FROM decks
+    WHERE user_id = ?
+      AND LOWER(title) = LOWER(?)
+  `;
+
+  if (excludeDeckId !== null) {
+    sql += " AND id <> ?";
+    params.push(excludeDeckId);
+  }
+
+  sql += " LIMIT 1";
+
+  const [rows] = await pool.query(sql, params);
+
+  if (rows.length > 0) {
+    throw createHttpError(409, "Ten bo tu da ton tai");
+  }
+}
+
 async function listDecks(req, res) {
   const userId = currentUserId(req);
 
@@ -150,6 +173,8 @@ async function createDeck(req, res) {
   const themeColor = cleanNullableText(req.body.theme_color);
   const isPublic = parseBoolean(req.body.is_public, false);
 
+  await assertUniqueDeckTitle(userId, title);
+
   const [result] = await pool.execute(
     `INSERT INTO decks
       (user_id, title, description, icon, theme_color, is_public)
@@ -189,6 +214,8 @@ async function updateDeck(req, res) {
       ? current.is_public
       : parseBoolean(req.body.is_public, false);
 
+  await assertUniqueDeckTitle(userId, title, deckId);
+
   await pool.execute(
     `UPDATE decks
      SET title = ?, description = ?, icon = ?, theme_color = ?, is_public = ?
@@ -211,10 +238,57 @@ async function deleteDeck(req, res) {
 
   assertDeckWritable(current, userId);
 
-  const [result] = await pool.execute("DELETE FROM decks WHERE id = ?", [deckId]);
+  const connection = await pool.getConnection();
 
-  if (result.affectedRows === 0) {
-    throw createHttpError(404, "Khong tim thay bo tu");
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute(
+      `DELETE sa
+       FROM study_answers sa
+       JOIN cards c ON c.id = sa.card_id
+       WHERE c.deck_id = ?`,
+      [deckId]
+    );
+
+    await connection.execute(
+      `DELETE sa
+       FROM study_answers sa
+       JOIN study_sessions ss ON ss.id = sa.session_id
+       WHERE ss.deck_id = ?`,
+      [deckId]
+    );
+
+    await connection.execute(
+      `DELETE cp
+       FROM card_progress cp
+       JOIN cards c ON c.id = cp.card_id
+       WHERE c.deck_id = ?`,
+      [deckId]
+    );
+
+    await connection.execute("DELETE FROM study_sessions WHERE deck_id = ?", [
+      deckId,
+    ]);
+    await connection.execute("DELETE FROM quiz_results WHERE deck_id = ?", [
+      deckId,
+    ]);
+    await connection.execute("DELETE FROM cards WHERE deck_id = ?", [deckId]);
+
+    const [result] = await connection.execute("DELETE FROM decks WHERE id = ?", [
+      deckId,
+    ]);
+
+    if (result.affectedRows === 0) {
+      throw createHttpError(404, "Khong tim thay bo tu");
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 
   res.json({ success: true });

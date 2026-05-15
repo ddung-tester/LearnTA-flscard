@@ -267,10 +267,14 @@ export function laTuYeuThich(the) {
 }
 
 export function laTuMoiThem(the) {
-  if (!the?.created_at) return false;
+  const soLanDung =
+    the?.correct_count ??
+    the?.correctCount ??
+    the?.progress?.correct_count ??
+    the?.progress?.correctCount ??
+    0;
 
-  const mocMoi = Date.now() - 3 * 24 * 60 * 60 * 1000;
-  return new Date(the.created_at).getTime() >= mocMoi;
+  return Number(soLanDung) < 5;
 }
 
 export function capNhatTrangThaiYeuThichThe(cardId, isFavorite) {

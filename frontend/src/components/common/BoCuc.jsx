@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { usePageTransition } from "../../contexts/PageTransitionContext";
 
 /**
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
@@ -8,16 +9,18 @@ import { useAuth } from "../../contexts/AuthContext";
  */
 function BoCuc() {
   const viTri = useLocation();
-  const navigate = useNavigate();
+  const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
   const menuTaiKhoanRef = useRef(null);
   const laTrangChu = viTri.pathname === "/";
+  const laTrangDangNhap = viTri.pathname === "/login";
+  const laTrangDangKy = viTri.pathname === "/register";
   const dangTrongKhuBoTu = viTri.pathname.startsWith("/decks");
-  const laTrangAuth =
-    viTri.pathname === "/login" || viTri.pathname === "/register";
+  const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
+  const noiDungTrang = <Outlet />;
 
   useEffect(() => {
     setDangMoMenuTaiKhoan(false);
@@ -49,25 +52,27 @@ function BoCuc() {
 
   function xuLyDangXuat() {
     setDangMoMenuTaiKhoan(false);
+    navigateWithLoading("/login", { replace: true, state: { loggedOut: true } });
     dangXuat();
-    navigate("/login", { replace: true, state: { loggedOut: true } });
   }
 
   // TrangChu co layout rieng, khong can BoCuc
   if (laTrangChu) {
-    return <Outlet />;
+    return noiDungTrang;
   }
 
   return (
     <div className={laPhienHoc ? "app-shell app-shell--study" : "min-h-screen"}>
       <header className="app-shell-header px-4 py-3 sm:px-6">
         <div className="app-shell-header__inner mx-auto flex items-center justify-between gap-3">
-          <Link
-            to="/"
-            className="ui-link text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
-          >
-            Streak Drop
-          </Link>
+          {!laTrangAuth && (
+            <Link
+              to="/decks"
+              className="ui-link text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
+            >
+              Streak Drop
+            </Link>
+          )}
           <nav className="flex flex-wrap items-center justify-end gap-2">
             {!dangTrongKhuBoTu && !laTrangAuth && (
               <Link
@@ -78,7 +83,7 @@ function BoCuc() {
               </Link>
             )}
 
-            {isAuthenticated ? (
+            {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">
                 <button
                   type="button"
@@ -87,7 +92,7 @@ function BoCuc() {
                   aria-expanded={dangMoMenuTaiKhoan}
                   className="ui-button ui-button--ghost flex max-w-[12rem] items-center gap-2 rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
                 >
-                  <span className="truncate">{user?.username}</span>
+                  <span className="truncate">{user?.fullname}</span>
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
@@ -109,7 +114,7 @@ function BoCuc() {
                   >
                     <div className="border-b border-[var(--mau-vien)]/70 px-3 py-2">
                       <p className="truncate text-sm font-semibold text-[var(--mau-chu)]">
-                        {user?.username}
+                        {user?.fullname}
                       </p>
                       <p className="truncate text-xs text-[var(--mau-chu-phu)]">
                         {user?.email}
@@ -157,7 +162,7 @@ function BoCuc() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : !laTrangAuth ? (
               <>
                 <Link
                   to="/login"
@@ -172,6 +177,8 @@ function BoCuc() {
                   Đăng ký
                 </Link>
               </>
+            ) : (
+              null
             )}
           </nav>
         </div>
@@ -180,9 +187,7 @@ function BoCuc() {
       <main
         className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}`}
       >
-        <div key={viTri.pathname} className="ui-route-transition">
-          <Outlet />
-        </div>
+        {noiDungTrang}
       </main>
     </div>
   );

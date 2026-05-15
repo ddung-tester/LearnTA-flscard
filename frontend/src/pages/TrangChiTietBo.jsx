@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
 import { useAuth } from "../contexts/AuthContext";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import {
   laTuMoiThem,
   laTuYeuThich,
@@ -115,7 +116,7 @@ function parseDongImport(dong) {
 
 function TrangChiTietBo() {
   const { deckId } = useParams();
-  const navigate = useNavigate();
+  const { navigateWithLoading } = usePageTransition();
   const { isAuthenticated, user } = useAuth();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
@@ -184,7 +185,7 @@ function TrangChiTietBo() {
     if (coQuyenQuanLyBo()) return true;
 
     if (!isAuthenticated) {
-      navigate("/login", { state: { from: { pathname: `/decks/${boId}` } } });
+      navigateWithLoading("/login", { state: { from: { pathname: `/decks/${boId}` } } });
     } else {
       setToast("Chỉ có thể sửa bộ từ của bạn");
     }
@@ -454,14 +455,14 @@ function TrangChiTietBo() {
   return (
     <div className="ui-page-stack">
       <div className="ui-page-header">
-        <div className="ui-page-header__title">
+        <div className="ui-page-header__title ui-deck-detail-header__title">
           <Link
             to="/decks"
             className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
             ← Danh sách bộ từ
           </Link>
-          <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">
+          <h2 className="ui-deck-detail-header__heading text-2xl font-semibold text-[var(--mau-chu)]">
             {bo.title}
           </h2>
         </div>
@@ -504,9 +505,9 @@ function TrangChiTietBo() {
         ) : (
           <div
             className="flex min-h-14 items-center justify-center rounded-xl border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 cursor-not-allowed opacity-60"
-            title="Cần ít nhất 4 từ để làm quiz"
+            title="Cần ít nhất 4 từ để làm trắc nghiệm"
           >
-            <span className="font-semibold text-[var(--mau-chu-phu)]">Làm Quiz</span>
+            <span className="font-semibold text-[var(--mau-chu-phu)]">Làm trắc nghiệm</span>
           </div>
         )}
 
