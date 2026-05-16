@@ -231,8 +231,7 @@ function RewardMagicOverlay({
 
         waitingTimeline
           .to(studyFrame, { autoAlpha: 0.1, scale: 1, duration: 0.24 }, 0)
-          .to(sourceGlow, { autoAlpha: 0.9, scale: 0.98 * comboScale, duration: 0.32 }, 0)
-          .to(warmupPaths, { autoAlpha: 0.72, strokeDashoffset: 0, duration: 0.9, ease: "sine.inOut" }, 0.12);
+          .to(sourceGlow, { autoAlpha: 0.9, scale: 0.98 * comboScale, duration: 0.32 }, 0);
 
         return () => waitingTimeline.kill();
       }
