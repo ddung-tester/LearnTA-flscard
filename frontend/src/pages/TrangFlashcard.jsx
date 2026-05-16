@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
@@ -7,6 +7,7 @@ import ToggleSwitch from "../components/common/ToggleSwitch";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -42,6 +43,7 @@ function laVungNhapLieu(element) {
 
 function TrangFlashcard() {
   const { deckId } = useParams();
+  const { setPageDataLoading } = usePageTransition();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
@@ -108,6 +110,15 @@ function TrangFlashcard() {
     datLaiReward();
     taiDuLieuHoc();
   }, [boId]);
+
+  useLayoutEffect(() => {
+    const loadingKey = `flashcard-${boId}`;
+    setPageDataLoading(loadingKey, dangTaiDuLieu);
+
+    return () => {
+      setPageDataLoading(loadingKey, false);
+    };
+  }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   const danhSachLoc = useMemo(
     () => locTuYeuThich(danhSachGoc, chiHocTuYeuThich),

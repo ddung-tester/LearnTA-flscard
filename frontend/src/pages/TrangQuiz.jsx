@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import ToggleSwitch from "../components/common/ToggleSwitch";
@@ -8,6 +8,7 @@ import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
@@ -34,11 +35,75 @@ const DS_CHE_DO_QUIZ = [
   },
 ];
 
-function tronMang(danhSach) {
-  return [...danhSach].sort(() => Math.random() - 0.5);
+const CHE_DO_MAC_DINH_QUIZ = "vi-en";
+
+function taoSoTuSeed(seed) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
 }
 
-function taoDanhSachCauHoi(danhSachThe, cheDo = "en-vi") {
+function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${item}`) {
+  return [...danhSach]
+    .map((item, index) => ({
+      item,
+      thuTu: taoSoTuSeed(`${seed}-${layKhoa(item, index)}`),
+    }))
+    .sort((a, b) => a.thuTu - b.thuTu)
+    .map(({ item }) => item);
+}
+
+function tinhDoDaiVanBan(giaTri) {
+  return String(giaTri || "").trim().replace(/\s+/g, " ").length;
+}
+
+function tinhDiemGanDoDai(cauHoi, dapAnDung, dapAn) {
+  const doDaiDapAn = Math.max(1, tinhDoDaiVanBan(dapAn));
+  const doDaiDapAnDung = Math.max(1, tinhDoDaiVanBan(dapAnDung));
+  const doDaiCauHoi = Math.max(1, tinhDoDaiVanBan(cauHoi));
+
+  const lechVoiDapAnDung =
+    Math.abs(doDaiDapAn - doDaiDapAnDung) / Math.max(doDaiDapAn, doDaiDapAnDung);
+  const lechVoiCauHoi =
+    Math.abs(doDaiDapAn - doDaiCauHoi) / Math.max(doDaiDapAn, doDaiCauHoi);
+
+  return lechVoiDapAnDung * 0.75 + lechVoiCauHoi * 0.25;
+}
+
+function layDapAnNhieuTuongDong(danhSachThe, theHienTai, laEnVi, seed) {
+  const cauHoi = laEnVi ? theHienTai.term_en : theHienTai.meaning_vi;
+  const dapAnDung = laEnVi ? theHienTai.meaning_vi : theHienTai.term_en;
+  const dapAnDaDung = new Set([String(dapAnDung || "").trim().toLowerCase()]);
+
+  return danhSachThe
+    .filter((theKhac) => theKhac.id !== theHienTai.id)
+    .map((theKhac) => {
+      const dapAn = laEnVi ? theKhac.meaning_vi : theKhac.term_en;
+
+      return {
+        id: theKhac.id,
+        dapAn,
+        diem: tinhDiemGanDoDai(cauHoi, dapAnDung, dapAn),
+        thuTuPhu: taoSoTuSeed(`${seed}-distractor-${theHienTai.id}-${theKhac.id}`),
+      };
+    })
+    .filter(({ dapAn }) => {
+      const khoa = String(dapAn || "").trim().toLowerCase();
+      if (!khoa || dapAnDaDung.has(khoa)) return false;
+      dapAnDaDung.add(khoa);
+      return true;
+    })
+    .sort((a, b) => a.diem - b.diem || a.thuTuPhu - b.thuTuPhu)
+    .slice(0, 3)
+    .map(({ dapAn }) => dapAn);
+}
+
+function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "quiz") {
   if (!danhSachThe || danhSachThe.length < 4) return [];
 
   const laEnVi = cheDo === "en-vi";
@@ -47,30 +112,31 @@ function taoDanhSachCauHoi(danhSachThe, cheDo = "en-vi") {
     const cauHoi = laEnVi ? the.term_en : the.meaning_vi;
     const dapAnDung = laEnVi ? the.meaning_vi : the.term_en;
 
-    const dapAnNhieu = tronMang(
-      danhSachThe
-        .filter((theKhac) => theKhac.id !== the.id)
-        .map((theKhac) => (laEnVi ? theKhac.meaning_vi : theKhac.term_en))
-    ).slice(0, 3);
+    const dapAnNhieu = layDapAnNhieuTuongDong(danhSachThe, the, laEnVi, seed);
 
     return {
       id: the.id,
       cauHoi,
       dapAnDung,
-      danhSachDapAn: tronMang([dapAnDung, ...dapAnNhieu]),
+      danhSachDapAn: tronMangOnDinh(
+        [dapAnDung, ...dapAnNhieu],
+        `${seed}-answers-${the.id}`,
+        (dapAn, index) => `${index}-${dapAn}`
+      ),
     };
   });
 }
 
 function TrangQuiz() {
   const { deckId } = useParams();
+  const { setPageDataLoading } = usePageTransition();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
-  const [cheDo, setCheDo] = useState("en-vi");
+  const [cheDo, setCheDo] = useState(CHE_DO_MAC_DINH_QUIZ);
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
   const [batRandom, setBatRandom] = useState(false);
   const [lanTronQuiz, setLanTronQuiz] = useState(0);
@@ -127,18 +193,31 @@ function TrangQuiz() {
     taiDuLieuQuiz();
   }, [boId]);
 
+  useLayoutEffect(() => {
+    const loadingKey = `quiz-${boId}`;
+    setPageDataLoading(loadingKey, dangTaiDuLieu);
+
+    return () => {
+      setPageDataLoading(loadingKey, false);
+    };
+  }, [boId, dangTaiDuLieu, setPageDataLoading]);
+
   const danhSachLocQuiz = useMemo(
     () => locTuYeuThich(danhSachGoc, chiHocTuYeuThich),
     [danhSachGoc, chiHocTuYeuThich]
   );
   const danhSachThe = useMemo(() => {
     if (!batRandom) return danhSachLocQuiz;
-    return [...danhSachLocQuiz].sort(() => Math.random() - 0.5);
-  }, [batRandom, lanTronQuiz, danhSachLocQuiz]);
+    return tronMangOnDinh(
+      danhSachLocQuiz,
+      `quiz-order-${boId}-${lanTronQuiz}`,
+      (the) => the.id
+    );
+  }, [batRandom, boId, lanTronQuiz, danhSachLocQuiz]);
 
   const danhSachCauHoi = useMemo(
-    () => taoDanhSachCauHoi(danhSachThe, cheDo),
-    [danhSachThe, cheDo, lanLam]
+    () => taoDanhSachCauHoi(danhSachThe, cheDo, `quiz-${boId}-${cheDo}-${lanLam}`),
+    [boId, danhSachThe, cheDo, lanLam]
   );
 
   useEffect(() => {
@@ -412,12 +491,15 @@ function TrangQuiz() {
       return undefined;
     }
 
+    const cauDangTraLoi = danhSachCauHoi[chiSo];
+    const traLoiDungTrongEffect = dapAnDaChon === cauDangTraLoi?.dapAnDung;
+    const thoiGianGiuPhanHoi = traLoiDungTrongEffect ? 760 : 3000;
     const timer = setTimeout(() => {
       chuyenCauMem();
-    }, 760);
+    }, thoiGianGiuPhanHoi);
 
     return () => clearTimeout(timer);
-  }, [dapAnDaChon, daHoanThanh, hienReward, dangChoReward]);
+  }, [chiSo, danhSachCauHoi, dapAnDaChon, daHoanThanh, hienReward, dangChoReward]);
 
   useEffect(
     () => () => {
@@ -769,21 +851,22 @@ function TrangQuiz() {
           {cauHienTai.danhSachDapAn.map((dapAn, index) => {
             const laDapAnDung = dapAn === cauHienTai.dapAnDung;
             const laDapAnNguoiDungChon = dapAn === dapAnDaChon;
+            const daTraLoiSai = daTraLoi && !traLoiDung;
 
             let lopTrangThai =
               "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
 
-            if (daTraLoi && laDapAnDung) {
-              lopTrangThai = "ui-answer-correct border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10 text-[var(--mau-chu)]";
+            if (daTraLoiSai && laDapAnDung) {
+              lopTrangThai = "ui-answer-correct-reveal text-[var(--mau-chu)]";
+            } else if (daTraLoi && laDapAnDung) {
+              lopTrangThai = "ui-answer-correct text-[var(--mau-chu)]";
             } else if (daTraLoi && laDapAnNguoiDungChon && !laDapAnDung) {
-              lopTrangThai = "ui-answer-wrong border-[var(--mau-loi)] bg-[var(--mau-loi)]/10 text-[var(--mau-chu)]";
-            } else if (daTraLoi) {
-              lopTrangThai = "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] opacity-60";
+              lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)]";
             }
 
             return (
               <button
-                key={`${cauHienTai.id}-${dapAn}`}
+                key={`${cauHienTai.id}-${index}-${dapAn}`}
                 type="button"
                 onClick={() => chonDapAn(dapAn)}
                 className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
@@ -797,15 +880,10 @@ function TrangQuiz() {
           })}
         </div>
 
-        {daTraLoi && (
+        {daTraLoi && traLoiDung && (
           <div className="ui-feedback-pop ui-quiz-feedback text-center">
-            <p
-              className={`text-sm font-medium mb-4 ${traLoiDung ? "text-[var(--mau-thanh-cong)]" : "text-[var(--mau-loi)]"
-                }`}
-            >
-              {traLoiDung
-                ? "Chính xác. Câu tiếp theo nhé..."
-                : `Chưa đúng. Đáp án đúng là: ${cauHienTai.dapAnDung}`}
+            <p className="text-sm font-medium mb-4 text-[var(--mau-thanh-cong)]">
+              Chính xác. Câu tiếp theo nhé...
             </p>
           </div>
         )}

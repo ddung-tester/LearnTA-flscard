@@ -372,6 +372,25 @@ body.has-video-background--app .ui-action-card:hover {
   border-color: oklch(66% 0.105 164 / 0.54) !important;
 }
 
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-wrong {
+  background: oklch(55% 0.22 25 / 0.92) !important;
+  border-color: oklch(50% 0.22 25) !important;
+  color: var(--mau-chu-tren-chinh) !important;
+}
+
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct,
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct-reveal {
+  background: oklch(76% 0.13 155 / 0.5) !important;
+  border-color: oklch(48% 0.16 155) !important;
+  color: var(--mau-chu-tren-chinh) !important;
+}
+
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-wrong span,
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct span,
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct-reveal span {
+  color: var(--mau-chu-tren-chinh) !important;
+}
+
 body.has-video-background--app .ui-button--primary {
   background: oklch(62% 0.13 164) !important;
   border: 1px solid oklch(79% 0.09 152 / 0.58);

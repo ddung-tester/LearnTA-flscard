@@ -1,8 +1,8 @@
-CREATE DATABASE IF NOT EXISTS learn_ta_flashcard
+CREATE DATABASE IF NOT EXISTS railway
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-USE learn_ta_flashcard;
+USE railway;
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,

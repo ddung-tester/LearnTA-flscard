@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
 import { useAuth } from "../contexts/AuthContext";
@@ -97,7 +97,7 @@ function IconMoreVertical() {
 }
 
 function TrangDanhSachBo() {
-  const { navigateWithLoading } = usePageTransition();
+  const { navigateWithLoading, setPageDataLoading } = usePageTransition();
   const { isAuthReady, isAuthenticated, user } = useAuth();
   const [danhSachDeck, setDanhSachDeck] = useState([]);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
@@ -131,6 +131,15 @@ function TrangDanhSachBo() {
 
     taiDanhSachDeck();
   }, [isAuthReady, isAuthenticated, user?.id]);
+
+  useLayoutEffect(() => {
+    const dangTaiTrang = !isAuthReady || isLoadingDecks;
+    setPageDataLoading("decks", dangTaiTrang);
+
+    return () => {
+      setPageDataLoading("decks", false);
+    };
+  }, [isAuthReady, isLoadingDecks, setPageDataLoading]);
 
   useEffect(() => {
     if (menuBoDangMo === null) return undefined;

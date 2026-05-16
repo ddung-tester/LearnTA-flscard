@@ -3,15 +3,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  lazy,
-  Suspense,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const PageLoadingOverlay = lazy(() => import("../components/PageLoadingOverlay"));
+import PageLoadingOverlay from "../components/PageLoadingOverlay";
 
 const DELAY_BEFORE_NAVIGATE_MS = 700;
 const DELAY_AFTER_NAVIGATE_MS = 500;
@@ -29,13 +27,16 @@ export function PageTransitionProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [dangChuyenTrang, setDangChuyenTrang] = useState(false);
+  const [soTacVuTaiDuLieu, setSoTacVuTaiDuLieu] = useState(0);
   const dangChuyenTrangRef = useRef(false);
   const currentPathRef = useRef("");
+  const tacVuTaiDuLieuRef = useRef(new Set());
+  const hienThiLoading = dangChuyenTrang || soTacVuTaiDuLieu > 0;
 
   currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
 
-  useEffect(() => {
-    if (dangChuyenTrang) {
+  useLayoutEffect(() => {
+    if (hienThiLoading) {
       document.body.classList.add("is-page-loading");
     } else {
       document.body.classList.remove("is-page-loading");
@@ -44,7 +45,23 @@ export function PageTransitionProvider({ children }) {
     return () => {
       document.body.classList.remove("is-page-loading");
     };
-  }, [dangChuyenTrang]);
+  }, [hienThiLoading]);
+
+  const setPageDataLoading = useCallback((key, dangTai) => {
+    const khoa = String(key || "page");
+    const dangCo = tacVuTaiDuLieuRef.current.has(khoa);
+
+    if (dangTai && !dangCo) {
+      tacVuTaiDuLieuRef.current.add(khoa);
+      setSoTacVuTaiDuLieu((hienTai) => hienTai + 1);
+      return;
+    }
+
+    if (!dangTai && dangCo) {
+      tacVuTaiDuLieuRef.current.delete(khoa);
+      setSoTacVuTaiDuLieu((hienTai) => Math.max(0, hienTai - 1));
+    }
+  }, []);
 
   const navigateWithLoading = useCallback(
     async (to, options = {}) => {
@@ -103,8 +120,8 @@ export function PageTransitionProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ dangChuyenTrang, navigateWithLoading }),
-    [dangChuyenTrang, navigateWithLoading]
+    () => ({ dangChuyenTrang: hienThiLoading, navigateWithLoading, setPageDataLoading }),
+    [hienThiLoading, navigateWithLoading, setPageDataLoading]
   );
 
   return (
@@ -112,9 +129,7 @@ export function PageTransitionProvider({ children }) {
       <div className="page-transition-root" onClickCapture={handleClickCapture}>
         {children}
       </div>
-      <Suspense fallback={null}>
-        <PageLoadingOverlay hienThi={dangChuyenTrang} />
-      </Suspense>
+      <PageLoadingOverlay hienThi={hienThiLoading} />
     </PageTransitionContext.Provider>
   );
 }

@@ -110,7 +110,7 @@ function BoCuc() {
                 {dangMoMenuTaiKhoan && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-56 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-2 shadow-[var(--bong-modal)]"
+                    className="absolute left-full top-full z-30 w-56 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-2 shadow-[var(--bong-modal)]"
                   >
                     <div className="border-b border-[var(--mau-vien)]/70 px-3 py-2">
                       <p className="truncate text-sm font-semibold text-[var(--mau-chu)]">

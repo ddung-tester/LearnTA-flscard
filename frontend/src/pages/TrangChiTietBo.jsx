@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
@@ -116,7 +116,7 @@ function parseDongImport(dong) {
 
 function TrangChiTietBo() {
   const { deckId } = useParams();
-  const { navigateWithLoading } = usePageTransition();
+  const { navigateWithLoading, setPageDataLoading } = usePageTransition();
   const { isAuthenticated, user } = useAuth();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
@@ -167,6 +167,15 @@ function TrangChiTietBo() {
     setDangXacNhanXoa(null);
     taiDuLieuBo();
   }, [boId]);
+
+  useLayoutEffect(() => {
+    const loadingKey = `deck-detail-${boId}`;
+    setPageDataLoading(loadingKey, dangTaiDuLieu);
+
+    return () => {
+      setPageDataLoading(loadingKey, false);
+    };
+  }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   function showSuccess(msg) {
     setSuccessInfo({ open: true, message: msg });

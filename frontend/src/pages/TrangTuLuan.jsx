@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, Link } from "react-router-dom";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
@@ -51,6 +52,7 @@ function taoGoiYDapAn(dapAn) {
 
 function TrangTuLuan() {
   const { deckId } = useParams();
+  const { setPageDataLoading } = usePageTransition();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
@@ -120,6 +122,15 @@ function TrangTuLuan() {
   useEffect(() => {
     taiDuLieuTuLuan();
   }, [boId]);
+
+  useLayoutEffect(() => {
+    const loadingKey = `tu-luan-${boId}`;
+    setPageDataLoading(loadingKey, dangTaiDuLieu);
+
+    return () => {
+      setPageDataLoading(loadingKey, false);
+    };
+  }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   useEffect(() => {
     let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
