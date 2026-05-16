@@ -448,7 +448,22 @@ function RewardTikTokEffect({
       return undefined;
     }
 
-    const duration = config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
+    const videoDangPhat =
+      !giamChuyenDong &&
+      !loiVideo &&
+      Boolean(videoSrc) &&
+      videoSanSang &&
+      choPhepPhatVideo;
+    const video = videoRef.current;
+    const duration = videoDangPhat && video
+      ? Math.max(
+          config.duration ?? CAU_HINH_REWARD_QUIZ.duration,
+          ((Number.isFinite(video.duration) ? video.duration : 0) -
+            (Number.isFinite(video.currentTime) ? video.currentTime : 0)) *
+            1000 +
+            3000
+        )
+      : config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
     const timer = window.setTimeout(() => {
       yeuCauDongReward();
     }, duration);
@@ -457,8 +472,13 @@ function RewardTikTokEffect({
   }, [
     active,
     dangRenderReward,
+    choPhepPhatVideo,
     config.duration,
+    giamChuyenDong,
+    loiVideo,
     yeuCauDongReward,
+    videoSanSang,
+    videoSrc,
   ]);
 
   if (!daDoViewport || !dangRenderReward) return null;
