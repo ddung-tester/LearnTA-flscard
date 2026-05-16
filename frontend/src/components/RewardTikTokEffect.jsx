@@ -15,6 +15,7 @@ export const CAU_HINH_REWARD_QUIZ = {
 
 const VIDEO_READY_STATE_CAN_DRAW = 2;
 const REWARD_CANVAS_MAX_DPR = 1.25;
+const REWARD_VIDEO_READY_TIMEOUT_MS = 2600;
 
 function RewardTikTokEffect({
   active,
@@ -43,6 +44,7 @@ function RewardTikTokEffect({
   const [originRect, setOriginRect] = useState(null);
   const lanTimelineRewardRef = useRef(0);
   const cleanupFadeOutRef = useRef(null);
+  const videoReadyTimeoutRef = useRef(null);
   const daYeuCauDongRef = useRef(false);
 
   const batDauPhatVideo = useCallback(() => {
@@ -350,9 +352,41 @@ function RewardTikTokEffect({
       if (cleanupFadeOutRef.current) {
         window.clearTimeout(cleanupFadeOutRef.current);
       }
+      if (videoReadyTimeoutRef.current) {
+        window.clearTimeout(videoReadyTimeoutRef.current);
+      }
     },
     []
   );
+
+  useEffect(() => {
+    if (videoReadyTimeoutRef.current) {
+      window.clearTimeout(videoReadyTimeoutRef.current);
+      videoReadyTimeoutRef.current = null;
+    }
+
+    if (
+      !active ||
+      !dangRenderReward ||
+      !videoSrc ||
+      videoSanSang ||
+      loiVideo
+    ) {
+      return undefined;
+    }
+
+    videoReadyTimeoutRef.current = window.setTimeout(() => {
+      setLoiVideo(true);
+      videoReadyTimeoutRef.current = null;
+    }, REWARD_VIDEO_READY_TIMEOUT_MS);
+
+    return () => {
+      if (videoReadyTimeoutRef.current) {
+        window.clearTimeout(videoReadyTimeoutRef.current);
+        videoReadyTimeoutRef.current = null;
+      }
+    };
+  }, [active, dangRenderReward, loiVideo, videoSanSang, videoSrc]);
 
   useEffect(() => {
     if (
@@ -410,7 +444,7 @@ function RewardTikTokEffect({
   ]);
 
   useEffect(() => {
-    if (!active || !dangRenderReward || (!giamChuyenDong && !loiVideo)) {
+    if (!active || !dangRenderReward) {
       return undefined;
     }
 
@@ -423,8 +457,6 @@ function RewardTikTokEffect({
   }, [
     active,
     dangRenderReward,
-    giamChuyenDong,
-    loiVideo,
     config.duration,
     yeuCauDongReward,
   ]);
