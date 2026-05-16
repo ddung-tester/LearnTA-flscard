@@ -223,6 +223,7 @@ function RewardMagicOverlay({
       gsap.set(bursts, { autoAlpha: 0, scale: 0.25 * sparkScale, transformOrigin: "50% 50%" });
 
       if (!videoReady && !prefersReducedMotion) {
+        if (lanDaChayIntroRef.current === sequenceKey) return undefined;
         if (lanChoVideoRef.current === sequenceKey) return undefined;
         lanChoVideoRef.current = sequenceKey;
 
