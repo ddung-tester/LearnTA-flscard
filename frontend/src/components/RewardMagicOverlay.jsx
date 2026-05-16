@@ -537,17 +537,46 @@ function RewardMagicOverlay({
             </feMerge>
           </filter>
         </defs>
-        <path className="reward-magic__path reward-magic__path--aura reward-magic__path--warmup" />
-        <path className="reward-magic__path reward-magic__path--core reward-magic__path--warmup" />
+        <path
+          className="reward-magic__path reward-magic__path--aura reward-magic__path--warmup"
+          filter="url(#reward-magic-glow)"
+        />
+        <path
+          className="reward-magic__path reward-magic__path--core reward-magic__path--warmup"
+          stroke="url(#reward-magic-warmup)"
+          filter="url(#reward-magic-glow)"
+        />
         <path className="reward-magic__path reward-magic__path--spark reward-magic__path--warmup" />
-        <path className="reward-magic__path reward-magic__path--aura reward-magic__path--left" />
-        <path className="reward-magic__path reward-magic__path--core reward-magic__path--left" />
+        <path
+          className="reward-magic__path reward-magic__path--aura reward-magic__path--left"
+          filter="url(#reward-magic-glow)"
+        />
+        <path
+          className="reward-magic__path reward-magic__path--core reward-magic__path--left"
+          stroke="url(#reward-magic-left)"
+          filter="url(#reward-magic-glow)"
+        />
         <path className="reward-magic__path reward-magic__path--spark reward-magic__path--left" />
-        <path className="reward-magic__path reward-magic__path--aura reward-magic__path--right" />
-        <path className="reward-magic__path reward-magic__path--core reward-magic__path--right" />
+        <path
+          className="reward-magic__path reward-magic__path--aura reward-magic__path--right"
+          filter="url(#reward-magic-glow)"
+        />
+        <path
+          className="reward-magic__path reward-magic__path--core reward-magic__path--right"
+          stroke="url(#reward-magic-right)"
+          filter="url(#reward-magic-glow)"
+        />
         <path className="reward-magic__path reward-magic__path--spark reward-magic__path--right" />
-        <circle className="reward-magic__burst reward-magic__burst--left" r="12" />
-        <circle className="reward-magic__burst reward-magic__burst--right" r="12" />
+        <circle
+          className="reward-magic__burst reward-magic__burst--left"
+          r="12"
+          filter="url(#reward-magic-glow)"
+        />
+        <circle
+          className="reward-magic__burst reward-magic__burst--right"
+          r="12"
+          filter="url(#reward-magic-glow)"
+        />
       </svg>
 
       {(compact ? ["center"] : ["left", "right"]).map((viTri) => (

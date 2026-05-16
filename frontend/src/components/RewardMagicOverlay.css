@@ -104,13 +104,11 @@
 .reward-magic__path--aura {
   stroke: rgba(105, 223, 240, 0.28);
   stroke-width: 18;
-  filter: url("#reward-magic-glow");
   mix-blend-mode: screen;
 }
 
 .reward-magic__path--core {
   stroke-width: 5;
-  filter: url("#reward-magic-glow");
 }
 
 .reward-magic__path--spark {
@@ -120,23 +118,10 @@
   filter: drop-shadow(0 0 7px rgba(143, 211, 255, 0.52));
 }
 
-.reward-magic__path--warmup.reward-magic__path--core {
-  stroke: url("#reward-magic-warmup");
-}
-
-.reward-magic__path--left.reward-magic__path--core {
-  stroke: url("#reward-magic-left");
-}
-
-.reward-magic__path--right.reward-magic__path--core {
-  stroke: url("#reward-magic-right");
-}
-
 .reward-magic__burst {
   fill: none;
   stroke: rgba(255, 245, 200, 0.86);
   stroke-width: 2;
-  filter: url("#reward-magic-glow");
   opacity: 0;
 }
 
