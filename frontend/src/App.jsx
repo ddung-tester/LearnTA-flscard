@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
@@ -6,15 +7,16 @@ import {
   BACKGROUND_DEFAULT_VIDEO,
   BACKGROUND_QUIZ_VIDEO,
 } from "./constants/backgrounds";
-import TrangChu from "./pages/TrangChu";
-import TrangDanhSachBo from "./pages/TrangDanhSachBo";
-import TrangChiTietBo from "./pages/TrangChiTietBo";
-import TrangThemTu from "./pages/TrangThemTu";
-import TrangFlashcard from "./pages/TrangFlashcard";
-import TrangQuiz from "./pages/TrangQuiz";
-import TrangTuLuan from "./pages/TrangTuLuan";
-import TrangDangNhap from "./pages/TrangDangNhap";
-import TrangDangKy from "./pages/TrangDangKy";
+
+const TrangChu = lazy(() => import("./pages/TrangChu"));
+const TrangDanhSachBo = lazy(() => import("./pages/TrangDanhSachBo"));
+const TrangChiTietBo = lazy(() => import("./pages/TrangChiTietBo"));
+const TrangThemTu = lazy(() => import("./pages/TrangThemTu"));
+const TrangFlashcard = lazy(() => import("./pages/TrangFlashcard"));
+const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
+const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
+const TrangDangNhap = lazy(() => import("./pages/TrangDangNhap"));
+const TrangDangKy = lazy(() => import("./pages/TrangDangKy"));
 
 /**
  * UngDung — Routing chinh.
@@ -37,21 +39,23 @@ function UngDung() {
     : BACKGROUND_QUIZ_VIDEO;
 
   const noiDungRoutes = (
-    <Routes>
-      <Route element={<BoCuc />}>
-        <Route path="/" element={<TrangChu />} />
-        <Route path="/login" element={<TrangDangNhap />} />
-        <Route path="/register" element={<TrangDangKy />} />
-        <Route path="/decks" element={<TrangDanhSachBo />} />
-        <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
-        <Route element={<ProtectedRoute />}>
-          <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
+    <Suspense fallback={null}>
+      <Routes>
+        <Route element={<BoCuc />}>
+          <Route path="/" element={<TrangChu />} />
+          <Route path="/login" element={<TrangDangNhap />} />
+          <Route path="/register" element={<TrangDangKy />} />
+          <Route path="/decks" element={<TrangDanhSachBo />} />
+          <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
+          </Route>
+          <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
+          <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />
+          <Route path="/decks/:deckId/tu-luan" element={<TrangTuLuan />} />
         </Route>
-        <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
-        <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />
-        <Route path="/decks/:deckId/tu-luan" element={<TrangTuLuan />} />
-      </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 
   return (

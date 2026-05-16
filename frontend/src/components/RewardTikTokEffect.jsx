@@ -4,7 +4,7 @@ import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = {
-  triggerCount: 2,
+  triggerCount: 5,
   opacity: 0.78,
   duration: 10800,
   videoDuration: 8000,
@@ -15,10 +15,6 @@ export const CAU_HINH_REWARD_QUIZ = {
 
 const VIDEO_READY_STATE_CAN_DRAW = 2;
 const REWARD_CANVAS_MAX_DPR = 1.25;
-
-function tronDanhSach(danhSach) {
-  return [...danhSach].sort(() => Math.random() - 0.5);
-}
 
 function RewardTikTokEffect({
   active,
@@ -32,7 +28,6 @@ function RewardTikTokEffect({
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
   const cacheVideoRefs = useRef({});
-  const hangDoiVideoRef = useRef([]);
   const lanDaDungVideoRef = useRef(0);
   const videoDaPhatGanNhatRef = useRef("");
   const [danhSachVideo, setDanhSachVideo] = useState([]);
@@ -61,45 +56,22 @@ function RewardTikTokEffect({
     onRequestClose?.();
   }, [onRequestClose]);
 
-  function taoHangDoiVideo(danhSach) {
-    const hangDoi = tronDanhSach(danhSach);
-
-    if (
-      hangDoi.length > 1 &&
-      hangDoi[0] === videoDaPhatGanNhatRef.current
-    ) {
-      [hangDoi[0], hangDoi[1]] = [hangDoi[1], hangDoi[0]];
-    }
-
-    return hangDoi;
-  }
-
-  function xemVideoTiepTheo(danhSach) {
+  function chonVideoNgauNhien(danhSach) {
     if (danhSach.length === 0) return "";
 
-    if (hangDoiVideoRef.current.length === 0) {
-      hangDoiVideoRef.current = taoHangDoiVideo(danhSach);
-    }
+    const danhSachUngVien =
+      danhSach.length > 1
+        ? danhSach.filter((src) => src !== videoDaPhatGanNhatRef.current)
+        : danhSach;
+    const chiSoNgauNhien = Math.floor(Math.random() * danhSachUngVien.length);
 
-    return hangDoiVideoRef.current[0] || "";
+    return danhSachUngVien[chiSoNgauNhien] || "";
   }
 
-  function danhDauVideoDangPhat(src, danhSach) {
+  function danhDauVideoDangPhat(src) {
     if (!src) return;
 
-    if (hangDoiVideoRef.current[0] === src) {
-      hangDoiVideoRef.current.shift();
-    } else {
-      hangDoiVideoRef.current = hangDoiVideoRef.current.filter(
-        (video) => video !== src
-      );
-    }
-
     videoDaPhatGanNhatRef.current = src;
-
-    if (hangDoiVideoRef.current.length === 0 && danhSach.length > 0) {
-      hangDoiVideoRef.current = taoHangDoiVideo(danhSach);
-    }
   }
 
   function veVideoLenCanvas(video, canvas) {
@@ -199,7 +171,6 @@ function RewardTikTokEffect({
         if (daHuy) return;
 
         setDanhSachVideo(danhSachHopLe);
-        hangDoiVideoRef.current = taoHangDoiVideo(danhSachHopLe);
 
         danhSachHopLe.forEach((src) => {
           if (cacheVideoRefs.current[src]) return;
@@ -228,7 +199,7 @@ function RewardTikTokEffect({
   useEffect(() => {
     if (!daDoViewport || videoSrc || danhSachVideo.length === 0) return;
 
-    setVideoSrc(xemVideoTiepTheo(danhSachVideo));
+    setVideoSrc(chonVideoNgauNhien(danhSachVideo));
   }, [daDoViewport, danhSachVideo, videoSrc]);
 
   useEffect(() => {
@@ -254,7 +225,7 @@ function RewardTikTokEffect({
       hoanTatDongReward();
 
       if (danhSachVideo.length > 0) {
-        const videoTiepTheo = xemVideoTiepTheo(danhSachVideo);
+        const videoTiepTheo = chonVideoNgauNhien(danhSachVideo);
 
         if (videoTiepTheo && videoTiepTheo !== videoSrc) {
           setVideoSrc(videoTiepTheo);
@@ -306,17 +277,17 @@ function RewardTikTokEffect({
     }
 
     if (lanKichHoat > 0 && lanKichHoat !== lanDaDungVideoRef.current) {
-      const videoDangDung = videoSrc || xemVideoTiepTheo(danhSachVideo);
+      const videoDangDung = chonVideoNgauNhien(danhSachVideo);
 
       lanDaDungVideoRef.current = lanKichHoat;
 
-      if (!videoSrc && videoDangDung) {
+      if (videoDangDung) {
         setVideoSrc(videoDangDung);
       }
 
-      danhDauVideoDangPhat(videoDangDung, danhSachVideo);
+      danhDauVideoDangPhat(videoDangDung);
     } else if (!videoSrc) {
-      setVideoSrc(xemVideoTiepTheo(danhSachVideo));
+      setVideoSrc(chonVideoNgauNhien(danhSachVideo));
     }
 
     return undefined;

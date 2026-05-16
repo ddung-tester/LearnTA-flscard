@@ -6,9 +6,12 @@ import {
   useMemo,
   useRef,
   useState,
+  lazy,
+  Suspense,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import PageLoadingOverlay from "../components/PageLoadingOverlay";
+
+const PageLoadingOverlay = lazy(() => import("../components/PageLoadingOverlay"));
 
 const DELAY_BEFORE_NAVIGATE_MS = 700;
 const DELAY_AFTER_NAVIGATE_MS = 500;
@@ -109,7 +112,9 @@ export function PageTransitionProvider({ children }) {
       <div className="page-transition-root" onClickCapture={handleClickCapture}>
         {children}
       </div>
-      <PageLoadingOverlay hienThi={dangChuyenTrang} />
+      <Suspense fallback={null}>
+        <PageLoadingOverlay hienThi={dangChuyenTrang} />
+      </Suspense>
     </PageTransitionContext.Provider>
   );
 }

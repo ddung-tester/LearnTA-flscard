@@ -4,6 +4,9 @@ import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
+import RewardTikTokEffect, {
+  CAU_HINH_REWARD_QUIZ,
+} from "../components/RewardTikTokEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -52,7 +55,29 @@ function TrangFlashcard() {
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
   const [batRandom, setBatRandom] = useState(false);
   const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
+  const [hienReward, setHienReward] = useState(false);
+  const [lanReward, setLanReward] = useState(0);
+  const [diemReward, setDiemReward] = useState(0);
+  const [batReward, setBatReward] = useState(true);
   const giamChuyenDong = useReducedMotion();
+  const cacTheDaTinhDiemRef = useRef(new Set());
+  const rewardTimerRef = useRef(null);
+  const progressEndpointRef = useRef(null);
+
+  function xoaTimerReward() {
+    if (rewardTimerRef.current) {
+      clearTimeout(rewardTimerRef.current);
+      rewardTimerRef.current = null;
+    }
+  }
+
+  function datLaiReward() {
+    xoaTimerReward();
+    cacTheDaTinhDiemRef.current = new Set();
+    setDiemReward(0);
+    setHienReward(false);
+    setLanReward(0);
+  }
 
   async function taiDuLieuHoc() {
     setDangTaiDuLieu(true);
@@ -80,6 +105,7 @@ function TrangFlashcard() {
     setDaLat(false);
     setChiHocTuYeuThich(false);
     sessionKeyRef.current = "";
+    datLaiReward();
     taiDuLieuHoc();
   }, [boId]);
 
@@ -92,6 +118,35 @@ function TrangFlashcard() {
     if (!batRandom) return danhSachLoc;
     return [...danhSachLoc].sort(() => Math.random() - 0.5);
   }, [batRandom, lanTron, danhSachLoc]);
+
+  function ghiNhanDiemReward() {
+    if (!batReward || !danhSach[chiSo]) return;
+
+    const rewardKey = `${cheDo}-${danhSach[chiSo].id}`;
+    if (cacTheDaTinhDiemRef.current.has(rewardKey)) return;
+
+    cacTheDaTinhDiemRef.current.add(rewardKey);
+    setDiemReward((diemHienTai) => {
+      const diemMoi = diemHienTai + 1;
+
+      if (diemMoi % CAU_HINH_REWARD_QUIZ.triggerCount === 0) {
+        xoaTimerReward();
+        rewardTimerRef.current = setTimeout(() => {
+          setLanReward((lanHienTai) => lanHienTai + 1);
+          setHienReward(true);
+        }, 560);
+      }
+
+      return diemMoi;
+    });
+  }
+
+  useEffect(
+    () => () => {
+      xoaTimerReward();
+    },
+    []
+  );
 
   useEffect(() => {
     if (!bo || danhSach.length === 0) return;
@@ -113,7 +168,14 @@ function TrangFlashcard() {
   }, [bo, boId, cheDo, chiHocTuYeuThich, batRandom, lanTron, danhSach.length]);
 
   function latThe() {
-    setDaLat((dangLat) => !dangLat);
+    setDaLat((dangLat) => {
+      const seLatMatSau = !dangLat;
+      if (seLatMatSau) {
+        ghiNhanDiemReward();
+      }
+
+      return seLatMatSau;
+    });
   }
 
   function diChuyen(buoc) {
@@ -130,12 +192,14 @@ function TrangFlashcard() {
     setCheDo(key);
     setChiSo(0);
     setDaLat(false);
+    datLaiReward();
   }
 
   function doiChiHocTuYeuThich() {
     setChiHocTuYeuThich((dangBat) => !dangBat);
     setChiSo(0);
     setDaLat(false);
+    datLaiReward();
   }
 
   function doiRandom() {
@@ -146,6 +210,17 @@ function TrangFlashcard() {
     });
     setChiSo(0);
     setDaLat(false);
+    datLaiReward();
+  }
+
+  function doiCheDoReward() {
+    setBatReward((dangBat) => {
+      if (dangBat) {
+        datLaiReward();
+      }
+
+      return !dangBat;
+    });
   }
 
   useEffect(() => {
@@ -273,7 +348,17 @@ function TrangFlashcard() {
     : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
 
   return (
-    <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
+    <>
+      <RewardTikTokEffect
+        active={batReward && hienReward}
+        lanKichHoat={lanReward}
+        config={CAU_HINH_REWARD_QUIZ}
+        progressEndpointRef={progressEndpointRef}
+        onRequestClose={() => setHienReward(false)}
+        onHideComplete={() => setHienReward(false)}
+        combo={diemReward}
+      />
+      <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
       <div className="ui-study-toolbar">
         <div>
           <Link
@@ -320,6 +405,19 @@ function TrangFlashcard() {
                   checked={batRandom}
                   onChange={doiRandom}
                   ariaLabel={`Ngẫu nhiên ${batRandom ? "bật" : "tắt"}`}
+                />
+              </div>
+              <div className="ui-settings-popover__row">
+                <div className="ui-settings-popover__field">
+                  <span className="ui-settings-popover__label">Reward</span>
+                  <span className="ui-settings-popover__hint">
+                    Thưởng sau mỗi {CAU_HINH_REWARD_QUIZ.triggerCount} thẻ đã lật
+                  </span>
+                </div>
+                <ToggleSwitch
+                  checked={batReward}
+                  onChange={doiCheDoReward}
+                  ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
                 />
               </div>
             </section>
@@ -405,7 +503,8 @@ function TrangFlashcard() {
           Sau &rarr;
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
