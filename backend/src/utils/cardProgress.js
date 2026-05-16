@@ -9,22 +9,17 @@ function nextReviewDate(masteryLevel) {
   return addDays(14);
 }
 
-function progressWhereClause(userId) {
+async function findProgress(connection, userId, cardId, { lock = false } = {}) {
   if (userId === null || userId === undefined) {
-    return { sql: "user_id IS NULL", params: [] };
+    return null;
   }
 
-  return { sql: "user_id = ?", params: [userId] };
-}
-
-async function findProgress(connection, userId, cardId, { lock = false } = {}) {
-  const userWhere = progressWhereClause(userId);
   const [rows] = await connection.query(
     `SELECT *
      FROM card_progress
-     WHERE card_id = ? AND ${userWhere.sql}
+     WHERE user_id = ? AND card_id = ?
      LIMIT 1${lock ? " FOR UPDATE" : ""}`,
-    [cardId, ...userWhere.params]
+    [userId, cardId]
   );
 
   return rows[0] || null;
@@ -47,6 +42,10 @@ function normalizeProgress(row, userId, cardId) {
 }
 
 async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect }) {
+  if (userId === null || userId === undefined) {
+    return null;
+  }
+
   const current = await findProgress(connection, userId, cardId, { lock: true });
   const currentMastery = current?.mastery_level || 0;
   const nextMastery = isCorrect
@@ -71,7 +70,7 @@ async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect 
       `INSERT INTO card_progress
         (user_id, card_id, mastery_level, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at)
        VALUES (?, ?, ?, 1, ?, ?, CURRENT_TIMESTAMP, ?)`,
-      [userId ?? null, cardId, nextMastery, isCorrect ? 1 : 0, isCorrect ? 0 : 1, nextReviewAt]
+      [userId, cardId, nextMastery, isCorrect ? 1 : 0, isCorrect ? 0 : 1, nextReviewAt]
     );
   }
 

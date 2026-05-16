@@ -1,12 +1,7 @@
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { getJwtSecret } = require("../config/env");
 const { createHttpError } = require("../utils/http");
-
-const FALLBACK_JWT_SECRET = "dev_secret_change_later";
-
-function getJwtSecret() {
-  return process.env.JWT_SECRET || FALLBACK_JWT_SECRET;
-}
 
 function normalizeAuthUser(row) {
   if (!row) return null;

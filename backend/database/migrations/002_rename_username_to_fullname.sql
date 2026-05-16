@@ -1,4 +1,4 @@
-USE english_flashcard_quiz_app;
+USE learn_ta_flashcard;
 
 SET @schema_name = DATABASE();
 

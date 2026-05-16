@@ -69,6 +69,29 @@ function normalizeQuizResult(row) {
   };
 }
 
+function createUnsavedQuizResult({
+  userId,
+  deckId,
+  questionType,
+  direction,
+  correct,
+  review,
+  total,
+}) {
+  return {
+    id: null,
+    user_id: userId,
+    deck_id: deckId,
+    question_type: questionType,
+    direction,
+    correct,
+    review,
+    total,
+    created_at: null,
+    saved: false,
+  };
+}
+
 function parseMode(value) {
   const mode = cleanText(value);
   if (!VALID_MODES.has(mode)) {
@@ -268,6 +291,21 @@ async function createQuizResult(req, res) {
   const review = parseCount(req.body.review, "review");
   const total = parseCount(req.body.total, "total");
 
+  if (userId === null) {
+    res.json(
+      createUnsavedQuizResult({
+        userId,
+        deckId,
+        questionType,
+        direction,
+        correct,
+        review,
+        total,
+      })
+    );
+    return;
+  }
+
   const [result] = await pool.execute(
     `INSERT INTO quiz_results
       (user_id, deck_id, question_type, direction, correct, review, total)
@@ -293,10 +331,15 @@ async function getLatestQuizResult(req, res) {
 
   assertDeckReadable(deck, userId);
 
+  if (userId === null) {
+    res.json(null);
+    return;
+  }
+
   const [rows] = await pool.query(
     `SELECT *
      FROM quiz_results
-     WHERE deck_id = ? AND user_id <=> ?
+     WHERE deck_id = ? AND user_id = ?
      ORDER BY created_at DESC, id DESC
      LIMIT 1`,
     [deckId, userId]

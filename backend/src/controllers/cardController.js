@@ -100,6 +100,14 @@ async function ensureCardWritable(cardId, req) {
 
 async function findCardById(cardId, connection = pool, options = {}) {
   if (Object.prototype.hasOwnProperty.call(options, "userId")) {
+    if (options.userId === null || options.userId === undefined) {
+      const [rows] = await connection.query("SELECT * FROM cards WHERE id = ?", [
+        cardId,
+      ]);
+
+      return normalizeCard(rows[0]);
+    }
+
     const [rows] = await connection.query(
       `SELECT
          c.*,
@@ -112,10 +120,10 @@ async function findCardById(cardId, connection = pool, options = {}) {
          cp.next_review_at
        FROM cards c
        LEFT JOIN card_progress cp
-         ON cp.card_id = c.id AND cp.user_id <=> ?
+         ON cp.card_id = c.id AND cp.user_id = ?
        WHERE c.id = ?
        LIMIT 1`,
-      [options.userId ?? null, cardId]
+      [options.userId, cardId]
     );
 
     return normalizeCard(rows[0]);
@@ -155,12 +163,19 @@ async function listCardsByDeck(req, res) {
   const deckId = parsePositiveInt(req.params.deckId, "deckId");
   await ensureDeckReadable(deckId, req);
   const userId = currentUserId(req);
-  const progressJoinCondition =
-    userId === null || userId === undefined
-      ? "cp.user_id IS NULL"
-      : "cp.user_id = ?";
-  const params =
-    userId === null || userId === undefined ? [deckId] : [userId, deckId];
+
+  if (userId === null || userId === undefined) {
+    const [rows] = await pool.query(
+      `SELECT *
+       FROM cards
+       WHERE deck_id = ?
+       ORDER BY created_at DESC, id DESC`,
+      [deckId]
+    );
+
+    res.json(rows.map(normalizeCard));
+    return;
+  }
 
   const [rows] = await pool.query(
     `SELECT
@@ -174,10 +189,10 @@ async function listCardsByDeck(req, res) {
        cp.next_review_at
      FROM cards c
      LEFT JOIN card_progress cp
-       ON cp.card_id = c.id AND ${progressJoinCondition}
+       ON cp.card_id = c.id AND cp.user_id = ?
      WHERE c.deck_id = ?
      ORDER BY c.created_at DESC, c.id DESC`,
-    params
+    [userId, deckId]
   );
 
   res.json(rows.map(normalizeCard));

@@ -1,20 +1,12 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
+const { getJwtSecret, jwtExpiresIn } = require("../config/env");
 const { cleanText, createHttpError } = require("../utils/http");
 
 const SALT_ROUNDS = 10;
-const FALLBACK_JWT_SECRET = "dev_secret_change_later";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DISPLAY_NAME_PATTERN = /^[\p{L}\p{M}]+(?:[ .'-][\p{L}\p{M}]+)*$/u;
-
-function getJwtSecret() {
-  return process.env.JWT_SECRET || FALLBACK_JWT_SECRET;
-}
-
-function getJwtExpiresIn() {
-  return process.env.JWT_EXPIRES_IN || "7d";
-}
 
 function normalizeUser(row) {
   if (!row) return null;
@@ -37,7 +29,7 @@ function signToken(user) {
       email: user.email,
     },
     getJwtSecret(),
-    { expiresIn: getJwtExpiresIn() }
+    { expiresIn: jwtExpiresIn }
   );
 }
 

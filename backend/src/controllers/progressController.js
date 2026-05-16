@@ -52,6 +52,11 @@ async function getCardProgress(req, res) {
 
   await ensureCardReadable(cardId, userId);
 
+  if (userId === null) {
+    res.json(normalizeProgress(null, userId, cardId));
+    return;
+  }
+
   const progress = await findProgress(pool, userId, cardId);
   res.json(normalizeProgress(progress, userId, cardId));
 }
@@ -61,6 +66,10 @@ async function updateCardProgress(req, res) {
   const userId = currentUserId(req);
 
   await ensureCardReadable(cardId, userId);
+
+  if (userId === null) {
+    throw createHttpError(401, "Đăng nhập để lưu tiến độ học");
+  }
 
   const connection = await pool.getConnection();
 
@@ -165,9 +174,24 @@ async function getDeckProgressSummary(req, res) {
 
   assertDeckReadable(deck, userId);
 
-  const userWhere =
-    userId === null ? "cp.user_id IS NULL" : "cp.user_id = ?";
-  const params = userId === null ? [deckId] : [userId, deckId];
+  if (userId === null) {
+    const [rows] = await pool.query(
+      `SELECT COUNT(c.id) AS total_cards
+       FROM cards c
+       WHERE c.deck_id = ?`,
+      [deckId]
+    );
+
+    res.json({
+      deck_id: deckId,
+      total_cards: Number(rows[0]?.total_cards || 0),
+      mastered_cards: 0,
+      total_reviews: 0,
+      total_correct: 0,
+      total_wrong: 0,
+    });
+    return;
+  }
 
   const [rows] = await pool.query(
     `SELECT
@@ -178,9 +202,9 @@ async function getDeckProgressSummary(req, res) {
        COALESCE(SUM(cp.wrong_count), 0) AS total_wrong
      FROM cards c
      LEFT JOIN card_progress cp
-       ON cp.card_id = c.id AND ${userWhere}
+       ON cp.card_id = c.id AND cp.user_id = ?
      WHERE c.deck_id = ?`,
-    params
+    [userId, deckId]
   );
 
   res.json({

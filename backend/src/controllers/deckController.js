@@ -79,6 +79,10 @@ function sameId(left, right) {
 }
 
 function canReadDeck(deck, userId) {
+  if (deck.user_id === null && userId === null) {
+    return true;
+  }
+
   return sameId(deck.user_id, userId);
 }
 
@@ -134,7 +138,14 @@ async function listDecks(req, res) {
   const userId = currentUserId(req);
 
   if (userId === null) {
-    res.json([]);
+    const [rows] = await pool.query(
+      `${deckWithStatsSql()}
+       WHERE d.user_id IS NULL
+       ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
+      [userId]
+    );
+
+    res.json(rows.map(normalizeDeck));
     return;
   }
 

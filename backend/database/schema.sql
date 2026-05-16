@@ -1,8 +1,8 @@
-CREATE DATABASE IF NOT EXISTS english_flashcard_quiz_app
+CREATE DATABASE IF NOT EXISTS learn_ta_flashcard
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 
-USE english_flashcard_quiz_app;
+USE learn_ta_flashcard;
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -129,9 +129,7 @@ CREATE TABLE IF NOT EXISTS study_answers (
 
 CREATE TABLE IF NOT EXISTS card_progress (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NULL,
-  progress_owner_key BIGINT UNSIGNED
-    GENERATED ALWAYS AS (COALESCE(user_id, 0)) STORED,
+  user_id BIGINT UNSIGNED NOT NULL,
   card_id BIGINT UNSIGNED NOT NULL,
 
   mastery_level TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -153,7 +151,7 @@ CREATE TABLE IF NOT EXISTS card_progress (
     FOREIGN KEY (card_id) REFERENCES cards(id)
     ON DELETE CASCADE,
 
-  UNIQUE KEY unique_user_card_progress (progress_owner_key, card_id),
+  UNIQUE KEY unique_user_card_progress (user_id, card_id),
   INDEX idx_card_progress_user_id (user_id),
   INDEX idx_card_progress_card_id (card_id)
 ) ENGINE=InnoDB;
