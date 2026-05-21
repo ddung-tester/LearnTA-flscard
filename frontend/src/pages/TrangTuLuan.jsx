@@ -28,26 +28,28 @@ const DS_CHE_DO = [
 function chuanHoa(t) { return t.trim().toLowerCase().replace(/\s+/g, " "); }
 
 function taoGoiYDapAn(dapAn) {
-  const text = String(dapAn || "");
-  if (!text.trim()) return "";
+  const text = String(dapAn || "").trim();
+  if (!text) return "";
 
-  const cacPhan = text.match(/\S+|\s+/g) || [];
-  const tongSoTu = cacPhan.filter((phan) => /\S/.test(phan)).length;
-  const soTuGoiY = Math.max(1, Math.ceil(tongSoTu * 0.3));
-  let soTuDaHien = 0;
+  // Tính 30% tổng số ký tự (không đếm khoảng trắng), tối thiểu 1
+  const soKyTuKhongTrang = text.replace(/\s/g, "").length;
+  const soKyTuGoiY = Math.max(1, Math.ceil(soKyTuKhongTrang * 0.3));
+  let soKyTuDaHien = 0;
 
-  const cacPhanGoiY = cacPhan.map((phan) => {
-    if (!/\S/.test(phan)) return phan;
-
-    if (soTuDaHien < soTuGoiY) {
-      soTuDaHien += 1;
-      return phan;
+  let ketQua = "";
+  for (const kyTu of text) {
+    if (/\s/.test(kyTu)) {
+      // Giữ nguyên khoảng trắng
+      ketQua += kyTu;
+    } else if (soKyTuDaHien < soKyTuGoiY) {
+      ketQua += kyTu;
+      soKyTuDaHien += 1;
+    } else {
+      ketQua += "_";
     }
+  }
 
-    return "_".repeat(phan.length);
-  });
-
-  return cacPhanGoiY.join("").trim();
+  return ketQua;
 }
 
 function TrangTuLuan() {
