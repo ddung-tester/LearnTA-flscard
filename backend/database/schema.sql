@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS cards (
   part_of_speech VARCHAR(50),
 
   is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS cards (
     ON DELETE CASCADE,
 
   INDEX idx_cards_deck_id (deck_id),
+  INDEX idx_cards_sort_order (deck_id, sort_order),
   INDEX idx_cards_created_at (created_at)
 ) ENGINE=InnoDB;
 

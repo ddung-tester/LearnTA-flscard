@@ -33,6 +33,7 @@ function normalizeCard(row) {
     part_of_speech: row.part_of_speech,
     is_favorite: isFavorite,
     isFavorite,
+    sort_order: Number(row.sort_order || 0),
     progress: {
       id: row.progress_id || null,
       mastery_level: masteryLevel,
@@ -169,7 +170,7 @@ async function listCardsByDeck(req, res) {
       `SELECT *
        FROM cards
        WHERE deck_id = ?
-       ORDER BY created_at DESC, id DESC`,
+       ORDER BY sort_order ASC, created_at DESC, id DESC`,
       [deckId]
     );
 
@@ -191,7 +192,7 @@ async function listCardsByDeck(req, res) {
      LEFT JOIN card_progress cp
        ON cp.card_id = c.id AND cp.user_id = ?
      WHERE c.deck_id = ?
-     ORDER BY c.created_at DESC, c.id DESC`,
+     ORDER BY c.sort_order ASC, c.created_at DESC, c.id DESC`,
     [userId, deckId]
   );
 
@@ -203,25 +204,43 @@ async function createCard(req, res) {
   await ensureDeckWritable(deckId, req);
 
   const payload = readCardPayload(req.body);
+  const connection = await pool.getConnection();
 
-  const [result] = await pool.execute(
-    `INSERT INTO cards
-      (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      deckId,
-      payload.term_en,
-      payload.meaning_vi,
-      payload.example_sentence,
-      payload.note,
-      payload.pronunciation,
-      payload.part_of_speech,
-      payload.is_favorite,
-    ]
-  );
+  try {
+    await connection.beginTransaction();
 
-  const card = await findCardById(result.insertId);
-  res.status(201).json(card);
+    await connection.execute(
+      "UPDATE cards SET sort_order = sort_order + 1 WHERE deck_id = ?",
+      [deckId]
+    );
+
+    const [result] = await connection.execute(
+      `INSERT INTO cards
+        (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        deckId,
+        payload.term_en,
+        payload.meaning_vi,
+        payload.example_sentence,
+        payload.note,
+        payload.pronunciation,
+        payload.part_of_speech,
+        payload.is_favorite,
+        0,
+      ]
+    );
+
+    await connection.commit();
+
+    const card = await findCardById(result.insertId);
+    res.status(201).json(card);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function importCards(req, res) {
@@ -242,12 +261,18 @@ async function importCards(req, res) {
   try {
     await connection.beginTransaction();
 
+    await connection.execute(
+      "UPDATE cards SET sort_order = sort_order + ? WHERE deck_id = ?",
+      [validCards.length, deckId]
+    );
+
     const insertedIds = [];
-    for (const card of validCards) {
+    for (let index = 0; index < validCards.length; index += 1) {
+      const card = validCards[index];
       const [result] = await connection.execute(
         `INSERT INTO cards
-          (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           deckId,
           card.term_en,
@@ -257,6 +282,7 @@ async function importCards(req, res) {
           card.pronunciation,
           card.part_of_speech,
           card.is_favorite,
+          index,
         ]
       );
 
@@ -267,7 +293,7 @@ async function importCards(req, res) {
       `SELECT *
        FROM cards
        WHERE id IN (?)
-       ORDER BY created_at DESC, id DESC`,
+       ORDER BY sort_order ASC, created_at DESC, id DESC`,
       [insertedIds]
     );
 
@@ -277,6 +303,67 @@ async function importCards(req, res) {
       inserted_count: rows.length,
       cards: rows.map(normalizeCard),
     });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function reorderCards(req, res) {
+  const deckId = parsePositiveInt(req.params.deckId, "deckId");
+  await ensureDeckWritable(deckId, req);
+
+  const cardIds = Array.isArray(req.body.card_ids)
+    ? req.body.card_ids.map((id) => parsePositiveInt(id, "card_id"))
+    : [];
+
+  if (cardIds.length === 0) {
+    throw createHttpError(400, "card_ids la bat buoc");
+  }
+
+  const uniqueCardIds = [...new Set(cardIds)];
+  if (uniqueCardIds.length !== cardIds.length) {
+    throw createHttpError(400, "card_ids khong duoc trung lap");
+  }
+
+  const [existingRows] = await pool.query(
+    "SELECT id FROM cards WHERE deck_id = ?",
+    [deckId]
+  );
+  const existingIds = existingRows.map((row) => Number(row.id));
+  const existingIdSet = new Set(existingIds);
+
+  if (
+    cardIds.length !== existingIds.length ||
+    cardIds.some((cardId) => !existingIdSet.has(Number(cardId)))
+  ) {
+    throw createHttpError(400, "Thu tu tu vung khong hop le");
+  }
+
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    for (let index = 0; index < cardIds.length; index += 1) {
+      await connection.execute(
+        "UPDATE cards SET sort_order = ? WHERE deck_id = ? AND id = ?",
+        [index, deckId, cardIds[index]]
+      );
+    }
+
+    const [rows] = await connection.query(
+      `SELECT *
+       FROM cards
+       WHERE deck_id = ?
+       ORDER BY sort_order ASC, created_at DESC, id DESC`,
+      [deckId]
+    );
+
+    await connection.commit();
+    res.json(rows.map(normalizeCard));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -345,6 +432,7 @@ module.exports = {
   listCardsByDeck,
   createCard,
   importCards,
+  reorderCards,
   updateCard,
   toggleFavorite,
   deleteCard,

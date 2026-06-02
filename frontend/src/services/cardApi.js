@@ -15,6 +15,13 @@ export async function importCards(deckId, cards) {
   return response.data;
 }
 
+export async function doiThuTuCards(deckId, cardIds) {
+  const response = await api.patch(`/decks/${deckId}/cards/reorder`, {
+    card_ids: cardIds,
+  });
+  return response.data;
+}
+
 export async function capNhatCard(cardId, payload) {
   const response = await api.put(`/cards/${cardId}`, payload);
   return response.data;

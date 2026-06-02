@@ -432,6 +432,26 @@ body.has-video-background--app .ui-mode-rotate-button:hover {
   color: oklch(32% 0.095 174) !important;
 }
 
+body.has-video-background--app .ui-icon-action--active,
+body.has-video-background--app .ui-word-move-handle {
+  background: oklch(93% 0.035 112 / 0.9) !important;
+  border-color: oklch(66% 0.105 164 / 0.5) !important;
+  color: oklch(32% 0.095 174) !important;
+}
+
+body.has-video-background--app .ui-favorite-button--active {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: oklch(51% 0.15 24) !important;
+  box-shadow: none !important;
+}
+
+body.has-video-background--app .ui-word-drag-preview {
+  background: oklch(96.8% 0.021 92 / 0.96) !important;
+  border-color: oklch(66% 0.105 164 / 0.6) !important;
+  color: oklch(23% 0.03 220 / 0.96) !important;
+}
+
 body.has-video-background--app .ui-filter-tab[aria-pressed="true"],
 body.has-video-background--app .ui-mode-switch__thumb {
   background: oklch(98.5% 0.015 95 / 0.98) !important;

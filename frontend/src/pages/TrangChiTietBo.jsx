@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
@@ -11,6 +11,7 @@ import {
 import { layDeckTheoId } from "../services/deckApi";
 import {
   capNhatCard,
+  doiThuTuCards,
   importCards,
   layCardsTheoDeck,
   taoCard,
@@ -67,6 +68,28 @@ function IconUpload() {
   );
 }
 
+function IconGrip() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4.5 w-4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="9" cy="6" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="9" cy="18" r="1" />
+      <circle cx="15" cy="6" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="15" cy="18" r="1" />
+    </svg>
+  );
+}
+
 function IconHeart({ filled = false }) {
   return (
     <svg
@@ -84,14 +107,16 @@ function IconHeart({ filled = false }) {
   );
 }
 
-function NutIconQuanLyTu({ label, onClick, children }) {
+function NutIconQuanLyTu({ label, onClick, active = false, disabled = false, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
+      aria-pressed={active}
       title={label}
-      className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+      className={`ui-icon-action ${active ? "ui-icon-action--active" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]`}
     >
       {children}
       <span className="ui-action-tooltip">{label}</span>
@@ -127,13 +152,28 @@ function TrangChiTietBo() {
   const [dangMoForm, setDangMoForm] = useState(false);
   const [theDangSua, setTheDangSua] = useState(null);
   const [formTu, setFormTu] = useState(FORM_TU_RONG);
+  const [dangChinhSua, setDangChinhSua] = useState(false);
   const [dangMoImport, setDangMoImport] = useState(false);
   const [noiDungImport, setNoiDungImport] = useState("");
-  const [ketQuaImport, setKetQuaImport] = useState(null);
   const [toast, setToast] = useState("");
   const [filterTu, setFilterTu] = useState("tat-ca");
+  const [theDangKeoId, setTheDangKeoId] = useState(null);
+  const [dangLuuThuTu, setDangLuuThuTu] = useState(false);
+  const [banSaoKeoTu, setBanSaoKeoTu] = useState(null);
   const [dangXacNhanXoa, setDangXacNhanXoa] = useState(null); // id của từ đang chờ xóa
   const [successInfo, setSuccessInfo] = useState({ open: false, message: "" });
+  const meaningInputRef = useRef(null);
+  const danhSachRef = useRef([]);
+  const danhSachTruocKhiKeoRef = useRef([]);
+  const phienKeoRef = useRef(null);
+  const listTuRef = useRef(null);
+  const banSaoKeoTuRef = useRef(null);
+  const frameKeoRef = useRef(null);
+  const yKeoRef = useRef(0);
+  const viTriHangTuRef = useRef([]);
+  const autoScrollRef = useRef({ frameId: null, tocDo: 0, clientY: 0 });
+  const cleanupPointerKeoRef = useRef(null);
+  const phienLuuThuTuRef = useRef(0);
 
   async function taiDuLieuBo() {
     setDangTaiDuLieu(true);
@@ -160,13 +200,18 @@ function TrangChiTietBo() {
     setDangMoForm(false);
     setTheDangSua(null);
     setFormTu(FORM_TU_RONG);
+    setDangChinhSua(false);
     setDangMoImport(false);
     setNoiDungImport("");
-    setKetQuaImport(null);
     setFilterTu("tat-ca");
+    setTheDangKeoId(null);
     setDangXacNhanXoa(null);
     taiDuLieuBo();
   }, [boId]);
+
+  useEffect(() => {
+    danhSachRef.current = danhSach;
+  }, [danhSach]);
 
   useLayoutEffect(() => {
     const loadingKey = `deck-detail-${boId}`;
@@ -176,6 +221,14 @@ function TrangChiTietBo() {
       setPageDataLoading(loadingKey, false);
     };
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
+
+  useEffect(() => () => {
+    cleanupPointerKeoRef.current?.();
+    dungAutoScroll();
+    if (frameKeoRef.current) {
+      window.cancelAnimationFrame(frameKeoRef.current);
+    }
+  }, []);
 
   function showSuccess(msg) {
     setSuccessInfo({ open: true, message: msg });
@@ -202,8 +255,36 @@ function TrangChiTietBo() {
     return false;
   }
 
-  function moFormThemTu() {
+  function yeuCauCheDoChinhSua() {
+    if (!yeuCauQuyenChinhSua()) return false;
+    if (dangChinhSua) return true;
+
+    setToast("Bật chế độ sửa để quản lý từ");
+    return false;
+  }
+
+  function tatCheDoChinhSua() {
+    huyKeoTu();
+    setDangMoForm(false);
+    setDangMoImport(false);
+    setDangXacNhanXoa(null);
+    setDangChinhSua(false);
+  }
+
+  function batTatCheDoChinhSua() {
     if (!yeuCauQuyenChinhSua()) return;
+
+    if (dangChinhSua) {
+      tatCheDoChinhSua();
+      return;
+    }
+
+    setDangChinhSua(true);
+    setFilterTu("tat-ca");
+  }
+
+  function moFormThemTu() {
+    if (!yeuCauCheDoChinhSua()) return;
 
     setTheDangSua(null);
     setFormTu(FORM_TU_RONG);
@@ -211,7 +292,7 @@ function TrangChiTietBo() {
   }
 
   function moFormSuaTu(the) {
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     setTheDangSua(the);
     setFormTu({
@@ -227,10 +308,9 @@ function TrangChiTietBo() {
   }
 
   function moFormImport() {
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     setNoiDungImport("");
-    setKetQuaImport(null);
     setDangMoImport(true);
   }
 
@@ -246,10 +326,25 @@ function TrangChiTietBo() {
     }));
   }
 
+  function xuLyPhimNhapTu(event) {
+    if (event.key !== "Enter" || event.isComposing) return;
+
+    if (event.currentTarget.name === "word") {
+      event.preventDefault();
+      meaningInputRef.current?.focus();
+      return;
+    }
+
+    if (event.currentTarget.name === "meaning") {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
+  }
+
   async function luuTu(event) {
     event.preventDefault();
 
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     const word = formTu.word.trim();
     const meaning = formTu.meaning.trim();
@@ -290,18 +385,16 @@ function TrangChiTietBo() {
   async function importTu(event) {
     event.preventDefault();
 
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     const cacDong = noiDungImport.split(/\r?\n/);
     const danhSachHopLe = [];
-    let soDongBoQua = 0;
 
     cacDong.forEach((dong) => {
       if (!dong.trim()) return;
 
       const ketQua = parseDongImport(dong);
       if (!ketQua) {
-        soDongBoQua += 1;
         return;
       }
 
@@ -327,7 +420,6 @@ function TrangChiTietBo() {
       setDanhSach((hienTai) => [...ketQua.cards, ...hienTai]);
 
     setNoiDungImport("");
-    setKetQuaImport(null);
     setDangMoImport(false);
     showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
     } catch (error) {
@@ -336,14 +428,14 @@ function TrangChiTietBo() {
   }
 
   function xoaTu(id) {
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     setDangXacNhanXoa(id);
   }
 
   async function thucHienXoaTu() {
     if (!dangXacNhanXoa) return;
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!yeuCauCheDoChinhSua()) return;
 
     try {
       await xoaCard(dangXacNhanXoa);
@@ -365,6 +457,259 @@ function TrangChiTietBo() {
     }
 
     return danhSachCanLoc;
+  }
+
+  function sapXepTheoViTri(danhSachCanSap, cardId, viTriMoi) {
+    const viTriHienTai = danhSachCanSap.findIndex((the) => the.id === cardId);
+
+    if (viTriHienTai < 0 || viTriMoi < 0 || viTriMoi >= danhSachCanSap.length) {
+      return null;
+    }
+
+    if (viTriHienTai === viTriMoi) return null;
+
+    const danhSachMoi = [...danhSachCanSap];
+    const [theBiKeo] = danhSachMoi.splice(viTriHienTai, 1);
+    danhSachMoi.splice(viTriMoi, 0, theBiKeo);
+    return danhSachMoi;
+  }
+
+  function capNhatViTriHangTu() {
+    const listTu = listTuRef.current;
+    if (!listTu) return;
+
+    viTriHangTuRef.current = Array.from(
+      listTu.querySelectorAll("[data-card-id]")
+    ).map((hang) => {
+      const rect = hang.getBoundingClientRect();
+      return {
+        id: Number(hang.dataset.cardId),
+        midY: rect.top + rect.height / 2,
+      };
+    });
+  }
+
+  async function luuThuTuTu(danhSachMoi, danhSachCu = danhSach) {
+    const phienLuu = phienLuuThuTuRef.current + 1;
+    phienLuuThuTuRef.current = phienLuu;
+    danhSachRef.current = danhSachMoi;
+    setDanhSach(danhSachMoi);
+    setDangLuuThuTu(true);
+
+    try {
+      const danhSachDaLuu = await doiThuTuCards(
+        boId,
+        danhSachMoi.map((the) => the.id)
+      );
+      if (phienLuu !== phienLuuThuTuRef.current) return;
+      danhSachRef.current = danhSachDaLuu;
+      setDanhSach(danhSachDaLuu);
+    } catch (error) {
+      if (phienLuu !== phienLuuThuTuRef.current) return;
+      danhSachRef.current = danhSachCu;
+      setDanhSach(danhSachCu);
+      setToast(error.message);
+    } finally {
+      if (phienLuu === phienLuuThuTuRef.current) {
+        setDangLuuThuTu(false);
+      }
+    }
+  }
+
+  function capNhatViTriKeo(clientY) {
+    const phienKeo = phienKeoRef.current;
+    if (!phienKeo) return;
+
+    yKeoRef.current = clientY - phienKeo.offsetY;
+
+    if (frameKeoRef.current) return;
+
+    frameKeoRef.current = window.requestAnimationFrame(() => {
+      frameKeoRef.current = null;
+
+      if (!banSaoKeoTuRef.current) return;
+      banSaoKeoTuRef.current.style.transform =
+        `translate3d(0, ${yKeoRef.current}px, 0) scale(1.012)`;
+    });
+  }
+
+  function tinhTocDoCuon(clientY) {
+    const vungBien = Math.min(96, window.innerHeight * 0.18);
+
+    if (clientY < vungBien) {
+      return -Math.ceil((1 - clientY / vungBien) * 18);
+    }
+
+    if (window.innerHeight - clientY < vungBien) {
+      return Math.ceil((1 - (window.innerHeight - clientY) / vungBien) * 18);
+    }
+
+    return 0;
+  }
+
+  function dungAutoScroll() {
+    if (autoScrollRef.current.frameId) {
+      window.cancelAnimationFrame(autoScrollRef.current.frameId);
+    }
+
+    autoScrollRef.current = { frameId: null, tocDo: 0, clientY: 0 };
+  }
+
+  function chayAutoScroll() {
+    const { tocDo, clientY } = autoScrollRef.current;
+
+    if (!tocDo) {
+      dungAutoScroll();
+      return;
+    }
+
+    window.scrollBy({ top: tocDo, behavior: "auto" });
+    capNhatViTriKeo(clientY);
+    capNhatViTriHangTu();
+    sapXepKhiKeo(clientY);
+
+    autoScrollRef.current.frameId = window.requestAnimationFrame(chayAutoScroll);
+  }
+
+  function capNhatAutoScroll(clientY) {
+    const tocDo = tinhTocDoCuon(clientY);
+    autoScrollRef.current.tocDo = tocDo;
+    autoScrollRef.current.clientY = clientY;
+
+    if (tocDo && !autoScrollRef.current.frameId) {
+      autoScrollRef.current.frameId = window.requestAnimationFrame(chayAutoScroll);
+    }
+
+    if (!tocDo) dungAutoScroll();
+  }
+
+  function sapXepKhiKeo(clientY) {
+    const phienKeo = phienKeoRef.current;
+    if (!phienKeo) return;
+
+    const hangKhac = viTriHangTuRef.current.filter(
+      (hang) => Number(hang.id) !== Number(phienKeo.cardId)
+    );
+    let viTriMoi = hangKhac.length;
+
+    for (let index = 0; index < hangKhac.length; index += 1) {
+      if (clientY < hangKhac[index].midY) {
+        viTriMoi = index;
+        break;
+      }
+    }
+
+    const danhSachMoi = sapXepTheoViTri(
+      danhSachRef.current,
+      phienKeo.cardId,
+      viTriMoi
+    );
+
+    if (!danhSachMoi) return;
+
+    danhSachRef.current = danhSachMoi;
+    setDanhSach(danhSachMoi);
+    window.requestAnimationFrame(capNhatViTriHangTu);
+  }
+
+  function huyKeoTu({ khoiPhuc = false } = {}) {
+    cleanupPointerKeoRef.current?.();
+    cleanupPointerKeoRef.current = null;
+    dungAutoScroll();
+    if (frameKeoRef.current) {
+      window.cancelAnimationFrame(frameKeoRef.current);
+      frameKeoRef.current = null;
+    }
+    phienKeoRef.current = null;
+    viTriHangTuRef.current = [];
+    setBanSaoKeoTu(null);
+    setTheDangKeoId(null);
+
+    if (khoiPhuc) {
+      danhSachRef.current = danhSachTruocKhiKeoRef.current;
+      setDanhSach(danhSachTruocKhiKeoRef.current);
+    }
+  }
+
+  function batDauKeoTu(event, the) {
+    if (!dangChinhSua) return;
+
+    event.preventDefault();
+    huyKeoTu();
+    const hangTu = event.currentTarget.closest("[data-card-id]");
+    if (!hangTu) return;
+
+    const rect = hangTu.getBoundingClientRect();
+    yKeoRef.current = rect.top;
+    capNhatViTriHangTu();
+    danhSachTruocKhiKeoRef.current = danhSachRef.current;
+    phienKeoRef.current = {
+      cardId: the.id,
+      offsetY: event.clientY - rect.top,
+      pointerId: event.pointerId,
+    };
+
+    const xuLyMove = (moveEvent) => keoTu(moveEvent);
+    const xuLyKetThuc = (endEvent) => ketThucKeoTu(endEvent);
+    const xuLyHuy = () => huyKeoTu({ khoiPhuc: true });
+
+    window.addEventListener("pointermove", xuLyMove, { passive: false });
+    window.addEventListener("pointerup", xuLyKetThuc);
+    window.addEventListener("pointercancel", xuLyHuy);
+    cleanupPointerKeoRef.current = () => {
+      window.removeEventListener("pointermove", xuLyMove);
+      window.removeEventListener("pointerup", xuLyKetThuc);
+      window.removeEventListener("pointercancel", xuLyHuy);
+    };
+
+    setTheDangKeoId(the.id);
+    setBanSaoKeoTu({
+      id: the.id,
+      term_en: the.term_en,
+      meaning_vi: the.meaning_vi,
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    });
+  }
+
+  function keoTu(event) {
+    const phienKeo = phienKeoRef.current;
+    if (!phienKeo || phienKeo.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+    capNhatViTriKeo(event.clientY);
+    capNhatAutoScroll(event.clientY);
+    sapXepKhiKeo(event.clientY);
+  }
+
+  function ketThucKeoTu(event) {
+    const phienKeo = phienKeoRef.current;
+    if (!phienKeo || phienKeo.pointerId !== event.pointerId) return;
+
+    const danhSachMoi = danhSachRef.current;
+    const danhSachCu = danhSachTruocKhiKeoRef.current;
+    const daDoiThuTu =
+      danhSachMoi.map((the) => the.id).join(",") !==
+      danhSachCu.map((the) => the.id).join(",");
+
+    huyKeoTu();
+
+    if (daDoiThuTu) {
+      luuThuTuTu(danhSachMoi, danhSachCu);
+    }
+  }
+
+  function diChuyenTuBangPhim(event, the, huong) {
+    if (!dangChinhSua) return;
+
+    event.preventDefault();
+    const viTriHienTai = danhSach.findIndex((item) => item.id === the.id);
+    const danhSachMoi = sapXepTheoViTri(danhSach, the.id, viTriHienTai + huong);
+    if (!danhSachMoi) return;
+
+    luuThuTuTu(danhSachMoi);
   }
 
   async function toggleYeuThich(the) {
@@ -460,6 +805,8 @@ function TrangChiTietBo() {
   const streak = bo.streak ?? 0;
   const coTheQuiz = soTu >= 4;
   const coTheQuanLy = coQuyenQuanLyBo();
+  const dangBatChinhSua = dangChinhSua && coTheQuanLy;
+  const dangChoMoveTu = dangBatChinhSua;
 
   return (
     <div className="ui-page-stack">
@@ -536,12 +883,23 @@ function TrangChiTietBo() {
           </h3>
           {coTheQuanLy && (
             <div className="ui-control-cluster">
-              <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
-                <IconPlus />
+              <NutIconQuanLyTu
+                label={dangBatChinhSua ? "Tắt sửa" : "Sửa"}
+                onClick={batTatCheDoChinhSua}
+                active={dangBatChinhSua}
+              >
+                <IconEdit />
               </NutIconQuanLyTu>
-              <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
-                <IconUpload />
-              </NutIconQuanLyTu>
+              {dangBatChinhSua && (
+                <>
+                  <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
+                    <IconPlus />
+                  </NutIconQuanLyTu>
+                  <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
+                    <IconUpload />
+                  </NutIconQuanLyTu>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -560,6 +918,7 @@ function TrangChiTietBo() {
                 key={filter.key}
                 type="button"
                 onClick={() => setFilterTu(filter.key)}
+                disabled={dangBatChinhSua}
                 aria-pressed={filterTu === filter.key}
                 className="ui-filter-tab"
               >
@@ -573,7 +932,7 @@ function TrangChiTietBo() {
         {danhSach.length === 0 ? (
           <div className="ui-empty-panel border-dashed">
             <p className="text-[var(--mau-chu-phu)]">Chưa có từ nào.</p>
-            {coTheQuanLy && (
+            {dangBatChinhSua && (
               <button
                 type="button"
                 onClick={moFormThemTu}
@@ -590,30 +949,34 @@ function TrangChiTietBo() {
             </p>
           </div>
         ) : (
-          <ul className="ui-card-list">
+          <ul ref={listTuRef} className="ui-card-list">
             {danhSachDaLoc.map((the, i) => {
               const dangYeuThich = laTuYeuThich(the);
 
               return (
                 <li
                   key={the.id}
-                  className="ui-reading-card border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
+                  data-card-id={the.id}
+                  className={`ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5 ${dangBatChinhSua ? "ui-word-row--editing" : ""} ${dangChoMoveTu ? "ui-word-row--move" : ""} ${theDangKeoId === the.id ? "ui-word-row--dragging" : ""}`}
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                    <div className="min-w-0 flex flex-wrap items-baseline gap-2 sm:gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--mau-vien)] bg-[var(--mau-input)] text-xs font-semibold text-[var(--mau-chinh)]">
+                  <div className="ui-word-row__inner">
+                    <div className="ui-word-main">
+                      <span className="ui-word-index">
                         {i + 1}
                       </span>
-                      <span className="break-words font-semibold text-[var(--mau-chu)]">
-                        {the.term_en}
-                      </span>
-                      <span className="hidden sm:inline text-[var(--mau-vien)] shrink-0">-</span>
-                      <span className="break-words text-[var(--mau-chu)]">
-                        {the.meaning_vi}
-                      </span>
+                      <div className="ui-word-pair">
+                        <span className="ui-word-card ui-word-card--term">
+                          {the.term_en}
+                        </span>
+                        <span className="ui-word-card ui-word-card--meaning">
+                          {the.meaning_vi}
+                        </span>
+                      </div>
                     </div>
                     {coTheQuanLy && (
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div
+                        className={`ui-word-actions ${dangBatChinhSua ? "ui-word-actions--editing" : ""}`}
+                      >
                         <button
                           type="button"
                           onClick={() => toggleYeuThich(the)}
@@ -629,24 +992,44 @@ function TrangChiTietBo() {
                         >
                           <IconHeart filled={dangYeuThich} />
                         </button>
-                        <NutIconQuanLyTu
-                          label={`Sửa từ ${the.term_en}`}
-                          onClick={() => moFormSuaTu(the)}
-                        >
-                          <IconEdit />
-                        </NutIconQuanLyTu>
-                        <NutIconQuanLyTu
-                          label={`Xóa từ ${the.term_en}`}
-                          onClick={() => xoaTu(the.id)}
-                        >
-                          <IconTrash />
-                        </NutIconQuanLyTu>
+                        {dangBatChinhSua && (
+                          <>
+                            <NutIconQuanLyTu
+                              label={`Sửa từ ${the.term_en}`}
+                              onClick={() => moFormSuaTu(the)}
+                            >
+                              <IconEdit />
+                            </NutIconQuanLyTu>
+                            <NutIconQuanLyTu
+                              label={`Xóa từ ${the.term_en}`}
+                              onClick={() => xoaTu(the.id)}
+                            >
+                              <IconTrash />
+                            </NutIconQuanLyTu>
+                          </>
+                        )}
                       </div>
+                    )}
+                    {dangChoMoveTu && (
+                      <button
+                        type="button"
+                        disabled={dangLuuThuTu}
+                        onPointerDown={(event) => batDauKeoTu(event, the)}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowUp") diChuyenTuBangPhim(event, the, -1);
+                          if (event.key === "ArrowDown") diChuyenTuBangPhim(event, the, 1);
+                        }}
+                        aria-label={`Di chuyển ${the.term_en}`}
+                        title={dangLuuThuTu ? "Đang lưu thứ tự" : "Giữ và kéo để đổi thứ tự"}
+                        className="ui-word-move-handle"
+                      >
+                        <IconGrip />
+                      </button>
                     )}
                   </div>
 
                   {the.example_sentence && (
-                    <p className="text-sm text-[var(--mau-chu-phu)] mt-1.5 ml-8 italic">
+                    <p className="ui-word-example">
                       {the.example_sentence}
                     </p>
                   )}
@@ -657,6 +1040,33 @@ function TrangChiTietBo() {
           </ul>
         )}
       </div>
+
+      {banSaoKeoTu && (
+        <div
+          ref={banSaoKeoTuRef}
+          className="ui-word-drag-preview"
+          style={{
+            left: `${banSaoKeoTu.x}px`,
+            top: 0,
+            width: `${banSaoKeoTu.width}px`,
+            minHeight: `${banSaoKeoTu.height}px`,
+            transform: `translate3d(0, ${banSaoKeoTu.y}px, 0) scale(1.012)`,
+          }}
+          aria-hidden="true"
+        >
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--mau-vien)] bg-[var(--mau-input)] text-xs font-semibold text-[var(--mau-chinh)]">
+            <IconGrip />
+          </span>
+          <span className="ui-word-drag-preview__pair">
+            <span className="ui-word-card ui-word-card--term">
+              {banSaoKeoTu.term_en}
+            </span>
+            <span className="ui-word-card ui-word-card--meaning">
+              {banSaoKeoTu.meaning_vi}
+            </span>
+          </span>
+        </div>
+      )}
 
       <AnimatedModal
         open={dangMoForm}
@@ -682,39 +1092,45 @@ function TrangChiTietBo() {
         </div>
 
         <form onSubmit={luuTu} className="space-y-4">
-          <div>
-            <label htmlFor="word" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-              Word
-            </label>
-            <input
-              id="word"
-              name="word"
-              value={formTu.word}
-              onChange={capNhatFormTu}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="example"
-            />
-          </div>
+          <div className="ui-word-form-grid">
+            <div className="ui-word-input-card">
+              <label htmlFor="word" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
+                Từ vựng
+              </label>
+              <input
+                id="word"
+                name="word"
+                value={formTu.word}
+                onChange={capNhatFormTu}
+                onKeyDown={xuLyPhimNhapTu}
+                required
+                autoFocus
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="example"
+              />
+            </div>
 
-          <div>
-            <label htmlFor="meaning" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-              Meaning
-            </label>
-            <input
-              id="meaning"
-              name="meaning"
-              value={formTu.meaning}
-              onChange={capNhatFormTu}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="nghĩa tiếng Việt"
-            />
+            <div className="ui-word-input-card">
+              <label htmlFor="meaning" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
+                Ý nghĩa
+              </label>
+              <input
+                ref={meaningInputRef}
+                id="meaning"
+                name="meaning"
+                value={formTu.meaning}
+                onChange={capNhatFormTu}
+                onKeyDown={xuLyPhimNhapTu}
+                required
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="nghĩa tiếng Việt"
+              />
+            </div>
           </div>
 
           <div>
             <label htmlFor="example" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-              Example (optional)
+              Ví dụ (tuỳ chọn)
             </label>
             <textarea
               id="example"

@@ -20,6 +20,11 @@ router.post(
   requireAuth,
   asyncHandler(cardController.importCards)
 );
+router.patch(
+  "/decks/:deckId/cards/reorder",
+  requireAuth,
+  asyncHandler(cardController.reorderCards)
+);
 router.put("/cards/:cardId", requireAuth, asyncHandler(cardController.updateCard));
 router.patch(
   "/cards/:cardId/favorite",
