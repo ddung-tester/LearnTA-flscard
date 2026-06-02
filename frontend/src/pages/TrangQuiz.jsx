@@ -147,7 +147,7 @@ function TrangQuiz() {
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
-  const [batReward, setBatReward] = useState(true);
+  const [batReward, setBatReward] = useState(false);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     CAU_HINH_REWARD_QUIZ.triggerCount
   );

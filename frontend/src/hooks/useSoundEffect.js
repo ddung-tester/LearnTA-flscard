@@ -5,6 +5,11 @@ function taoAudioContext() {
   return AudioContextClass ? new AudioContextClass() : null;
 }
 
+function canhBaoAmThanh(message, error) {
+  if (!import.meta.env.DEV) return;
+  console.warn(`[sound-effect] ${message}`, error || "");
+}
+
 function useSoundEffect(src, { volume = 0.9 } = {}) {
   const audioCtxRef = useRef(null);
   const bufferRef = useRef(null);
@@ -24,12 +29,21 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
 
     if (ctx) {
       fetch(src)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Khong tai duoc audio ${src}: ${response.status}`);
+          }
+
+          return response;
+        })
         .then((response) => response.arrayBuffer())
         .then((buffer) => ctx.decodeAudioData(buffer))
         .then((decoded) => {
           if (!daHuy) bufferRef.current = decoded;
         })
-        .catch(() => {});
+        .catch((error) => {
+          canhBaoAmThanh(`Khong decode duoc ${src}; se dung HTMLAudio fallback.`, error);
+        });
     }
 
     function resumeAudio() {
@@ -37,7 +51,9 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
       if (ctx?.state === "suspended") {
         pendingResumeRef.current = ctx
           .resume()
-          .catch(() => {})
+          .catch((error) => {
+            canhBaoAmThanh("Khong resume duoc AudioContext.", error);
+          })
           .finally(() => {
             pendingResumeRef.current = null;
           });
@@ -60,7 +76,9 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
       bufferRef.current = null;
       audioCtxRef.current = null;
       pendingResumeRef.current = null;
-      ctx?.close().catch(() => {});
+      ctx?.close().catch((error) => {
+        canhBaoAmThanh("Khong dong duoc AudioContext.", error);
+      });
     };
   }, [src, volume]);
 
@@ -86,7 +104,9 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
         if (ctx.state === "suspended") {
           pendingResumeRef.current ||= ctx
             .resume()
-            .catch(() => {})
+            .catch((error) => {
+              canhBaoAmThanh("Khong resume duoc AudioContext truoc khi phat.", error);
+            })
             .finally(() => {
               pendingResumeRef.current = null;
             });
@@ -94,13 +114,17 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
           pendingResumeRef.current.then(() => {
             try {
               playDecodedBuffer();
-            } catch {}
+            } catch (error) {
+              canhBaoAmThanh(`Khong phat duoc decoded buffer ${src}.`, error);
+            }
           });
           return;
         }
 
         if (playDecodedBuffer()) return;
-      } catch {}
+      } catch (error) {
+        canhBaoAmThanh(`Khong phat duoc decoded buffer ${src}.`, error);
+      }
     }
 
     const audio = htmlAudioRef.current;
@@ -109,9 +133,13 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
     try {
       audio.pause();
       audio.currentTime = 0;
-      audio.play().catch(() => {});
-    } catch {}
-  }, [volume]);
+      audio.play().catch((error) => {
+        canhBaoAmThanh(`Trinh duyet chan phat ${src}.`, error);
+      });
+    } catch (error) {
+      canhBaoAmThanh(`Khong phat duoc ${src}.`, error);
+    }
+  }, [src, volume]);
 }
 
 export default useSoundEffect;

@@ -64,8 +64,10 @@ function TrangTuLuan() {
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
   const [lanLam, setLanLam] = useState(0);
   const [cheDo, setCheDo] = useState("vi-en");
-  const [batReward, setBatReward] = useState(true);
-  const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(5);
+  const [batReward, setBatReward] = useState(false);
+  const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
+    CAU_HINH_REWARD_QUIZ.triggerCount
+  );
   const [batRandom, setBatRandom] = useState(false);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
@@ -80,6 +82,7 @@ function TrangTuLuan() {
   const [hienCanhBaoNhap, setHienCanhBaoNhap] = useState(false);
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
   const [shakeKey, setShakeKey] = useState(0); // tăng mỗi lần sai để retrigger animation
+  const [daBoQua, setDaBoQua] = useState(false);
 
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
@@ -147,6 +150,7 @@ function TrangTuLuan() {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDangChuyenCau(false);
+    setDaBoQua(false);
     setDangChoReward(false);
     setStudySessionId(null);
     setLoiLuuKetQua("");
@@ -328,6 +332,13 @@ function TrangTuLuan() {
 
   function kiemTraDapAn(event) {
     event.preventDefault();
+
+    // Nếu đang ở trạng thái bỏ qua, Enter sẽ chuyển câu
+    if (daBoQua) {
+      tiepTucSauXemDapAn();
+      return;
+    }
+
     if (
       (daKiemTra && ketQuaDung) ||
       hienReward ||
@@ -385,27 +396,54 @@ function TrangTuLuan() {
     }
   }
 
-  function boQua() {
+  function xemDapAn() {
     if (dangChuyenCau || hienReward || dangChoReward) return;
-    const theHienTai = danhSachThe[chiSo];
-    if (theHienTai) {
-      setDanhSachKetQua((hienTai) => [
-        ...hienTai,
-        {
-          id: theHienTai.id,
-          cauHoi: layCauHoi(theHienTai),
-          dapAnDung: layDapAnDung(theHienTai),
-          cauTraLoi: "",
-          dung: false,
-        },
-      ]);
-    }
+    setDaBoQua(true);
     setDaKiemTra(false);
     setKetQuaDung(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
-    setCauTraLoi("");
     resetCombo();
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  function tiepTucSauXemDapAn() {
+    if (dangChuyenCau || hienReward || dangChoReward) return;
+
+    if (!cauTraLoi.trim()) {
+      setHienCanhBaoNhap(true);
+      setLanCanhBaoNhap((lan) => lan + 1);
+      inputRef.current?.focus();
+      return;
+    }
+
+    const theHienTai = danhSachThe[chiSo];
+    const dapAnDung = layDapAnDung(theHienTai);
+    const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
+
+    if (!dung) {
+      setDaKiemTra(true);
+      setKetQuaDung(false);
+      setHienCanhBaoNhap(false);
+      setCauTraLoi("");
+      setShakeKey((k) => k + 1);
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return;
+    }
+
+    setDanhSachKetQua((hienTai) => [
+      ...hienTai,
+      {
+        id: theHienTai.id,
+        cauHoi: layCauHoi(theHienTai),
+        dapAnDung,
+        cauTraLoi: cauTraLoi.trim(),
+        dung: false,
+      },
+    ]);
+    setDaKiemTra(false);
+    setKetQuaDung(false);
+    setHienCanhBaoNhap(false);
     chuyenCauMem({ boQuaKhoaReward: true, boQuaCau: true });
   }
 
@@ -434,6 +472,7 @@ function TrangTuLuan() {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDangChuyenCau(false);
+    setDaBoQua(false);
   }
 
   function chuyenCauMem({ boQuaKhoaReward = false, boQuaCau = false } = {}) {
@@ -453,6 +492,7 @@ function TrangTuLuan() {
     setDaKiemTra(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
+    setDaBoQua(false);
     setSoCauDung(0);
     setDaHoanThanh(false);
     setDanhSachKetQua([]);
@@ -724,25 +764,47 @@ function TrangTuLuan() {
               onChange={(e) => capNhatCauTraLoi(e.target.value)}
               disabled={daKiemTra && ketQuaDung}
               placeholder="Nhập đáp án..."
-              className={`w-full rounded-xl border p-4 text-xl outline-none transition-all focus:ring-2 focus:ring-[var(--mau-chinh)] ${
+              className={`ui-written-answer-input ${daBoQua || (daKiemTra && !ketQuaDung) ? "ui-written-answer-input--answer-review" : ""} w-full rounded-xl border p-4 text-xl outline-none ${
                 daKiemTra
                   ? (ketQuaDung
-                    ? "border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10"
-                    : "border-[var(--mau-loi)] bg-[var(--mau-loi)]/10 ui-input-shake")
+                    ? "ui-written-answer-input--correct border-[var(--mau-thanh-cong)] bg-[var(--mau-thanh-cong)]/10 transition-all focus:ring-2 focus:ring-[var(--mau-chinh)]"
+                    : "ui-written-answer-input--wrong ui-input-flash-red")
                   : hienCanhBaoNhap
-                    ? "border-[var(--mau-canh-bao)] bg-[var(--mau-canh-bao)]/10 ui-input-shake"
-                    : "border-[var(--mau-vien)] bg-[var(--mau-input)]"
+                    ? "ui-input-flash-red"
+                    : "border-[var(--mau-vien)] bg-[var(--mau-input)] transition-all focus:ring-2 focus:ring-[var(--mau-chinh)]"
               }`}
             />
           </div>
 
-          <AnimatePresence initial={false}>
-            {hienGoiY && !ketQuaDung && (
+          <AnimatePresence initial={false} mode="wait">
+            {daBoQua ? (
               <motion.div
+                key="answer"
                 layout
-                initial={{ opacity: 1, y: -8, scaleY: 0.94 }}
+                initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                exit={{ opacity: 1, y: -8, scaleY: 0.92 }}
+                exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                style={{ originY: 0 }}
+                className="overflow-hidden rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-4 py-3 text-center"
+              >
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mau-chinh)]">
+                  Đáp án
+                </p>
+                <span
+                  className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-chinh)]"
+                  style={{ wordSpacing: "0.35em" }}
+                >
+                  {layDapAnDung(danhSachThe[chiSo])}
+                </span>
+              </motion.div>
+            ) : hienGoiY && !ketQuaDung ? (
+              <motion.div
+                key="hint"
+                layout
+                initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 style={{ originY: 0 }}
                 className="overflow-hidden rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-4 py-3 text-center"
@@ -757,11 +819,27 @@ function TrangTuLuan() {
                   {taoGoiYDapAn(layDapAnDung(danhSachThe[chiSo]))}
                 </span>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
-          {/* Chưa kiểm tra: có gợi ý, bỏ qua, kiểm tra */}
-          {!daKiemTra && (
+          {/* Xem đáp án: nút tiếp tục sẽ validate input */}
+          {daBoQua && (
+            <motion.div
+              layout
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <button
+                type="button"
+                onClick={tiepTucSauXemDapAn}
+                className="ui-button ui-button--ghost w-full rounded-xl border border-[var(--mau-vien)] py-3.5 text-lg font-bold text-[var(--mau-chu-phu)]"
+              >
+                Tiếp tục
+              </button>
+            </motion.div>
+          )}
+
+          {/* Chưa kiểm tra và chưa xem đáp án: có gợi ý, xem đáp án, kiểm tra */}
+          {!daKiemTra && !daBoQua && (
             <motion.div
               layout
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -777,10 +855,10 @@ function TrangTuLuan() {
               </button>
               <button
                 type="button"
-                onClick={boQua}
+                onClick={xemDapAn}
                 className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)]"
               >
-                Bỏ qua
+                Xem đáp án
               </button>
               <button
                 type="submit"
@@ -791,8 +869,8 @@ function TrangTuLuan() {
             </motion.div>
           )}
 
-          {/* Trả lời sai: vẫn cho gợi ý, bỏ qua hoặc kiểm tra lại */}
-          {daKiemTra && !ketQuaDung && (
+          {/* Trả lời sai: vẫn cho gợi ý, xem đáp án hoặc kiểm tra lại */}
+          {daKiemTra && !ketQuaDung && !daBoQua && (
             <motion.div
               layout
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -808,10 +886,10 @@ function TrangTuLuan() {
               </button>
               <button
                 type="button"
-                onClick={boQua}
+                onClick={xemDapAn}
                 className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)]"
               >
-                Bỏ qua
+                Xem đáp án
               </button>
               <button
                 type="submit"

@@ -1,189 +1,323 @@
 # English Flashcard & Quiz App
 
-Ứng dụng học từ vựng tiếng Anh bằng flashcard, quiz trắc nghiệm và reward effect khi người học trả lời đúng đủ số câu đã đặt.
+Ung dung hoc tu vung tieng Anh bang flashcard, quiz trac nghiem, luyen tu luan va hieu ung reward khi nguoi hoc dat moc cau dung.
 
-Project hiện tập trung vào trải nghiệm frontend mock: tạo bộ từ, thêm từ, học flashcard, làm quiz, lưu tiến độ bằng `localStorage` và phát reward video ở hai bên màn hình khi đạt mốc đúng.
+Project hien gom hai phan chinh:
 
-## Tính năng chính
+- `frontend`: React/Vite, giao dien hoc tap va goi API.
+- `backend`: Node.js/Express, MySQL, JWT auth va cac API quan ly du lieu hoc tap.
 
-- **Danh sách bộ từ**: xem các deck hiện có, mở chi tiết deck, thêm bộ mới và sửa thông tin bộ.
-- **Chi tiết bộ từ**: xem danh sách từ trong deck, theo dõi tiến độ học gần nhất.
+## Tinh nang chinh
+
+- **Dang ky / dang nhap**: xac thuc nguoi dung bang JWT.
+- **Danh sach bo tu**: xem cac deck hien co, mo chi tiet deck, them, sua va xoa deck.
+- **Chi tiet bo tu**: xem danh sach tu trong deck, theo doi tien do hoc gan nhat.
+- **Quan ly tu vung**: them, sua, xoa tu, danh dau yeu thich va import nhanh nhieu tu.
 - **Flashcard**:
-  - Lật thẻ bằng click hoặc phím `Space`.
-  - Chuyển thẻ bằng nút trước/sau hoặc phím mũi tên.
-  - Hỗ trợ 2 chiều học: English -> Vietnamese và Vietnamese -> English.
-  - Đánh dấu “Nhớ rồi” hoặc “Chưa nhớ”.
-- **Quiz trắc nghiệm**:
-  - Tạo câu hỏi từ dữ liệu mock trong deck.
-  - Mỗi câu có 4 đáp án, gồm 1 đáp án đúng và 3 đáp án nhiễu.
-  - Tự chuyển câu sau khi chọn đáp án.
-  - Có màn hình tổng kết cuối bài.
-- **Progress bằng localStorage**:
-  - Lưu kết quả flashcard gần nhất.
-  - Lưu kết quả quiz gần nhất.
-  - Hiển thị tiến độ gọn ở deck list và deck detail.
-- **Reward khi đúng X câu**:
-  - Có thể bật/tắt reward trong màn quiz.
-  - Có thể chỉnh “Số câu đúng để có phần thưởng”.
-  - Khi đạt mốc, app chọn ngẫu nhiên một video reward trong `public/rewards/` để phát ở hai bên màn hình.
-- **Add/Edit Word**: thêm hoặc sửa từ trong deck ngay trên UI.
-- **Add/Edit Deck**: thêm hoặc sửa bộ từ ngay trên UI.
-- **Import words nhanh**:
-  - Dán nhiều dòng từ vựng vào textarea.
-  - Hỗ trợ các format: `word - meaning`, `word, meaning`, `word | meaning`.
+  - Lat the bang click hoac phim `Space`.
+  - Chuyen the bang nut truoc/sau hoac phim mui ten.
+  - Ho tro 2 chieu hoc: English -> Vietnamese va Vietnamese -> English.
+  - Danh dau "Nho roi" hoac "Chua nho".
+- **Quiz trac nghiem**:
+  - Tao cau hoi tu danh sach card trong deck.
+  - Moi cau co 4 dap an, gom 1 dap an dung va 3 dap an nhieu.
+  - Tu chuyen cau sau khi chon dap an.
+  - Co man hinh tong ket cuoi bai.
+- **Tu luan**: luyen go dap an theo tung tu/cum tu.
+- **Tien do hoc tap**:
+  - Luu study session, ket qua quiz va tien do card qua backend.
+  - Mot so tuy chon/phu tro van co the dung `localStorage` tren frontend.
+- **Reward khi dung X cau**:
+  - Co the bat/tat reward trong man quiz.
+  - Co the chinh so cau dung de kich hoat phan thuong.
+  - Khi dat moc, app chon ngau nhien mot video reward trong `frontend/public/rewards/`.
 
-## Công nghệ sử dụng
+## Cong nghe su dung
+
+### Frontend
 
 - React
 - Vite
 - React Router DOM
+- Axios
 - Tailwind CSS
 - JavaScript
-- localStorage
+- GSAP / Motion / Rive / Lottie cho hieu ung va animation
 
-Backend Node.js/Express/MySQL có trong định hướng project, nhưng luồng hiện tại đang chạy bằng mock data ở frontend.
+### Backend
 
-## Cách chạy project
+- Node.js
+- Express
+- MySQL
+- JWT
+- bcrypt
+- Zod
+- dotenv
 
-### 1. Cài dependencies
+## Cau truc project
+
+```txt
+.
+  backend/
+    database/
+      schema.sql
+      seed.sql
+      migrations/
+    src/
+      config/
+      controllers/
+      middleware/
+      routes/
+      utils/
+      app.js
+      server.js
+    package.json
+
+  frontend/
+    public/
+      animation/
+      background/
+      rewards/
+    src/
+      components/
+      contexts/
+      data/
+      hooks/
+      pages/
+      services/
+      utils/
+      App.jsx
+      main.jsx
+      index.css
+    package.json
+```
+
+## Yeu cau moi truong
+
+- Node.js
+- npm
+- MySQL
+
+## Cau hinh database
+
+Chay script tao database/schema:
+
+```txt
+backend/database/schema.sql
+```
+
+Sau do co the nap du lieu mau:
+
+```txt
+backend/database/seed.sql
+```
+
+Luu y: can dam bao ten database trong `schema.sql`, `seed.sql` va bien `DB_NAME` trong `.env` thong nhat voi nhau.
+
+## Cau hinh backend
+
+Tao file `.env` trong thu muc `backend/`:
+
+```env
+PORT=3000
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=railway
+JWT_SECRET=your-secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost:5173
+```
+
+Giai thich nhanh:
+
+- `PORT`: cong backend Express.
+- `DB_*`: thong tin ket noi MySQL.
+- `JWT_SECRET`: khoa ky token dang nhap.
+- `CORS_ORIGIN`: frontend origin duoc phep goi API.
+
+## Cau hinh frontend
+
+Neu can chi dinh API backend, tao file `.env` trong thu muc `frontend/`:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+Neu khong cau hinh, frontend o che do dev se mac dinh goi `http://localhost:3000`.
+
+## Cach chay project
+
+### 1. Cai dependencies backend
 
 ```bash
-cd client
+cd backend
 npm install
 ```
 
-### 2. Chạy dev server
+### 2. Chay backend
 
 ```bash
 npm run dev
 ```
 
-Mặc định Vite sẽ chạy ở:
+Backend mac dinh chay tai:
+
+```txt
+http://localhost:3000
+```
+
+Kiem tra nhanh:
+
+```txt
+http://localhost:3000/api/health
+http://localhost:3000/api/db-test
+```
+
+### 3. Cai dependencies frontend
+
+Mo terminal khac:
+
+```bash
+cd frontend
+npm install
+```
+
+### 4. Chay frontend
+
+```bash
+npm run dev
+```
+
+Frontend mac dinh chay tai:
 
 ```txt
 http://localhost:5173
 ```
 
-### 3. Build production
+### 5. Build production frontend
 
 ```bash
+cd frontend
 npm run build
 ```
 
-### 4. Preview bản build nếu cần
+### 6. Preview ban build frontend
 
 ```bash
 npm run preview
 ```
 
-## Demo / Screenshot
+## Scripts
 
-Có thể chụp các màn hình chính sau để đưa vào portfolio:
+### Backend
 
-### Deck list
-
-Trang danh sách bộ từ tại `/decks`.
-
-Màn hình này hiển thị các bộ từ, số lượng từ, trạng thái học gần nhất và các hành động như “Thêm bộ”, “Sửa”, “Mở bộ”.
-
-### Deck detail
-
-Trang chi tiết một bộ từ tại `/decks/:deckId`.
-
-Màn hình này hiển thị tiến độ học tập, danh sách từ, nút học flashcard, nút làm quiz, thêm/sửa từ và import nhanh nhiều từ.
-
-### Flashcard
-
-Trang học flashcard tại `/decks/:deckId/flashcard`.
-
-Người học có thể chọn chiều học, lật thẻ, chuyển thẻ, đánh dấu “Nhớ rồi” hoặc “Chưa nhớ”, sau đó xem tổng kết phiên học.
-
-### Quiz
-
-Trang quiz tại `/decks/:deckId/quiz`.
-
-Mỗi câu hỏi hiển thị một từ tiếng Anh và 4 nghĩa tiếng Việt để chọn. Sau khi chọn đáp án, app phản hồi đúng/sai và tự chuyển sang câu tiếp theo.
-
-### Reward effect
-
-Reward xuất hiện trong màn quiz khi người học trả lời đúng đủ số câu đã đặt.
-
-Video được lấy từ:
-
-```txt
-client/public/rewards/
+```bash
+npm run dev
+npm start
 ```
 
-Danh sách video có thể cấu hình bằng:
+### Frontend
 
-```txt
-client/public/rewards/videos.json
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run lint
 ```
 
-## Dữ liệu mock
-
-Hiện tại app dùng dữ liệu mẫu trong frontend:
+## Routes frontend chinh
 
 ```txt
-client/src/data/duLieuMau.js
+/                         Trang chu
+/login                    Dang nhap
+/register                 Dang ky
+/decks                    Danh sach bo tu
+/decks/:deckId            Chi tiet bo tu
+/decks/:deckId/add-word   Them tu
+/decks/:deckId/flashcard  Hoc bang flashcard
+/decks/:deckId/quiz       Lam quiz trac nghiem
+/decks/:deckId/tu-luan    Luyen tu luan
 ```
 
-Các thao tác thêm/sửa deck và thêm/sửa/import từ chỉ cập nhật state trên UI. Khi refresh trang, dữ liệu thêm/sửa sẽ mất.
+## API backend chinh
 
-Riêng tiến độ học tập được lưu bằng `localStorage`, nên có thể còn sau khi refresh nếu chưa xóa dữ liệu trình duyệt.
-
-## Ghi chú phát triển
-
-- Chưa kết nối backend trong luồng học hiện tại.
-- Chưa có đăng nhập/đăng ký.
-- Chưa có database cho dữ liệu người dùng.
-- Reward chỉ là lớp hiệu ứng phụ, không ảnh hưởng logic quiz.
-- UI ưu tiên phong cách học tập tập trung: nền giấy ấm, chữ ink-dark, accent teal và amber.
-
-## Cấu trúc frontend chính
+Backend expose API duoi prefix `/api`.
 
 ```txt
-client/
-  public/
-    rewards/
-  src/
-    components/
-      common/
-      RewardTikTokEffect.jsx
-      RewardTikTokEffect.css
-    data/
-      duLieuMau.js
-    pages/
-      TrangChu.jsx
-      TrangDanhSachBo.jsx
-      TrangChiTietBo.jsx
-      TrangFlashcard.jsx
-      TrangQuiz.jsx
-      TrangThemTu.jsx
-    utils/
-      tienDoHocTap.js
-    App.jsx
-    main.jsx
-    index.css
+GET    /api/health
+GET    /api/db-test
+
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+
+GET    /api/decks
+GET    /api/decks/:deckId
+POST   /api/decks
+PUT    /api/decks/:deckId
+DELETE /api/decks/:deckId
+
+GET    /api/decks/:deckId/cards
+POST   /api/decks/:deckId/cards
+POST   /api/decks/:deckId/cards/import
+PUT    /api/cards/:cardId
+PATCH  /api/cards/:cardId/favorite
+DELETE /api/cards/:cardId
+
+POST   /api/study-sessions
+PATCH  /api/study-sessions/:sessionId/finish
+POST   /api/study-sessions/:sessionId/answers
+POST   /api/quiz-results
+GET    /api/decks/:deckId/quiz-results/latest
+
+GET    /api/cards/:cardId/progress
+PATCH  /api/cards/:cardId/progress
+GET    /api/decks/:deckId/progress-summary
 ```
 
-## Routes chính
+Mot so endpoint ghi du lieu yeu cau token dang nhap trong header:
 
 ```txt
-/                       Trang chủ
-/decks                  Danh sách bộ từ
-/decks/:deckId          Chi tiết bộ từ
-/decks/:deckId/flashcard Học bằng flashcard
-/decks/:deckId/quiz     Làm quiz
+Authorization: Bearer <token>
 ```
 
-## Trạng thái hiện tại
+## Du lieu va luu tru
 
-Project đang ở giai đoạn frontend mock. Các luồng học chính đã có thể dùng thử:
+- Du lieu chinh duoc luu trong MySQL.
+- Backend quan ly users, decks, cards, study sessions, study answers, card progress, quiz results, streak logs va user settings.
+- Frontend luu auth token trong `localStorage` voi key `hocTA.authToken`.
+- File `frontend/src/data/duLieuMau.js` van ton tai cho du lieu/phu tro mau cua frontend, nhung luong chinh hien goi API backend.
 
+## Reward video
+
+Video reward nam trong:
+
+```txt
+frontend/public/rewards/
+```
+
+Danh sach video co the cau hinh bang:
+
+```txt
+frontend/public/rewards/videos.json
+```
+
+## Trang thai hien tai
+
+Project da co frontend, backend, database schema va luong dang nhap/dang ky. Cac luong hoc chinh co the dung:
+
+- Dang ky / dang nhap
 - Deck List -> Deck Detail
 - Deck Detail -> Flashcard
 - Deck Detail -> Quiz
-- Flashcard/Quiz -> Summary -> quay lại hoặc học tiếp
+- Deck Detail -> Tu luan
+- Them/sua/xoa deck va card theo quyen dang nhap
+- Luu ket qua hoc va tien do qua backend
 
-Backend và database sẽ là bước phát triển tiếp theo nếu cần lưu dữ liệu thật.
+## Ghi chu phat trien
+
+- Can thong nhat ten database giua `schema.sql`, `seed.sql` va `.env`.
+- Nen tao file `.env.example` cho backend va frontend de nguoi khac setup nhanh hon.
+- Nen bo sung anh demo/screenshot cho cac man hinh chinh neu dung project trong portfolio.

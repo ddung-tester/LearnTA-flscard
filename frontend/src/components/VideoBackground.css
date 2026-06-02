@@ -457,6 +457,62 @@ body.has-video-background--app select:focus-visible {
   box-shadow: 0 0 0 3px oklch(58% 0.12 164 / 0.24);
 }
 
+body.has-video-background--app .ui-written-answer-input--answer-review {
+  background:
+    linear-gradient(180deg, oklch(98% 0.018 95 / 0.88), oklch(94% 0.034 112 / 0.72)) !important;
+  border-color: oklch(64% 0.16 24 / 0.66) !important;
+  color: var(--mau-chu-phu) !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--answer-review::placeholder {
+  color: var(--mau-chu-phu) !important;
+  opacity: 0.78;
+}
+
+body.has-video-background--app .ui-written-answer-input--correct {
+  background-color: oklch(58% 0.13 164 / 0.14) !important;
+  border-color: var(--mau-thanh-cong) !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--wrong {
+  background: #fca5a5 !important;
+  border-color: #dc2626 !important;
+  color: #7f1d1d !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.4) !important;
+  transition: none !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong {
+  background: #fca5a5 !important;
+  border-color: #dc2626 !important;
+  color: #7f1d1d !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.4) !important;
+  transition: none !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--wrong::placeholder,
+body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong::placeholder {
+  color: rgba(127, 29, 29, 0.6) !important;
+  opacity: 1 !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--warning {
+  background-color: oklch(76% 0.13 72 / 0.16) !important;
+  border-color: var(--mau-canh-bao) !important;
+}
+
+body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong:focus,
+body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong:focus-visible,
+body.has-video-background--app .ui-written-answer-input--wrong:focus,
+body.has-video-background--app .ui-written-answer-input--wrong:focus-visible,
+body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong:hover,
+body.has-video-background--app .ui-written-answer-input--wrong:hover {
+  background: #fca5a5 !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5) !important;
+  color: #7f1d1d !important;
+}
+
 body.has-video-background--app .ui-settings-popover__panel {
   background: oklch(96.8% 0.021 92 / 0.96) !important;
   border-color: oklch(96% 0.018 96 / 0.58) !important;

@@ -4,7 +4,7 @@ import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = {
-  triggerCount: 5,
+  triggerCount: 10,
   opacity: 0.78,
   duration: 10800,
   videoDuration: 8000,

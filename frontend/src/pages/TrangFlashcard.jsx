@@ -60,7 +60,7 @@ function TrangFlashcard() {
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
   const [diemReward, setDiemReward] = useState(0);
-  const [batReward, setBatReward] = useState(true);
+  const [batReward, setBatReward] = useState(false);
   const giamChuyenDong = useReducedMotion();
   const cacTheDaTinhDiemRef = useRef(new Set());
   const rewardTimerRef = useRef(null);
