@@ -83,6 +83,7 @@ function TrangTuLuan() {
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
   const [shakeKey, setShakeKey] = useState(0); // tăng mỗi lần sai để retrigger animation
   const [daBoQua, setDaBoQua] = useState(false);
+  const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
 
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
@@ -344,6 +345,7 @@ function TrangTuLuan() {
       hienReward ||
       dangChoReward ||
       dangChuyenCau ||
+      dangCooldownSaiRef.current ||
       danhSachThe.length === 0
     ) {
       return;
@@ -384,15 +386,20 @@ function TrangTuLuan() {
         ...hienTai,
         { id: theHienTai.id, cauHoi: layCauHoi(theHienTai), dapAnDung, cauTraLoi: cauTraLoi.trim(), dung: false },
       ]);
+      // Flash đỏ ngắn, rồi reset để hỏi lại câu đó
       setDaKiemTra(true);
       setKetQuaDung(false);
       setHienGoiY(false);
       setHienCanhBaoNhap(false);
-      setCauTraLoi("");
       setShakeKey((k) => k + 1);
       resetCombo();
-      // Dùng setTimeout để chờ React remount input (do key thay đổi) trước khi focus
-      setTimeout(() => inputRef.current?.focus(), 50);
+      dangCooldownSaiRef.current = true;
+      setTimeout(() => {
+        setCauTraLoi("");
+        setDaKiemTra(false);
+        dangCooldownSaiRef.current = false;
+        inputRef.current?.focus();
+      }, 700);
     }
   }
 
@@ -869,36 +876,7 @@ function TrangTuLuan() {
             </motion.div>
           )}
 
-          {/* Trả lời sai: vẫn cho gợi ý, xem đáp án hoặc kiểm tra lại */}
-          {daKiemTra && !ketQuaDung && !daBoQua && (
-            <motion.div
-              layout
-              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-              className="grid gap-3 sm:grid-cols-3"
-            >
-              <button
-                type="button"
-                onClick={hienThiGoiY}
-                disabled={hienGoiY}
-                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-100"
-              >
-                Gợi ý
-              </button>
-              <button
-                type="button"
-                onClick={xemDapAn}
-                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)]"
-              >
-                Xem đáp án
-              </button>
-              <button
-                type="submit"
-                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-bold text-[var(--mau-chu-phu)]"
-              >
-                Kiểm tra
-              </button>
-            </motion.div>
-          )}
+          {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
 
           {/* Đúng rồi: hiện thông báo */}
           {daKiemTra && ketQuaDung && (
