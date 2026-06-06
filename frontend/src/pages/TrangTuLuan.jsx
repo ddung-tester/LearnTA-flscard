@@ -325,8 +325,8 @@ function TrangTuLuan() {
     studySessionId,
   ]);
 
-  function layCauHoi(the) { return cheDo === "vi-en" ? the.meaning_vi : the.term_en; }
-  function layDapAnDung(the) { return cheDo === "vi-en" ? the.term_en : the.meaning_vi; }
+  function layCauHoi(the) { return the ? (cheDo === "vi-en" ? the.meaning_vi : the.term_en) : ""; }
+  function layDapAnDung(the) { return the ? (cheDo === "vi-en" ? the.term_en : the.meaning_vi) : ""; }
 
   function capNhatCauTraLoi(value) {
     setCauTraLoi(value);
@@ -647,6 +647,16 @@ function TrangTuLuan() {
 
   const tongSoCauHoi = danhSachThe.length;
   const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
+
+  if (!danhSachThe[chiSo] && !daHoanThanh) {
+    return (
+      <div className="ui-study-empty-wrap">
+        <section className="ui-study-empty-card">
+          <h2 className="ui-study-empty-card__title">Đang cập nhật...</h2>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <>

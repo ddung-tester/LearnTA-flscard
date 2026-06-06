@@ -38,8 +38,31 @@ function laVungNhapLieu(element) {
     tenThe === "input" ||
     tenThe === "textarea" ||
     tenThe === "select" ||
+    tenThe === "button" ||
+    tenThe === "a" ||
     element.isContentEditable
   );
+}
+
+function taoSoTuSeed(seed) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${item}`) {
+  return [...danhSach]
+    .map((item, index) => ({
+      item,
+      thuTu: taoSoTuSeed(`${seed}-${layKhoa(item, index)}`),
+    }))
+    .sort((a, b) => a.thuTu - b.thuTu)
+    .map(({ item }) => item);
 }
 
 function TrangFlashcard() {
@@ -129,8 +152,12 @@ function TrangFlashcard() {
   // useMemo để chỉ re-shuffle khi lanTron hoặc danh sách nguồn thay đổi
   const danhSach = useMemo(() => {
     if (!batRandom) return danhSachLoc;
-    return [...danhSachLoc].sort(() => Math.random() - 0.5);
-  }, [batRandom, lanTron, danhSachLoc]);
+    return tronMangOnDinh(
+      danhSachLoc,
+      `flashcard-${boId}-${lanTron}`,
+      (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
+    );
+  }, [batRandom, boId, lanTron, danhSachLoc]);
 
   function ghiNhanDiemReward() {
     if (!batReward || !danhSach[chiSo]) return;
@@ -180,7 +207,10 @@ function TrangFlashcard() {
     });
   }, [bo, boId, cheDo, chiHocTuYeuThich, batRandom, lanTron, danhSach.length]);
 
-  function latThe() {
+  function latThe(e) {
+    if (e && e.target && e.target.closest(".tts-speaker-btn")) {
+      return;
+    }
     setDaLat((dangLat) => {
       const seLatMatSau = !dangLat;
       if (seLatMatSau) {
@@ -256,6 +286,24 @@ function TrangFlashcard() {
     window.addEventListener("keydown", xuLyPhim);
     return () => window.removeEventListener("keydown", xuLyPhim);
   });
+
+  // Auto-play TTS on card change or flip (only for English terms)
+  useEffect(() => {
+    const targetCard = danhSach[chiSo];
+    if (!targetCard) return;
+
+    const currentFaceText = daLat
+      ? (cheDo === "en-vi" ? targetCard.meaning_vi : targetCard.term_en)
+      : (cheDo === "en-vi" ? targetCard.term_en : targetCard.meaning_vi);
+
+    const isCurrentFaceEnglish = daLat
+      ? cheDo === "vi-en" // matSau is English in vi-en mode
+      : cheDo === "en-vi"; // matTruoc is English in en-vi mode
+
+    if (!isCurrentFaceEnglish) return;
+
+    ttsSpeak(currentFaceText, "en-US");
+  }, [chiSo, daLat, cheDo, ttsSpeak, danhSach]);
 
   if (dangTaiDuLieu) {
     return (
@@ -350,22 +398,10 @@ function TrangFlashcard() {
   }
 
   const theHienTai = danhSach[chiSo];
-  const matTruoc = cheDo === "en-vi" ? theHienTai.term_en : theHienTai.meaning_vi;
-  const matSau = cheDo === "en-vi" ? theHienTai.meaning_vi : theHienTai.term_en;
+  const matTruoc = cheDo === "en-vi" ? theHienTai?.term_en : theHienTai?.meaning_vi;
+  const matSau = cheDo === "en-vi" ? theHienTai?.meaning_vi : theHienTai?.term_en;
 
-  // Auto-play TTS on card change or flip (only for English terms)
-  useEffect(() => {
-    if (!theHienTai) return;
 
-    const isCurrentFaceEnglish = daLat
-      ? cheDo === "vi-en" // matSau is English in vi-en mode
-      : cheDo === "en-vi"; // matTruoc is English in en-vi mode
-
-    if (!isCurrentFaceEnglish) return;
-
-    const textToSpeak = daLat ? matSau : matTruoc;
-    ttsSpeak(textToSpeak, "en-US");
-  }, [chiSo, daLat, cheDo, ttsSpeak, theHienTai, matTruoc, matSau]);
 
   const tienDo = ((chiSo + 1) / danhSach.length) * 100;
   const tienDoAnToan = clampProgressPercent(tienDo);
@@ -482,6 +518,8 @@ function TrangFlashcard() {
           tabIndex={0}
           onClick={latThe}
           onKeyDown={(e) => {
+            if (laVungNhapLieu(e.target)) return;
+
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               latThe();
@@ -497,7 +535,9 @@ function TrangFlashcard() {
             transition={thietLapLatThe}
             style={{ transformStyle: "preserve-3d" }}
           >
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9">
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9"
+            >
               <button
                 type="button"
                 className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
@@ -505,6 +545,8 @@ function TrangFlashcard() {
                   e.stopPropagation();
                   ttsSpeak(matTruoc, cheDo === "en-vi" ? "en-US" : "vi-VN");
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 aria-label="Đọc mặt trước"
                 title="Đọc mặt trước"
               >
@@ -522,7 +564,9 @@ function TrangFlashcard() {
               </span>
             </div>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9">
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9"
+            >
               <button
                 type="button"
                 className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
@@ -530,6 +574,8 @@ function TrangFlashcard() {
                   e.stopPropagation();
                   ttsSpeak(matSau, cheDo === "en-vi" ? "vi-VN" : "en-US");
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 aria-label="Đọc mặt sau"
                 title="Đọc mặt sau"
               >
@@ -542,7 +588,7 @@ function TrangFlashcard() {
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
                 {matSau}
               </span>
-              {theHienTai.example_sentence && (
+              {theHienTai?.example_sentence && (
                 <p className="mt-6 max-w-md break-words text-center text-sm italic text-[var(--mau-chu-phu)]">
                   {theHienTai.example_sentence}
                 </p>

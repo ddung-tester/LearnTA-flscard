@@ -28,20 +28,25 @@ function useTTS() {
 
   const speak = useCallback(
     (text, lang = "en-US") => {
-      if (!text || !text.trim()) return;
-      if (!tts.isSupported()) return;
+      const trimmedText = String(text || "").trim();
+      if (!trimmedText || !tts.isSupported()) {
+        if (mountedRef.current) setIsPlaying(false);
+        return false;
+      }
 
-      // Stop previous speech before starting new one
-      tts.stop();
-
-      const started = tts.speak(text, lang);
-      if (!started) return;
+      const started = tts.speak(trimmedText, lang);
+      if (!started) {
+        if (mountedRef.current) setIsPlaying(false);
+        return false;
+      }
 
       if (mountedRef.current) setIsPlaying(true);
 
       tts.onEnd(() => {
         if (mountedRef.current) setIsPlaying(false);
       });
+
+      return true;
     },
     []
   );

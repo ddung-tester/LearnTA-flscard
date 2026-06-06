@@ -723,8 +723,19 @@ function TrangQuiz() {
   }
 
   const cauHienTai = danhSachCauHoi[chiSo];
+
+  if (!cauHienTai && !daHoanThanh) {
+    return (
+      <div className="ui-study-empty-wrap">
+        <section className="ui-study-empty-card">
+          <h2 className="ui-study-empty-card__title">Đang cập nhật...</h2>
+        </section>
+      </div>
+    );
+  }
+
   const daTraLoi = dapAnDaChon !== null;
-  const traLoiDung = dapAnDaChon === cauHienTai.dapAnDung;
+  const traLoiDung = dapAnDaChon === cauHienTai?.dapAnDung;
   const tongSoCauHoi = danhSachCauHoi.length;
   const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
 
