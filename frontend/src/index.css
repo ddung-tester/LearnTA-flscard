@@ -3004,8 +3004,8 @@ body.is-page-loading .ui-route-transition {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.6rem;
+  height: 2.6rem;
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -3020,8 +3020,8 @@ body.is-page-loading .ui-route-transition {
 }
 
 .tts-speaker-btn svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.45rem;
+  height: 1.45rem;
   transition: transform 150ms var(--tuong-tac-ease);
 }
 
@@ -3065,14 +3065,14 @@ body.is-page-loading .ui-route-transition {
 /* Corner variant — absolute top-right of parent */
 .tts-speaker-btn--corner {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.75rem;
-  height: 1.75rem;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.4rem;
+  height: 2.4rem;
   z-index: 2;
 }
 
 .tts-speaker-btn--corner svg {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.35rem;
+  height: 1.35rem;
 }

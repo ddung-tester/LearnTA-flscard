@@ -352,6 +352,21 @@ function TrangFlashcard() {
   const theHienTai = danhSach[chiSo];
   const matTruoc = cheDo === "en-vi" ? theHienTai.term_en : theHienTai.meaning_vi;
   const matSau = cheDo === "en-vi" ? theHienTai.meaning_vi : theHienTai.term_en;
+
+  // Auto-play TTS on card change or flip (only for English terms)
+  useEffect(() => {
+    if (!theHienTai) return;
+
+    const isCurrentFaceEnglish = daLat
+      ? cheDo === "vi-en" // matSau is English in vi-en mode
+      : cheDo === "en-vi"; // matTruoc is English in en-vi mode
+
+    if (!isCurrentFaceEnglish) return;
+
+    const textToSpeak = daLat ? matSau : matTruoc;
+    ttsSpeak(textToSpeak, "en-US");
+  }, [chiSo, daLat, cheDo, ttsSpeak, theHienTai, matTruoc, matSau]);
+
   const tienDo = ((chiSo + 1) / danhSach.length) * 100;
   const tienDoAnToan = clampProgressPercent(tienDo);
   const tiLeTienDo = tienDoAnToan / 100;
@@ -462,11 +477,18 @@ function TrangFlashcard() {
         key={`${cheDo}-${chiSo}`}
         className="ui-content-enter ui-flashcard-stage [perspective:1200px] flex-1 min-h-0"
       >
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={latThe}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              latThe();
+            }
+          }}
           aria-pressed={daLat}
-          className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem]"
+          className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
         >
           <motion.div
             className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
@@ -527,7 +549,7 @@ function TrangFlashcard() {
               )}
             </div>
           </motion.div>
-        </button>
+        </div>
       </div>
 
       <div className="ui-flashcard-nav grid grid-cols-2 gap-3 pb-1">

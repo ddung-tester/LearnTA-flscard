@@ -24,6 +24,7 @@ const webSpeechProvider = {
     utterance.lang = lang;
     utterance.rate = rate;
     utterance.pitch = pitch;
+    utterance.volume = 1.0; // Max volume
 
     // Try to pick a good English voice when available
     const voices = window.speechSynthesis.getVoices();
