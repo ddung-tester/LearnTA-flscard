@@ -754,7 +754,7 @@ function TrangTuLuan() {
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-            onClick={() => ttsSpeak(layCauHoi(danhSachThe[chiSo]))}
+            onClick={() => ttsSpeak(layCauHoi(danhSachThe[chiSo]), cheDo === "vi-en" ? "vi-VN" : "en-US")}
             aria-label="Đọc câu hỏi"
             title="Đọc câu hỏi"
           >

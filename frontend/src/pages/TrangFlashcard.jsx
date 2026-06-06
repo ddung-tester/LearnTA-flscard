@@ -8,6 +8,7 @@ import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import useTTS from "../hooks/useTTS";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -44,6 +45,7 @@ function laVungNhapLieu(element) {
 function TrangFlashcard() {
   const { deckId } = useParams();
   const { setPageDataLoading } = usePageTransition();
+  const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
@@ -474,6 +476,22 @@ function TrangFlashcard() {
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9">
+              <button
+                type="button"
+                className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ttsSpeak(matTruoc, cheDo === "en-vi" ? "en-US" : "vi-VN");
+                }}
+                aria-label="Đọc mặt trước"
+                title="Đọc mặt trước"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </svg>
+              </button>
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
                 {matTruoc}
               </span>
@@ -483,6 +501,22 @@ function TrangFlashcard() {
             </div>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9">
+              <button
+                type="button"
+                className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ttsSpeak(matSau, cheDo === "en-vi" ? "vi-VN" : "en-US");
+                }}
+                aria-label="Đọc mặt sau"
+                title="Đọc mặt sau"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </svg>
+              </button>
               <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
                 {matSau}
               </span>

@@ -4,6 +4,7 @@ import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import useTTS from "../hooks/useTTS";
 import {
   laTuMoiThem,
   laTuYeuThich,
@@ -143,6 +144,8 @@ function TrangChiTietBo() {
   const { deckId } = useParams();
   const { navigateWithLoading, setPageDataLoading } = usePageTransition();
   const { isAuthenticated, user } = useAuth();
+  const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
+  const [currentPlayingWordId, setCurrentPlayingWordId] = useState(null);
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSach, setDanhSach] = useState([]);
@@ -965,9 +968,27 @@ function TrangChiTietBo() {
                         {i + 1}
                       </span>
                       <div className="ui-word-pair">
-                        <span className="ui-word-card ui-word-card--term">
-                          {the.term_en}
-                        </span>
+                        <div className="flex items-center gap-1.5 w-full">
+                          <span className="ui-word-card ui-word-card--term flex-1">
+                            {the.term_en}
+                          </span>
+                          <button
+                            type="button"
+                            className={`tts-speaker-btn${ttsDangDoc && currentPlayingWordId === the.id ? " tts-speaker-btn--active" : ""}`}
+                            onClick={() => {
+                              setCurrentPlayingWordId(the.id);
+                              ttsSpeak(the.term_en, "en-US");
+                            }}
+                            aria-label={`Đọc ${the.term_en}`}
+                            title="Đọc từ vựng"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                            </svg>
+                          </button>
+                        </div>
                         <span className="ui-word-card ui-word-card--meaning">
                           {the.meaning_vi}
                         </span>

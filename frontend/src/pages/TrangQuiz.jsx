@@ -10,6 +10,7 @@ import RewardTikTokEffect, {
 import ComboDisplay from "../components/common/ComboDisplay";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
+import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
@@ -130,6 +131,7 @@ function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "qu
 function TrangQuiz() {
   const { deckId } = useParams();
   const { setPageDataLoading } = usePageTransition();
+  const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
@@ -837,8 +839,21 @@ function TrangQuiz() {
 
         <section
           key={cauHienTai.id}
-          className={`ui-question-flow ui-quiz-question-card text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+          className={`ui-question-flow ui-quiz-question-card relative text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
+          <button
+            type="button"
+            className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
+            onClick={() => ttsSpeak(cauHienTai.cauHoi, cheDo === "en-vi" ? "en-US" : "vi-VN")}
+            aria-label="Đọc câu hỏi"
+            title="Đọc câu hỏi"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </button>
           <h2 className="text-3xl font-semibold text-[var(--mau-chu)] sm:text-[2.25rem] leading-snug">
             {cauHienTai.cauHoi}
           </h2>
