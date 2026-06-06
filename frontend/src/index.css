@@ -2996,3 +2996,83 @@ body.is-page-loading .ui-route-transition {
   50%       { opacity: 0; }
 }
 
+/* =========================
+   TTS Speaker Button
+   ========================= */
+
+.tts-speaker-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--mau-chu-phu);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--tuong-tac-hover) var(--tuong-tac-ease),
+    background-color var(--tuong-tac-hover) var(--tuong-tac-ease),
+    transform 120ms var(--tuong-tac-ease-soft);
+}
+
+.tts-speaker-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  transition: transform 150ms var(--tuong-tac-ease);
+}
+
+@media (hover: hover) {
+  .tts-speaker-btn:hover {
+    color: var(--mau-chinh);
+    background: oklch(55% 0.105 164 / 0.1);
+    transform: scale(1.08);
+  }
+
+  .tts-speaker-btn:hover svg {
+    transform: scale(1.06);
+  }
+}
+
+.tts-speaker-btn:active {
+  transform: scale(0.92);
+}
+
+.tts-speaker-btn--active {
+  color: var(--mau-chinh);
+  animation: tts-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tts-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(1.12);
+  }
+}
+
+.tts-speaker-btn--active:active {
+  animation: none;
+  transform: scale(0.92);
+}
+
+/* Corner variant — absolute top-right of parent */
+.tts-speaker-btn--corner {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  z-index: 2;
+}
+
+.tts-speaker-btn--corner svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}

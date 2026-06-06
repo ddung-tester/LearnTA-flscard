@@ -410,6 +410,7 @@ body.has-video-background--app .ui-button--primary:hover {
 body.has-video-background--app .ui-button--ghost,
 body.has-video-background--app .ui-back-link,
 body.has-video-background--app .ui-study-back-link,
+body.has-video-background--app .ui-back-btn,
 body.has-video-background--app .ui-icon-action,
 body.has-video-background--app .ui-filter-tabs,
 body.has-video-background--app .ui-mode-switch,
@@ -424,6 +425,7 @@ body.has-video-background--app .ui-mode-rotate-button {
 
 body.has-video-background--app .ui-back-link:hover,
 body.has-video-background--app .ui-study-back-link:hover,
+body.has-video-background--app .ui-back-btn:hover,
 body.has-video-background--app .ui-button--ghost:hover,
 body.has-video-background--app .ui-icon-action:hover,
 body.has-video-background--app .ui-mode-rotate-button:hover {

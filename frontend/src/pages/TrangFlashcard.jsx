@@ -374,9 +374,9 @@ function TrangFlashcard() {
         <div>
           <Link
             to={`/decks/${boId}`}
-            className="ui-study-back-link"
+            className="ui-back-btn"
           >
-            &larr; {bo.title}
+            <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
         </div>
         <div className="ui-control-cluster">

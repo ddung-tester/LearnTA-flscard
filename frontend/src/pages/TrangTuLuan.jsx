@@ -6,6 +6,7 @@ import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTi
 import ComboDisplay from "../components/common/ComboDisplay";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
+import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
 import RewardProgressBar from "../components/common/RewardProgressBar";
@@ -101,6 +102,7 @@ function TrangTuLuan() {
   const questionTransitionTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
+  const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
 
@@ -651,7 +653,9 @@ function TrangTuLuan() {
       <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
-          <Link to={`/decks/${boId}`} className="ui-study-back-link">&larr; {bo.title}</Link>
+          <Link to={`/decks/${boId}`} className="ui-back-btn">
+            <span className="ui-back-btn__arrow">&larr;</span> Trở về
+          </Link>
           <StudySettingsPopover label="Cài đặt tự luận">
             <section className="ui-settings-popover__section">
               <p className="ui-settings-popover__title">Học tập</p>
@@ -745,8 +749,21 @@ function TrangTuLuan() {
         {/* Card câu hỏi */}
         <section
           key={danhSachThe[chiSo]?.id}
-          className={`ui-question-flow mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+          className={`ui-question-flow relative mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
+          <button
+            type="button"
+            className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
+            onClick={() => ttsSpeak(layCauHoi(danhSachThe[chiSo]))}
+            aria-label="Đọc câu hỏi"
+            title="Đọc câu hỏi"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </button>
           <h2 className="text-3xl font-semibold text-[var(--mau-chu)] sm:text-[2.25rem] leading-snug">
             {layCauHoi(danhSachThe[chiSo])}
           </h2>

@@ -741,9 +741,9 @@ function TrangQuiz() {
         <div className="ui-study-toolbar mb-6">
           <Link
             to={`/decks/${boId}`}
-            className="ui-study-back-link"
+            className="ui-back-btn"
           >
-            &larr; {bo.title}
+            <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
           <StudySettingsPopover label="Cài đặt trắc nghiệm">
             <section className="ui-settings-popover__section">
