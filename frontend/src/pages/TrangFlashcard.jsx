@@ -171,9 +171,10 @@ function TrangFlashcard() {
 
       if (diemMoi % CAU_HINH_REWARD_QUIZ.triggerCount === 0) {
         xoaTimerReward();
-        rewardTimerRef.current = setTimeout(() => {
+        rewardTimerRef.current = window.setTimeout(() => {
           setLanReward((lanHienTai) => lanHienTai + 1);
           setHienReward(true);
+          rewardTimerRef.current = null;
         }, 560);
       }
 

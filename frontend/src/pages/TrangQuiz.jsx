@@ -154,7 +154,7 @@ function TrangQuiz() {
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
   const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
-  const [rewardProgressValue, setRewardProgressValue] = useState(0);
+  const [, setRewardProgressValue] = useState(0);
   const [dangChuyenCau, setDangChuyenCau] = useState(false);
   const [dangChoReward, setDangChoReward] = useState(false);
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
@@ -164,6 +164,7 @@ function TrangQuiz() {
   const rewardLaunchTimerRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
+  const postRewardContinueTimerRef = useRef(null);
   const [studySessionId, setStudySessionId] = useState(null);
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
@@ -269,8 +270,16 @@ function TrangQuiz() {
     }
   }
 
+  function xoaTimerSauReward() {
+    if (postRewardContinueTimerRef.current) {
+      clearTimeout(postRewardContinueTimerRef.current);
+      postRewardContinueTimerRef.current = null;
+    }
+  }
+
   function datLaiProgressReward() {
     xoaTimerProgressReward();
+    xoaTimerSauReward();
     setDangChoReward(false);
     setRewardProgressPhase("idle");
     setRewardProgressValue(0);
@@ -294,6 +303,7 @@ function TrangQuiz() {
       setDangChoReward(false);
       rewardProgressTimerRef.current = setTimeout(() => {
         setRewardProgressPhase("idle");
+        rewardProgressTimerRef.current = null;
       }, 680);
       return;
     }
@@ -303,6 +313,7 @@ function TrangQuiz() {
       setRewardProgressPhase("beamLaunch");
       setLanReward((lanHienTai) => lanHienTai + 1);
       setHienReward(true);
+      rewardLaunchTimerRef.current = null;
     }, 560);
   }
 
@@ -314,11 +325,14 @@ function TrangQuiz() {
       setRewardProgressPhase("idle");
       setRewardProgressValue(0);
       rewardProgressValueRef.current = 0;
+      rewardProgressTimerRef.current = null;
     }, 780);
 
     if (dapAnDaChon !== null) {
-      window.setTimeout(() => {
+      xoaTimerSauReward();
+      postRewardContinueTimerRef.current = window.setTimeout(() => {
         chuyenCauMem({ boQuaKhoaReward: true });
+        postRewardContinueTimerRef.current = null;
       }, 80);
     }
   }
@@ -326,6 +340,7 @@ function TrangQuiz() {
   useEffect(
     () => () => {
       xoaTimerProgressReward();
+      xoaTimerSauReward();
     },
     []
   );

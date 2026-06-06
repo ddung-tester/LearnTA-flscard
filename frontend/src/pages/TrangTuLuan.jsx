@@ -53,6 +53,27 @@ function taoGoiYDapAn(dapAn) {
   return ketQua;
 }
 
+function taoSoTuSeed(seed) {
+  let hash = 2166136261;
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${item}`) {
+  return [...danhSach]
+    .map((item, index) => ({
+      item,
+      thuTu: taoSoTuSeed(`${seed}-${layKhoa(item, index)}`),
+    }))
+    .sort((a, b) => a.thuTu - b.thuTu)
+    .map(({ item }) => item);
+}
+
 function TrangTuLuan() {
   const { deckId } = useParams();
   const { setPageDataLoading } = usePageTransition();
@@ -70,6 +91,7 @@ function TrangTuLuan() {
     CAU_HINH_REWARD_QUIZ.triggerCount
   );
   const [batRandom, setBatRandom] = useState(false);
+  const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
   const [chiSo, setChiSo] = useState(0);
@@ -93,13 +115,16 @@ function TrangTuLuan() {
 
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
-  const [rewardProgressValue, setRewardProgressValue] = useState(0);
+  const [, setRewardProgressValue] = useState(0);
   const [studySessionId, setStudySessionId] = useState(null);
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
 
   const inputRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
+  const wrongAnswerTimerRef = useRef(null);
+  const postRewardContinueTimerRef = useRef(null);
+  const focusTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
@@ -141,9 +166,17 @@ function TrangTuLuan() {
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   useEffect(() => {
+    xoaTatCaTimerTuLuan();
     let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
-    // Shuffle chỉ khi batRandom bật, giữ nguyên thứ tự khi tắt
-    setDanhSachThe(batRandom ? [...ds].sort(() => Math.random() - 0.5) : [...ds]);
+    setDanhSachThe(
+      batRandom
+        ? tronMangOnDinh(
+          ds,
+          `written-${boId}-${lanTronTuLuan}`,
+          (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
+        )
+        : [...ds]
+    );
     setChiSo(0);
     setSoCauDung(0);
     setDaHoanThanh(false);
@@ -159,7 +192,7 @@ function TrangTuLuan() {
     setLoiLuuKetQua("");
     daLuuKetQuaRef.current = false;
     resetAll();
-  }, [boId, lanLam, chiHocTuYeuThich, batRandom, danhSachGoc]);
+  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc]);
 
   useEffect(() => {
     if (!bo || danhSachThe.length === 0 || daHoanThanh) return;
@@ -196,8 +229,77 @@ function TrangTuLuan() {
   ]);
 
 
-  function xoaTimerProgressReward() { if (rewardProgressTimerRef.current) clearTimeout(rewardProgressTimerRef.current); }
-  function xoaTimerChuyenCau() { if (questionTransitionTimerRef.current) clearTimeout(questionTransitionTimerRef.current); }
+  function xoaTimerProgressReward() {
+    if (rewardProgressTimerRef.current) {
+      clearTimeout(rewardProgressTimerRef.current);
+      rewardProgressTimerRef.current = null;
+    }
+  }
+
+  function xoaTimerChuyenCau() {
+    if (questionTransitionTimerRef.current) {
+      clearTimeout(questionTransitionTimerRef.current);
+      questionTransitionTimerRef.current = null;
+    }
+  }
+
+  function xoaTimerTraLoiSai() {
+    if (wrongAnswerTimerRef.current) {
+      clearTimeout(wrongAnswerTimerRef.current);
+      wrongAnswerTimerRef.current = null;
+    }
+
+    dangCooldownSaiRef.current = false;
+  }
+
+  function xoaTimerSauReward() {
+    if (postRewardContinueTimerRef.current) {
+      clearTimeout(postRewardContinueTimerRef.current);
+      postRewardContinueTimerRef.current = null;
+    }
+  }
+
+  function xoaTimerFocusInput() {
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
+  }
+
+  function focusInputTre(delay = 50) {
+    xoaTimerFocusInput();
+    focusTimerRef.current = window.setTimeout(() => {
+      inputRef.current?.focus();
+      focusTimerRef.current = null;
+    }, delay);
+  }
+
+  function xoaTatCaTimerTuLuan() {
+    xoaTimerProgressReward();
+    xoaTimerChuyenCau();
+    xoaTimerTraLoiSai();
+    xoaTimerSauReward();
+    xoaTimerFocusInput();
+  }
+
+  useEffect(
+    () => () => {
+      [
+        rewardProgressTimerRef,
+        questionTransitionTimerRef,
+        wrongAnswerTimerRef,
+        postRewardContinueTimerRef,
+        focusTimerRef,
+      ].forEach((timerRef) => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      });
+      dangCooldownSaiRef.current = false;
+    },
+    []
+  );
 
   function batDauTienTrinhReward(giaTri, coReward) {
     xoaTimerProgressReward();
@@ -210,15 +312,17 @@ function TrangTuLuan() {
       setDangChoReward(false);
     }
 
-    rewardProgressTimerRef.current = setTimeout(() => {
+    rewardProgressTimerRef.current = window.setTimeout(() => {
       if (coReward) {
         setRewardProgressPhase("beamLaunch");
-        rewardProgressTimerRef.current = setTimeout(() => {
+        rewardProgressTimerRef.current = window.setTimeout(() => {
           setHienReward(true);
           setLanReward(prev => prev + 1);
+          rewardProgressTimerRef.current = null;
         }, 600);
       } else {
         setRewardProgressPhase("idle");
+        rewardProgressTimerRef.current = null;
       }
     }, 450);
   }
@@ -227,9 +331,10 @@ function TrangTuLuan() {
     xoaTimerProgressReward();
     setDangChoReward(false);
     setRewardProgressPhase("rewardComplete");
-    rewardProgressTimerRef.current = setTimeout(() => {
+    rewardProgressTimerRef.current = window.setTimeout(() => {
       setRewardProgressPhase("idle");
       setRewardProgressValue(0);
+      rewardProgressTimerRef.current = null;
     }, 780);
 
     if (ketQuaDung && chiSo + 1 >= danhSachThe.length) {
@@ -246,8 +351,10 @@ function TrangTuLuan() {
     }
 
     if (ketQuaDung) {
-      window.setTimeout(() => {
+      xoaTimerSauReward();
+      postRewardContinueTimerRef.current = window.setTimeout(() => {
         chuyenCauMem({ boQuaKhoaReward: true });
+        postRewardContinueTimerRef.current = null;
       }, 80);
     }
   }
@@ -263,7 +370,7 @@ function TrangTuLuan() {
       return undefined;
     }
 
-    const timer = setTimeout(() => chuyenCauMem(), lanReward > 0 ? 1000 : 2000);
+    const timer = window.setTimeout(() => chuyenCauMem(), lanReward > 0 ? 1000 : 2000);
     return () => clearTimeout(timer);
   }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward]);
 
@@ -327,6 +434,16 @@ function TrangTuLuan() {
 
   function layCauHoi(the) { return the ? (cheDo === "vi-en" ? the.meaning_vi : the.term_en) : ""; }
   function layDapAnDung(the) { return the ? (cheDo === "vi-en" ? the.term_en : the.meaning_vi) : ""; }
+  function layNgonNguCauHoi() { return cheDo === "vi-en" ? "vi-VN" : "en-US"; }
+  function layNgonNguDapAn() { return cheDo === "vi-en" ? "en-US" : "vi-VN"; }
+
+  function docCauHoiHienTai() {
+    ttsSpeak(layCauHoi(danhSachThe[chiSo]), layNgonNguCauHoi());
+  }
+
+  function docDapAnDungHienTai() {
+    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
+  }
 
   function capNhatCauTraLoi(value) {
     setCauTraLoi(value);
@@ -395,12 +512,14 @@ function TrangTuLuan() {
       setHienCanhBaoNhap(false);
       setShakeKey((k) => k + 1);
       resetCombo();
+      xoaTimerTraLoiSai();
       dangCooldownSaiRef.current = true;
-      setTimeout(() => {
+      wrongAnswerTimerRef.current = window.setTimeout(() => {
         setCauTraLoi("");
         setDaKiemTra(false);
         dangCooldownSaiRef.current = false;
         inputRef.current?.focus();
+        wrongAnswerTimerRef.current = null;
       }, 700);
     }
   }
@@ -413,7 +532,7 @@ function TrangTuLuan() {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     resetCombo();
-    setTimeout(() => inputRef.current?.focus(), 50);
+    focusInputTre();
   }
 
   function tiepTucSauXemDapAn() {
@@ -436,7 +555,7 @@ function TrangTuLuan() {
       setHienCanhBaoNhap(false);
       setCauTraLoi("");
       setShakeKey((k) => k + 1);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      focusInputTre();
       return;
     }
 
@@ -489,12 +608,14 @@ function TrangTuLuan() {
 
     xoaTimerChuyenCau();
     setDangChuyenCau(true);
-    questionTransitionTimerRef.current = setTimeout(() => {
+    questionTransitionTimerRef.current = window.setTimeout(() => {
       sangCauTiepTheo({ boQuaCau });
+      questionTransitionTimerRef.current = null;
     }, 220);
   }
 
   function lamLai() {
+    xoaTatCaTimerTuLuan();
     setLanLam((g) => g + 1);
     setChiSo(0);
     setCauTraLoi("");
@@ -515,6 +636,7 @@ function TrangTuLuan() {
   }
 
   function doiCheDoHoc(key) {
+    if (key === cheDo) return;
     setCheDo(key);
     lamLai();
   }
@@ -534,22 +656,38 @@ function TrangTuLuan() {
   }
 
   function doiRandom() {
-    setBatRandom((prev) => !prev);
-    // useEffect [batRandom] sẽ tự reset danh sách
+    xoaTatCaTimerTuLuan();
+    setBatRandom((prev) => {
+      const moi = !prev;
+      if (moi) setLanTronTuLuan((lanHienTai) => lanHienTai + 1);
+      return moi;
+    });
   }
 
   function capNhatMocReward(e) {
     const v = Math.max(1, Number(e.target.value) || 1);
+    xoaTimerProgressReward();
     setSoCauDungNhanThuong(v);
+    setDangChoReward(false);
+    setHienReward(false);
+    setRewardProgressPhase("idle");
+    setRewardProgressValue(0);
   }
 
   function doiChiHocTuYeuThich() {
+    xoaTatCaTimerTuLuan();
     setChiHocTuYeuThich(p => !p);
     setLanLam(g => g + 1);
     setChiSo(0);
     setSoCauDung(0);
     setDaHoanThanh(false);
+    setDaBoQua(false);
+    setDaKiemTra(false);
+    setKetQuaDung(false);
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
     setDangChoReward(false);
+    setHienReward(false);
     resetAll();
   }
 
@@ -582,16 +720,41 @@ function TrangTuLuan() {
 
   if (!bo) return null;
 
-  if (danhSachGoc.length === 0 || danhSachThe.length === 0) return (
-    <div className="ui-study-empty-wrap">
-      <section className="ui-study-empty-card">
-        <h2 className="ui-study-empty-card__title">Bộ từ này chưa có từ nào</h2>
-        <div className="ui-study-empty-card__actions">
-          <Link to={`/decks/${boId}`} className="ui-button ui-button--primary ui-study-empty-card__button">Quay lại bộ từ</Link>
-        </div>
-      </section>
-    </div>
-  );
+  if (danhSachGoc.length === 0 || danhSachThe.length === 0) {
+    const dangThieuTuYeuThich = chiHocTuYeuThich && danhSachGoc.length > 0;
+
+    return (
+      <div className="ui-study-empty-wrap">
+        <section className="ui-study-empty-card">
+          <h2 className="ui-study-empty-card__title">
+            {dangThieuTuYeuThich ? "Chưa có từ yêu thích" : "Bộ từ này chưa có từ nào"}
+          </h2>
+          <p className="ui-study-empty-card__copy">
+            {dangThieuTuYeuThich
+              ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học tự luận."
+              : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
+          </p>
+          <div className="ui-study-empty-card__actions">
+            {dangThieuTuYeuThich && (
+              <button
+                type="button"
+                onClick={doiChiHocTuYeuThich}
+                className="ui-button ui-button--ghost ui-study-empty-card__button"
+              >
+                Tắt lọc yêu thích
+              </button>
+            )}
+            <Link
+              to={`/decks/${boId}`}
+              className="ui-button ui-button--primary ui-study-empty-card__button"
+            >
+              Quay lại bộ từ
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (daHoanThanh) {
     return (
@@ -764,7 +927,7 @@ function TrangTuLuan() {
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-            onClick={() => ttsSpeak(layCauHoi(danhSachThe[chiSo]), cheDo === "vi-en" ? "vi-VN" : "en-US")}
+            onClick={docCauHoiHienTai}
             aria-label="Đọc câu hỏi"
             title="Đọc câu hỏi"
           >
@@ -812,7 +975,8 @@ function TrangTuLuan() {
 
           <AnimatePresence initial={false} mode="wait">
             {daBoQua ? (
-              <motion.div
+              <motion.button
+                type="button"
                 key="answer"
                 layout
                 initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
@@ -820,8 +984,18 @@ function TrangTuLuan() {
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 style={{ originY: 0 }}
-                className="overflow-hidden rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-4 py-3 text-center"
+                onClick={docDapAnDungHienTai}
+                className="relative w-full overflow-hidden rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-4 py-3 pr-12 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                aria-label={`Đọc đáp án ${layDapAnDung(danhSachThe[chiSo])}`}
+                title="Đọc đáp án"
               >
+                <span className="pointer-events-none absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--mau-chinh)]">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                </span>
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mau-chinh)]">
                   Đáp án
                 </p>
@@ -831,7 +1005,7 @@ function TrangTuLuan() {
                 >
                   {layDapAnDung(danhSachThe[chiSo])}
                 </span>
-              </motion.div>
+              </motion.button>
             ) : hienGoiY && !ketQuaDung ? (
               <motion.div
                 key="hint"
