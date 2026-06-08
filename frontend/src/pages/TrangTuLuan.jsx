@@ -374,6 +374,15 @@ function TrangTuLuan() {
     return () => clearTimeout(timer);
   }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward]);
 
+  // Tự động đọc đáp án đúng qua TTS khi trả lời chính xác
+  useEffect(() => {
+    if (!daKiemTra || !ketQuaDung || !danhSachThe[chiSo]) return;
+    const dapAn = cheDo === "vi-en" ? danhSachThe[chiSo].term_en : danhSachThe[chiSo].meaning_vi;
+    const ngonNgu = cheDo === "vi-en" ? "en-US" : "vi-VN";
+    ttsSpeak(dapAn, ngonNgu);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daKiemTra, ketQuaDung, chiSo]);
+
   useEffect(() => {
     if (!bo || !daHoanThanh || danhSachThe.length === 0) return;
     if (daLuuKetQuaRef.current) return;

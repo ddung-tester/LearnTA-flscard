@@ -100,33 +100,28 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
     }
 
     if (ctx && buffer && ctx.state !== "closed") {
-      try {
-        if (ctx.state === "suspended") {
-          pendingResumeRef.current ||= ctx
-            .resume()
-            .catch((error) => {
-              canhBaoAmThanh("Khong resume duoc AudioContext truoc khi phat.", error);
-            })
-            .finally(() => {
-              pendingResumeRef.current = null;
-            });
-
-          pendingResumeRef.current.then(() => {
-            try {
-              playDecodedBuffer();
-            } catch (error) {
-              canhBaoAmThanh(`Khong phat duoc decoded buffer ${src}.`, error);
-            }
+      if (ctx.state === "suspended") {
+        // Khởi động resume bất đồng bộ để các lần phát tiếp theo dùng web audio.
+        // Không chờ resume — fall through xuống HTML audio để phát ngay lập tức,
+        // tránh delay khi tab vừa được kích hoạt lại.
+        pendingResumeRef.current ||= ctx
+          .resume()
+          .catch((error) => {
+            canhBaoAmThanh("Khong resume duoc AudioContext truoc khi phat.", error);
+          })
+          .finally(() => {
+            pendingResumeRef.current = null;
           });
-          return;
+      } else {
+        try {
+          if (playDecodedBuffer()) return;
+        } catch (error) {
+          canhBaoAmThanh(`Khong phat duoc decoded buffer ${src}.`, error);
         }
-
-        if (playDecodedBuffer()) return;
-      } catch (error) {
-        canhBaoAmThanh(`Khong phat duoc decoded buffer ${src}.`, error);
       }
     }
 
+    // HTML audio: phát ngay (fallback khi ctx bị suspended hoặc buffer chưa decode xong)
     const audio = htmlAudioRef.current;
     if (!audio) return;
 

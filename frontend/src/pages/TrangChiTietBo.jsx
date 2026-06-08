@@ -321,6 +321,27 @@ function TrangChiTietBo() {
     setDangMoImport(false);
   }
 
+  function hoiDoiTu() {
+    setFormTu((prev) => ({ ...prev, word: prev.meaning, meaning: prev.word }));
+  }
+
+  async function hoiDoiNghiaTrongThe(the) {
+    if (!yeuCauCheDoChinhSua()) return;
+    try {
+      const cardDaLuu = await capNhatCard(the.id, {
+        term_en: the.meaning_vi,
+        meaning_vi: the.term_en,
+        example_sentence: the.example_sentence || "",
+      });
+      setDanhSach((hienTai) =>
+        hienTai.map((item) => (item.id === the.id ? cardDaLuu : item))
+      );
+      showSuccess("Đã hoán đổi");
+    } catch (error) {
+      setToast(error.message);
+    }
+  }
+
   function capNhatFormTu(event) {
     const { name, value } = event.target;
     setFormTu((hienTai) => ({
@@ -967,7 +988,7 @@ function TrangChiTietBo() {
                       <span className="ui-word-index">
                         {i + 1}
                       </span>
-                      <div className="ui-word-pair">
+                      <div className={`ui-word-pair${dangBatChinhSua ? " ui-word-pair--editing" : ""}`}>
                         <div className="flex items-center gap-1.5 w-full">
                           <span className="ui-word-card ui-word-card--term flex-1">
                             {the.term_en}
@@ -989,6 +1010,20 @@ function TrangChiTietBo() {
                             </svg>
                           </button>
                         </div>
+                        {dangBatChinhSua && (
+                          <button
+                            type="button"
+                            onClick={() => hoiDoiNghiaTrongThe(the)}
+                            title="Hoán đổi từ ↔ nghĩa"
+                            aria-label={`Hoán đổi "${the.term_en}" và "${the.meaning_vi}"`}
+                            className="inline-flex h-7 w-7 flex-shrink-0 self-center items-center justify-center rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chinh)] transition-all hover:border-[var(--mau-chinh)] hover:bg-[var(--mau-mat-hover)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] active:scale-95"
+                          >
+                            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2 7h18M16 3l4 4-4 4" />
+                              <path d="M22 17H4M8 21l-4-4 4-4" />
+                            </svg>
+                          </button>
+                        )}
                         <span className="ui-word-card ui-word-card--meaning">
                           {the.meaning_vi}
                         </span>
@@ -1113,8 +1148,8 @@ function TrangChiTietBo() {
         </div>
 
         <form onSubmit={luuTu} className="space-y-4">
-          <div className="ui-word-form-grid">
-            <div className="ui-word-input-card">
+          <div className="flex items-stretch gap-2">
+            <div className="ui-word-input-card flex-1 min-w-0">
               <label htmlFor="word" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
                 Từ vựng
               </label>
@@ -1131,7 +1166,22 @@ function TrangChiTietBo() {
               />
             </div>
 
-            <div className="ui-word-input-card">
+            <div className="flex items-center justify-center flex-shrink-0 pt-6">
+              <button
+                type="button"
+                onClick={hoiDoiTu}
+                title="Hoán đổi từ vựng và nghĩa"
+                aria-label="Hoán đổi từ vựng và nghĩa"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chinh)] shadow-sm transition-all hover:border-[var(--mau-chinh)] hover:bg-[var(--mau-mat-hover)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] active:scale-95"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 7h18M16 3l4 4-4 4" />
+                  <path d="M22 17H4M8 21l-4-4 4-4" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="ui-word-input-card flex-1 min-w-0">
               <label htmlFor="meaning" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
                 Ý nghĩa
               </label>

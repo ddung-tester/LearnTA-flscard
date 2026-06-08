@@ -1896,6 +1896,11 @@ body.is-page-loading .ui-route-transition {
   flex: 1 1 auto;
 }
 
+.ui-word-pair--editing {
+  grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr);
+  align-items: center;
+}
+
 .ui-word-form-grid {
   display: grid;
   min-width: 0;
