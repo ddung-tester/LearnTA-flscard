@@ -34,7 +34,7 @@ function taoGoiYDapAn(dapAn) {
 
   // Tính 30% tổng số ký tự (không đếm khoảng trắng), tối thiểu 1
   const soKyTuKhongTrang = text.replace(/\s/g, "").length;
-  const soKyTuGoiY = Math.max(1, Math.ceil(soKyTuKhongTrang * 0.3));
+  const soKyTuGoiY = Math.max(1, Math.ceil(soKyTuKhongTrang * 0.4));
   let soKyTuDaHien = 0;
 
   let ketQua = "";
@@ -454,9 +454,48 @@ function TrangTuLuan() {
     ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
   }
 
+  function xoaTrangThaiTraLoiSai() {
+    if (!daKiemTra || ketQuaDung) return;
+    xoaTimerTraLoiSai();
+    setDaKiemTra(false);
+    setKetQuaDung(false);
+  }
+
   function capNhatCauTraLoi(value) {
+    if (daKiemTra && !ketQuaDung) {
+      xoaTrangThaiTraLoiSai();
+    }
     setCauTraLoi(value);
     if (value.trim()) setHienCanhBaoNhap(false);
+  }
+
+  function xuLyPhimNhanInput(event) {
+    if (!daKiemTra || ketQuaDung) return;
+    if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+
+    if (event.key === "Backspace" || event.key === "Delete") {
+      event.preventDefault();
+      xoaTrangThaiTraLoiSai();
+      setCauTraLoi("");
+      return;
+    }
+
+    if (event.key.length === 1) {
+      event.preventDefault();
+      xoaTrangThaiTraLoiSai();
+      setCauTraLoi(event.key);
+      if (event.key.trim()) setHienCanhBaoNhap(false);
+    }
+  }
+
+  function xuLyDanInput(event) {
+    if (!daKiemTra || ketQuaDung) return;
+
+    event.preventDefault();
+    xoaTrangThaiTraLoiSai();
+    const duLieuDan = event.clipboardData?.getData("text") ?? "";
+    setCauTraLoi(duLieuDan);
+    if (duLieuDan.trim()) setHienCanhBaoNhap(false);
   }
 
   function kiemTraDapAn(event) {
@@ -469,7 +508,7 @@ function TrangTuLuan() {
     }
 
     if (
-      (daKiemTra && ketQuaDung) ||
+      daKiemTra ||
       hienReward ||
       dangChoReward ||
       dangChuyenCau ||
@@ -521,15 +560,6 @@ function TrangTuLuan() {
       setHienCanhBaoNhap(false);
       setShakeKey((k) => k + 1);
       resetCombo();
-      xoaTimerTraLoiSai();
-      dangCooldownSaiRef.current = true;
-      wrongAnswerTimerRef.current = window.setTimeout(() => {
-        setCauTraLoi("");
-        setDaKiemTra(false);
-        dangCooldownSaiRef.current = false;
-        inputRef.current?.focus();
-        wrongAnswerTimerRef.current = null;
-      }, 700);
     }
   }
 
@@ -578,6 +608,7 @@ function TrangTuLuan() {
         dung: false,
       },
     ]);
+    ttsSpeak(dapAnDung, layNgonNguDapAn());
     setDaKiemTra(false);
     setKetQuaDung(false);
     setHienCanhBaoNhap(false);
@@ -967,7 +998,9 @@ function TrangTuLuan() {
               ref={inputRef}
               type="text"
               value={cauTraLoi}
+              onKeyDown={xuLyPhimNhanInput}
               onChange={(e) => capNhatCauTraLoi(e.target.value)}
+              onPaste={xuLyDanInput}
               disabled={daKiemTra && ketQuaDung}
               placeholder="Nhập đáp án..."
               className={`ui-written-answer-input ${daBoQua || (daKiemTra && !ketQuaDung) ? "ui-written-answer-input--answer-review" : ""} w-full rounded-xl border p-4 text-xl outline-none ${
