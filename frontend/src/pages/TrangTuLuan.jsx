@@ -94,6 +94,7 @@ function TrangTuLuan() {
   const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
+  const [tongSoCauMucTieu, setTongSoCauMucTieu] = useState(0);
   const [chiSo, setChiSo] = useState(0);
   const [cauTraLoi, setCauTraLoi] = useState("");
   const [daKiemTra, setDaKiemTra] = useState(false);
@@ -168,6 +169,7 @@ function TrangTuLuan() {
   useEffect(() => {
     xoaTatCaTimerTuLuan();
     let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
+    setTongSoCauMucTieu(ds.length);
     setDanhSachThe(
       batRandom
         ? tronMangOnDinh(
@@ -195,7 +197,7 @@ function TrangTuLuan() {
   }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc]);
 
   useEffect(() => {
-    if (!bo || danhSachThe.length === 0 || daHoanThanh) return;
+    if (!bo || tongSoCauMucTieu === 0 || daHoanThanh) return;
 
     let daHuy = false;
 
@@ -205,7 +207,7 @@ function TrangTuLuan() {
       direction: cheDo,
       only_favorite: chiHocTuYeuThich,
       random_order: batRandom,
-      total: danhSachThe.length,
+      total: tongSoCauMucTieu,
     })
       .then((session) => {
         if (!daHuy) setStudySessionId(session.id);
@@ -224,7 +226,7 @@ function TrangTuLuan() {
     chiHocTuYeuThich,
     batRandom,
     lanLam,
-    danhSachThe.length,
+    tongSoCauMucTieu,
     daHoanThanh,
   ]);
 
@@ -384,13 +386,13 @@ function TrangTuLuan() {
   }, [daKiemTra, ketQuaDung, chiSo]);
 
   useEffect(() => {
-    if (!bo || !daHoanThanh || danhSachThe.length === 0) return;
+    if (!bo || !daHoanThanh || tongSoCauMucTieu === 0) return;
     if (daLuuKetQuaRef.current) return;
 
     daLuuKetQuaRef.current = true;
 
     async function luuKetQuaLenBackend() {
-      const total = danhSachThe.length;
+      const total = tongSoCauMucTieu;
       const review = total - soCauDung;
       const answers = danhSachKetQua.map((ketQua) => ({
         card_id: ketQua.id,
@@ -435,10 +437,10 @@ function TrangTuLuan() {
     cheDo,
     daHoanThanh,
     danhSachKetQua,
-    danhSachThe.length,
     maxCombo,
     soCauDung,
     studySessionId,
+    tongSoCauMucTieu,
   ]);
 
   function layCauHoi(the) { return the ? (cheDo === "vi-en" ? the.meaning_vi : the.term_en) : ""; }
@@ -452,6 +454,17 @@ function TrangTuLuan() {
 
   function docDapAnDungHienTai() {
     ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
+  }
+
+  function chenLaiTheSauBaCau(theCanLap) {
+    setDanhSachThe((danhSachHienTai) => {
+      if (!theCanLap || danhSachHienTai.length === 0) return danhSachHienTai;
+
+      const viTriChen = Math.min(danhSachHienTai.length, chiSo + 4);
+      const danhSachMoi = [...danhSachHienTai];
+      danhSachMoi.splice(viTriChen, 0, theCanLap);
+      return danhSachMoi;
+    });
   }
 
   function xoaTrangThaiTraLoiSai() {
@@ -608,7 +621,8 @@ function TrangTuLuan() {
         dung: false,
       },
     ]);
-    ttsSpeak(dapAnDung, layNgonNguDapAn());
+    chenLaiTheSauBaCau(theHienTai);
+    setDaBoQua(false);
     setDaKiemTra(false);
     setKetQuaDung(false);
     setHienCanhBaoNhap(false);
@@ -823,7 +837,7 @@ function TrangTuLuan() {
               <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
                 <p className="ui-stat-label mb-1">Tổng câu</p>
                 <p className="ui-stat-value text-[var(--mau-chu)]">
-                  {danhSachThe.length}
+                  {tongSoCauMucTieu}
                 </p>
               </div>
               <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
@@ -848,7 +862,7 @@ function TrangTuLuan() {
     );
   }
 
-  const tongSoCauHoi = danhSachThe.length;
+  const tongSoCauHoi = tongSoCauMucTieu;
   const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
 
   if (!danhSachThe[chiSo] && !daHoanThanh) {
