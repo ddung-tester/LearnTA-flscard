@@ -14,6 +14,10 @@ import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { ketThucStudySession, taoStudySession } from "../services/studyApi";
+import {
+  clampProgressPercent,
+  getProgressColor,
+} from "../utils/progressColor";
 
 const DS_CHE_DO = [
   {
@@ -216,6 +220,11 @@ function TrangFlashcard() {
     total: tienTrinh.totalValue,
     is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
   }));
+  const tienDoAnToan = clampProgressPercent(
+    tongSoTheMucTieu > 0 ? (soTheDaHoanTat / tongSoTheMucTieu) * 100 : 0
+  );
+  const tiLeTienDo = tienDoAnToan / 100;
+  const mauTienDo = getProgressColor(tienDoAnToan);
 
   useEffect(() => {
     const cacTienTrinh = taoDanhSachTienTrinh(danhSach.length);
