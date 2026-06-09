@@ -35,6 +35,10 @@ function normalizeSession(row) {
     review: row.review || 0,
     xp_earned: row.xp_earned || 0,
     max_combo: row.max_combo || 0,
+    segment_size: row.segment_size || 0,
+    segment_total: row.segment_total || 0,
+    segment_completed: row.segment_completed || 0,
+    progress_segments: parseStoredJson(row.progress_segments),
   };
 }
 
@@ -49,6 +53,7 @@ function normalizeAnswer(row) {
     correct_answer: row.correct_answer,
     user_answer: row.user_answer,
     is_correct: Boolean(row.is_correct),
+    answer_meta: parseStoredJson(row.answer_meta),
     answered_at: row.answered_at,
   };
 }
@@ -65,6 +70,7 @@ function normalizeQuizResult(row) {
     correct: row.correct || 0,
     review: row.review || 0,
     total: row.total || 0,
+    progress_segments: parseStoredJson(row.progress_segments),
     created_at: row.created_at,
   };
 }
@@ -77,6 +83,7 @@ function createUnsavedQuizResult({
   correct,
   review,
   total,
+  progressSegments = null,
 }) {
   return {
     id: null,
@@ -87,9 +94,21 @@ function createUnsavedQuizResult({
     correct,
     review,
     total,
+    progress_segments: progressSegments,
     created_at: null,
     saved: false,
   };
+}
+
+function parseStoredJson(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 function parseMode(value) {
@@ -124,6 +143,25 @@ function parseCount(value, fieldName) {
   return number;
 }
 
+function parseOptionalJsonPayload(value, fieldName) {
+  if (value === null || value === undefined) return null;
+
+  let parsed = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      throw createHttpError(400, `${fieldName} khong hop le`);
+    }
+  }
+
+  if (typeof parsed !== "object") {
+    throw createHttpError(400, `${fieldName} khong hop le`);
+  }
+
+  return JSON.stringify(parsed);
+}
+
 function assertSessionOwner(session, userId) {
   if (session.user_id === null && userId === null) return;
   if (session.user_id !== null && String(session.user_id) === String(userId)) return;
@@ -155,12 +193,43 @@ async function createStudySession(req, res) {
   const onlyFavorite = parseBoolean(req.body.only_favorite, false);
   const randomOrder = parseBoolean(req.body.random_order, false);
   const total = parseCount(req.body.total, "total");
+  const segmentSize = parseCount(req.body.segment_size, "segment_size");
+  const segmentTotal = parseCount(req.body.segment_total, "segment_total");
+  const segmentCompleted = parseCount(req.body.segment_completed, "segment_completed");
+  const progressSegments = parseOptionalJsonPayload(
+    req.body.progress_segments,
+    "progress_segments"
+  );
 
   const [result] = await pool.execute(
     `INSERT INTO study_sessions
-      (user_id, deck_id, mode, direction, only_favorite, random_order, total)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, deckId, mode, direction, onlyFavorite, randomOrder, total]
+      (
+        user_id,
+        deck_id,
+        mode,
+        direction,
+        only_favorite,
+        random_order,
+        total,
+        segment_size,
+        segment_total,
+        segment_completed,
+        progress_segments
+      )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      deckId,
+      mode,
+      direction,
+      onlyFavorite,
+      randomOrder,
+      total,
+      segmentSize,
+      segmentTotal,
+      segmentCompleted,
+      progressSegments,
+    ]
   );
 
   const session = await findSessionById(result.insertId);
@@ -182,6 +251,13 @@ async function finishStudySession(req, res) {
   const total = parseCount(req.body.total, "total");
   const xpEarned = parseCount(req.body.xp_earned, "xp_earned");
   const maxCombo = parseCount(req.body.max_combo, "max_combo");
+  const segmentSize = parseCount(req.body.segment_size, "segment_size");
+  const segmentTotal = parseCount(req.body.segment_total, "segment_total");
+  const segmentCompleted = parseCount(req.body.segment_completed, "segment_completed");
+  const progressSegments = parseOptionalJsonPayload(
+    req.body.progress_segments,
+    "progress_segments"
+  );
 
   await pool.execute(
     `UPDATE study_sessions
@@ -190,9 +266,24 @@ async function finishStudySession(req, res) {
          review = ?,
          total = ?,
          xp_earned = ?,
-         max_combo = ?
+         max_combo = ?,
+         segment_size = ?,
+         segment_total = ?,
+         segment_completed = ?,
+         progress_segments = ?
      WHERE id = ?`,
-    [correct, review, total, xpEarned, maxCombo, sessionId]
+    [
+      correct,
+      review,
+      total,
+      xpEarned,
+      maxCombo,
+      segmentSize,
+      segmentTotal,
+      segmentCompleted,
+      progressSegments,
+      sessionId,
+    ]
   );
 
   const session = await findSessionById(sessionId);
@@ -236,12 +327,29 @@ async function addStudyAnswers(req, res) {
       const correctAnswer = cleanText(answer.correct_answer);
       const userAnswer = cleanText(answer.user_answer);
       const isCorrect = parseBoolean(answer.is_correct, false);
+      const answerMeta = parseOptionalJsonPayload(answer.answer_meta, "answer_meta");
 
       const [result] = await connection.execute(
         `INSERT INTO study_answers
-          (session_id, card_id, question_text, correct_answer, user_answer, is_correct)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [sessionId, cardId, questionText, correctAnswer, userAnswer, isCorrect]
+          (
+            session_id,
+            card_id,
+            question_text,
+            correct_answer,
+            user_answer,
+            is_correct,
+            answer_meta
+          )
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          sessionId,
+          cardId,
+          questionText,
+          correctAnswer,
+          userAnswer,
+          isCorrect,
+          answerMeta,
+        ]
       );
 
       insertedIds.push(result.insertId);
@@ -290,6 +398,10 @@ async function createQuizResult(req, res) {
   const correct = parseCount(req.body.correct, "correct");
   const review = parseCount(req.body.review, "review");
   const total = parseCount(req.body.total, "total");
+  const progressSegments = parseOptionalJsonPayload(
+    req.body.progress_segments,
+    "progress_segments"
+  );
 
   if (userId === null) {
     res.json(
@@ -301,6 +413,7 @@ async function createQuizResult(req, res) {
         correct,
         review,
         total,
+        progressSegments: progressSegments ? JSON.parse(progressSegments) : null,
       })
     );
     return;
@@ -308,9 +421,27 @@ async function createQuizResult(req, res) {
 
   const [result] = await pool.execute(
     `INSERT INTO quiz_results
-      (user_id, deck_id, question_type, direction, correct, review, total)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, deckId, questionType, direction, correct, review, total]
+      (
+        user_id,
+        deck_id,
+        question_type,
+        direction,
+        correct,
+        review,
+        total,
+        progress_segments
+      )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      deckId,
+      questionType,
+      direction,
+      correct,
+      review,
+      total,
+      progressSegments,
+    ]
   );
 
   const [rows] = await pool.query("SELECT * FROM quiz_results WHERE id = ?", [

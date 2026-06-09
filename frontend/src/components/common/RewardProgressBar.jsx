@@ -13,6 +13,9 @@ function RewardProgressBar({
   endpointRef,
   label = "Tiến độ",
   combo = 0,
+  hideMeta = false,
+  compact = false,
+  className = "",
 }) {
   // Clamp combo intensity 0–8 for CSS scaling
   const comboLevel = Math.min(combo, 8);
@@ -110,15 +113,17 @@ function RewardProgressBar({
 
   return (
     <div
-      className="ui-reward-progress"
+      className={`ui-reward-progress${compact ? " ui-reward-progress--compact" : ""}${className ? ` ${className}` : ""}`}
       style={{ "--progress-current-color": progressColor }}
     >
-      <div className="ui-reward-progress__meta">
-        <span className="ui-reward-progress__label">{label}</span>
-        <span className="ui-reward-progress__value">
-          {currentValue}/{totalValue}
-        </span>
-      </div>
+      {!hideMeta ? (
+        <div className="ui-reward-progress__meta">
+          <span className="ui-reward-progress__label">{label}</span>
+          <span className="ui-reward-progress__value">
+            {currentValue}/{totalValue}
+          </span>
+        </div>
+      ) : null}
       <motion.div
         className={`ui-reward-progress__track ui-reward-progress--${phase}`}
         animate={trackControls}

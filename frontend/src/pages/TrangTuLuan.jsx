@@ -9,7 +9,7 @@ import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { locTuYeuThich } from "../data/duLieuMau";
-import RewardProgressBar from "../components/common/RewardProgressBar";
+import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
 import { layDeckTheoId } from "../services/deckApi";
@@ -25,6 +25,7 @@ const DS_CHE_DO = [
   { key: "vi-en", nhan: "Nghĩa → Từ", shortLabel: "Nghĩa → Từ" },
   { key: "en-vi", nhan: "Từ → Nghĩa", shortLabel: "Từ → Nghĩa" },
 ];
+const SO_TU_MOI_TIEN_TRINH = 10;
 
 function chuanHoa(t) { return t.trim().toLowerCase().replace(/\s+/g, " "); }
 
@@ -74,6 +75,26 @@ function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${i
     .map(({ item }) => item);
 }
 
+function taoDanhSachTheTheoTienTrinh(danhSach, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
+  return danhSach.map((the, index) => ({
+    ...the,
+    __sessionKey: `${the?.id ?? "card"}-${index}`,
+    __segmentIndex: Math.floor(index / kichThuocTienTrinh),
+  }));
+}
+
+function taoDanhSachTienTrinh(tongSoCau, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
+  const tongSoTienTrinh = Math.ceil(tongSoCau / kichThuocTienTrinh);
+
+  return Array.from({ length: tongSoTienTrinh }, (_, index) => ({
+    index,
+    totalValue: Math.min(
+      kichThuocTienTrinh,
+      Math.max(0, tongSoCau - index * kichThuocTienTrinh)
+    ),
+  }));
+}
+
 function TrangTuLuan() {
   const { deckId } = useParams();
   const { setPageDataLoading } = usePageTransition();
@@ -95,6 +116,8 @@ function TrangTuLuan() {
 
   const [danhSachThe, setDanhSachThe] = useState([]);
   const [tongSoCauMucTieu, setTongSoCauMucTieu] = useState(0);
+  const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
+  const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [cauTraLoi, setCauTraLoi] = useState("");
   const [daKiemTra, setDaKiemTra] = useState(false);
@@ -131,6 +154,31 @@ function TrangTuLuan() {
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
+  const chiSoTienTrinhDangHoatDong = danhSachThe[chiSo]?.__segmentIndex
+    ?? soCauDungTheoTienTrinh.findIndex(
+      (soCauDungTrongTienTrinh, index) =>
+        soCauDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
+    );
+  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
+    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
+    const totalValue = tienTrinh.totalValue || 1;
+
+    return {
+      index,
+      currentValue,
+      totalValue,
+      progressPercent: (currentValue / totalValue) * 100,
+    };
+  });
+  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
+    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
+  ).length;
+  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
+    segment_index: tienTrinh.index,
+    current: tienTrinh.currentValue,
+    total: tienTrinh.totalValue,
+    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
+  }));
 
   async function taiDuLieuTuLuan() {
     setDangTaiDuLieu(true);
@@ -169,16 +217,20 @@ function TrangTuLuan() {
   useEffect(() => {
     xoaTatCaTimerTuLuan();
     let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
-    setTongSoCauMucTieu(ds.length);
-    setDanhSachThe(
-      batRandom
-        ? tronMangOnDinh(
-          ds,
-          `written-${boId}-${lanTronTuLuan}`,
-          (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
-        )
-        : [...ds]
-    );
+    const danhSachTheoThuTu = batRandom
+      ? tronMangOnDinh(
+        ds,
+        `written-${boId}-${lanTronTuLuan}`,
+        (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
+      )
+      : [...ds];
+    const tongSoCau = danhSachTheoThuTu.length;
+    const cacTienTrinh = taoDanhSachTienTrinh(tongSoCau);
+
+    setTongSoCauMucTieu(tongSoCau);
+    setDanhSachTienTrinh(cacTienTrinh);
+    setSoCauDungTheoTienTrinh(cacTienTrinh.map(() => 0));
+    setDanhSachThe(taoDanhSachTheTheoTienTrinh(danhSachTheoThuTu));
     setChiSo(0);
     setSoCauDung(0);
     setDaHoanThanh(false);
@@ -208,6 +260,15 @@ function TrangTuLuan() {
       only_favorite: chiHocTuYeuThich,
       random_order: batRandom,
       total: tongSoCauMucTieu,
+      segment_size: SO_TU_MOI_TIEN_TRINH,
+      segment_total: danhSachTienTrinh.length,
+      segment_completed: 0,
+      progress_segments: danhSachTienTrinh.map((tienTrinh) => ({
+        segment_index: tienTrinh.index,
+        current: 0,
+        total: tienTrinh.totalValue,
+        is_completed: false,
+      })),
     })
       .then((session) => {
         if (!daHuy) setStudySessionId(session.id);
@@ -227,6 +288,7 @@ function TrangTuLuan() {
     batRandom,
     lanLam,
     tongSoCauMucTieu,
+    danhSachTienTrinh.length,
     daHoanThanh,
   ]);
 
@@ -400,6 +462,7 @@ function TrangTuLuan() {
         correct_answer: ketQua.dapAnDung,
         user_answer: ketQua.cauTraLoi,
         is_correct: ketQua.dung,
+        answer_meta: ketQua.answerMeta ?? null,
       }));
 
       try {
@@ -410,6 +473,7 @@ function TrangTuLuan() {
           correct: soCauDung,
           review,
           total,
+          progress_segments: progressSegmentsPayload,
         });
 
         if (studySessionId) {
@@ -419,6 +483,10 @@ function TrangTuLuan() {
             total,
             xp_earned: soCauDung * 10,
             max_combo: maxCombo,
+            segment_size: SO_TU_MOI_TIEN_TRINH,
+            segment_total: danhSachTienTrinh.length,
+            segment_completed: soTienTrinhHoanThanh,
+            progress_segments: progressSegmentsPayload,
           });
 
           if (answers.length > 0) {
@@ -436,9 +504,12 @@ function TrangTuLuan() {
     boId,
     cheDo,
     daHoanThanh,
+    danhSachTienTrinh.length,
     danhSachKetQua,
     maxCombo,
+    progressSegmentsPayload,
     soCauDung,
+    soTienTrinhHoanThanh,
     studySessionId,
     tongSoCauMucTieu,
   ]);
@@ -456,25 +527,77 @@ function TrangTuLuan() {
     ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
   }
 
-  function chenLaiTheSauBaCau(theCanLap) {
-    setDanhSachThe((danhSachHienTai) => {
-      if (!theCanLap || danhSachHienTai.length === 0) return danhSachHienTai;
+  function tangTienTrinhChoThe(theHienTai) {
+    if (!theHienTai) return;
 
-      const viTriChen = Math.min(danhSachHienTai.length, chiSo + 4);
+    setSoCauDung((hienTai) => {
+      const diemMoi = hienTai + 1;
+      const tienDoMoi = ((diemMoi - 1) % soCauDungNhanThuong) + 1;
+      const coReward = batReward && diemMoi % soCauDungNhanThuong === 0;
+      batDauTienTrinhReward(tienDoMoi, coReward);
+      return diemMoi;
+    });
+
+    setSoCauDungTheoTienTrinh((hienTai) => {
+      const danhSachMoi = [...hienTai];
+      const chiSoTienTrinh = theHienTai.__segmentIndex ?? 0;
+      danhSachMoi[chiSoTienTrinh] = (danhSachMoi[chiSoTienTrinh] ?? 0) + 1;
+      return danhSachMoi;
+    });
+  }
+
+  function duaTheHienTaiVeCuoiTienTrinh() {
+    setDanhSachThe((danhSachHienTai) => {
+      if (!danhSachHienTai[chiSo]) return danhSachHienTai;
+
       const danhSachMoi = [...danhSachHienTai];
+      const [theCanLap] = danhSachMoi.splice(chiSo, 1);
+      const chiSoTienTrinh = theCanLap?.__segmentIndex ?? 0;
+      let viTriChen = chiSo;
+
+      for (let index = chiSo; index < danhSachMoi.length; index += 1) {
+        if ((danhSachMoi[index]?.__segmentIndex ?? -1) === chiSoTienTrinh) {
+          viTriChen = index + 1;
+        } else {
+          break;
+        }
+      }
+
       danhSachMoi.splice(viTriChen, 0, theCanLap);
       return danhSachMoi;
     });
   }
 
+  function datLaiTrangThaiCauTraLoi() {
+    setCauTraLoi("");
+    setDaKiemTra(false);
+    setKetQuaDung(false);
+    setHienGoiY(false);
+    setHienCanhBaoNhap(false);
+    setDaBoQua(false);
+    setDangChuyenCau(false);
+  }
+
+  function chuyenCauTrongTienTrinhSauKhiLapLai({ delay = 220 } = {}) {
+    xoaTimerChuyenCau();
+    setDangChuyenCau(true);
+    questionTransitionTimerRef.current = window.setTimeout(() => {
+      duaTheHienTaiVeCuoiTienTrinh();
+      datLaiTrangThaiCauTraLoi();
+      focusInputTre();
+      questionTransitionTimerRef.current = null;
+    }, delay);
+  }
+
   function xoaTrangThaiTraLoiSai() {
-    if (!daKiemTra || ketQuaDung) return;
+    if (!daKiemTra || ketQuaDung || dangCooldownSaiRef.current) return;
     xoaTimerTraLoiSai();
     setDaKiemTra(false);
     setKetQuaDung(false);
   }
 
   function capNhatCauTraLoi(value) {
+    if (dangCooldownSaiRef.current) return;
     if (daKiemTra && !ketQuaDung) {
       xoaTrangThaiTraLoiSai();
     }
@@ -483,6 +606,7 @@ function TrangTuLuan() {
   }
 
   function xuLyPhimNhanInput(event) {
+    if (dangCooldownSaiRef.current) return;
     if (!daKiemTra || ketQuaDung) return;
     if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -502,6 +626,7 @@ function TrangTuLuan() {
   }
 
   function xuLyDanInput(event) {
+    if (dangCooldownSaiRef.current) return;
     if (!daKiemTra || ketQuaDung) return;
 
     event.preventDefault();
@@ -548,23 +673,40 @@ function TrangTuLuan() {
       setHienGoiY(false);
       setHienCanhBaoNhap(false);
       phatAmThanhDung();
-      setSoCauDung((hienTai) => {
-        const diemMoi = hienTai + 1;
-        const tienDoMoi = ((diemMoi - 1) % soCauDungNhanThuong) + 1;
-        const coReward = batReward && diemMoi % soCauDungNhanThuong === 0;
-        batDauTienTrinhReward(tienDoMoi, coReward);
-        return diemMoi;
-      });
+      tangTienTrinhChoThe(theHienTai);
       incrementCombo();
       
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
-        { id: theHienTai.id, cauHoi: layCauHoi(theHienTai), dapAnDung, cauTraLoi: cauTraLoi.trim(), dung: true },
+        {
+          id: theHienTai.id,
+          cauHoi: layCauHoi(theHienTai),
+          dapAnDung,
+          cauTraLoi: cauTraLoi.trim(),
+          dung: true,
+          answerMeta: {
+            mode: hienGoiY ? "hint" : "normal",
+            segment_index: theHienTai.__segmentIndex ?? 0,
+            counts_toward_progress: true,
+          },
+        },
       ]);
     } else {
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
-        { id: theHienTai.id, cauHoi: layCauHoi(theHienTai), dapAnDung, cauTraLoi: cauTraLoi.trim(), dung: false },
+        {
+          id: theHienTai.id,
+          cauHoi: layCauHoi(theHienTai),
+          dapAnDung,
+          cauTraLoi: cauTraLoi.trim(),
+          dung: false,
+          answerMeta: {
+            mode: hienGoiY ? "hint" : "normal",
+            segment_index: theHienTai.__segmentIndex ?? 0,
+            retry_in_segment: true,
+            counts_toward_progress: false,
+          },
+        },
       ]);
       // Flash đỏ ngắn, rồi reset để hỏi lại câu đó
       setDaKiemTra(true);
@@ -573,6 +715,13 @@ function TrangTuLuan() {
       setHienCanhBaoNhap(false);
       setShakeKey((k) => k + 1);
       resetCombo();
+      xoaTimerTraLoiSai();
+      dangCooldownSaiRef.current = true;
+      wrongAnswerTimerRef.current = window.setTimeout(() => {
+        dangCooldownSaiRef.current = false;
+        wrongAnswerTimerRef.current = null;
+        chuyenCauTrongTienTrinhSauKhiLapLai();
+      }, 520);
     }
   }
 
@@ -601,16 +750,6 @@ function TrangTuLuan() {
     const dapAnDung = layDapAnDung(theHienTai);
     const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
 
-    if (!dung) {
-      setDaKiemTra(true);
-      setKetQuaDung(false);
-      setHienCanhBaoNhap(false);
-      setCauTraLoi("");
-      setShakeKey((k) => k + 1);
-      focusInputTre();
-      return;
-    }
-
     setDanhSachKetQua((hienTai) => [
       ...hienTai,
       {
@@ -619,14 +758,16 @@ function TrangTuLuan() {
         dapAnDung,
         cauTraLoi: cauTraLoi.trim(),
         dung: false,
+        answerMeta: {
+          mode: "reveal",
+          segment_index: theHienTai.__segmentIndex ?? 0,
+          retry_in_segment: true,
+          revealed_answer_matched: dung,
+          counts_toward_progress: false,
+        },
       },
     ]);
-    chenLaiTheSauBaCau(theHienTai);
-    setDaBoQua(false);
-    setDaKiemTra(false);
-    setKetQuaDung(false);
-    setHienCanhBaoNhap(false);
-    chuyenCauMem({ boQuaKhoaReward: true, boQuaCau: true });
+    chuyenCauTrongTienTrinhSauKhiLapLai({ delay: dung ? 220 : 360 });
   }
 
   function hienThiGoiY() {
@@ -863,7 +1004,10 @@ function TrangTuLuan() {
   }
 
   const tongSoCauHoi = tongSoCauMucTieu;
-  const tienDoReward = (soCauDung / Math.max(1, tongSoCauHoi)) * 100;
+  const chiSoTienTrinhDangRender = Math.max(0, chiSoTienTrinhDangHoatDong);
+  const tienDoTienTrinhDangHoatDong =
+    cacThanhTienTrinh[chiSoTienTrinhDangRender]?.progressPercent
+    ?? 0;
 
   if (!danhSachThe[chiSo] && !daHoanThanh) {
     return (
@@ -956,10 +1100,11 @@ function TrangTuLuan() {
         </div>
 
         <div className="ui-written-progress mb-4">
-          <RewardProgressBar
-            currentValue={soCauDung}
-            totalValue={tongSoCauHoi}
-            progressPercent={tienDoReward}
+          <SegmentedRewardProgressBar
+            segments={cacThanhTienTrinh}
+            totalCorrect={soCauDung}
+            totalTarget={tongSoCauHoi}
+            activeSegmentIndex={chiSoTienTrinhDangRender}
             phase={rewardProgressPhase}
             endpointRef={progressEndpointRef}
             combo={combo}
@@ -968,7 +1113,7 @@ function TrangTuLuan() {
             <ComboDisplay
               combo={combo}
               phase={comboPhase}
-              progressPercent={tienDoReward}
+              progressPercent={tienDoTienTrinhDangHoatDong}
             />
           </div>
         </div>

@@ -91,6 +91,10 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   review INT UNSIGNED NOT NULL DEFAULT 0,
   xp_earned INT UNSIGNED NOT NULL DEFAULT 0,
   max_combo INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_size INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_total INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_completed INT UNSIGNED NOT NULL DEFAULT 0,
+  progress_segments JSON NULL,
 
   CONSTRAINT fk_study_sessions_user
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -115,6 +119,7 @@ CREATE TABLE IF NOT EXISTS study_answers (
   user_answer TEXT,
 
   is_correct BOOLEAN NOT NULL,
+  answer_meta JSON NULL,
   answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_study_answers_session
@@ -169,6 +174,7 @@ CREATE TABLE IF NOT EXISTS quiz_results (
   correct INT UNSIGNED NOT NULL DEFAULT 0,
   review INT UNSIGNED NOT NULL DEFAULT 0,
   total INT UNSIGNED NOT NULL DEFAULT 0,
+  progress_segments JSON NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

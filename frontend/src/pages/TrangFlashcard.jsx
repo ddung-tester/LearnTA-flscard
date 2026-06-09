@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
+import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -12,11 +13,7 @@ import useTTS from "../hooks/useTTS";
 import { locTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
-import { taoStudySession } from "../services/studyApi";
-import {
-  clampProgressPercent,
-  getProgressColor,
-} from "../utils/progressColor";
+import { ketThucStudySession, taoStudySession } from "../services/studyApi";
 
 const DS_CHE_DO = [
   {
@@ -30,6 +27,7 @@ const DS_CHE_DO = [
     shortLabel: "EN → VI",
   },
 ];
+const SO_TU_MOI_TIEN_TRINH = 10;
 
 function laVungNhapLieu(element) {
   if (!element) return false;
@@ -65,6 +63,26 @@ function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${i
     .map(({ item }) => item);
 }
 
+function taoDanhSachTheoTienTrinh(danhSach, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
+  return danhSach.map((the, index) => ({
+    ...the,
+    __sessionKey: `${the?.id ?? "card"}-${index}`,
+    __segmentIndex: Math.floor(index / kichThuocTienTrinh),
+  }));
+}
+
+function taoDanhSachTienTrinh(tongSoThe, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
+  const tongSoTienTrinh = Math.ceil(tongSoThe / kichThuocTienTrinh);
+
+  return Array.from({ length: tongSoTienTrinh }, (_, index) => ({
+    index,
+    totalValue: Math.min(
+      kichThuocTienTrinh,
+      Math.max(0, tongSoThe - index * kichThuocTienTrinh)
+    ),
+  }));
+}
+
 function TrangFlashcard() {
   const { deckId } = useParams();
   const { setPageDataLoading } = usePageTransition();
@@ -82,14 +100,21 @@ function TrangFlashcard() {
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
   const [batRandom, setBatRandom] = useState(false);
   const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
+  const [tongSoTheMucTieu, setTongSoTheMucTieu] = useState(0);
+  const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
+  const [soTheDaHoanTatTheoTienTrinh, setSoTheDaHoanTatTheoTienTrinh] = useState([]);
+  const [soTheDaHoanTat, setSoTheDaHoanTat] = useState(0);
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
   const [diemReward, setDiemReward] = useState(0);
   const [batReward, setBatReward] = useState(false);
   const giamChuyenDong = useReducedMotion();
   const cacTheDaTinhDiemRef = useRef(new Set());
+  const cacTheDaHoanTatRef = useRef(new Set());
   const rewardTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
+  const [studySessionId, setStudySessionId] = useState(null);
+  const daLuuKetQuaRef = useRef(false);
 
   function xoaTimerReward() {
     if (rewardTimerRef.current) {
@@ -101,9 +126,13 @@ function TrangFlashcard() {
   function datLaiReward() {
     xoaTimerReward();
     cacTheDaTinhDiemRef.current = new Set();
+    cacTheDaHoanTatRef.current = new Set();
+    setSoTheDaHoanTat(0);
+    setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDiemReward(0);
     setHienReward(false);
     setLanReward(0);
+    daLuuKetQuaRef.current = false;
   }
 
   async function taiDuLieuHoc() {
@@ -158,11 +187,65 @@ function TrangFlashcard() {
       (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
     );
   }, [batRandom, boId, lanTron, danhSachLoc]);
+  const danhSachTheoTienTrinh = useMemo(
+    () => taoDanhSachTheoTienTrinh(danhSach),
+    [danhSach]
+  );
+  const chiSoTienTrinhDangHoatDong = danhSachTheoTienTrinh[chiSo]?.__segmentIndex
+    ?? soTheDaHoanTatTheoTienTrinh.findIndex(
+      (soTheHoanTat, index) =>
+        soTheHoanTat < (danhSachTienTrinh[index]?.totalValue ?? 0)
+    );
+  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
+    const currentValue = soTheDaHoanTatTheoTienTrinh[index] ?? 0;
+    const totalValue = tienTrinh.totalValue || 1;
+
+    return {
+      index,
+      currentValue,
+      totalValue,
+      progressPercent: (currentValue / totalValue) * 100,
+    };
+  });
+  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
+    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
+  ).length;
+  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
+    segment_index: tienTrinh.index,
+    current: tienTrinh.currentValue,
+    total: tienTrinh.totalValue,
+    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
+  }));
+
+  useEffect(() => {
+    const cacTienTrinh = taoDanhSachTienTrinh(danhSach.length);
+    setTongSoTheMucTieu(danhSach.length);
+    setDanhSachTienTrinh(cacTienTrinh);
+    setSoTheDaHoanTatTheoTienTrinh(cacTienTrinh.map(() => 0));
+    setSoTheDaHoanTat(0);
+    cacTheDaHoanTatRef.current = new Set();
+    daLuuKetQuaRef.current = false;
+  }, [danhSach]);
 
   function ghiNhanDiemReward() {
-    if (!batReward || !danhSach[chiSo]) return;
+    const theHienTai = danhSachTheoTienTrinh[chiSo];
+    if (!theHienTai) return;
 
-    const rewardKey = `${cheDo}-${danhSach[chiSo].id}`;
+    const khoaHoanTat = `${cheDo}-${theHienTai.__sessionKey}`;
+    if (!cacTheDaHoanTatRef.current.has(khoaHoanTat)) {
+      cacTheDaHoanTatRef.current.add(khoaHoanTat);
+      setSoTheDaHoanTat((hienTai) => hienTai + 1);
+      setSoTheDaHoanTatTheoTienTrinh((hienTai) => {
+        const danhSachMoi = [...hienTai];
+        const chiSoTienTrinh = theHienTai.__segmentIndex ?? 0;
+        danhSachMoi[chiSoTienTrinh] = (danhSachMoi[chiSoTienTrinh] ?? 0) + 1;
+        return danhSachMoi;
+      });
+    }
+
+    if (!batReward) return;
+
+    const rewardKey = `${cheDo}-${theHienTai.id}`;
     if (cacTheDaTinhDiemRef.current.has(rewardKey)) return;
 
     cacTheDaTinhDiemRef.current.add(rewardKey);
@@ -192,7 +275,7 @@ function TrangFlashcard() {
   useEffect(() => {
     if (!bo || danhSach.length === 0) return;
 
-    const sessionKey = `${boId}-${cheDo}-${chiHocTuYeuThich}-${batRandom}-${lanTron}-${danhSach.length}`;
+    const sessionKey = `${boId}-${cheDo}-${chiHocTuYeuThich}-${batRandom}-${lanTron}-${tongSoTheMucTieu}`;
     if (sessionKeyRef.current === sessionKey) return;
     sessionKeyRef.current = sessionKey;
 
@@ -202,11 +285,25 @@ function TrangFlashcard() {
       direction: cheDo,
       only_favorite: chiHocTuYeuThich,
       random_order: batRandom,
-      total: danhSach.length,
-    }).catch(() => {
-      sessionKeyRef.current = "";
-    });
-  }, [bo, boId, cheDo, chiHocTuYeuThich, batRandom, lanTron, danhSach.length]);
+      total: tongSoTheMucTieu,
+      segment_size: SO_TU_MOI_TIEN_TRINH,
+      segment_total: danhSachTienTrinh.length,
+      segment_completed: 0,
+      progress_segments: danhSachTienTrinh.map((tienTrinh) => ({
+        segment_index: tienTrinh.index,
+        current: 0,
+        total: tienTrinh.totalValue,
+        is_completed: false,
+      })),
+    })
+      .then((session) => {
+        setStudySessionId(session.id);
+      })
+      .catch(() => {
+        sessionKeyRef.current = "";
+        setStudySessionId(null);
+      });
+  }, [bo, boId, cheDo, chiHocTuYeuThich, batRandom, lanTron, tongSoTheMucTieu, danhSachTienTrinh.length]);
 
   function latThe(e) {
     if (e && e.target && e.target.closest(".tts-speaker-btn")) {
@@ -306,6 +403,36 @@ function TrangFlashcard() {
     ttsSpeak(currentFaceText, "en-US");
   }, [chiSo, daLat, cheDo, ttsSpeak, danhSach]);
 
+  useEffect(() => {
+    if (!studySessionId || tongSoTheMucTieu === 0) return;
+    if (soTheDaHoanTat < tongSoTheMucTieu) return;
+    if (daLuuKetQuaRef.current) return;
+
+    daLuuKetQuaRef.current = true;
+
+    ketThucStudySession(studySessionId, {
+      correct: soTheDaHoanTat,
+      review: 0,
+      total: tongSoTheMucTieu,
+      xp_earned: soTheDaHoanTat * 10,
+      max_combo: diemReward,
+      segment_size: SO_TU_MOI_TIEN_TRINH,
+      segment_total: danhSachTienTrinh.length,
+      segment_completed: soTienTrinhHoanThanh,
+      progress_segments: progressSegmentsPayload,
+    }).catch(() => {
+      daLuuKetQuaRef.current = false;
+    });
+  }, [
+    studySessionId,
+    tongSoTheMucTieu,
+    soTheDaHoanTat,
+    diemReward,
+    danhSachTienTrinh.length,
+    soTienTrinhHoanThanh,
+    progressSegmentsPayload,
+  ]);
+
   if (dangTaiDuLieu) {
     return (
       <div className="ui-study-empty-wrap">
@@ -398,20 +525,14 @@ function TrangFlashcard() {
     );
   }
 
-  const theHienTai = danhSach[chiSo];
+  const theHienTai = danhSachTheoTienTrinh[chiSo];
   const matTruoc = cheDo === "en-vi" ? theHienTai?.term_en : theHienTai?.meaning_vi;
   const matSau = cheDo === "en-vi" ? theHienTai?.meaning_vi : theHienTai?.term_en;
   const ngonNguMatTruoc = cheDo === "en-vi" ? "en-US" : "vi-VN";
   const ngonNguMatSau = cheDo === "en-vi" ? "vi-VN" : "en-US";
   const vanBanDangHien = daLat ? matSau : matTruoc;
   const ngonNguDangHien = daLat ? ngonNguMatSau : ngonNguMatTruoc;
-
-
-
-  const tienDo = ((chiSo + 1) / danhSach.length) * 100;
-  const tienDoAnToan = clampProgressPercent(tienDo);
-  const tiLeTienDo = tienDoAnToan / 100;
-  const mauTienDo = getProgressColor(tienDoAnToan);
+  const chiSoTienTrinhDangRender = Math.max(0, chiSoTienTrinhDangHoatDong);
   const thietLapLatThe = giamChuyenDong
     ? { duration: 0 }
     : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };

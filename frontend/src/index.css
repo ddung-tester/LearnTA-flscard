@@ -641,6 +641,71 @@ body.is-page-loading .ui-route-transition {
   gap: 0.75rem;
 }
 
+.ui-segmented-progress {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ui-segmented-progress__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ui-segmented-progress__label,
+.ui-segmented-progress__value,
+.ui-segmented-progress__segment-label,
+.ui-segmented-progress__segment-value {
+  color: oklch(96.8% 0.021 92 / 0.94);
+  line-height: 1.1;
+}
+
+.ui-segmented-progress__label,
+.ui-segmented-progress__value {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ui-segmented-progress__value,
+.ui-segmented-progress__segment-value {
+  font-family: var(--font-mono);
+}
+
+.ui-segmented-progress__bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.55rem;
+}
+
+.ui-segmented-progress__segment {
+  display: grid;
+  gap: 0.26rem;
+  padding: 0.45rem 0.55rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--mau-vien) 78%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--mau-mat) 88%, white 12%);
+  box-shadow: 0 0.45rem 1.2rem color-mix(in srgb, var(--mau-bong) 10%, transparent);
+}
+
+.ui-segmented-progress__segment--active {
+  border-color: color-mix(in srgb, var(--mau-chinh) 38%, var(--mau-vien));
+  background: color-mix(in srgb, var(--mau-mat) 84%, white 16%);
+}
+
+.ui-segmented-progress__segment-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.ui-segmented-progress__segment-label,
+.ui-segmented-progress__segment-value {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .ui-reward-progress__label {
   color: oklch(96.8% 0.021 92 / 0.94);
   font-size: 0.76rem;
@@ -833,6 +898,25 @@ body.is-page-loading .ui-route-transition {
 
 .ui-reward-progress--rewardComplete .ui-reward-progress__endpoint {
   animation: reward-progress-complete-pop 840ms cubic-bezier(0.2, 0.86, 0.18, 1) 1;
+}
+
+.ui-reward-progress--compact {
+  gap: 0;
+}
+
+.ui-reward-progress--compact .ui-reward-progress__track {
+  height: 0.78rem;
+}
+
+.ui-reward-progress--compact .ui-reward-progress__fill::after {
+  top: 0.08rem;
+  right: 0.08rem;
+  bottom: 0.08rem;
+}
+
+.ui-reward-progress--compact .ui-reward-progress__endpoint {
+  width: 0.18rem;
+  height: 0.18rem;
 }
 
 .ui-import-zone {
