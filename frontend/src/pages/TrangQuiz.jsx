@@ -978,6 +978,11 @@ function TrangQuiz() {
           </StudySettingsPopover>
         </div>
         <div className="ui-quiz-progress mb-8">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="ui-mode-chip">
+              {cheDo === "vi-en" ? "VI → EN" : "EN → VI"}
+            </span>
+          </div>
           <SegmentedRewardProgressBar
             segments={cacThanhTienTrinh}
             totalCorrect={soCauDung}

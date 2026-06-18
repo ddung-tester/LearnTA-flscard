@@ -1100,6 +1100,11 @@ function TrangTuLuan() {
         </div>
 
         <div className="ui-written-progress mb-4">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="ui-mode-chip">
+              {cheDo === "vi-en" ? "VI → EN" : "EN → VI"}
+            </span>
+          </div>
           <SegmentedRewardProgressBar
             segments={cacThanhTienTrinh}
             totalCorrect={soCauDung}
@@ -1258,7 +1263,7 @@ function TrangTuLuan() {
                 type="button"
                 onClick={hienThiGoiY}
                 disabled={hienGoiY}
-                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-100"
+                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-60"
               >
                 Gợi ý
               </button>
@@ -1271,7 +1276,7 @@ function TrangTuLuan() {
               </button>
               <button
                 type="submit"
-                className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-bold text-[var(--mau-chu-phu)]"
+                className="ui-button ui-button--primary rounded-xl py-3 font-bold"
               >
                 Kiểm tra
               </button>
