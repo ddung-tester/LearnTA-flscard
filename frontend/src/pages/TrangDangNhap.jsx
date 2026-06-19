@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
-import GoogleSignInButton from "../components/GoogleSignInButton";
 import LoginMascot from "../components/LoginMascot";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -84,18 +83,7 @@ function TrangDangNhap() {
     }
   }
 
-  function handleGoogleSuccess() {
-    setSuccessTick((current) => current + 1);
-    setDangChoChuyenTrang(true);
-    redirectTimerRef.current = setTimeout(() => {
-      navigateWithLoading(redirectTo, { replace: true });
-    }, AUTH_SUCCESS_REDIRECT_DELAY);
-  }
 
-  function handleGoogleError(message) {
-    setError(message || "Đăng nhập Google thất bại");
-    setFailTick((current) => current + 1);
-  }
 
   return (
     <div className="video-bg-page video-bg-page--auth px-4">
@@ -180,21 +168,7 @@ function TrangDangNhap() {
             </Link>
           </p>
 
-          {/* Divider */}
-          <div className="mt-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-[var(--mau-vien)]" />
-            <span className="text-xs text-[var(--mau-chu-phu)]">hoặc</span>
-            <div className="h-px flex-1 bg-[var(--mau-vien)]" />
-          </div>
 
-          {/* Google Sign-In */}
-          <div className="mt-4">
-            <GoogleSignInButton
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              disabled={isSubmitting || dangChoChuyenTrang}
-            />
-          </div>
         </section>
       </div>
     </div>
