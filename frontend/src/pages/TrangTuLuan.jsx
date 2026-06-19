@@ -1247,9 +1247,9 @@ function TrangTuLuan() {
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 style={{ originY: 0 }}
-                className="overflow-hidden rounded-xl border border-[var(--mau-loi)]/40 bg-[var(--mau-loi)]/8 px-4 py-3 text-center"
+                className="overflow-hidden rounded-xl border border-[oklch(75%_0.10_24)] bg-[oklch(98%_0.015_24)] px-5 py-4 text-center shadow-[var(--bong-nut-phu)]"
               >
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mau-loi)]">Đáp án đúng</p>
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-widest text-[oklch(45%_0.14_24)]">Đáp án đúng</p>
                 <button
                   type="button"
                   onClick={docDapAnDungHienTai}
@@ -1257,13 +1257,13 @@ function TrangTuLuan() {
                   title="Đọc đáp án"
                 >
                   <span
-                    className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-loi)]"
+                    className="whitespace-pre-wrap break-words text-2xl font-bold tracking-tight text-[oklch(35%_0.16_24)]"
                     style={{ wordSpacing: "0.35em" }}
                   >
                     {layDapAnDung(danhSachThe[chiSo])}
                   </span>
                 </button>
-                <p className="mt-2 text-xs text-[var(--mau-chu-phu)] opacity-70">Nhấn Enter để tiếp tục</p>
+                <p className="mt-2.5 text-xs text-[oklch(45%_0.03_24)] font-medium">Nhấn Enter để tiếp tục</p>
               </motion.div>
             ) : hienGoiY && !ketQuaDung ? (
               <motion.div
@@ -1316,7 +1316,7 @@ function TrangTuLuan() {
               <button
                 type="button"
                 onClick={() => { xoaTimerTraLoiSai(); chuyenCauTrongTienTrinhSauKhiLapLai(); }}
-                className="ui-button ui-button--ghost w-full rounded-xl border border-[var(--mau-loi)]/40 py-3.5 text-lg font-bold text-[var(--mau-loi)]"
+                className="ui-button ui-button--danger w-full rounded-xl py-3.5 text-lg font-bold"
               >
                 Tiếp tục
               </button>
