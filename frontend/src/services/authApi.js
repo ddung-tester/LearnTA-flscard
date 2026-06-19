@@ -14,3 +14,8 @@ export async function layNguoiDungHienTai() {
   const response = await api.get("/auth/me");
   return response.data.user;
 }
+
+export async function dangNhapVoiGoogle(idToken) {
+  const response = await api.post("/auth/google", { idToken });
+  return response.data;
+}

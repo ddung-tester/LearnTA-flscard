@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 import LoginMascot from "../components/LoginMascot";
 import AnimatedModal from "../components/common/AnimatedModal";
 import { useAuth } from "../contexts/AuthContext";
@@ -81,6 +82,16 @@ function TrangDangKy() {
     navigateWithLoading("/login", { replace: true, state: { registered: true } });
   }
 
+  function handleGoogleSuccess() {
+    setSuccessTick((current) => current + 1);
+    navigateWithLoading("/decks", { replace: true });
+  }
+
+  function handleGoogleError(message) {
+    setError(message || "Đăng nhập Google thất bại");
+    setFailTick((current) => current + 1);
+  }
+
   return (
     <div className="video-bg-page video-bg-page--auth px-4">
       <div className="auth-mascot-wrap auth-mascot-wrap--register">
@@ -92,136 +103,152 @@ function TrangDangKy() {
           triggerFail={failTick}
         />
         <section className="video-auth-card video-auth-card--with-mascot video-auth-card--register">
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label
-              htmlFor="register-fullname"
-              className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label
+                htmlFor="register-fullname"
+                className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
+              >
+                Họ và tên
+              </label>
+              <input
+                id="register-fullname"
+                name="fullname"
+                autoComplete="name"
+                value={form.fullname}
+                onChange={updateForm}
+                onFocus={() => setFocusedTextField("fullname")}
+                onBlur={() => setFocusedTextField(null)}
+                minLength={2}
+                maxLength={50}
+                required
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="Nguyễn Văn A"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="register-email"
+                className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
+              >
+                Email
+              </label>
+              <input
+                id="register-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={updateForm}
+                onFocus={() => {
+                  setFocusedTextField("email");
+                  setIsEmailFocused(true);
+                }}
+                onBlur={() => {
+                  setFocusedTextField(null);
+                  setIsEmailFocused(false);
+                }}
+                required
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="register-password"
+                className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
+              >
+                Mật khẩu
+              </label>
+              <input
+                id="register-password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                value={form.password}
+                onChange={updateForm}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
+                minLength={PASSWORD_MIN_LENGTH}
+                required
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="Ít nhất 6 ký tự"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="register-confirm-password"
+                className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
+              >
+                Nhập lại mật khẩu
+              </label>
+              <input
+                id="register-confirm-password"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                value={form.confirmPassword}
+                onChange={updateForm}
+                onFocus={() => setIsPasswordFocused(true)}
+                onBlur={() => setIsPasswordFocused(false)}
+                minLength={PASSWORD_MIN_LENGTH}
+                required
+                className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+                placeholder="Nhập lại mật khẩu"
+              />
+            </div>
+
+            {error && (
+              <p
+                role="alert"
+                className="rounded-lg border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/10 px-3 py-2 text-sm text-[var(--mau-loi)]"
+              >
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting || dangMoXacNhanThanhCong}
+              className="ui-button ui-button--primary w-full rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] transition-colors hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Họ và tên
-            </label>
-            <input
-              id="register-fullname"
-              name="fullname"
-              autoComplete="name"
-              value={form.fullname}
-              onChange={updateForm}
-              onFocus={() => setFocusedTextField("fullname")}
-              onBlur={() => setFocusedTextField(null)}
-              minLength={2}
-              maxLength={50}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="Nguyễn Văn A"
-            />
+              <span className="inline-flex min-h-6 items-center justify-center gap-2">
+                {isSubmitting && (
+                  <span
+                    aria-hidden="true"
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                  />
+                )}
+                {isSubmitting ? "Đang tạo tài khoản" : "Tạo tài khoản"}
+              </span>
+            </button>
+          </form>
+
+          <p className="mt-4 text-sm text-[var(--mau-chu-phu)]">
+            Đã có tài khoản?{" "}
+            <Link className="ui-link font-semibold text-[var(--mau-chinh)]" to="/login">
+              Đăng nhập
+            </Link>
+          </p>
+
+          {/* Divider */}
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--mau-vien)]" />
+            <span className="text-xs text-[var(--mau-chu-phu)]">hoặc tiếp tục với</span>
+            <div className="h-px flex-1 bg-[var(--mau-vien)]" />
           </div>
 
-          <div>
-            <label
-              htmlFor="register-email"
-              className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
-            >
-              Email
-            </label>
-            <input
-              id="register-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={updateForm}
-              onFocus={() => {
-                setFocusedTextField("email");
-                setIsEmailFocused(true);
-              }}
-              onBlur={() => {
-                setFocusedTextField(null);
-                setIsEmailFocused(false);
-              }}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="you@example.com"
+          {/* Google Sign-In */}
+          <div className="mt-3">
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              disabled={isSubmitting || dangMoXacNhanThanhCong}
             />
           </div>
-
-          <div>
-            <label
-              htmlFor="register-password"
-              className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
-            >
-              Mật khẩu
-            </label>
-            <input
-              id="register-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              value={form.password}
-              onChange={updateForm}
-              onFocus={() => setIsPasswordFocused(true)}
-              onBlur={() => setIsPasswordFocused(false)}
-              minLength={PASSWORD_MIN_LENGTH}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="Ít nhất 6 ký tự"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="register-confirm-password"
-              className="mb-1.5 block text-sm font-medium text-[var(--mau-chu)]"
-            >
-              Nhập lại mật khẩu
-            </label>
-            <input
-              id="register-confirm-password"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              value={form.confirmPassword}
-              onChange={updateForm}
-              onFocus={() => setIsPasswordFocused(true)}
-              onBlur={() => setIsPasswordFocused(false)}
-              minLength={PASSWORD_MIN_LENGTH}
-              required
-              className="w-full rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="Nhập lại mật khẩu"
-            />
-          </div>
-
-          {error && (
-            <p
-              role="alert"
-              className="rounded-lg border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/10 px-3 py-2 text-sm text-[var(--mau-loi)]"
-            >
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting || dangMoXacNhanThanhCong}
-            className="ui-button ui-button--primary w-full rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] transition-colors hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <span className="inline-flex min-h-6 items-center justify-center gap-2">
-              {isSubmitting && (
-                <span
-                  aria-hidden="true"
-                  className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-                />
-              )}
-              {isSubmitting ? "Đang tạo tài khoản" : "Tạo tài khoản"}
-            </span>
-          </button>
-        </form>
-
-        <p className="mt-4 text-sm text-[var(--mau-chu-phu)]">
-          Đã có tài khoản?{" "}
-          <Link className="ui-link font-semibold text-[var(--mau-chinh)]" to="/login">
-            Đăng nhập
-          </Link>
-        </p>
         </section>
       </div>
 

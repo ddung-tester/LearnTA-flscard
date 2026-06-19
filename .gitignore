@@ -3,6 +3,8 @@ node_modules/
 
 # Environment
 .env
+.env.local
+.env.*.local
 
 # Build output
 dist/

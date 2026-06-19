@@ -130,6 +130,7 @@ function TrangTuLuan() {
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
   const [shakeKey, setShakeKey] = useState(0); // tăng mỗi lần sai để retrigger animation
   const [daBoQua, setDaBoQua] = useState(false);
+  const [dangChoNhanEnterSauSai, setDangChoNhanEnterSauSai] = useState(false); // đang hiện đáp án sai, chờ Enter
   const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
 
   const [hienReward, setHienReward] = useState(false);
@@ -314,6 +315,7 @@ function TrangTuLuan() {
     }
 
     dangCooldownSaiRef.current = false;
+    setDangChoNhanEnterSauSai(false);
   }
 
   function xoaTimerSauReward() {
@@ -576,6 +578,7 @@ function TrangTuLuan() {
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
     setDangChuyenCau(false);
+    setDangChoNhanEnterSauSai(false);
   }
 
   function chuyenCauTrongTienTrinhSauKhiLapLai({ delay = 220 } = {}) {
@@ -594,6 +597,7 @@ function TrangTuLuan() {
     xoaTimerTraLoiSai();
     setDaKiemTra(false);
     setKetQuaDung(false);
+    setDangChoNhanEnterSauSai(false);
   }
 
   function capNhatCauTraLoi(value) {
@@ -607,6 +611,15 @@ function TrangTuLuan() {
 
   function xuLyPhimNhanInput(event) {
     if (dangCooldownSaiRef.current) return;
+    // Khi đang chờ Enter sau khi sai: Enter chuyển câu, các phím khác bỏ qua
+    if (dangChoNhanEnterSauSai) {
+      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        xoaTimerTraLoiSai();
+        chuyenCauTrongTienTrinhSauKhiLapLai();
+      }
+      return;
+    }
     if (!daKiemTra || ketQuaDung) return;
     if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -642,6 +655,13 @@ function TrangTuLuan() {
     // Nếu đang ở trạng thái bỏ qua, Enter sẽ chuyển câu
     if (daBoQua) {
       tiepTucSauXemDapAn();
+      return;
+    }
+
+    // Đang chờ Enter sau khi sai: chuyển sang câu tiếp theo
+    if (dangChoNhanEnterSauSai) {
+      xoaTimerTraLoiSai();
+      chuyenCauTrongTienTrinhSauKhiLapLai();
       return;
     }
 
@@ -708,7 +728,7 @@ function TrangTuLuan() {
           },
         },
       ]);
-      // Flash đỏ ngắn, rồi reset để hỏi lại câu đó
+      // Flash đỏ ngắn, sau đó chờ người dùng nhấn Enter để tiếp tục
       setDaKiemTra(true);
       setKetQuaDung(false);
       setHienGoiY(false);
@@ -718,9 +738,12 @@ function TrangTuLuan() {
       xoaTimerTraLoiSai();
       dangCooldownSaiRef.current = true;
       wrongAnswerTimerRef.current = window.setTimeout(() => {
+        // Hết cooldown flash đỏ: chuyển sang chờ Enter
         dangCooldownSaiRef.current = false;
         wrongAnswerTimerRef.current = null;
-        chuyenCauTrongTienTrinhSauKhiLapLai();
+        setDangChoNhanEnterSauSai(true);
+        // Focus lại input để người dùng có thể nhấn Enter
+        inputRef.current?.focus();
       }, 520);
     }
   }
@@ -818,6 +841,7 @@ function TrangTuLuan() {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
+    setDangChoNhanEnterSauSai(false);
     setSoCauDung(0);
     setDaHoanThanh(false);
     setDanhSachKetQua([]);
@@ -881,6 +905,7 @@ function TrangTuLuan() {
     setKetQuaDung(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
+    setDangChoNhanEnterSauSai(false);
     setDangChoReward(false);
     setHienReward(false);
     resetAll();
@@ -1166,6 +1191,7 @@ function TrangTuLuan() {
               onChange={(e) => capNhatCauTraLoi(e.target.value)}
               onPaste={xuLyDanInput}
               disabled={daKiemTra && ketQuaDung}
+              readOnly={dangChoNhanEnterSauSai}
               placeholder="Nhập đáp án..."
               className={`ui-written-answer-input ${daBoQua || (daKiemTra && !ketQuaDung) ? "ui-written-answer-input--answer-review" : ""} w-full rounded-xl border p-4 text-xl outline-none ${
                 daKiemTra
@@ -1212,6 +1238,33 @@ function TrangTuLuan() {
                   {layDapAnDung(danhSachThe[chiSo])}
                 </span>
               </motion.button>
+            ) : dangChoNhanEnterSauSai ? (
+              <motion.div
+                key="wrong-answer-reveal"
+                layout
+                initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                style={{ originY: 0 }}
+                className="overflow-hidden rounded-xl border border-[var(--mau-loi)]/40 bg-[var(--mau-loi)]/8 px-4 py-3 text-center"
+              >
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mau-loi)]">Đáp án đúng</p>
+                <button
+                  type="button"
+                  onClick={docDapAnDungHienTai}
+                  className="inline-flex flex-col items-center gap-1 focus-visible:outline-none"
+                  title="Đọc đáp án"
+                >
+                  <span
+                    className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-loi)]"
+                    style={{ wordSpacing: "0.35em" }}
+                  >
+                    {layDapAnDung(danhSachThe[chiSo])}
+                  </span>
+                </button>
+                <p className="mt-2 text-xs text-[var(--mau-chu-phu)] opacity-70">Nhấn Enter để tiếp tục</p>
+              </motion.div>
             ) : hienGoiY && !ketQuaDung ? (
               <motion.div
                 key="hint"
@@ -1252,8 +1305,26 @@ function TrangTuLuan() {
             </motion.div>
           )}
 
+          {/* Đang chờ Enter sau khi sai: nút Tiếp tục */}
+          {dangChoNhanEnterSauSai && (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <button
+                type="button"
+                onClick={() => { xoaTimerTraLoiSai(); chuyenCauTrongTienTrinhSauKhiLapLai(); }}
+                className="ui-button ui-button--ghost w-full rounded-xl border border-[var(--mau-loi)]/40 py-3.5 text-lg font-bold text-[var(--mau-loi)]"
+              >
+                Tiếp tục
+              </button>
+            </motion.div>
+          )}
+
           {/* Chưa kiểm tra và chưa xem đáp án: có gợi ý, xem đáp án, kiểm tra */}
-          {!daKiemTra && !daBoQua && (
+          {!daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && (
             <motion.div
               layout
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}

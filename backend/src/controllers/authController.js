@@ -1,10 +1,13 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
 const { getJwtSecret, jwtExpiresIn } = require("../config/env");
 const { cleanText, createHttpError } = require("../utils/http");
 
 const SALT_ROUNDS = 10;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DISPLAY_NAME_PATTERN = /^[\p{L}\p{M}]+(?:[ .'-][\p{L}\p{M}]+)*$/u;
 
@@ -149,10 +152,97 @@ async function me(req, res) {
   res.json({ user });
 }
 
+async function googleLogin(req, res) {
+  const { idToken } = req.body;
+  if (!idToken) throw createHttpError(400, "Thiếu idToken");
+  if (!GOOGLE_CLIENT_ID) throw createHttpError(500, "Server chưa cấu hình GOOGLE_CLIENT_ID");
+
+  // 1. Verify id_token với Google
+  let ticket;
+  try {
+    ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: GOOGLE_CLIENT_ID,
+    });
+  } catch {
+    throw createHttpError(401, "Google token không hợp lệ hoặc đã hết hạn");
+  }
+
+  const payload = ticket.getPayload();
+  const googleId = payload.sub;
+  const email = payload.email?.toLowerCase();
+  const name = payload.name || email;
+  const picture = payload.picture || null;
+
+  if (!email) throw createHttpError(400, "Tài khoản Google không có email");
+
+  // 2. Tìm user theo google_id trước
+  let [rows] = await pool.query(
+    `SELECT id, fullname, email, google_id, auth_provider, avatar_url, created_at, updated_at
+     FROM users WHERE google_id = ? LIMIT 1`,
+    [googleId]
+  );
+  let userRow = rows[0];
+
+  if (!userRow) {
+    // 3a. Thử tìm theo email (merge với tài khoản local cũ)
+    [rows] = await pool.query(
+      `SELECT id, fullname, email, google_id, auth_provider, avatar_url, created_at, updated_at
+       FROM users WHERE email = ? LIMIT 1`,
+      [email]
+    );
+    userRow = rows[0];
+
+    if (userRow) {
+      // Merge: gắn google_id vào tài khoản email đã có
+      await pool.execute(
+        `UPDATE users SET google_id = ?, auth_provider = 'google', avatar_url = COALESCE(avatar_url, ?) WHERE id = ?`,
+        [googleId, picture, userRow.id]
+      );
+      userRow.google_id = googleId;
+      userRow.auth_provider = "google";
+    } else {
+      // 3b. Tạo user mới hoàn toàn
+      const [result] = await pool.execute(
+        `INSERT INTO users (fullname, email, google_id, auth_provider, avatar_url)
+         VALUES (?, ?, ?, 'google', ?)`,
+        [name, email, googleId, picture]
+      );
+      userRow = await findUserRowById(result.insertId);
+    }
+  } else {
+    // 4. User đã có — cập nhật avatar nếu thay đổi
+    if (picture && userRow.avatar_url !== picture) {
+      await pool.execute(
+        `UPDATE users SET avatar_url = ? WHERE id = ?`,
+        [picture, userRow.id]
+      );
+      userRow.avatar_url = picture;
+    }
+  }
+
+  const user = normalizeUser(userRow);
+  res.json({
+    user,
+    token: signToken(user),
+  });
+}
+
+// Helper nội bộ: lấy raw row theo id (không qua SELECT tối giản)
+async function findUserRowById(userId) {
+  const [rows] = await pool.query(
+    `SELECT id, fullname, email, google_id, auth_provider, avatar_url, created_at, updated_at
+     FROM users WHERE id = ? LIMIT 1`,
+    [userId]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   register,
   login,
   me,
+  googleLogin,
   findUserById,
   normalizeUser,
 };
