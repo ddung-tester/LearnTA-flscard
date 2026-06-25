@@ -1,4 +1,4 @@
-USE railway;
+USE learn_ta_flashcard;
 
 SET @schema_name = DATABASE();
 

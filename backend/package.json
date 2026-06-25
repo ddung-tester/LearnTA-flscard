@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Backend API for English Flashcard & Quiz App",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"

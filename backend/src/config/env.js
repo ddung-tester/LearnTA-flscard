@@ -23,11 +23,18 @@ function getJwtSecret() {
   return requiredEnv("JWT_SECRET");
 }
 
+const instanceConnectionName = process.env.INSTANCE_CONNECTION_NAME?.trim();
+const explicitDbSocketPath = process.env.DB_SOCKET_PATH?.trim();
+const dbSocketPath =
+  explicitDbSocketPath ||
+  (instanceConnectionName ? `/cloudsql/${instanceConnectionName}` : "");
+
 module.exports = {
-  port: parseNumber(process.env.PORT, 3000),
+  port: parseNumber(process.env.PORT, 8080),
   db: {
-    host: requiredEnv("DB_HOST"),
-    port: parseNumber(requiredEnv("DB_PORT"), 3306),
+    host: dbSocketPath ? undefined : requiredEnv("DB_HOST"),
+    port: parseNumber(process.env.DB_PORT, 3306),
+    socketPath: dbSocketPath || undefined,
     user: requiredEnv("DB_USER"),
     password: process.env.DB_PASSWORD ?? "",
     database: requiredEnv("DB_NAME"),

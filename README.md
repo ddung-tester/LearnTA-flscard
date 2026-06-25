@@ -119,12 +119,10 @@ Luu y: can dam bao ten database trong `schema.sql`, `seed.sql` va bien `DB_NAME`
 Tao file `.env` trong thu muc `backend/`:
 
 ```env
-PORT=3000
-DB_HOST=localhost
-DB_PORT=3306
+INSTANCE_CONNECTION_NAME=project-id:region:instance-name
 DB_USER=root
 DB_PASSWORD=
-DB_NAME=railway
+DB_NAME=learn_ta_flashcard
 JWT_SECRET=your-secret
 JWT_EXPIRES_IN=7d
 CORS_ORIGIN=http://localhost:5173
@@ -133,7 +131,8 @@ CORS_ORIGIN=http://localhost:5173
 Giai thich nhanh:
 
 - `PORT`: cong backend Express.
-- `DB_*`: thong tin ket noi MySQL.
+- `INSTANCE_CONNECTION_NAME`: ten ket noi Cloud SQL khi deploy Cloud Run, dang `project-id:region:instance-name`.
+- `DB_*`: thong tin ket noi MySQL. Khi co `INSTANCE_CONNECTION_NAME`, backend ket noi qua Cloud SQL socket va khong dung `DB_HOST`.
 - `JWT_SECRET`: khoa ky token dang nhap.
 - `CORS_ORIGIN`: frontend origin duoc phep goi API.
 
@@ -216,6 +215,14 @@ npm run preview
 ```bash
 npm run dev
 npm start
+```
+
+## Deploy Google Cloud
+
+Backend da duoc chuan bi de deploy len Cloud Run va ket noi Cloud SQL for MySQL. Xem checklist va lenh deploy tai:
+
+```txt
+docs/google-cloud-deploy.md
 ```
 
 ### Frontend
