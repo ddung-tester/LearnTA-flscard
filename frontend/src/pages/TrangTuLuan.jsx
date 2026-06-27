@@ -22,6 +22,7 @@ import {
   luuStudyAnswers,
   taoStudySession,
 } from "../services/studyApi";
+import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 
 const DS_CHE_DO = [
   { key: "vi-en", nhan: "Nghĩa → Từ", shortLabel: "Nghĩa → Từ" },
@@ -106,14 +107,18 @@ function TrangTuLuan() {
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
+    () => docCaiDatHocTap("tuluan").chiHocTuYeuThich
+  );
   const [lanLam, setLanLam] = useState(0);
-  const [cheDo, setCheDo] = useState("vi-en");
+  const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("tuluan").cheDo ?? "vi-en");
   const [batReward, setBatReward] = useState(false);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
-    CAU_HINH_REWARD_QUIZ.triggerCount
+    () => docCaiDatHocTap("tuluan").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
-  const [batRandom, setBatRandom] = useState(false);
+  const [batRandom, setBatRandom] = useState(
+    () => docCaiDatHocTap("tuluan").batRandom
+  );
   const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
@@ -155,6 +160,7 @@ function TrangTuLuan() {
   const postRewardContinueTimerRef = useRef(null);
   const focusTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
+  const enterUnlockedTimeRef = useRef(0);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
@@ -640,6 +646,7 @@ function TrangTuLuan() {
     if (dangChoNhanEnterSauSai) {
       if (event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
+        if (Date.now() < enterUnlockedTimeRef.current) return;
         xoaTimerTraLoiSai();
         chuyenCauTrongTienTrinhSauKhiLapLai();
       }
@@ -685,6 +692,7 @@ function TrangTuLuan() {
 
     // Đang chờ Enter sau khi sai: chuyển sang câu tiếp theo
     if (dangChoNhanEnterSauSai) {
+      if (Date.now() < enterUnlockedTimeRef.current) return;
       xoaTimerTraLoiSai();
       chuyenCauTrongTienTrinhSauKhiLapLai();
       return;
@@ -766,6 +774,7 @@ function TrangTuLuan() {
         // Hết cooldown flash đỏ: chuyển sang chờ Enter
         dangCooldownSaiRef.current = false;
         wrongAnswerTimerRef.current = null;
+        enterUnlockedTimeRef.current = Date.now() + 350;
         setDangChoNhanEnterSauSai(true);
         // Focus lại input để người dùng có thể nhấn Enter
         inputRef.current?.focus();
@@ -882,6 +891,7 @@ function TrangTuLuan() {
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
     setCheDo(key);
+    luuCaiDatHocTap("tuluan", { cheDo: key, chiHocTuYeuThich, batRandom, soCauDungNhanThuong });
     lamLai();
   }
 
@@ -903,6 +913,7 @@ function TrangTuLuan() {
     xoaTatCaTimerTuLuan();
     setBatRandom((prev) => {
       const moi = !prev;
+      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
       if (moi) setLanTronTuLuan((lanHienTai) => lanHienTai + 1);
       return moi;
     });
@@ -912,6 +923,7 @@ function TrangTuLuan() {
     const v = Math.max(1, Number(e.target.value) || 1);
     xoaTimerProgressReward();
     setSoCauDungNhanThuong(v);
+    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: v });
     setDangChoReward(false);
     setHienReward(false);
     setRewardProgressPhase("idle");
@@ -920,7 +932,11 @@ function TrangTuLuan() {
 
   function doiChiHocTuYeuThich() {
     xoaTatCaTimerTuLuan();
-    setChiHocTuYeuThich(p => !p);
+    setChiHocTuYeuThich((p) => {
+      const moi = !p;
+      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
+      return moi;
+    });
     setLanLam(g => g + 1);
     setChiSo(0);
     setSoCauDung(0);
@@ -1346,7 +1362,11 @@ function TrangTuLuan() {
             >
               <button
                 type="button"
-                onClick={() => { xoaTimerTraLoiSai(); chuyenCauTrongTienTrinhSauKhiLapLai(); }}
+                onClick={() => {
+                  if (Date.now() < enterUnlockedTimeRef.current) return;
+                  xoaTimerTraLoiSai();
+                  chuyenCauTrongTienTrinhSauKhiLapLai();
+                }}
                 className="ui-button ui-button--danger w-full rounded-xl py-3.5 text-lg font-bold"
               >
                 Tiếp tục

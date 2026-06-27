@@ -24,6 +24,7 @@ import {
   luuStudyAnswers,
   taoStudySession,
 } from "../services/studyApi";
+import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 
 const DS_CHE_DO_QUIZ = [
   {
@@ -161,9 +162,13 @@ function TrangQuiz() {
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
-  const [cheDo, setCheDo] = useState(CHE_DO_MAC_DINH_QUIZ);
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
-  const [batRandom, setBatRandom] = useState(false);
+  const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("quiz").cheDo ?? CHE_DO_MAC_DINH_QUIZ);
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
+    () => docCaiDatHocTap("quiz").chiHocTuYeuThich
+  );
+  const [batRandom, setBatRandom] = useState(
+    () => docCaiDatHocTap("quiz").batRandom
+  );
   const [lanTronQuiz, setLanTronQuiz] = useState(0);
   const [lanLam, setLanLam] = useState(0);
   const [tongSoCauMucTieu, setTongSoCauMucTieu] = useState(0);
@@ -177,7 +182,7 @@ function TrangQuiz() {
   const [lanReward, setLanReward] = useState(0);
   const [batReward, setBatReward] = useState(false);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
-    CAU_HINH_REWARD_QUIZ.triggerCount
+    () => docCaiDatHocTap("quiz").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
   const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
   const [, setRewardProgressValue] = useState(0);
@@ -246,7 +251,6 @@ function TrangQuiz() {
   }
 
   useEffect(() => {
-    setChiHocTuYeuThich(false);
     taiDuLieuQuiz();
   }, [boId]);
 
@@ -502,6 +506,7 @@ function TrangQuiz() {
     datLaiProgressReward();
     setDangChuyenCau(false);
     setCheDo(key);
+    luuCaiDatHocTap("quiz", { cheDo: key, chiHocTuYeuThich, batRandom, soCauDungNhanThuong });
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -531,6 +536,7 @@ function TrangQuiz() {
     const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
     datLaiProgressReward();
     setSoCauDungNhanThuong(giaTriMoi);
+    luuCaiDatHocTap("quiz", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: giaTriMoi });
     setHienReward(false);
     setDangChoReward(false);
   }
@@ -539,7 +545,11 @@ function TrangQuiz() {
     xoaTimerChuyenCau();
     datLaiProgressReward();
     setDangChuyenCau(false);
-    setChiHocTuYeuThich((dangBat) => !dangBat);
+    setChiHocTuYeuThich((dangBat) => {
+      const moi = !dangBat;
+      luuCaiDatHocTap("quiz", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
+      return moi;
+    });
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -557,6 +567,7 @@ function TrangQuiz() {
   function doiRandom() {
     setBatRandom((prev) => {
       const moi = !prev;
+      luuCaiDatHocTap("quiz", { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
       if (moi) setLanTronQuiz((n) => n + 1);
       return moi;
     });

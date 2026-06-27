@@ -18,6 +18,7 @@ import {
   clampProgressPercent,
   getProgressColor,
 } from "../utils/progressColor";
+import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 
 const DS_CHE_DO = [
   {
@@ -100,9 +101,13 @@ function TrangFlashcard() {
 
   const [chiSo, setChiSo] = useState(0);
   const [daLat, setDaLat] = useState(false);
-  const [cheDo, setCheDo] = useState("vi-en");
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(false);
-  const [batRandom, setBatRandom] = useState(false);
+  const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("flashcard").cheDo);
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
+    () => docCaiDatHocTap("flashcard").chiHocTuYeuThich
+  );
+  const [batRandom, setBatRandom] = useState(
+    () => docCaiDatHocTap("flashcard").batRandom
+  );
   const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
   const [tongSoTheMucTieu, setTongSoTheMucTieu] = useState(0);
   const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
@@ -163,7 +168,6 @@ function TrangFlashcard() {
   useEffect(() => {
     setChiSo(0);
     setDaLat(false);
-    setChiHocTuYeuThich(false);
     sessionKeyRef.current = "";
     datLaiReward();
     taiDuLieuHoc();
@@ -340,13 +344,18 @@ function TrangFlashcard() {
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
     setCheDo(key);
+    luuCaiDatHocTap("flashcard", { cheDo: key, chiHocTuYeuThich, batRandom });
     setChiSo(0);
     setDaLat(false);
     datLaiReward();
   }
 
   function doiChiHocTuYeuThich() {
-    setChiHocTuYeuThich((dangBat) => !dangBat);
+    setChiHocTuYeuThich((dangBat) => {
+      const moi = !dangBat;
+      luuCaiDatHocTap("flashcard", { cheDo, chiHocTuYeuThich: moi, batRandom });
+      return moi;
+    });
     setChiSo(0);
     setDaLat(false);
     datLaiReward();
@@ -355,6 +364,7 @@ function TrangFlashcard() {
   function doiRandom() {
     setBatRandom((prev) => {
       const moi = !prev;
+      luuCaiDatHocTap("flashcard", { cheDo, chiHocTuYeuThich, batRandom: moi });
       if (moi) setLanTron((n) => n + 1); // trigger shuffle mới
       return moi;
     });

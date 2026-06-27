@@ -13,6 +13,7 @@ import {
   dangNhapGoogle,
   layNguoiDungHienTai,
 } from "../services/authApi";
+import { dongBoCaiDatTuDatabase } from "../utils/caiDatHocTap";
 
 const AuthContext = createContext(null);
 
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.token);
     setToken(data.token);
     setUser(data.user);
+    dongBoCaiDatTuDatabase();
   }, []);
 
   const clearAuth = useCallback(() => {
@@ -52,6 +54,7 @@ export function AuthProvider({ children }) {
         const currentUser = await layNguoiDungHienTai();
         if (isMounted) {
           setUser(currentUser);
+          dongBoCaiDatTuDatabase();
         }
       } catch {
         localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
