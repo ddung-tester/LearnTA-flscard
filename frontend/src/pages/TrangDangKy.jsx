@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 import LoginMascot from "../components/LoginMascot";
 import AnimatedModal from "../components/common/AnimatedModal";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,7 +10,8 @@ const PASSWORD_MIN_LENGTH = 6;
 
 function TrangDangKy() {
   const { navigateWithLoading } = usePageTransition();
-  const { dangKy, isAuthReady, isAuthenticated } = useAuth();
+  const { dangKy, dangNhapViaGoogle, isAuthReady, isAuthenticated } = useAuth();
+  const redirectTimerRef = useRef(null);
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -81,7 +83,23 @@ function TrangDangKy() {
     navigateWithLoading("/login", { replace: true, state: { registered: true } });
   }
 
-
+  async function handleGoogleToken(idToken) {
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await dangNhapViaGoogle(idToken);
+      setSuccessTick((current) => current + 1);
+      setDangMoXacNhanThanhCong(false);
+      redirectTimerRef.current = setTimeout(() => {
+        navigateWithLoading("/decks", { replace: true });
+      }, 1500);
+    } catch (googleError) {
+      setError(googleError.message);
+      setFailTick((current) => current + 1);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="video-bg-page video-bg-page--auth px-4">
@@ -217,6 +235,17 @@ function TrangDangKy() {
               </span>
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="auth-divider">
+            <span>hoặc</span>
+          </div>
+
+          {/* Google Sign-In */}
+          <GoogleSignInButton
+            onToken={handleGoogleToken}
+            disabled={isSubmitting || dangMoXacNhanThanhCong}
+          />
 
           <p className="mt-4 text-sm text-[var(--mau-chu-phu)]">
             Đã có tài khoản?{" "}

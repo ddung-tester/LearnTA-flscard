@@ -1,7 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
-const { getJwtSecret, jwtExpiresIn } = require("../config/env");
+const { getJwtSecret, getGoogleClientId, jwtExpiresIn } = require("../config/env");
 const { cleanText, createHttpError } = require("../utils/http");
 
 const SALT_ROUNDS = 10;
@@ -151,11 +152,83 @@ async function me(req, res) {
 }
 
 
+async function googleAuth(req, res) {
+  const { id_token } = req.body;
+  if (!id_token || typeof id_token !== "string") {
+    throw createHttpError(400, "Thiếu id_token từ Google");
+  }
+
+  // Verify token với Google
+  const client = new OAuth2Client(getGoogleClientId());
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: id_token,
+      audience: getGoogleClientId(),
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw createHttpError(401, "Token Google không hợp lệ hoặc đã hết hạn");
+  }
+
+  const { sub: googleId, email, name, picture } = payload;
+
+  if (!email) {
+    throw createHttpError(400, "Tài khoản Google không có email");
+  }
+
+  // Tìm user theo google_id trước
+  let [rows] = await pool.query(
+    `SELECT id, fullname, email, avatar_url, created_at, updated_at
+     FROM users
+     WHERE google_id = ?
+     LIMIT 1`,
+    [googleId]
+  );
+
+  // Nếu chưa có → tìm theo email (auto-link với tài khoản password)
+  if (!rows[0]) {
+    [rows] = await pool.query(
+      `SELECT id, fullname, email, avatar_url, created_at, updated_at
+       FROM users
+       WHERE email = ?
+       LIMIT 1`,
+      [email]
+    );
+
+    if (rows[0]) {
+      // Link google_id vào tài khoản hiện có
+      await pool.execute(
+        `UPDATE users SET google_id = ?, avatar_url = COALESCE(avatar_url, ?) WHERE id = ?`,
+        [googleId, picture ?? null, rows[0].id]
+      );
+    }
+  }
+
+  let user;
+  if (rows[0]) {
+    user = normalizeUser(rows[0]);
+  } else {
+    // Tạo user mới (không có password_hash — chỉ dùng Google)
+    const fullname = name
+      ? cleanText(name).replace(/\s+/g, " ").slice(0, 50) || "Người dùng"
+      : "Người dùng";
+
+    const [result] = await pool.execute(
+      `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?)`,
+      [fullname, email, googleId, picture ?? null]
+    );
+    user = await findUserById(result.insertId);
+  }
+
+  res.json({ user, token: signToken(user) });
+}
 
 module.exports = {
   register,
   login,
   me,
+  googleAuth,
   findUserById,
   normalizeUser,
 };

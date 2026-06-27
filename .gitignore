@@ -21,3 +21,7 @@ npm-debug.log*
 # IDE
 .vscode/
 .idea/
+
+# Cloud SQL Auth Proxy binary (tải về local, không commit)
+cloud-sql-proxy.exe
+cloud-sql-proxy.x86.exe

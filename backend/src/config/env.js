@@ -23,6 +23,10 @@ function getJwtSecret() {
   return requiredEnv("JWT_SECRET");
 }
 
+function getGoogleClientId() {
+  return requiredEnv("GOOGLE_CLIENT_ID");
+}
+
 const instanceConnectionName = process.env.INSTANCE_CONNECTION_NAME?.trim();
 const explicitDbSocketPath = process.env.DB_SOCKET_PATH?.trim();
 const dbSocketPath =
@@ -41,5 +45,6 @@ module.exports = {
   },
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
   getJwtSecret,
+  getGoogleClientId,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
 };

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 import LoginMascot from "../components/LoginMascot";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -10,7 +11,7 @@ const PASSWORD_MIN_LENGTH = 6;
 function TrangDangNhap() {
   const { navigateWithLoading } = usePageTransition();
   const location = useLocation();
-  const { dangNhap, isAuthReady, isAuthenticated } = useAuth();
+  const { dangNhap, dangNhapViaGoogle, isAuthReady, isAuthenticated } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +84,23 @@ function TrangDangNhap() {
     }
   }
 
-
+  async function handleGoogleToken(idToken) {
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await dangNhapViaGoogle(idToken);
+      setSuccessTick((current) => current + 1);
+      setDangChoChuyenTrang(true);
+      redirectTimerRef.current = setTimeout(() => {
+        navigateWithLoading(redirectTo, { replace: true });
+      }, AUTH_SUCCESS_REDIRECT_DELAY);
+    } catch (googleError) {
+      setError(googleError.message);
+      setFailTick((current) => current + 1);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="video-bg-page video-bg-page--auth px-4">
@@ -160,6 +177,17 @@ function TrangDangNhap() {
               {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="auth-divider">
+            <span>hoặc</span>
+          </div>
+
+          {/* Google Sign-In */}
+          <GoogleSignInButton
+            onToken={handleGoogleToken}
+            disabled={isSubmitting || dangChoChuyenTrang}
+          />
 
           <p className="mt-5 text-sm text-[var(--mau-chu-phu)]">
             Chưa có tài khoản?{" "}

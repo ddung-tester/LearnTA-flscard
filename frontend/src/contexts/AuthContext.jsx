@@ -10,6 +10,7 @@ import { AUTH_TOKEN_STORAGE_KEY } from "../services/api";
 import {
   dangKyTaiKhoan,
   dangNhapTaiKhoan,
+  dangNhapGoogle,
   layNguoiDungHienTai,
 } from "../services/authApi";
 
@@ -81,6 +82,14 @@ export function AuthProvider({ children }) {
     [saveAuth]
   );
 
+  const dangNhapViaGoogle = useCallback(
+    async (idToken) => {
+      const data = await dangNhapGoogle(idToken);
+      saveAuth(data);
+      return data.user;
+    },
+    [saveAuth]
+  );
 
 
   const dangKy = useCallback(
@@ -98,10 +107,11 @@ export function AuthProvider({ children }) {
       isAuthReady,
       isAuthenticated: Boolean(token && user),
       dangNhap,
+      dangNhapViaGoogle,
       dangKy,
       dangXuat: clearAuth,
     }),
-    [clearAuth, dangKy, dangNhap, isAuthReady, token, user]
+    [clearAuth, dangKy, dangNhap, dangNhapViaGoogle, isAuthReady, token, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

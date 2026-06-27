@@ -1,330 +1,234 @@
-# English Flashcard & Quiz App
+# LearnTA — Flashcard & Quiz App
 
-Ung dung hoc tu vung tieng Anh bang flashcard, quiz trac nghiem, luyen tu luan va hieu ung reward khi nguoi hoc dat moc cau dung.
+Ứng dụng học từ vựng tiếng Anh bằng flashcard, quiz trắc nghiệm và tự luận.
 
-Project hien gom hai phan chinh:
+- **Frontend**: React + Vite → deploy trên **Vercel**
+- **Backend**: Node.js + Express → deploy trên **Google Cloud Run**
+- **Database**: MySQL → **Google Cloud SQL**
 
-- `frontend`: React/Vite, giao dien hoc tap va goi API.
-- `backend`: Node.js/Express, MySQL, JWT auth va cac API quan ly du lieu hoc tap.
+---
 
-## Tinh nang chinh
+## Chạy local để phát triển (FE + BE)
 
-- **Dang ky / dang nhap**: xac thuc nguoi dung bang JWT.
-- **Danh sach bo tu**: xem cac deck hien co, mo chi tiet deck, them, sua va xoa deck.
-- **Chi tiet bo tu**: xem danh sach tu trong deck, theo doi tien do hoc gan nhat.
-- **Quan ly tu vung**: them, sua, xoa tu, danh dau yeu thich va import nhanh nhieu tu.
-- **Flashcard**:
-  - Lat the bang click hoac phim `Space`.
-  - Chuyen the bang nut truoc/sau hoac phim mui ten.
-  - Ho tro 2 chieu hoc: English -> Vietnamese va Vietnamese -> English.
-  - Danh dau "Nho roi" hoac "Chua nho".
-- **Quiz trac nghiem**:
-  - Tao cau hoi tu danh sach card trong deck.
-  - Moi cau co 4 dap an, gom 1 dap an dung va 3 dap an nhieu.
-  - Tu chuyen cau sau khi chon dap an.
-  - Co man hinh tong ket cuoi bai.
-- **Tu luan**: luyen go dap an theo tung tu/cum tu.
-- **Tien do hoc tap**:
-  - Luu study session, ket qua quiz va tien do card qua backend.
-  - Mot so tuy chon/phu tro van co the dung `localStorage` tren frontend.
-- **Reward khi dung X cau**:
-  - Co the bat/tat reward trong man quiz.
-  - Co the chinh so cau dung de kich hoat phan thuong.
-  - Khi dat moc, app chon ngau nhien mot video reward trong `frontend/public/rewards/`.
+### Yêu cầu (cài 1 lần)
 
-## Cong nghe su dung
+| Công cụ | Lý do cần |
+|---|---|
+| Node.js ≥ 20 | Chạy FE + BE |
+| Google Cloud SDK (`gcloud`) | Auth với GCP |
+| Cloud SQL Auth Proxy | Kết nối DB từ local |
 
-### Frontend
+#### Cài Google Cloud SDK
 
-- React
-- Vite
-- React Router DOM
-- Axios
-- Tailwind CSS
-- JavaScript
-- GSAP / Motion / Rive / Lottie cho hieu ung va animation
+Tải và cài tại: https://cloud.google.com/sdk/docs/install
 
-### Backend
+Sau khi cài, mở terminal **mới** và đăng nhập:
 
-- Node.js
-- Express
-- MySQL
-- JWT
-- bcrypt
-- Zod
-- dotenv
-
-## Cau truc project
-
-```txt
-.
-  backend/
-    database/
-      schema.sql
-      seed.sql
-      migrations/
-    src/
-      config/
-      controllers/
-      middleware/
-      routes/
-      utils/
-      app.js
-      server.js
-    package.json
-
-  frontend/
-    public/
-      animation/
-      background/
-      rewards/
-    src/
-      components/
-      contexts/
-      data/
-      hooks/
-      pages/
-      services/
-      utils/
-      App.jsx
-      main.jsx
-      index.css
-    package.json
+```powershell
+gcloud auth application-default login
 ```
 
-## Yeu cau moi truong
+#### Tải Cloud SQL Auth Proxy
 
-- Node.js
-- npm
-- MySQL
-
-## Cau hinh database
-
-Chay script tao database/schema:
-
-```txt
-backend/database/schema.sql
+```powershell
+# Windows — đặt vào thư mục gốc project (đã có trong .gitignore)
+Invoke-WebRequest -Uri "https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.22.1/cloud-sql-proxy.x86.exe" -OutFile "cloud-sql-proxy.x86.exe"
 ```
 
-Sau do co the nap du lieu mau:
+---
 
-```txt
-backend/database/seed.sql
-```
+### Cấu hình lần đầu
 
-Luu y: can dam bao ten database trong `schema.sql`, `seed.sql` va bien `DB_NAME` trong `.env` thong nhat voi nhau.
-
-## Cau hinh backend
-
-Tao file `.env` trong thu muc `backend/`:
+#### `backend/.env` — copy từ mẫu dưới
 
 ```env
-INSTANCE_CONNECTION_NAME=project-id:region:instance-name
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=learn_ta_flashcard
-JWT_SECRET=your-secret
+# Chạy LOCAL — dùng Cloud SQL Auth Proxy
+# INSTANCE_CONNECTION_NAME=flash-card-499907:asia-southeast1:flashcard-mysql  ← bỏ comment khi deploy Cloud Run
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_USER=app_user
+DB_PASSWORD=<password>
+DB_NAME=flashcard_db
+
+JWT_SECRET=<secret>
 JWT_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:5173
+
+# Google OAuth
+GOOGLE_CLIENT_ID=<your-google-client-id>
+
+# CORS
+CORS_ORIGIN=http://localhost:5173,https://dungdinh-vocab.vercel.app
+NODE_ENV=development
 ```
 
-Giai thich nhanh:
-
-- `PORT`: cong backend Express.
-- `INSTANCE_CONNECTION_NAME`: ten ket noi Cloud SQL khi deploy Cloud Run, dang `project-id:region:instance-name`.
-- `DB_*`: thong tin ket noi MySQL. Khi co `INSTANCE_CONNECTION_NAME`, backend ket noi qua Cloud SQL socket va khong dung `DB_HOST`.
-- `JWT_SECRET`: khoa ky token dang nhap.
-- `CORS_ORIGIN`: frontend origin duoc phep goi API.
-
-## Cau hinh frontend
-
-Neu can chi dinh API backend, tao file `.env` trong thu muc `frontend/`:
+#### `frontend/.env.local` — copy từ mẫu dưới
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:8080
+VITE_GOOGLE_CLIENT_ID=<your-google-client-id>
 ```
 
-Neu khong cau hinh, frontend o che do dev se mac dinh goi `http://localhost:3000`.
+#### Cài dependencies (1 lần)
 
-## Cach chay project
+```powershell
+cd backend && npm install
+cd ../frontend && npm install
+```
 
-### 1. Cai dependencies backend
+---
 
-```bash
+### Chạy hàng ngày (3 terminal)
+
+> **Thứ tự quan trọng**: Proxy → Backend → Frontend
+
+**Terminal 1 — Cloud SQL Proxy** (giữ mở suốt)
+
+```powershell
+.\cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307
+# Thành công khi thấy: Listening on 127.0.0.1:3307
+```
+
+**Terminal 2 — Backend**
+
+```powershell
 cd backend
-npm install
-```
-
-### 2. Chay backend
-
-```bash
 npm run dev
+# Thành công khi thấy: Server running on port 8080
 ```
 
-Backend mac dinh chay tai:
+**Terminal 3 — Frontend**
 
-```txt
-http://localhost:3000
-```
-
-Kiem tra nhanh:
-
-```txt
-http://localhost:3000/api/health
-http://localhost:3000/api/db-test
-```
-
-### 3. Cai dependencies frontend
-
-Mo terminal khac:
-
-```bash
+```powershell
 cd frontend
-npm install
-```
-
-### 4. Chay frontend
-
-```bash
 npm run dev
+# Mở http://localhost:5173
 ```
 
-Frontend mac dinh chay tai:
+#### Kiểm tra nhanh
 
-```txt
-http://localhost:5173
+```
+http://localhost:8080/api/health     → { "status": "ok" }
+http://localhost:8080/api/db-test    → { "database": "connected" }
 ```
 
-### 5. Build production frontend
+---
 
-```bash
-cd frontend
-npm run build
+## Quy trình push / deploy khi xong một tính năng
+
+### Frontend — Vercel tự deploy
+
+```powershell
+git add .
+git commit -m "feat: mô tả tính năng"
+git push origin main
 ```
 
-### 6. Preview ban build frontend
+Vercel tự động build và deploy sau vài giây. Không cần làm gì thêm.
 
-```bash
-npm run preview
+### Backend — Deploy thủ công lên Cloud Run
+
+File `backend/.env` **không bao giờ được đưa vào Docker image** (nhờ `.dockerignore`).
+Cloud Run đọc env vars từ service config riêng → **không cần sửa `.env` trước khi deploy**.
+
+```powershell
+cd backend
+gcloud run deploy <tên-service> --source . --region asia-southeast1
 ```
 
-## Scripts
+> **Env vars trên Cloud Run** phải được set riêng (1 lần, trừ khi thêm biến mới):
+> ```powershell
+> gcloud run services update <tên-service> --region asia-southeast1 \
+>   --set-env-vars "INSTANCE_CONNECTION_NAME=flash-card-499907:asia-southeast1:flashcard-mysql,GOOGLE_CLIENT_ID=<id>"
+> ```
 
-### Backend
+---
 
-```bash
-npm run dev
-npm start
+## Cấu trúc project
+
+```
+LearnTA-flscard/
+├── backend/
+│   ├── database/
+│   │   ├── schema.sql            # Schema DB
+│   │   ├── seed.sql              # Dữ liệu mẫu
+│   │   └── add_google_auth.sql   # Migration: thêm cột google_id
+│   ├── src/
+│   │   ├── config/               # env.js, db.js
+│   │   ├── controllers/          # authController, deckController...
+│   │   ├── middleware/           # authMiddleware
+│   │   ├── routes/               # authRoutes, deckRoutes...
+│   │   ├── utils/
+│   │   ├── app.js
+│   │   └── server.js
+│   └── package.json
+│
+├── frontend/
+│   ├── public/
+│   │   └── rewards/              # Video reward
+│   ├── src/
+│   │   ├── components/
+│   │   ├── contexts/             # AuthContext, PageTransitionContext
+│   │   ├── pages/                # TrangDangNhap, TrangDangKy, TrangDanhSachBo...
+│   │   ├── services/             # api.js, authApi.js, deckApi.js...
+│   │   ├── App.jsx
+│   │   └── index.css
+│   └── package.json
+│
+├── cloud-sql-proxy.x86.exe       # Local only — gitignored
+└── .gitignore
 ```
 
-## Deploy Google Cloud
+---
 
-Backend da duoc chuan bi de deploy len Cloud Run va ket noi Cloud SQL for MySQL. Xem checklist va lenh deploy tai:
+## API endpoints
 
-```txt
-docs/google-cloud-deploy.md
 ```
-
-### Frontend
-
-```bash
-npm run dev
-npm run build
-npm run preview
-npm run lint
-```
-
-## Routes frontend chinh
-
-```txt
-/                         Trang chu
-/login                    Dang nhap
-/register                 Dang ky
-/decks                    Danh sach bo tu
-/decks/:deckId            Chi tiet bo tu
-/decks/:deckId/add-word   Them tu
-/decks/:deckId/flashcard  Hoc bang flashcard
-/decks/:deckId/quiz       Lam quiz trac nghiem
-/decks/:deckId/tu-luan    Luyen tu luan
-```
-
-## API backend chinh
-
-Backend expose API duoi prefix `/api`.
-
-```txt
 GET    /api/health
 GET    /api/db-test
 
 POST   /api/auth/register
 POST   /api/auth/login
+POST   /api/auth/google           # Đăng nhập bằng Google OAuth
 GET    /api/auth/me
 
 GET    /api/decks
-GET    /api/decks/:deckId
 POST   /api/decks
-PUT    /api/decks/:deckId
-DELETE /api/decks/:deckId
+GET    /api/decks/:id
+PUT    /api/decks/:id
+DELETE /api/decks/:id
 
-GET    /api/decks/:deckId/cards
-POST   /api/decks/:deckId/cards
-POST   /api/decks/:deckId/cards/import
-PUT    /api/cards/:cardId
-PATCH  /api/cards/:cardId/favorite
-DELETE /api/cards/:cardId
+GET    /api/decks/:id/cards
+POST   /api/decks/:id/cards
+POST   /api/decks/:id/cards/import
+PUT    /api/cards/:id
+PATCH  /api/cards/:id/favorite
+DELETE /api/cards/:id
 
 POST   /api/study-sessions
-PATCH  /api/study-sessions/:sessionId/finish
-POST   /api/study-sessions/:sessionId/answers
+PATCH  /api/study-sessions/:id/finish
+POST   /api/study-sessions/:id/answers
 POST   /api/quiz-results
-GET    /api/decks/:deckId/quiz-results/latest
+GET    /api/decks/:id/quiz-results/latest
 
-GET    /api/cards/:cardId/progress
-PATCH  /api/cards/:cardId/progress
-GET    /api/decks/:deckId/progress-summary
+GET    /api/cards/:id/progress
+PATCH  /api/cards/:id/progress
+GET    /api/decks/:id/progress-summary
 ```
 
-Mot so endpoint ghi du lieu yeu cau token dang nhap trong header:
-
-```txt
+Các endpoint cần auth phải gửi header:
+```
 Authorization: Bearer <token>
 ```
 
-## Du lieu va luu tru
+---
 
-- Du lieu chinh duoc luu trong MySQL.
-- Backend quan ly users, decks, cards, study sessions, study answers, card progress, quiz results, streak logs va user settings.
-- Frontend luu auth token trong `localStorage` voi key `hocTA.authToken`.
-- File `frontend/src/data/duLieuMau.js` van ton tai cho du lieu/phu tro mau cua frontend, nhung luong chinh hien goi API backend.
+## Tính năng chính
 
-## Reward video
-
-Video reward nam trong:
-
-```txt
-frontend/public/rewards/
-```
-
-Danh sach video co the cau hinh bang:
-
-```txt
-frontend/public/rewards/videos.json
-```
-
-## Trang thai hien tai
-
-Project da co frontend, backend, database schema va luong dang nhap/dang ky. Cac luong hoc chinh co the dung:
-
-- Dang ky / dang nhap
-- Deck List -> Deck Detail
-- Deck Detail -> Flashcard
-- Deck Detail -> Quiz
-- Deck Detail -> Tu luan
-- Them/sua/xoa deck va card theo quyen dang nhap
-- Luu ket qua hoc va tien do qua backend
-
-## Ghi chu phat trien
-
-- Can thong nhat ten database giua `schema.sql`, `seed.sql` va `.env`.
-- Nen tao file `.env.example` cho backend va frontend de nguoi khac setup nhanh hon.
-- Nen bo sung anh demo/screenshot cho cac man hinh chinh neu dung project trong portfolio.
+- Đăng ký / đăng nhập bằng email hoặc Google OAuth
+- Quản lý bộ từ (deck): tạo, sửa, xóa
+- Quản lý từ vựng: thêm, sửa, xóa, yêu thích, import nhiều từ
+- Học flashcard (lật thẻ, đánh dấu nhớ/chưa nhớ)
+- Quiz trắc nghiệm 4 đáp án
+- Luyện tự luận
+- Theo dõi tiến độ học tập
+- Reward video khi đạt mốc câu đúng

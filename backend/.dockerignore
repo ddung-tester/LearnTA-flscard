@@ -1,0 +1,18 @@
+# Không đưa file môi trường vào Docker image
+# Cloud Run đọc env vars từ service config, không cần file .env
+.env
+.env.*
+
+# Dev dependencies và tools
+node_modules/
+npm-debug.log*
+*.log
+nodemon.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
