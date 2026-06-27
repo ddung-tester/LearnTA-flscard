@@ -5,12 +5,17 @@
  * Props:
  *   onToken(idToken: string) — gọi khi Google trả về credential (id_token)
  *   disabled?: boolean
+ *   variant?: "signin" | "signup"  — đổi text hiển thị
  */
 import { useEffect, useRef } from "react";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export default function GoogleSignInButton({ onToken, disabled = false }) {
+export default function GoogleSignInButton({
+  onToken,
+  disabled = false,
+  variant = "signin",
+}) {
   const containerRef = useRef(null);
   const initializedRef = useRef(false);
 
@@ -31,16 +36,25 @@ export default function GoogleSignInButton({ onToken, disabled = false }) {
         cancel_on_tap_outside: true,
       });
 
-      const width = containerRef.current.offsetWidth || 320;
+      renderBtn();
+    }
+
+    function renderBtn() {
+      if (!containerRef.current || !window.google?.accounts?.id) return;
+
+      // Lấy width thực tế của container (đảm bảo DOM đã layout xong)
+      const width = containerRef.current.getBoundingClientRect().width || 380;
 
       window.google.accounts.id.renderButton(containerRef.current, {
         type: "standard",
         theme: "outline",
         size: "large",
-        text: "continue_with",
+        // signin_with → "Đăng nhập bằng Google"
+        // signup_with → "Đăng ký bằng Google"
+        text: variant === "signup" ? "signup_with" : "signin_with",
         shape: "rectangular",
         logo_alignment: "left",
-        width: Math.min(width, 400),
+        width: Math.floor(width),
       });
     }
 
@@ -53,24 +67,22 @@ export default function GoogleSignInButton({ onToken, disabled = false }) {
       script.defer = true;
       script.onload = initButton;
       document.head.appendChild(script);
+    } else if (window.google?.accounts?.id) {
+      initButton();
     } else {
-      // Script đã có (navigate sang trang khác rồi quay lại)
-      if (window.google?.accounts?.id) {
-        initButton();
-      } else {
-        document.getElementById("gsi-script").addEventListener("load", initButton);
-      }
+      document.getElementById("gsi-script").addEventListener("load", initButton);
     }
-  }, [onToken]);
+  }, [onToken, variant]);
 
   if (!GOOGLE_CLIENT_ID) return null;
 
   return (
     <div
       style={{
-        opacity: disabled ? 0.6 : 1,
+        opacity: disabled ? 0.55 : 1,
         pointerEvents: disabled ? "none" : "auto",
         transition: "opacity 180ms",
+        width: "100%",
       }}
     >
       {/* Google tự render button vào đây */}

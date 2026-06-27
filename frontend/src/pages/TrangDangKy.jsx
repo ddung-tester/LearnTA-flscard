@@ -245,6 +245,7 @@ function TrangDangKy() {
           <GoogleSignInButton
             onToken={handleGoogleToken}
             disabled={isSubmitting || dangMoXacNhanThanhCong}
+            variant="signup"
           />
 
           <p className="mt-4 text-sm text-[var(--mau-chu-phu)]">
