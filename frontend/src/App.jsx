@@ -17,6 +17,7 @@ const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
 const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
 const TrangDangNhap = lazy(() => import("./pages/TrangDangNhap"));
 const TrangDangKy = lazy(() => import("./pages/TrangDangKy"));
+const TrangCaiDat = lazy(() => import("./pages/TrangCaiDat"));
 
 /**
  * UngDung — Routing chinh.
@@ -49,6 +50,7 @@ function UngDung() {
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
+            <Route path="/cai-dat" element={<TrangCaiDat />} />
           </Route>
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
           <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />

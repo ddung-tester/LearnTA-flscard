@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import StreakBadge from "../components/common/StreakBadge";
 import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import ToastMessage from "../components/common/ToastMessage";
@@ -861,9 +862,9 @@ function TrangChiTietBo() {
           <p className="ui-stat-label mb-1">
             Streak
           </p>
-          <p className="ui-stat-value text-[var(--mau-chu)]">
-            {streak > 0 ? streak : "-"}
-          </p>
+          <div className="flex items-center justify-center min-h-[2rem]">
+            <StreakBadge streak={streak} size="lg" showZero />
+          </div>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import ModeSwitch from "../components/common/ModeSwitch";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
+import StreakCelebration from "../components/common/StreakCelebration";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -16,6 +17,7 @@ import { locTuYeuThich } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
+import { getUserStats } from "../services/userApi";
 import {
   ketThucStudySession,
   luuQuizResult,
@@ -193,6 +195,8 @@ function TrangQuiz() {
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
   const daLuuKetQuaRef = useRef(false);
+  const [streakCelebration, setStreakCelebration] = useState(null); // streak mới nếu tăng
+  const prevStreakRef = useRef(null);
   const [danhSachCauHoiRuntime, setDanhSachCauHoiRuntime] = useState([]);
   const chiSoTienTrinhDangHoatDong = danhSachCauHoiRuntime[chiSo]?.__segmentIndex
     ?? soCauDungTheoTienTrinh.findIndex(
@@ -245,6 +249,15 @@ function TrangQuiz() {
     setChiHocTuYeuThich(false);
     taiDuLieuQuiz();
   }, [boId]);
+
+  // Lấy streak hiện tại làm baseline để detect tăng sau khi học xong
+  useEffect(() => {
+    getUserStats()
+      .then((stats) => {
+        prevStreakRef.current = stats.current_streak ?? 0;
+      })
+      .catch(() => {});
+  }, []);
 
   useLayoutEffect(() => {
     const loadingKey = `quiz-${boId}`;
@@ -690,11 +703,30 @@ function TrangQuiz() {
           if (danhSachKetQua.length > 0) {
             await luuStudyAnswers(studySessionId, danhSachKetQua);
           }
+
+          // Fetch streak mới sau khi lưu xong
+          try {
+            const stats = await getUserStats();
+            const newStreak = stats.current_streak ?? 0;
+            const prevStreak = prevStreakRef.current;
+            prevStreakRef.current = newStreak;
+
+            // Dispatch event để BoCuc header cập nhật streak badge
+            window.dispatchEvent(new CustomEvent("streak-updated", { detail: { streak: newStreak } }));
+
+            // Nếu streak tăng thì show celebration
+            if (prevStreak !== null && newStreak > prevStreak && newStreak > 0) {
+              setStreakCelebration(newStreak);
+            }
+          } catch {
+            // silent — không ảnh hưởng UX chính
+          }
         }
       } catch (error) {
         setLoiLuuKetQua(error.message);
       }
     }
+
 
     luuKetQuaLenBackend();
   }, [
@@ -809,6 +841,13 @@ function TrangQuiz() {
   if (daHoanThanh) {
     return (
       <>
+        {/* Streak celebration overlay — Duolingo style */}
+        {streakCelebration !== null && (
+          <StreakCelebration
+            streak={streakCelebration}
+            onClose={() => setStreakCelebration(null)}
+          />
+        )}
         <RewardTikTokEffect
           active={batReward && hienReward}
           lanKichHoat={lanReward}
@@ -866,6 +905,7 @@ function TrangQuiz() {
       </>
     );
   }
+
 
   const cauHienTai = danhSachCauHoiRuntime[chiSo];
 

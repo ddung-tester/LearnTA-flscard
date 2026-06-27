@@ -688,6 +688,130 @@ body.is-page-loading .ui-route-transition {
   box-shadow: 0 0 3px oklch(99% 0.012 94 / 0.25);
 }
 
+/* ── Seg-bar: N separate bars with shared gradient ──────────────────────── */
+
+/* Container: flex row, fills full width */
+.seg-bars-container {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 3px;
+  align-items: center;
+}
+
+/* Each individual bar */
+.seg-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.seg-bar__track {
+  position: relative;
+  height: 0.55rem;
+  overflow: visible;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, oklch(98% 0.018 95 / 0.88), oklch(93% 0.035 112 / 0.72));
+  border: 1px solid oklch(47% 0.06 174 / 0.22);
+  box-shadow:
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.72),
+    inset 0 -1px 0 oklch(47% 0.115 174 / 0.08);
+  transition:
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Done segment: slightly lit border */
+.seg-bar__track--done {
+  border-color: oklch(55% 0.12 164 / 0.4);
+}
+
+/* Active segment: highlighted border */
+.seg-bar__track--correct,
+.seg-bar__track--idle {
+  border-color: oklch(55% 0.115 174 / 0.32);
+}
+
+/* Fill bar — expands left to right */
+.seg-bar__fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  width: 100%;
+  clip-path: inset(0 calc(100% - var(--fill-pct, 0%)) 0 0);
+  transition: clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The core fill uses the shared holo gradient.
+   background-size stretches gradient to full container width (N bars).
+   background-position offsets to show the correct slice for this bar. */
+.seg-bar__fill-core {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--progress-holo-gradient);
+  /* Scale gradient to totalSegments × bar width so all bars together = 1 dải */
+  background-size: calc(var(--grad-total, 1) * 100%) 100%;
+  /* Position this bar's slice: offset = i/N of total gradient */
+  background-position: var(--grad-pos-x, 0%) 50%;
+  animation: seg-fill-pulse 16s ease-in-out infinite alternate;
+}
+
+/* Shimmer sweep on fill */
+.seg-bar__shimmer {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    oklch(98% 0.01 90 / 0.28) 40%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: seg-shimmer-flow 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes seg-shimmer-flow {
+  0% { background-position: 200% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
+@keyframes seg-fill-pulse {
+  0% {
+    filter: saturate(1.08) brightness(1.012);
+  }
+  100% {
+    filter: saturate(1.16) brightness(1.035);
+  }
+}
+
+
+/* Endpoint dot (only on last bar) */
+.seg-bar__endpoint {
+  position: absolute;
+  right: calc(100% - var(--fill-pct, 0%));
+  top: 50%;
+  transform: translate(50%, -50%);
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: oklch(78% 0.18 52);
+  border: 1.5px solid oklch(99% 0.012 94 / 0.8);
+  box-shadow: 0 0 6px oklch(72% 0.22 45 / 0.6);
+  transition:
+    right 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 200ms ease;
+  pointer-events: none;
+}
+
+
+
 /* === CSS cũ (pill-based) — giữ lại phòng fallback === */
 .ui-segmented-progress__track-row {
   display: flex;
@@ -3291,4 +3415,689 @@ body.is-page-loading .ui-route-transition {
   flex: 1;
   height: 1px;
   background: var(--mau-vien);
+}
+
+/* ── StreakBadge ─ Thẻ cháy ──────────────────────────────────────────────── */
+
+.streak-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  /* overflow NOT hidden so outer glow can show */
+  cursor: default;
+  user-select: none;
+  transition:
+    transform 0.25s var(--tuong-tac-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+    filter 0.25s ease;
+}
+
+.streak-badge:hover {
+  transform: scale(1.05);
+}
+
+/* ── Sizes ─────────────────────────────────────────────────────────────── */
+
+.streak-badge--sm {
+  padding: 0.2rem 0.55rem;
+  border-radius: 10px;
+  min-height: 1.5rem;
+}
+
+.streak-badge--md {
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  min-height: 2rem;
+}
+
+.streak-badge--lg {
+  padding: 0.55rem 1.1rem;
+  border-radius: 16px;
+  min-height: 2.75rem;
+}
+
+/* ── Zero state ────────────────────────────────────────────────────────── */
+
+.streak-badge--zero {
+  background: var(--mau-mat, oklch(96.8% 0.021 92));
+  color: var(--mau-chu-mo, oklch(55% 0.028 218));
+  border: 1px solid var(--mau-vien, oklch(47% 0.06 174 / 0.24));
+}
+
+/* ── Active: the entire card is on fire ────────────────────────────────── */
+
+.streak-badge--active {
+  background:
+    linear-gradient(
+      170deg,
+      oklch(85% 0.18 55) 0%,
+      oklch(72% 0.22 40) 40%,
+      oklch(60% 0.24 28) 70%,
+      oklch(52% 0.22 20) 100%
+    );
+  color: #fff;
+  border: 1.5px solid oklch(75% 0.2 50 / 0.6);
+  overflow: hidden; /* clip background + content, filter still renders outside */
+  animation:
+    streak-border-flicker 2s ease-in-out infinite,
+    streak-card-pulse 3s ease-in-out infinite,
+    streak-outer-glow 2.2s ease-in-out infinite;
+}
+
+/* Keep __glow as inner warmth layer (inside card) */
+.streak-badge__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      ellipse 130% 90% at 50% 110%,
+      oklch(80% 0.22 55 / 0.55) 0%,
+      oklch(68% 0.2 42 / 0.25) 45%,
+      transparent 68%
+    );
+  animation: streak-glow-breathe 2.2s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Particles ─────────────────────────────────────────────────────────── */
+
+.streak-badge__particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.streak-particle {
+  position: absolute;
+  bottom: -4px;
+  left: var(--p-x, 50%);
+  width: var(--p-size, 4px);
+  height: var(--p-size, 4px);
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(92% 0.15 70) 30%, oklch(70% 0.25 35 / 0) 100%);
+  opacity: 0;
+  animation: streak-particle-rise 1.8s ease-out infinite;
+  animation-delay: var(--p-delay, 0s);
+}
+
+@keyframes streak-particle-rise {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  100% {
+    transform:
+      translateY(calc(-120% - 10px))
+      translateX(var(--p-drift, 0px))
+      scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* ── Content layer ─────────────────────────────────────────────────────── */
+
+.streak-badge__content {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.streak-badge--sm .streak-badge__content { gap: 0.2rem; }
+.streak-badge--lg .streak-badge__content { gap: 0.45rem; }
+
+.streak-badge__icon {
+  display: inline-block;
+  line-height: 1;
+  animation: streak-icon-sway 1.4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.streak-badge--sm .streak-badge__icon { font-size: 0.85rem; }
+.streak-badge--md .streak-badge__icon { font-size: 1.1rem; }
+.streak-badge--lg .streak-badge__icon { font-size: 1.4rem; }
+
+.streak-badge__number {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.streak-badge--sm .streak-badge__number { font-size: 0.8rem; }
+.streak-badge--md .streak-badge__number { font-size: 0.95rem; }
+.streak-badge--lg .streak-badge__number { font-size: 1.3rem; }
+
+.streak-badge--active .streak-badge__number {
+  text-shadow:
+    0 0 6px oklch(90% 0.15 55 / 0.8),
+    0 1px 3px oklch(30% 0.05 30 / 0.4);
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+
+@keyframes streak-border-flicker {
+  0%, 100% {
+    border-color: oklch(75% 0.2 50 / 0.5);
+  }
+  25% {
+    border-color: oklch(82% 0.22 55 / 0.8);
+  }
+  50% {
+    border-color: oklch(68% 0.25 38 / 0.65);
+  }
+  75% {
+    border-color: oklch(80% 0.2 48 / 0.75);
+  }
+}
+
+@keyframes streak-card-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px oklch(70% 0.22 45 / 0.35),
+      0 4px 14px oklch(55% 0.2 30 / 0.2),
+      inset 0 1px 0 oklch(90% 0.12 60 / 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 24px oklch(72% 0.25 42 / 0.55),
+      0 6px 20px oklch(58% 0.22 28 / 0.3),
+      0 0 6px oklch(80% 0.18 55 / 0.4),
+      inset 0 1px 0 oklch(92% 0.14 60 / 0.4);
+  }
+}
+
+@keyframes streak-glow-breathe {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scaleY(0.85);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scaleY(1.1);
+  }
+}
+
+@keyframes streak-outer-glow {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 6px oklch(70% 0.25 42 / 0.4))
+      drop-shadow(0 0 14px oklch(65% 0.22 38 / 0.2));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 12px oklch(72% 0.28 44 / 0.65))
+      drop-shadow(0 0 28px oklch(68% 0.24 40 / 0.35));
+  }
+}
+
+@keyframes streak-icon-sway {
+  0%, 100% {
+    transform: rotate(-6deg) scale(1);
+  }
+  30% {
+    transform: rotate(5deg) scale(1.08);
+  }
+  60% {
+    transform: rotate(-3deg) scale(1.04);
+  }
+}
+
+/* ── StreakCelebration (Duolingo-style overlay) ───────────────────────── */
+
+.streak-cel__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: streak-cel-overlay-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.streak-cel__backdrop {
+  position: absolute;
+  inset: 0;
+  background: oklch(12% 0.02 220 / 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.streak-cel__card {
+  position: relative;
+  z-index: 1;
+  background:
+    linear-gradient(
+      165deg,
+      oklch(88% 0.16 58) 0%,
+      oklch(74% 0.22 42) 45%,
+      oklch(60% 0.25 28) 80%,
+      oklch(52% 0.22 18) 100%
+    );
+  border-radius: 28px;
+  border: 2px solid oklch(78% 0.2 52 / 0.6);
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  max-width: 340px;
+  width: 100%;
+  box-shadow:
+    0 0 40px oklch(70% 0.25 42 / 0.5),
+    0 20px 60px oklch(30% 0.05 30 / 0.4);
+  animation: streak-cel-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  overflow: hidden;
+}
+
+/* Particles container */
+.streak-cel__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.streak-cel__particle {
+  position: absolute;
+  bottom: -4px;
+  left: var(--p-x, 50%);
+  width: var(--p-size, 5px);
+  height: var(--p-size, 5px);
+  border-radius: 50%;
+  background: var(--p-color, oklch(90% 0.15 70));
+  opacity: 0;
+  animation: streak-cel-particle 2s ease-out infinite;
+  animation-delay: var(--p-delay, 0s);
+}
+
+@keyframes streak-cel-particle {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+  12% { opacity: 1; }
+  70% { opacity: 0.6; }
+  100% {
+    opacity: 0;
+    transform:
+      translateY(calc(-100% - 60px))
+      translateX(var(--p-drift, 0px))
+      scale(0.2);
+  }
+}
+
+/* Big fire icon */
+.streak-cel__fire {
+  font-size: 4rem;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  display: block;
+  animation: streak-cel-fire-bounce 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  filter: drop-shadow(0 0 16px oklch(75% 0.25 45 / 0.8));
+}
+
+/* Number + unit */
+.streak-cel__number-wrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  animation: streak-cel-number-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+
+.streak-cel__number {
+  font-family: var(--font-mono, monospace);
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 0 20px oklch(85% 0.18 60 / 0.8),
+    0 2px 8px oklch(30% 0.05 30 / 0.5);
+  letter-spacing: -0.04em;
+}
+
+.streak-cel__unit {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: oklch(96% 0.1 68);
+  text-shadow: 0 1px 4px oklch(30% 0.05 30 / 0.4);
+}
+
+/* Title & subtitle */
+.streak-cel__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 1px 4px oklch(30% 0.05 30 / 0.4);
+  animation: streak-cel-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+
+.streak-cel__subtitle {
+  font-size: 0.95rem;
+  color: oklch(95% 0.08 68);
+  margin-bottom: 1.75rem;
+  line-height: 1.5;
+  animation: streak-cel-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+
+.streak-cel__subtitle strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* CTA button */
+.streak-cel__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  border-radius: 14px;
+  border: none;
+  background: oklch(99% 0.01 90);
+  color: oklch(50% 0.22 38);
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow:
+    0 4px 14px oklch(30% 0.05 30 / 0.25),
+    inset 0 1px 0 oklch(100% 0 0 / 0.8);
+  transition:
+    transform 100ms ease,
+    box-shadow 100ms ease;
+  animation: streak-cel-text-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+}
+
+.streak-cel__btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 18px oklch(30% 0.05 30 / 0.3),
+    inset 0 1px 0 oklch(100% 0 0 / 0.8);
+}
+
+.streak-cel__btn:active {
+  transform: scale(0.97);
+}
+
+/* Keyframes */
+@keyframes streak-cel-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes streak-cel-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes streak-cel-fire-bounce {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2) rotate(5deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes streak-cel-number-in {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes streak-cel-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Staggered Card Entrance ──────────────────────────────────────────── */
+
+/* Apply to .ui-deck-card items — each card fades/slides in with delay */
+
+.ui-deck-grid > li {
+  animation: card-stagger-in 420ms var(--tuong-tac-ease-soft, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.ui-deck-grid > li:nth-child(1) { animation-delay: 0ms; }
+.ui-deck-grid > li:nth-child(2) { animation-delay: 50ms; }
+.ui-deck-grid > li:nth-child(3) { animation-delay: 100ms; }
+.ui-deck-grid > li:nth-child(4) { animation-delay: 145ms; }
+.ui-deck-grid > li:nth-child(5) { animation-delay: 185ms; }
+.ui-deck-grid > li:nth-child(6) { animation-delay: 220ms; }
+.ui-deck-grid > li:nth-child(7) { animation-delay: 250ms; }
+.ui-deck-grid > li:nth-child(8) { animation-delay: 275ms; }
+.ui-deck-grid > li:nth-child(n+9) { animation-delay: 300ms; }
+
+@keyframes card-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Enhanced Card Hover Glow ─────────────────────────────────────────── */
+
+@media (hover: hover) {
+  .ui-deck-card:hover {
+    box-shadow:
+      0 8px 24px oklch(47% 0.115 174 / 0.12),
+      0 2px 8px oklch(55% 0.105 164 / 0.1),
+      0 0 0 1px oklch(55% 0.105 164 / 0.08);
+  }
+
+  /* Active press — slight sink */
+  .ui-deck-card:active {
+    transform: translateY(0px) scale(0.985);
+    transition-duration: 80ms;
+  }
+}
+
+/* ── Button Press Ripple ──────────────────────────────────────────────── */
+
+.ui-button--primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.ui-button--primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    oklch(99% 0.01 90 / 0.25) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+.ui-button--primary:active::after {
+  opacity: 1;
+  transition-duration: 80ms;
+}
+
+/* ── Stat Card Shimmer ────────────────────────────────────────────────── */
+
+.ui-stat-value {
+  position: relative;
+}
+
+.ui-stat-card {
+  transition:
+    transform 0.2s var(--tuong-tac-ease, ease),
+    box-shadow 0.2s var(--tuong-tac-ease, ease);
+}
+
+@media (hover: hover) {
+  .ui-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 16px oklch(23% 0.03 220 / 0.12),
+      0 1px 4px oklch(23% 0.03 220 / 0.06);
+  }
+}
+
+/* ── Skeleton Loading Shimmer ─────────────────────────────────────────── */
+
+.ui-skeleton {
+  background:
+    linear-gradient(
+      90deg,
+      var(--mau-mat, oklch(96.8% 0.021 92)) 0%,
+      oklch(94% 0.03 174 / 0.4) 40%,
+      oklch(94% 0.03 174 / 0.4) 60%,
+      var(--mau-mat, oklch(96.8% 0.021 92)) 100%
+    );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Toast Slide-in ───────────────────────────────────────────────────── */
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* ── Settings Toggle Switch Animation ─────────────────────────────────── */
+
+[role="switch"] {
+  transition: background-color 200ms ease;
+}
+
+[role="switch"] > span {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Tooltip Fade ─────────────────────────────────────────────────────── */
+
+[title]:hover {
+  position: relative;
+}
+
+/* ── Focus Ring Pulse (a11y + aesthetics) ─────────────────────────────── */
+
+@keyframes focus-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px oklch(55% 0.105 164 / 0.24);
+  }
+  50% {
+    box-shadow: 0 0 0 5px oklch(55% 0.105 164 / 0.12);
+  }
+}
+
+*:focus-visible {
+  animation: focus-ring-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Number Count Highlight ───────────────────────────────────────────── */
+/* Brief flash when a stat changes */
+
+@keyframes stat-flash {
+  0% {
+    color: var(--mau-chinh);
+    text-shadow: 0 0 8px oklch(55% 0.105 164 / 0.4);
+  }
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+}
+
+.stat-updated {
+  animation: stat-flash 600ms ease-out;
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .streak-badge__glow,
+  .streak-badge__particles,
+  .streak-particle {
+    display: none !important;
+  }
 }

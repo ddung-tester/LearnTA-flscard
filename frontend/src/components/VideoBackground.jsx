@@ -17,8 +17,6 @@ const NOOP_VIDEO_READY = () => {};
 
 function VideoLayer({ src, active, onReady }) {
   const videoRef = useRef(null);
-  const directionRef = useRef("forward");
-  const activeRef = useRef(active);
   const onReadyRef = useRef(onReady);
 
   useEffect(() => {
@@ -31,106 +29,31 @@ function VideoLayer({ src, active, onReady }) {
     if (!video) return undefined;
 
     let disposed = false;
-    let canPlayNativeReverse = false;
-
-    function detectNativeReversePlayback() {
-      const originalRate = video.playbackRate;
-
-      try {
-        video.playbackRate = -1;
-        canPlayNativeReverse = video.playbackRate < 0;
-      } catch {
-        canPlayNativeReverse = false;
-      } finally {
-        video.playbackRate = originalRate;
-      }
-    }
-
-    function playForward({ reset = false } = {}) {
-      if (disposed || mq.matches) return;
-
-      directionRef.current = "forward";
-      video.loop = !canPlayNativeReverse;
-      video.playbackRate = 1;
-
-      if (reset) {
-        video.currentTime = 0;
-      }
-
-      video.play().catch(() => {});
-    }
-
-    function playBackward() {
-      if (disposed || mq.matches) return;
-
-      if (!canPlayNativeReverse || !Number.isFinite(video.duration)) {
-        playForward({ reset: true });
-        return;
-      }
-
-      directionRef.current = "backward";
-      video.loop = false;
-      video.playbackRate = -1;
-
-      if (video.currentTime >= video.duration - 0.04) {
-        video.currentTime = Math.max(0, video.duration - 0.04);
-      }
-
-      video.play().catch(() => {
-        canPlayNativeReverse = false;
-        playForward({ reset: true });
-      });
-    }
-
-    function handleEnded() {
-      if (directionRef.current === "forward") {
-        playBackward();
-      } else {
-        playForward({ reset: true });
-      }
-    }
-
-    function handleTimeUpdate() {
-      if (
-        directionRef.current === "backward" &&
-        canPlayNativeReverse &&
-        video.currentTime <= 0.05
-      ) {
-        playForward({ reset: true });
-      }
-    }
 
     function handleReady() {
-      onReadyRef.current();
+      if (!disposed) onReadyRef.current();
     }
 
     function applyMotionPref() {
-      if (mq.matches || !activeRef.current) {
-        video.pause();
+      if (mq.matches || !video) {
+        video?.pause();
         return;
       }
-
-      if (directionRef.current === "backward") {
-        playBackward();
-        return;
-      }
-
-      playForward();
+      video.loop = true;
+      video.play().catch(() => {});
     }
 
-    detectNativeReversePlayback();
-    video.loop = !canPlayNativeReverse;
-    video.addEventListener("ended", handleEnded);
-    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.loop = true;
     video.addEventListener("loadeddata", handleReady);
     video.addEventListener("canplay", handleReady);
-    applyMotionPref();
     mq.addEventListener("change", applyMotionPref);
+
+    if (!mq.matches) {
+      video.play().catch(() => {});
+    }
 
     return () => {
       disposed = true;
-      video.removeEventListener("ended", handleEnded);
-      video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadeddata", handleReady);
       video.removeEventListener("canplay", handleReady);
       mq.removeEventListener("change", applyMotionPref);
@@ -138,8 +61,6 @@ function VideoLayer({ src, active, onReady }) {
   }, [src]);
 
   useEffect(() => {
-    activeRef.current = active;
-
     const video = videoRef.current;
     if (!video) return;
 
@@ -157,11 +78,13 @@ function VideoLayer({ src, active, onReady }) {
       src={src}
       autoPlay={active}
       muted
+      loop
       preload="auto"
       playsInline
     />
   );
 }
+
 
 function VideoBackground({
   src = BACKGROUND_QUIZ_VIDEO,

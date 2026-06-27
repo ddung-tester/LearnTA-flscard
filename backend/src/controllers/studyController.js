@@ -6,6 +6,7 @@ const {
 } = require("./deckController");
 const { findCardById } = require("./cardController");
 const { updateProgressFromAnswer } = require("../utils/cardProgress");
+const { updateUserStreak, updateDeckStreak } = require("../services/streakService");
 const {
   cleanText,
   createHttpError,
@@ -287,6 +288,27 @@ async function finishStudySession(req, res) {
   );
 
   const session = await findSessionById(sessionId);
+
+  // Cập nhật streak nếu user đăng nhập và có câu trả lời đúng
+  const userId = currentUserId(req);
+  if (userId && correct > 0) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await updateUserStreak(conn, userId, {
+        xpEarned: xpEarned,
+        cardsReviewed: total,
+      });
+      await updateDeckStreak(conn, session.deck_id, userId);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      console.error("[streak] Failed to update streak:", err?.message);
+    } finally {
+      conn.release();
+    }
+  }
+
   res.json(session);
 }
 
@@ -447,6 +469,22 @@ async function createQuizResult(req, res) {
   const [rows] = await pool.query("SELECT * FROM quiz_results WHERE id = ?", [
     result.insertId,
   ]);
+
+  // Cập nhật user streak sau khi lưu quiz result
+  if (correct > 0) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await updateUserStreak(conn, userId, { cardsReviewed: total });
+      await updateDeckStreak(conn, deckId, userId);
+      await conn.commit();
+    } catch (err) {
+      await conn.rollback();
+      console.error("[streak] Failed to update streak:", err?.message);
+    } finally {
+      conn.release();
+    }
+  }
 
   res.status(201).json(normalizeQuizResult(rows[0]));
 }

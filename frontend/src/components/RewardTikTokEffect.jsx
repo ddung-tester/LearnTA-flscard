@@ -31,6 +31,8 @@ function RewardTikTokEffect({
   const cacheVideoRefs = useRef({});
   const lanDaDungVideoRef = useRef(0);
   const videoDaPhatGanNhatRef = useRef("");
+  const videoQueueRef = useRef([]);        // hàng đợi video đã trộn
+  const videoQueueIndexRef = useRef(0);   // vị trí tiếp theo trong hàng đợi
   const [danhSachVideo, setDanhSachVideo] = useState([]);
   const [loiVideo, setLoiVideo] = useState(false);
   const [daDoViewport, setDaDoViewport] = useState(false);
@@ -58,22 +60,53 @@ function RewardTikTokEffect({
     onRequestClose?.();
   }, [onRequestClose]);
 
-  function chonVideoNgauNhien(danhSach) {
-    if (danhSach.length === 0) return "";
-
-    const danhSachUngVien =
-      danhSach.length > 1
-        ? danhSach.filter((src) => src !== videoDaPhatGanNhatRef.current)
-        : danhSach;
-    const chiSoNgauNhien = Math.floor(Math.random() * danhSachUngVien.length);
-
-    return danhSachUngVien[chiSoNgauNhien] || "";
+  // Fisher-Yates shuffle
+  function tronMang(danhSach) {
+    const result = [...danhSach];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
   }
 
-  function danhDauVideoDangPhat(src) {
-    if (!src) return;
+  // Tạo lại hàng đợi, tránh trùng video cuối chu kỳ trước với đầu chu kỳ mới
+  function xayDungHangDoiVideo(danhSach) {
+    const shuffled = tronMang(danhSach);
+    if (shuffled.length > 1 && shuffled[0] === videoDaPhatGanNhatRef.current) {
+      const swapIdx = Math.floor(Math.random() * (shuffled.length - 1)) + 1;
+      [shuffled[0], shuffled[swapIdx]] = [shuffled[swapIdx], shuffled[0]];
+    }
+    videoQueueRef.current = shuffled;
+    videoQueueIndexRef.current = 0;
+  }
 
-    videoDaPhatGanNhatRef.current = src;
+  // Xem trước video tiếp theo KHÔNG tiến hàng đợi (dùng khi preload)
+  function xemVideoTiepTheo(danhSach) {
+    if (danhSach.length === 0) return "";
+    if (danhSach.length === 1) return danhSach[0];
+
+    if (videoQueueIndexRef.current >= videoQueueRef.current.length) {
+      const candidates = danhSach.filter((s) => s !== videoDaPhatGanNhatRef.current);
+      return candidates[0] ?? danhSach[0];
+    }
+    return videoQueueRef.current[videoQueueIndexRef.current] || "";
+  }
+
+  // Lấy video tiếp theo VÀ tiến hàng đợi (dùng khi thực sự phát)
+  // Đảm bảo không lặp lại bất kỳ video nào cho đến khi toàn bộ danh sách đã phát
+  function layVideoTiepTheo(danhSach) {
+    if (danhSach.length === 0) return "";
+    if (danhSach.length === 1) return danhSach[0];
+
+    if (videoQueueIndexRef.current >= videoQueueRef.current.length) {
+      xayDungHangDoiVideo(danhSach);
+    }
+
+    const video = videoQueueRef.current[videoQueueIndexRef.current] || "";
+    videoQueueIndexRef.current += 1;
+    if (video) videoDaPhatGanNhatRef.current = video;
+    return video;
   }
 
   function veVideoLenCanvas(video, canvas) {
@@ -198,10 +231,17 @@ function RewardTikTokEffect({
     };
   }, [daDoViewport, config.manifestSrc]);
 
+  // Reset hàng đợi mỗi khi danh sách video thay đổi (manifest mới)
+  useEffect(() => {
+    videoQueueRef.current = [];
+    videoQueueIndexRef.current = 0;
+  }, [danhSachVideo]);
+
   useEffect(() => {
     if (!daDoViewport || videoSrc || danhSachVideo.length === 0) return;
 
-    setVideoSrc(chonVideoNgauNhien(danhSachVideo));
+    // Preload: chỉ xem trước, không tiến hàng đợi
+    setVideoSrc(xemVideoTiepTheo(danhSachVideo));
   }, [daDoViewport, danhSachVideo, videoSrc]);
 
   useEffect(() => {
@@ -227,7 +267,8 @@ function RewardTikTokEffect({
       hoanTatDongReward();
 
       if (danhSachVideo.length > 0) {
-        const videoTiepTheo = chonVideoNgauNhien(danhSachVideo);
+        // Preload video tiếp theo trong hàng đợi (không tiến hàng đợi)
+        const videoTiepTheo = xemVideoTiepTheo(danhSachVideo);
 
         if (videoTiepTheo && videoTiepTheo !== videoSrc) {
           setVideoSrc(videoTiepTheo);
@@ -279,17 +320,16 @@ function RewardTikTokEffect({
     }
 
     if (lanKichHoat > 0 && lanKichHoat !== lanDaDungVideoRef.current) {
-      const videoDangDung = chonVideoNgauNhien(danhSachVideo);
+      // Lấy video tiếp theo từ hàng đợi shuffle (tránh lặp lại)
+      const videoDangDung = layVideoTiepTheo(danhSachVideo);
 
       lanDaDungVideoRef.current = lanKichHoat;
 
       if (videoDangDung) {
         setVideoSrc(videoDangDung);
       }
-
-      danhDauVideoDangPhat(videoDangDung);
     } else if (!videoSrc) {
-      setVideoSrc(chonVideoNgauNhien(danhSachVideo));
+      setVideoSrc(layVideoTiepTheo(danhSachVideo));
     }
 
     return undefined;
@@ -444,30 +484,41 @@ function RewardTikTokEffect({
   ]);
 
   useEffect(() => {
-    if (!active || !dangRenderReward) {
-      return undefined;
+    if (!active || !dangRenderReward) return undefined;
+
+    // Trường hợp fallback: lỗi video, giảm chuyển động, hoặc không có src
+    // → dùng thời gian cố định, không chờ video
+    if (loiVideo || giamChuyenDong || !videoSrc) {
+      const timer = window.setTimeout(
+        yeuCauDongReward,
+        config.duration ?? CAU_HINH_REWARD_QUIZ.duration
+      );
+      return () => window.clearTimeout(timer);
     }
 
-    const videoDangPhat =
-      !giamChuyenDong &&
-      !loiVideo &&
-      Boolean(videoSrc) &&
-      videoSanSang &&
-      choPhepPhatVideo;
-    const video = videoRef.current;
-    const duration = videoDangPhat && video
-      ? Math.max(
-          config.duration ?? CAU_HINH_REWARD_QUIZ.duration,
-          ((Number.isFinite(video.duration) ? video.duration : 0) -
-            (Number.isFinite(video.currentTime) ? video.currentTime : 0)) *
-            1000 +
-            3000
-        )
-      : config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
-    const timer = window.setTimeout(() => {
-      yeuCauDongReward();
-    }, duration);
+    // Video chưa sẵn sàng hoặc chưa được phép phát
+    // → chưa đặt timer, tránh tắt reward trước khi video bắt đầu
+    if (!choPhepPhatVideo || !videoSanSang) return undefined;
 
+    // Video đang phát: tính thời gian đóng dựa trên thời lượng thực tế còn lại
+    // để tránh bị cắt đột ngột giữa chừng
+    const video = videoRef.current;
+    const coThongTinThoiLuong =
+      video &&
+      Number.isFinite(video.duration) &&
+      video.duration > 0 &&
+      Number.isFinite(video.currentTime);
+
+    const thoiGianConLai = coThongTinThoiLuong
+      ? (video.duration - video.currentTime) * 1000 + 800 // buffer 800ms
+      : config.duration ?? CAU_HINH_REWARD_QUIZ.duration;
+
+    const duration = Math.max(
+      config.duration ?? CAU_HINH_REWARD_QUIZ.duration,
+      thoiGianConLai
+    );
+
+    const timer = window.setTimeout(yeuCauDongReward, duration);
     return () => window.clearTimeout(timer);
   }, [
     active,

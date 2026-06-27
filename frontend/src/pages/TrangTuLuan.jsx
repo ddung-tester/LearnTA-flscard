@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
+import StreakCelebration from "../components/common/StreakCelebration";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
@@ -14,6 +15,7 @@ import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
+import { getUserStats } from "../services/userApi";
 import {
   ketThucStudySession,
   luuQuizResult,
@@ -143,6 +145,8 @@ function TrangTuLuan() {
   const [, setRewardProgressValue] = useState(0);
   const [studySessionId, setStudySessionId] = useState(null);
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
+  const [streakCelebration, setStreakCelebration] = useState(null);
+  const prevStreakRef = useRef(null);
 
   const inputRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
@@ -205,6 +209,13 @@ function TrangTuLuan() {
   useEffect(() => {
     taiDuLieuTuLuan();
   }, [boId]);
+
+  // Baseline streak khi mount
+  useEffect(() => {
+    getUserStats()
+      .then((stats) => { prevStreakRef.current = stats.current_streak ?? 0; })
+      .catch(() => {});
+  }, []);
 
   useLayoutEffect(() => {
     const loadingKey = `tu-luan-${boId}`;
@@ -493,6 +504,20 @@ function TrangTuLuan() {
 
           if (answers.length > 0) {
             await luuStudyAnswers(studySessionId, answers);
+          }
+
+          // Fetch streak mới sau khi lưu xong
+          try {
+            const stats = await getUserStats();
+            const newStreak = stats.current_streak ?? 0;
+            const prevStreak = prevStreakRef.current;
+            prevStreakRef.current = newStreak;
+            window.dispatchEvent(new CustomEvent("streak-updated", { detail: { streak: newStreak } }));
+            if (prevStreak !== null && newStreak > prevStreak && newStreak > 0) {
+              setStreakCelebration(newStreak);
+            }
+          } catch {
+            // silent
           }
         }
       } catch (error) {
@@ -979,6 +1004,12 @@ function TrangTuLuan() {
   if (daHoanThanh) {
     return (
       <>
+        {streakCelebration !== null && (
+          <StreakCelebration
+            streak={streakCelebration}
+            onClose={() => setStreakCelebration(null)}
+          />
+        )}
         <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <Link

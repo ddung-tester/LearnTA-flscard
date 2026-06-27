@@ -20,6 +20,8 @@
     "google-auth-library": "^10.9.0",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.3",
+    "node-cron": "^4.5.0",
+    "resend": "^6.16.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

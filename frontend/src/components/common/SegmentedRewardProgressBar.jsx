@@ -1,8 +1,46 @@
 /**
- * SegmentedRewardProgressBar — 1 track liên tục, dividers overlay giữa các segment.
- * Gradient là 1 dải đồng nhất xuyên suốt, không chia màu riêng từng đoạn.
+ * SegmentedRewardProgressBar — N thanh riêng lẻ, mỗi thanh = 1 segment (vd 10 câu).
+ * Gradient màu là 1 dải đồng nhất xuyên suốt toàn bộ (dùng CSS clip trick).
+ * Không dùng divider overlay nữa — mỗi thanh là 1 track độc lập với gap nhỏ.
  */
-import RewardProgressBar from "./RewardProgressBar";
+import { useRef } from "react";
+
+function SegmentBar({ segmentIndex, totalSegments, currentValue, totalValue, phase, combo, endpointRef }) {
+  const fillPercent = totalValue > 0 ? Math.min((currentValue / totalValue) * 100, 100) : 0;
+  const comboLevel = Math.min(combo, 8);
+
+  // Vị trí gradient đồng bộ:
+  // Nếu chỉ có 1 segment, gradPosX = 0. Ngược lại = (index / (total - 1)) * 100
+  const gradPosX = totalSegments > 1 ? (segmentIndex / (totalSegments - 1)) * 100 : 0;
+
+  return (
+    <div
+      className="seg-bar"
+      style={{
+        "--combo-level": comboLevel,
+        "--fill-pct": `${fillPercent}%`,
+        "--grad-pos-x": `${gradPosX}%`,
+        "--grad-total": totalSegments,
+      }}
+    >
+      <div className={`seg-bar__track seg-bar__track--${phase}`}>
+        <div className="seg-bar__fill">
+          <span className="seg-bar__fill-core" />
+          {fillPercent > 0 && <span className="seg-bar__shimmer" />}
+        </div>
+        {/* Endpoint dot — chỉ hiện ở thanh cuối */}
+        {endpointRef && segmentIndex === totalSegments - 1 && (
+          <span
+            ref={endpointRef}
+            className="seg-bar__endpoint"
+            style={{ opacity: fillPercent > 0 ? 1 : 0 }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 function SegmentedRewardProgressBar({
   segments = [],
@@ -13,11 +51,7 @@ function SegmentedRewardProgressBar({
   endpointRef,
   combo = 0,
 }) {
-  const N = segments.length;
-
-  // Tổng % dựa trên totalCorrect / totalTarget → 1 dải duy nhất
-  const totalProgressPercent =
-    totalTarget > 0 ? Math.min((totalCorrect / totalTarget) * 100, 100) : 0;
+  const N = segments.length || 1;
 
   return (
     <div className="ui-segmented-progress">
@@ -32,31 +66,20 @@ function SegmentedRewardProgressBar({
           {totalCorrect}
         </span>
 
-        {/* Track duy nhất + dividers */}
-        <div className="ui-segmented-unified-track">
-          <RewardProgressBar
-            currentValue={totalCorrect}
-            totalValue={totalTarget}
-            progressPercent={totalProgressPercent}
-            phase={phase}
-            endpointRef={endpointRef}
-            combo={combo}
-            hideMeta
-            compact
-          />
-
-          {/* Đường kẻ dọc chia segment — nằm ngoài track để không bị clip */}
-          {N > 1 && (
-            <div className="ui-segmented-dividers" aria-hidden="true">
-              {Array.from({ length: N - 1 }, (_, i) => (
-                <div
-                  key={i}
-                  className="ui-segmented-divider"
-                  style={{ "--seg-pos": `${((i + 1) / N) * 100}%` }}
-                />
-              ))}
-            </div>
-          )}
+        {/* N thanh riêng lẻ */}
+        <div className="seg-bars-container" role="progressbar" aria-valuenow={totalCorrect} aria-valuemax={totalTarget}>
+          {segments.map((seg, i) => (
+            <SegmentBar
+              key={i}
+              segmentIndex={i}
+              totalSegments={N}
+              currentValue={seg.currentValue ?? 0}
+              totalValue={seg.totalValue ?? 1}
+              phase={i === activeSegmentIndex ? phase : i < activeSegmentIndex ? "done" : "idle"}
+              combo={i === activeSegmentIndex ? combo : 0}
+              endpointRef={i === N - 1 ? endpointRef : null}
+            />
+          ))}
         </div>
 
         {/* Số bên phải */}

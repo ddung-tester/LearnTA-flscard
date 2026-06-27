@@ -7,6 +7,8 @@ const deckRoutes = require("./routes/deckRoutes");
 const cardRoutes = require("./routes/cardRoutes");
 const studyRoutes = require("./routes/studyRoutes");
 const progressRoutes = require("./routes/progressRoutes");
+const userRoutes = require("./routes/userRoutes");
+const { startCron } = require("./services/cronService");
 
 const app = express();
 const allowedCorsOrigins = new Set(corsOrigins);
@@ -56,6 +58,10 @@ app.use("/api/decks", deckRoutes);
 app.use("/api", cardRoutes);
 app.use("/api", studyRoutes);
 app.use("/api", progressRoutes);
+app.use("/api/user", userRoutes);
+
+// Khởi động cron job nhắc học
+startCron();
 
 app.use((req, res) => {
   res.status(404).json({

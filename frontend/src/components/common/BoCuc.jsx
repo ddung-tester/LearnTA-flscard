@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
+import StreakBadge from "./StreakBadge";
+import { getUserStats } from "../../services/userApi";
 
 /**
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
@@ -9,10 +11,12 @@ import { usePageTransition } from "../../contexts/PageTransitionContext";
  */
 function BoCuc() {
   const viTri = useLocation();
+  const navigate = useNavigate();
   const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
   const menuTaiKhoanRef = useRef(null);
+  const [userStreak, setUserStreak] = useState(0);
   const laTrangChu = viTri.pathname === "/";
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
@@ -25,6 +29,27 @@ function BoCuc() {
   useEffect(() => {
     setDangMoMenuTaiKhoan(false);
   }, [viTri.pathname]);
+
+  // Fetch user streak khi đăng nhập hoặc chuyển trang
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUserStreak(0);
+      return;
+    }
+    getUserStats()
+      .then((stats) => setUserStreak(stats.current_streak ?? 0))
+      .catch(() => {}); // silent fail
+  }, [isAuthenticated, viTri.pathname]);
+
+  // Lắng nghe event streak-updated từ trang học — cập nhật badge ngay lập tức
+  useEffect(() => {
+    function onStreakUpdated(e) {
+      const newStreak = e.detail?.streak ?? 0;
+      setUserStreak(newStreak);
+    }
+    window.addEventListener("streak-updated", onStreakUpdated);
+    return () => window.removeEventListener("streak-updated", onStreakUpdated);
+  }, []);
 
   useEffect(() => {
     if (!dangMoMenuTaiKhoan) return undefined;
@@ -68,9 +93,12 @@ function BoCuc() {
           {!laTrangAuth && (
             <Link
               to="/decks"
-              className="ui-link text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
+              className="ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
             >
               Streak Drop
+              {isAuthenticated && userStreak > 0 && (
+                <StreakBadge streak={userStreak} size="sm" />
+              )}
             </Link>
           )}
           <nav className="flex flex-wrap items-center justify-end gap-2">
@@ -133,11 +161,13 @@ function BoCuc() {
                     <button
                       type="button"
                       role="menuitem"
-                      disabled
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-mo)] disabled:cursor-not-allowed"
+                      onClick={() => {
+                        setDangMoMenuTaiKhoan(false);
+                        navigate("/cai-dat");
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-phu)] hover:bg-[var(--mau-mat)] hover:text-[var(--mau-chu)] transition-colors"
                     >
                       <span>Cài đặt</span>
-                      <span className="text-xs">Sắp có</span>
                     </button>
                     <button
                       type="button"
