@@ -11,6 +11,7 @@ import {
   laTuYeuThich,
 } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
+import { getUserStats } from "../services/userApi";
 import {
   capNhatCard,
   doiThuTuCards,
@@ -178,6 +179,7 @@ function TrangChiTietBo() {
   const autoScrollRef = useRef({ frameId: null, tocDo: 0, clientY: 0 });
   const cleanupPointerKeoRef = useRef(null);
   const phienLuuThuTuRef = useRef(0);
+  const [userStreak, setUserStreak] = useState(0);
 
   async function taiDuLieuBo() {
     setDangTaiDuLieu(true);
@@ -234,6 +236,23 @@ function TrangChiTietBo() {
     }
   }, []);
 
+  // Fetch streak từ user stats (đồng bộ với header)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getUserStats()
+      .then((stats) => setUserStreak(stats.current_streak ?? 0))
+      .catch(() => {});
+  }, [isAuthenticated, boId]);
+
+  // Lắng nghe event streak-updated khi vừa hoàn thành bài học
+  useEffect(() => {
+    function onStreakUpdated(e) {
+      const newStreak = e.detail?.streak ?? 0;
+      setUserStreak(newStreak);
+    }
+    window.addEventListener("streak-updated", onStreakUpdated);
+    return () => window.removeEventListener("streak-updated", onStreakUpdated);
+  }, []);
   function showSuccess(msg) {
     setSuccessInfo({ open: true, message: msg });
     setTimeout(() => setSuccessInfo({ open: false, message: "" }), 1200);
@@ -827,7 +846,7 @@ function TrangChiTietBo() {
   const danhSachDaLoc = locDanhSachTu(danhSach);
   const soTuYeuThich = danhSach.filter(laTuYeuThich).length;
   const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
-  const streak = bo.streak ?? 0;
+  const streak = userStreak;
   const coTheQuiz = soTu >= 4;
   const coTheQuanLy = coQuyenQuanLyBo();
   const dangBatChinhSua = dangChinhSua && coTheQuanLy;
@@ -858,14 +877,20 @@ function TrangChiTietBo() {
             {soTu}
           </p>
         </div>
-        <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
-          <p className="ui-stat-label mb-1">
-            Streak
-          </p>
-          <div className="flex items-center justify-center min-h-[2rem]">
-            <StreakBadge streak={streak} size="lg" showZero />
-          </div>
+        {/* Thẻ Streak: lửa phủ full thẻ, padding:0 để badge fill đến mép */}
+        <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
+          {streak > 0 ? (
+            <StreakBadge streak={streak} size="lg" showZero label="Streak" className="streak-badge--full-card" fullCard />
+          ) : (
+            <div className="p-3">
+              <p className="ui-stat-label mb-1">Streak</p>
+              <StreakBadge streak={streak} size="lg" showZero />
+            </div>
+          )}
         </div>
+
+
+
       </div>
 
       <div className="ui-action-grid">

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
-import StreakBadge from "./StreakBadge";
 import { getUserStats } from "../../services/userApi";
 
 /**
@@ -96,9 +95,6 @@ function BoCuc() {
               className="ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
             >
               Streak Drop
-              {isAuthenticated && userStreak > 0 && (
-                <StreakBadge streak={userStreak} size="sm" />
-              )}
             </Link>
           )}
           <nav className="flex flex-wrap items-center justify-end gap-2">

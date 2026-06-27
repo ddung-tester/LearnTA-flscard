@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { getUserSettings, updateUserSettings } from "../services/userApi";
 import { getUserStats } from "../services/userApi";
-import StreakBadge from "../components/common/StreakBadge";
 
 function TrangCaiDat() {
   const [settings, setSettings] = useState(null);
@@ -91,7 +90,9 @@ function TrangCaiDat() {
             </h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center">
-                <StreakBadge streak={stats.current_streak} size="lg" showZero />
+                <p className="text-2xl font-bold text-[var(--mau-chu)]">
+                  {stats.current_streak}
+                </p>
                 <p className="mt-1 text-xs text-[var(--mau-chu-phu)]">Streak hiện tại</p>
               </div>
               <div className="text-center">

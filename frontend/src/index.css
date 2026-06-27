@@ -3478,7 +3478,7 @@ body.is-page-loading .ui-route-transition {
     );
   color: #fff;
   border: 1.5px solid oklch(75% 0.2 50 / 0.6);
-  overflow: hidden; /* clip background + content, filter still renders outside */
+  overflow: visible; /* fire Lottie allowed to overflow above pill */
   animation:
     streak-border-flicker 2s ease-in-out infinite,
     streak-card-pulse 3s ease-in-out infinite,
@@ -3502,48 +3502,33 @@ body.is-page-loading .ui-route-transition {
   pointer-events: none;
 }
 
-/* ── Particles ─────────────────────────────────────────────────────────── */
+/* ── Fire container (Lottie) ───────────────────────────────────────────── */
 
-.streak-badge__particles {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  z-index: 1;
-  pointer-events: none;
+.streak-badge__fire {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Sizes set per modifier below; portrait ratio 500:690 ≈ 0.724 */
 }
 
-.streak-particle {
-  position: absolute;
-  bottom: -4px;
-  left: var(--p-x, 50%);
-  width: var(--p-size, 4px);
-  height: var(--p-size, 4px);
-  border-radius: 50%;
-  background: radial-gradient(circle, oklch(92% 0.15 70) 30%, oklch(70% 0.25 35 / 0) 100%);
-  opacity: 0;
-  animation: streak-particle-rise 1.8s ease-out infinite;
-  animation-delay: var(--p-delay, 0s);
+/* Inline sizes */
+.streak-badge--sm .streak-badge__fire  { width: 14px; height: 20px; }
+.streak-badge--md .streak-badge__fire  { width: 18px; height: 25px; }
+.streak-badge--lg .streak-badge__fire  { width: 23px; height: 32px; }
+
+/* Full-card: lửa to, hiện rõ trên nền card trắng/sáng */
+.streak-badge__fire--large {
+  width: 60px;
+  height: 83px;  /* 60 * 690/500 ≈ 83px */
+  flex-shrink: 0;
 }
 
-@keyframes streak-particle-rise {
-  0% {
-    transform: translateY(0) translateX(0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 0.7;
-  }
-  100% {
-    transform:
-      translateY(calc(-120% - 10px))
-      translateX(var(--p-drift, 0px))
-      scale(0.3);
-    opacity: 0;
-  }
+.streak-badge__icon-zero {
+  font-size: 1em;
+  line-height: 1;
+  display: inline-block;
 }
 
 /* ── Content layer ─────────────────────────────────────────────────────── */
@@ -3559,16 +3544,6 @@ body.is-page-loading .ui-route-transition {
 .streak-badge--sm .streak-badge__content { gap: 0.2rem; }
 .streak-badge--lg .streak-badge__content { gap: 0.45rem; }
 
-.streak-badge__icon {
-  display: inline-block;
-  line-height: 1;
-  animation: streak-icon-sway 1.4s ease-in-out infinite;
-  transform-origin: bottom center;
-}
-
-.streak-badge--sm .streak-badge__icon { font-size: 0.85rem; }
-.streak-badge--md .streak-badge__icon { font-size: 1.1rem; }
-.streak-badge--lg .streak-badge__icon { font-size: 1.4rem; }
 
 .streak-badge__number {
   font-family: var(--font-mono, monospace);
@@ -3586,6 +3561,97 @@ body.is-page-loading .ui-route-transition {
     0 0 6px oklch(90% 0.15 55 / 0.8),
     0 1px 3px oklch(30% 0.05 30 / 0.4);
 }
+
+/* ── Full-card mode ────────────────────────────────────────────────── */
+
+/* Thẻ stat cha: không có bg/border riêng, amber của badge phủ toàn bộ */
+.ui-stat-card--streak-active {
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  overflow: hidden;
+}
+
+/* Badge fill toàn thẻ stat — edge-to-edge */
+.streak-badge--full-card {
+  display: flex !important;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 5rem;
+  border-radius: inherit;  /* khớp với ui-stat-card radius */
+  padding: 0;
+  overflow: hidden !important;
+}
+
+/* Full-card khi active: bỏ amber gradient — để card trắng hiện qua */
+.streak-badge--full-card.streak-badge--active {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  animation: none;
+  filter: none;
+}
+
+/* Lửa phủ full background — nền amber dưới lửa, vùng trong suốt hiện amber */
+.streak-badge__fire--cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  /* Amber gradient làm base — transparent của lửa không lộ trắng card */
+  background: linear-gradient(
+    170deg,
+    oklch(85% 0.18 55) 0%,
+    oklch(72% 0.22 40) 40%,
+    oklch(60% 0.24 28) 70%,
+    oklch(52% 0.22 20) 100%
+  );
+}
+
+/* Nội dung: label + số nổi trên lửa — fill toàn thẻ */
+.streak-badge--full-card .streak-badge__content {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  flex: 1;
+  min-height: 5rem;
+}
+
+/* Nhãn STREAK — trắng, đọc rõ trên lửa */
+.streak-badge__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 4px oklch(20% 0.06 30 / 0.6);
+}
+
+/* Inline fire (sm/md/lg) luôn hiển thị */
+.streak-badge--full-card .streak-badge__fire {
+  display: none; /* fire--cover thay thế trong full-card */
+}
+
+/* Số streak — trắng + shadow đỗ nổi rõ trên lửa */
+.streak-badge--full-card .streak-badge__number {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 1px 8px oklch(22% 0.06 30 / 0.7),
+    0 0 20px oklch(85% 0.2 55 / 0.4);
+}
+
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 
@@ -3644,17 +3710,7 @@ body.is-page-loading .ui-route-transition {
   }
 }
 
-@keyframes streak-icon-sway {
-  0%, 100% {
-    transform: rotate(-6deg) scale(1);
-  }
-  30% {
-    transform: rotate(5deg) scale(1.08);
-  }
-  60% {
-    transform: rotate(-3deg) scale(1.04);
-  }
-}
+
 
 /* ── StreakCelebration (Duolingo-style overlay) ───────────────────────── */
 

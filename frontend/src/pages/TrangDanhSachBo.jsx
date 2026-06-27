@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import AnimatedModal from "../components/common/AnimatedModal";
-import StreakBadge from "../components/common/StreakBadge";
 import ToastMessage from "../components/common/ToastMessage";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -432,9 +431,8 @@ function TrangDanhSachBo() {
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                    {bo.streak > 0 && (
-                      <StreakBadge streak={bo.streak} size="sm" />
-                    )}
+
+
                     {laBoCuaUser(bo) && (
                       <div className="relative">
                         <button
