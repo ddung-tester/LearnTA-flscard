@@ -45,7 +45,7 @@ async function getUserSettings(req, res) {
   // Trả về defaults nếu chưa có row
   const settings = rows[0] ?? {};
   res.json({
-    default_direction: settings.default_direction ?? "en-vi",
+    default_direction: settings.default_direction ?? "vi-en",
     only_favorite: Boolean(settings.only_favorite ?? false),
     random_order: Boolean(settings.random_order ?? false),
     reward_enabled: Boolean(settings.reward_enabled ?? false),

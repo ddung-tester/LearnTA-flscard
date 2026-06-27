@@ -180,7 +180,9 @@ function TrangQuiz() {
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
-  const [batReward, setBatReward] = useState(false);
+  const [batReward, setBatReward] = useState(
+    () => docCaiDatHocTap("quiz").batReward ?? false
+  );
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     () => docCaiDatHocTap("quiz").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
@@ -523,12 +525,14 @@ function TrangQuiz() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
+      const moi = !dangBat;
       if (dangBat) {
         setHienReward(false);
         setDangChoReward(false);
         datLaiProgressReward();
       }
-      return !dangBat;
+      luuCaiDatHocTap("quiz", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
+      return moi;
     });
   }
 

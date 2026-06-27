@@ -112,7 +112,9 @@ function TrangTuLuan() {
   );
   const [lanLam, setLanLam] = useState(0);
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("tuluan").cheDo ?? "vi-en");
-  const [batReward, setBatReward] = useState(false);
+  const [batReward, setBatReward] = useState(
+    () => docCaiDatHocTap("tuluan").batReward ?? false
+  );
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     () => docCaiDatHocTap("tuluan").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
@@ -897,6 +899,7 @@ function TrangTuLuan() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
+      const moi = !dangBat;
       if (dangBat) {
         setHienReward(false);
         setDangChoReward(false);
@@ -904,8 +907,8 @@ function TrangTuLuan() {
         setRewardProgressPhase("idle");
         setRewardProgressValue(0);
       }
-
-      return !dangBat;
+      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
+      return moi;
     });
   }
 

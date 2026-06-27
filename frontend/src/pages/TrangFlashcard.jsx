@@ -116,7 +116,9 @@ function TrangFlashcard() {
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
   const [diemReward, setDiemReward] = useState(0);
-  const [batReward, setBatReward] = useState(false);
+  const [batReward, setBatReward] = useState(
+    () => docCaiDatHocTap("flashcard").batReward ?? false
+  );
   const giamChuyenDong = useReducedMotion();
   const cacTheDaTinhDiemRef = useRef(new Set());
   const cacTheDaHoanTatRef = useRef(new Set());
@@ -375,11 +377,12 @@ function TrangFlashcard() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
+      const moi = !dangBat;
       if (dangBat) {
         datLaiReward();
       }
-
-      return !dangBat;
+      luuCaiDatHocTap("flashcard", { cheDo, chiHocTuYeuThich, batRandom, batReward: moi });
+      return moi;
     });
   }
 

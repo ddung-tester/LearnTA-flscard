@@ -7,17 +7,20 @@ const MAC_DINH_CAI_DAT = {
     cheDo: "vi-en",
     chiHocTuYeuThich: false,
     batRandom: false,
+    batReward: false,
   },
   quiz: {
     cheDo: "vi-en",
     chiHocTuYeuThich: false,
     batRandom: false,
+    batReward: false,
     soCauDungNhanThuong: 10,
   },
   tuluan: {
     cheDo: "vi-en",
     chiHocTuYeuThich: false,
     batRandom: false,
+    batReward: false,
     soCauDungNhanThuong: 10,
   },
 };
@@ -48,11 +51,7 @@ export function docCaiDatHocTap(mode) {
   const tatCa = docTatCaCaiDat();
   const caiDatMode = tatCa[mode] || MAC_DINH_CAI_DAT[mode] || {};
 
-  // Lưu ý: Phần thưởng video (batReward) KHÔNG được nhớ, phải luôn mặc định là false
-  return {
-    ...caiDatMode,
-    batReward: false,
-  };
+  return { ...caiDatMode };
 }
 
 export function luuCaiDatHocTap(mode, caiDatMoi) {
@@ -60,8 +59,7 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
 
   try {
     const tatCa = docTatCaCaiDat();
-    // Loại bỏ batReward khỏi object lưu trữ để bảo đảm phần thưởng video luôn phải bật bằng tay
-    const { batReward, ...caiDatCanLuu } = caiDatMoi || {};
+    const caiDatCanLuu = caiDatMoi || {};
 
     tatCa[mode] = {
       ...tatCa[mode],
@@ -76,6 +74,7 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
     if (caiDatCanLuu.chiHocTuYeuThich !== undefined) payloadBackend.only_favorite = caiDatCanLuu.chiHocTuYeuThich;
     if (caiDatCanLuu.batRandom !== undefined) payloadBackend.random_order = caiDatCanLuu.batRandom;
     if (caiDatCanLuu.soCauDungNhanThuong !== undefined) payloadBackend.reward_trigger_count = caiDatCanLuu.soCauDungNhanThuong;
+    if (caiDatCanLuu.batReward !== undefined) payloadBackend.reward_enabled = caiDatCanLuu.batReward;
 
     if (Object.keys(payloadBackend).length > 0) {
       updateUserSettings(payloadBackend).catch(() => {
@@ -100,6 +99,7 @@ export async function dongBoCaiDatTuDatabase() {
       cheDo: dbSettings.default_direction || "vi-en",
       chiHocTuYeuThich: Boolean(dbSettings.only_favorite),
       batRandom: Boolean(dbSettings.random_order),
+      batReward: Boolean(dbSettings.reward_enabled),
     };
 
     const capNhatVoimoc = {
