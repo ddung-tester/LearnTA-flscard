@@ -1,47 +1,69 @@
+/**
+ * SegmentedRewardProgressBar — 1 track liên tục, dividers overlay giữa các segment.
+ * Gradient là 1 dải đồng nhất xuyên suốt, không chia màu riêng từng đoạn.
+ */
 import RewardProgressBar from "./RewardProgressBar";
 
 function SegmentedRewardProgressBar({
-  segments,
+  segments = [],
   totalCorrect,
   totalTarget,
   activeSegmentIndex = 0,
   phase = "idle",
   endpointRef,
   combo = 0,
-  label = "Tiến độ",
 }) {
+  const N = segments.length;
+
+  // Tổng % dựa trên totalCorrect / totalTarget → 1 dải duy nhất
+  const totalProgressPercent =
+    totalTarget > 0 ? Math.min((totalCorrect / totalTarget) * 100, 100) : 0;
+
   return (
     <div className="ui-segmented-progress">
       <div className="ui-segmented-progress__inline">
+        {/* Số bên trái */}
         <span
-          className={`ui-segmented-progress__endpoint-label${totalCorrect > 0 ? " ui-segmented-progress__endpoint-label--start" : ""}`}
+          className={`ui-segmented-progress__endpoint-label${
+            totalCorrect > 0 ? " ui-segmented-progress__endpoint-label--start" : ""
+          }`}
           aria-label={`${totalCorrect} câu đúng`}
         >
           {totalCorrect}
         </span>
-        <div className="ui-segmented-progress__track-row">
-          {segments.map((segment) => {
-            const dangHoatDong = segment.index === activeSegmentIndex;
-            return (
-              <div
-                key={`segment-progress-${segment.index}`}
-                className={`ui-segmented-progress__pill${dangHoatDong ? " ui-segmented-progress__pill--active" : ""}`}
-              >
-                <RewardProgressBar
-                  currentValue={segment.currentValue}
-                  totalValue={segment.totalValue}
-                  progressPercent={segment.progressPercent}
-                  phase={dangHoatDong ? phase : "idle"}
-                  endpointRef={dangHoatDong ? endpointRef : null}
-                  combo={dangHoatDong ? combo : 0}
-                  hideMeta
-                  compact
+
+        {/* Track duy nhất + dividers */}
+        <div className="ui-segmented-unified-track">
+          <RewardProgressBar
+            currentValue={totalCorrect}
+            totalValue={totalTarget}
+            progressPercent={totalProgressPercent}
+            phase={phase}
+            endpointRef={endpointRef}
+            combo={combo}
+            hideMeta
+            compact
+          />
+
+          {/* Đường kẻ dọc chia segment — nằm ngoài track để không bị clip */}
+          {N > 1 && (
+            <div className="ui-segmented-dividers" aria-hidden="true">
+              {Array.from({ length: N - 1 }, (_, i) => (
+                <div
+                  key={i}
+                  className="ui-segmented-divider"
+                  style={{ "--seg-pos": `${((i + 1) / N) * 100}%` }}
                 />
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
-        <span className="ui-segmented-progress__endpoint-label ui-segmented-progress__endpoint-label--end">
+
+        {/* Số bên phải */}
+        <span
+          className="ui-segmented-progress__endpoint-label ui-segmented-progress__endpoint-label--end"
+          aria-label={`mục tiêu ${totalTarget} câu`}
+        >
           {totalTarget}
         </span>
       </div>

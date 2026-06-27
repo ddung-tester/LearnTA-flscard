@@ -645,7 +645,7 @@ body.is-page-loading .ui-route-transition {
   display: block;
 }
 
-/* Layout: [số] [pill][pill][pill]...[pill] [số] — tất cả trên 1 dòng */
+/* Layout: [số] [track] [số] — tất cả trên 1 dòng */
 .ui-segmented-progress__inline {
   display: flex;
   align-items: center;
@@ -654,6 +654,41 @@ body.is-page-loading .ui-route-transition {
   min-width: 0;
 }
 
+/* === UNIFIED TRACK (design mới) === */
+/* 1 track liên tục thay vì nhiều pill riêng lẻ */
+.ui-segmented-unified-track {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* RewardProgressBar bên trong chiếm full width */
+.ui-segmented-unified-track .ui-reward-progress {
+  width: 100%;
+}
+
+/* Container cho các đường divider — absolute overlay trên track */
+.ui-segmented-dividers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Mỗi đường kẻ dọc chia segment */
+.ui-segmented-divider {
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  left: var(--seg-pos, 50%);
+  width: 2px;
+  transform: translateX(-50%);
+  background: oklch(99% 0.012 94 / 0.55);
+  border-radius: 1px;
+  box-shadow: 0 0 3px oklch(99% 0.012 94 / 0.25);
+}
+
+/* === CSS cũ (pill-based) — giữ lại phòng fallback === */
 .ui-segmented-progress__track-row {
   display: flex;
   flex: 1 1 0;
@@ -662,20 +697,17 @@ body.is-page-loading .ui-route-transition {
   gap: 0.2rem;
 }
 
-/* Mỗi pill chiếm phần equal của track-row */
 .ui-segmented-progress__pill {
   flex: 1 1 0;
   min-width: 0;
   transition: opacity 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* P3: Dim inactive pills để active nổi bật hơn */
 .ui-segmented-progress__track-row:has(.ui-segmented-progress__pill--active)
   .ui-segmented-progress__pill:not(.ui-segmented-progress__pill--active) {
   opacity: 0.55;
 }
 
-/* Pill đang active có viền sáng + glow nhẹ */
 .ui-segmented-progress__pill--active .ui-reward-progress__track {
   border-color: color-mix(in srgb, var(--mau-chinh) 58%, var(--mau-vien));
   box-shadow:
