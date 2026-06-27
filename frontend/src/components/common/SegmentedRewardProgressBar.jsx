@@ -5,7 +5,7 @@
  */
 import { useRef } from "react";
 
-function SegmentBar({ segmentIndex, totalSegments, currentValue, totalValue, phase, combo, endpointRef }) {
+function SegmentBar({ segmentIndex, totalSegments, currentValue, totalValue, phase, combo, endpointRef, activeEndRef }) {
   const fillPercent = totalValue > 0 ? Math.min((currentValue / totalValue) * 100, 100) : 0;
   const comboLevel = Math.min(combo, 8);
 
@@ -28,6 +28,13 @@ function SegmentBar({ segmentIndex, totalSegments, currentValue, totalValue, pha
           <span className="seg-bar__fill-core" />
           {fillPercent > 0 && <span className="seg-bar__shimmer" />}
         </div>
+        {/* Marker tại đầu mũi fill — dùng làm điểm xuất phát tia năng lượng */}
+        {activeEndRef && (
+          <span
+            ref={activeEndRef}
+            className="seg-bar__fill-tip"
+          />
+        )}
         {/* Endpoint dot — chỉ hiện ở thanh cuối */}
         {endpointRef && segmentIndex === totalSegments - 1 && (
           <span
@@ -49,6 +56,7 @@ function SegmentedRewardProgressBar({
   activeSegmentIndex = 0,
   phase = "idle",
   endpointRef,
+  activeEndRef,
   combo = 0,
 }) {
   const N = segments.length || 1;
@@ -78,6 +86,7 @@ function SegmentedRewardProgressBar({
               phase={i === activeSegmentIndex ? phase : i < activeSegmentIndex ? "done" : "idle"}
               combo={i === activeSegmentIndex ? combo : 0}
               endpointRef={i === N - 1 ? endpointRef : null}
+              activeEndRef={i === activeSegmentIndex ? activeEndRef : null}
             />
           ))}
         </div>

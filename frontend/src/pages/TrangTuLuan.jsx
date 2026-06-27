@@ -141,6 +141,7 @@ function TrangTuLuan() {
   const [daBoQua, setDaBoQua] = useState(false);
   const [dangChoNhanEnterSauSai, setDangChoNhanEnterSauSai] = useState(false); // đang hiện đáp án sai, chờ Enter
   const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
+  const [currentPlayingWordId, setCurrentPlayingWordId] = useState(null);
 
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
@@ -162,7 +163,9 @@ function TrangTuLuan() {
   const postRewardContinueTimerRef = useRef(null);
   const focusTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
+  const progressFillTipRef = useRef(null);
   const enterUnlockedTimeRef = useRef(0);
+  const daTraLoiSaiLanNayRef = useRef(false); // true nếu card hiện tại đã bị trả lời sai ít nhất 1 lần
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
@@ -612,6 +615,7 @@ function TrangTuLuan() {
     setDaBoQua(false);
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
+    daTraLoiSaiLanNayRef.current = false;
   }
 
   function chuyenCauTrongTienTrinhSauKhiLapLai({ delay = 220 } = {}) {
@@ -644,43 +648,22 @@ function TrangTuLuan() {
 
   function xuLyPhimNhanInput(event) {
     if (dangCooldownSaiRef.current) return;
-    // Khi đang chờ Enter sau khi sai: Enter chuyển câu, các phím khác bỏ qua
-    if (dangChoNhanEnterSauSai) {
-      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-        event.preventDefault();
-        if (Date.now() < enterUnlockedTimeRef.current) return;
-        xoaTimerTraLoiSai();
-        chuyenCauTrongTienTrinhSauKhiLapLai();
+    
+    // Nếu đang hiện lỗi sai và người dùng gõ phím khác Enter
+    if (daKiemTra && !ketQuaDung) {
+      if (event.key !== "Enter") {
+        setDaKiemTra(false);
+        setKetQuaDung(false);
       }
-      return;
-    }
-    if (!daKiemTra || ketQuaDung) return;
-    if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
-
-    if (event.key === "Backspace" || event.key === "Delete") {
-      event.preventDefault();
-      xoaTrangThaiTraLoiSai();
-      setCauTraLoi("");
-      return;
-    }
-
-    if (event.key.length === 1) {
-      event.preventDefault();
-      xoaTrangThaiTraLoiSai();
-      setCauTraLoi(event.key);
-      if (event.key.trim()) setHienCanhBaoNhap(false);
     }
   }
 
   function xuLyDanInput(event) {
     if (dangCooldownSaiRef.current) return;
-    if (!daKiemTra || ketQuaDung) return;
-
-    event.preventDefault();
-    xoaTrangThaiTraLoiSai();
-    const duLieuDan = event.clipboardData?.getData("text") ?? "";
-    setCauTraLoi(duLieuDan);
-    if (duLieuDan.trim()) setHienCanhBaoNhap(false);
+    if (daKiemTra && !ketQuaDung) {
+      setDaKiemTra(false);
+      setKetQuaDung(false);
+    }
   }
 
   function kiemTraDapAn(event) {
@@ -692,11 +675,14 @@ function TrangTuLuan() {
       return;
     }
 
-    // Đang chờ Enter sau khi sai: chuyển sang câu tiếp theo
-    if (dangChoNhanEnterSauSai) {
-      if (Date.now() < enterUnlockedTimeRef.current) return;
-      xoaTimerTraLoiSai();
-      chuyenCauTrongTienTrinhSauKhiLapLai();
+    // Nếu đang ở trạng thái Trả lời sai (daKiemTra && !ketQuaDung)
+    // Nhấn Enter sẽ xóa trắng input và cho phép nhập lại từ đầu
+    if (daKiemTra && !ketQuaDung) {
+      if (dangCooldownSaiRef.current) return;
+      setDaKiemTra(false);
+      setKetQuaDung(false);
+      setCauTraLoi("");
+      inputRef.current?.focus();
       return;
     }
 
@@ -730,7 +716,7 @@ function TrangTuLuan() {
       phatAmThanhDung();
       tangTienTrinhChoThe(theHienTai);
       incrementCombo();
-      
+
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
         {
@@ -739,13 +725,20 @@ function TrangTuLuan() {
           dapAnDung,
           cauTraLoi: cauTraLoi.trim(),
           dung: true,
+          daSaiTruoc: daTraLoiSaiLanNayRef.current,
           answerMeta: {
-            mode: hienGoiY ? "hint" : "normal",
+            mode: hienGoiY ? "hint" : daTraLoiSaiLanNayRef.current ? "retry" : "normal",
             segment_index: theHienTai.__segmentIndex ?? 0,
             counts_toward_progress: true,
           },
         },
       ]);
+
+      // Nếu trước đó đã sai: đưa card vào cuối segment để hỏi lại sau (mechanic "5 câu sau")
+      if (daTraLoiSaiLanNayRef.current) {
+        duaTheHienTaiVeCuoiTienTrinh();
+      }
+      daTraLoiSaiLanNayRef.current = false;
     } else {
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
@@ -763,24 +756,21 @@ function TrangTuLuan() {
           },
         },
       ]);
-      // Flash đỏ ngắn, sau đó chờ người dùng nhấn Enter để tiếp tục
+      // Flash đỏ, giữ nguyên đáp án sai để người dùng xem và sửa
       setDaKiemTra(true);
       setKetQuaDung(false);
       setHienGoiY(false);
       setHienCanhBaoNhap(false);
       setShakeKey((k) => k + 1);
       resetCombo();
+      daTraLoiSaiLanNayRef.current = true;
       xoaTimerTraLoiSai();
       dangCooldownSaiRef.current = true;
       wrongAnswerTimerRef.current = window.setTimeout(() => {
-        // Hết cooldown flash đỏ: chuyển sang chờ Enter
         dangCooldownSaiRef.current = false;
         wrongAnswerTimerRef.current = null;
-        enterUnlockedTimeRef.current = Date.now() + 350;
-        setDangChoNhanEnterSauSai(true);
-        // Focus lại input để người dùng có thể nhấn Enter
         inputRef.current?.focus();
-      }, 520);
+      }, 400);
     }
   }
 
@@ -1029,7 +1019,7 @@ function TrangTuLuan() {
             onClose={() => setStreakCelebration(null)}
           />
         )}
-        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressFillTipRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <Link
             to={`/decks/${boId}`}
@@ -1063,7 +1053,72 @@ function TrangTuLuan() {
                 </p>
               </div>
             </div>
-            <div className="flex justify-center">
+            
+            {/* Danh sách các từ trả lời sai */}
+            {(() => {
+              const uniqueWrongCardIds = Array.from(new Set(danhSachKetQua.filter(item => !item.dung).map(item => item.id)));
+              const wrongCards = danhSachGoc.filter(card => uniqueWrongCardIds.includes(card.id));
+              
+              if (wrongCards.length === 0) return null;
+
+              return (
+                <div className="mt-8 text-left border-t border-[var(--mau-vien)] pt-6">
+                  <h3 className="text-lg font-semibold text-[var(--mau-loi)] mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Các từ trả lời sai ({wrongCards.length})
+                  </h3>
+                  <ul className="ui-card-list space-y-3">
+                    {wrongCards.map((the, i) => (
+                      <li
+                        key={the.id}
+                        className="ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
+                      >
+                        <div className="ui-word-row__inner">
+                          <div className="ui-word-main">
+                            <span className="ui-word-index">{i + 1}</span>
+                            <div className="ui-word-pair">
+                              <div className="flex items-center gap-1.5 w-full">
+                                <span className="ui-word-card ui-word-card--term flex-1">
+                                  {the.term_en}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={`tts-speaker-btn${ttsDangDoc && currentPlayingWordId === the.id ? " tts-speaker-btn--active" : ""}`}
+                                  onClick={() => {
+                                    setCurrentPlayingWordId(the.id);
+                                    ttsSpeak(the.term_en, "en-US");
+                                  }}
+                                  aria-label={`Đọc ${the.term_en}`}
+                                  title="Đọc từ vựng"
+                                >
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                                  </svg>
+                                </button>
+                              </div>
+                              <span className="ui-word-card ui-word-card--meaning">
+                                {the.meaning_vi}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {the.example_sentence && (
+                          <p className="ui-word-example mt-2 pl-8 text-sm text-[var(--mau-chu-phu)]">
+                            {the.example_sentence}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
+
+            <div className="flex justify-center mt-8">
               <button
                 type="button"
                 onClick={lamLai}
@@ -1096,7 +1151,7 @@ function TrangTuLuan() {
 
   return (
     <>
-      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressFillTipRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
           <Link to={`/decks/${boId}`} className="ui-back-btn">
@@ -1187,6 +1242,7 @@ function TrangTuLuan() {
             activeSegmentIndex={chiSoTienTrinhDangRender}
             phase={rewardProgressPhase}
             endpointRef={progressEndpointRef}
+            activeEndRef={progressFillTipRef}
             combo={combo}
           />
           <div className="mt-1.5 flex justify-end">

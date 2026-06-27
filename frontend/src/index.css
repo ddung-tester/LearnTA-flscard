@@ -810,6 +810,19 @@ body.is-page-loading .ui-route-transition {
   pointer-events: none;
 }
 
+/* Fill-tip marker — invisible anchor at the right edge of the active fill,
+   used as the beam origin for the energy ray effect */
+.seg-bar__fill-tip {
+  position: absolute;
+  left: var(--fill-pct, 0%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  transition: left 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 
 
 /* === CSS cũ (pill-based) — giữ lại phòng fallback === */
