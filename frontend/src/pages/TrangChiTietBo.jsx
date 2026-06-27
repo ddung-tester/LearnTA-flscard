@@ -180,6 +180,7 @@ function TrangChiTietBo() {
   const cleanupPointerKeoRef = useRef(null);
   const phienLuuThuTuRef = useRef(0);
   const [userStreak, setUserStreak] = useState(0);
+  const [studiedToday, setStudiedToday] = useState(false);
 
   async function taiDuLieuBo() {
     setDangTaiDuLieu(true);
@@ -240,7 +241,15 @@ function TrangChiTietBo() {
   useEffect(() => {
     if (!isAuthenticated) return;
     getUserStats()
-      .then((stats) => setUserStreak(stats.current_streak ?? 0))
+      .then((stats) => {
+        setUserStreak(stats.current_streak ?? 0);
+        // Kiểm tra xem hôm nay đã học chưa dựa vào last_study_date
+        const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+        const lastStudy = stats.last_study_date
+          ? String(stats.last_study_date).slice(0, 10)
+          : null;
+        setStudiedToday(lastStudy === today);
+      })
       .catch(() => {});
   }, [isAuthenticated, boId]);
 
@@ -249,6 +258,8 @@ function TrangChiTietBo() {
     function onStreakUpdated(e) {
       const newStreak = e.detail?.streak ?? 0;
       setUserStreak(newStreak);
+      // Vừa học xong → đánh dấu đã học hôm nay → lửa cháy lên
+      if (newStreak > 0) setStudiedToday(true);
     }
     window.addEventListener("streak-updated", onStreakUpdated);
     return () => window.removeEventListener("streak-updated", onStreakUpdated);
@@ -877,16 +888,16 @@ function TrangChiTietBo() {
             {soTu}
           </p>
         </div>
-        {/* Thẻ Streak: lửa phủ full thẻ, padding:0 để badge fill đến mép */}
+        {/* Thẻ Streak: lửa phủ full thẻ — đóng băng khi chưa học hôm nay, cháy khi đã học */}
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
-          {streak > 0 ? (
-            <StreakBadge streak={streak} size="lg" showZero label="Streak" className="streak-badge--full-card" fullCard />
-          ) : (
-            <div className="p-3">
-              <p className="ui-stat-label mb-1">Streak</p>
-              <StreakBadge streak={streak} size="lg" showZero />
-            </div>
-          )}
+          <StreakBadge
+            streak={streak}
+            size="lg"
+            showZero
+            label="Streak"
+            fullCard
+            frozen={!studiedToday}
+          />
         </div>
 
 

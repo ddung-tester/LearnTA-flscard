@@ -3652,6 +3652,65 @@ body.is-page-loading .ui-route-transition {
     0 0 20px oklch(85% 0.2 55 / 0.4);
 }
 
+/* ── Frozen state — chưa học hôm nay ──────────────────────────────────── */
+
+/* Nền lạnh thay thế nền amber */
+.streak-badge--frozen.streak-badge--full-card {
+  animation: none;
+}
+
+.streak-badge--frozen.streak-badge--full-card.streak-badge--active {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Fire cover: nền lạnh thay nền amber nóng */
+.streak-badge__fire--cover--frozen {
+  background: linear-gradient(
+    170deg,
+    oklch(68% 0.09 230) 0%,
+    oklch(52% 0.12 240) 45%,
+    oklch(38% 0.1 250) 100%
+  ) !important;
+}
+
+/* Tô màu lạnh lên toàn bộ Lottie fire bên trong: desaturate + blue tint */
+.streak-badge__fire--cover--frozen > * {
+  filter: saturate(0.08) hue-rotate(175deg) brightness(0.72);
+  opacity: 0.85;
+  transition: filter 0.5s ease, opacity 0.5s ease;
+}
+
+/* Overlay băng mỏng phủ trên lửa đóng băng */
+.streak-badge__fire--cover--frozen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    160deg,
+    oklch(88% 0.06 220 / 0.32) 0%,
+    oklch(72% 0.1 235 / 0.18) 50%,
+    transparent 100%
+  );
+  z-index: 2;
+}
+
+/* Số streak: màu trắng lạnh thay vì ấm */
+.streak-badge--frozen .streak-badge__number {
+  color: oklch(92% 0.06 220);
+  text-shadow:
+    0 0 10px oklch(75% 0.1 230 / 0.7),
+    0 1px 4px oklch(20% 0.05 240 / 0.5);
+}
+
+/* Label STREAK: màu lạnh */
+.streak-badge--frozen .streak-badge__label {
+  color: oklch(88% 0.07 220 / 0.9);
+  text-shadow: 0 1px 4px oklch(20% 0.06 240 / 0.5);
+}
+
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 

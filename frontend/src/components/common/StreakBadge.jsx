@@ -11,7 +11,7 @@ const Lottie = _LottieModule?.default ?? _LottieModule;
  *   Dùng ở header, settings, v.v.
  *
  * Full-card (fullCard=true):
- *   Lửa Lottie phủ gần toàn thẻ (inset 8px — amber viền mỏng quanh).
+ *   Lửa Lottie phủ gần toàn thẻ.
  *   Label "STREAK" + số nổi trên lửa (z-index cao hơn).
  *   Dùng ở thẻ stat trên trang chi tiết bộ từ.
  *
@@ -22,6 +22,7 @@ const Lottie = _LottieModule?.default ?? _LottieModule;
  *   className string           – class bổ sung
  *   label     string           – nhãn nhỏ (full-card mode)
  *   fullCard  boolean          – true → lửa Lottie fill thẻ stat
+ *   frozen    boolean          – true → lửa đóng băng (chưa học hôm nay)
  */
 function StreakBadge({
   streak = 0,
@@ -30,6 +31,7 @@ function StreakBadge({
   className = "",
   label = "",
   fullCard = false,
+  frozen = false,
 }) {
   if (!showZero && streak === 0) return null;
 
@@ -42,6 +44,9 @@ function StreakBadge({
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // Lửa đóng băng khi: chưa học hôm nay (frozen=true) hoặc reduced motion
+  const firePaused = frozen || prefersReducedMotion;
+
   return (
     <div
       className={[
@@ -49,11 +54,18 @@ function StreakBadge({
         sizeCls,
         isActive ? "streak-badge--active" : "streak-badge--zero",
         fullCard ? "streak-badge--full-card" : "",
+        fullCard && frozen ? "streak-badge--frozen" : "",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
-      title={isActive ? `${streak} ngày học liên tục 🔥` : "Chưa có streak"}
+      title={
+        frozen
+          ? `${streak} ngày streak • Hôm nay chưa học`
+          : isActive
+          ? `${streak} ngày học liên tục 🔥`
+          : "Chưa có streak"
+      }
     >
       {/* Glow chỉ cho inline pill */}
       {isActive && !fullCard && (
@@ -62,15 +74,19 @@ function StreakBadge({
 
       {/*
         FULL-CARD ONLY: lửa Lottie phủ gần toàn thẻ.
-        inset: 8px → để lộ viền amber mỏng xung quanh.
-        xMidYMid slice → fill chiều ngang thẻ, crop dọc.
+        - Khi active + không frozen: cháy bình thường (autoplay=true, loop=true)
+        - Khi frozen: đóng băng ở frame đầu (autoplay=false) + CSS filter màu lạnh
+        - Luôn hiển thị khi fullCard + (isActive hoặc frozen)
       */}
-      {isActive && fullCard && (
-        <div className="streak-badge__fire--cover" aria-hidden="true">
+      {fullCard && (isActive || frozen) && (
+        <div
+          className={`streak-badge__fire--cover${frozen ? " streak-badge__fire--cover--frozen" : ""}`}
+          aria-hidden="true"
+        >
           <Lottie
             path="/animation/Fire.json"
-            loop={!prefersReducedMotion}
-            autoplay={!prefersReducedMotion}
+            loop={!firePaused}
+            autoplay={!firePaused}
             style={{ width: "100%", height: "100%", display: "block" }}
             rendererSettings={{ preserveAspectRatio: "xMidYMid slice" }}
           />
