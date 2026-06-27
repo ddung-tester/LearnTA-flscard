@@ -190,7 +190,7 @@ function RewardTikTokEffect({
 
     async function napDanhSachVideo() {
       try {
-        const response = await fetch(config.manifestSrc, { cache: "force-cache" });
+        const response = await fetch(config.manifestSrc, { cache: "no-cache" });
         if (!response.ok) throw new Error("Khong doc duoc reward manifest");
 
         const data = await response.json();
