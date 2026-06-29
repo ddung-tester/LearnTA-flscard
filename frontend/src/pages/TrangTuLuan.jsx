@@ -112,9 +112,7 @@ function TrangTuLuan() {
   );
   const [lanLam, setLanLam] = useState(0);
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("tuluan").cheDo ?? "vi-en");
-  const [batReward, setBatReward] = useState(
-    () => docCaiDatHocTap("tuluan").batReward ?? false
-  );
+  const [batReward, setBatReward] = useState(false);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
     () => docCaiDatHocTap("tuluan").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
@@ -136,12 +134,15 @@ function TrangTuLuan() {
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
   const [hienGoiY, setHienGoiY] = useState(false);
   const [hienCanhBaoNhap, setHienCanhBaoNhap] = useState(false);
+  const [noiDungCanhBaoNhap, setNoiDungCanhBaoNhap] = useState("Vui lòng nhập đáp án");
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
   const [shakeKey, setShakeKey] = useState(0); // tăng mỗi lần sai để retrigger animation
   const [daBoQua, setDaBoQua] = useState(false);
   const [dangChoNhanEnterSauSai, setDangChoNhanEnterSauSai] = useState(false); // đang hiện đáp án sai, chờ Enter
+  // cheDoNhapLai: trạng thái sau khi sai khi có gợi ý → hiện đáp án để nhìn vào nhập lại
+  const [cheDoNhapLai, setCheDoNhapLai] = useState({ active: false, dapAnDung: "" });
   const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
-  const [currentPlayingWordId, setCurrentPlayingWordId] = useState(null);
+  const dangTrongCheDoGoiYRef = useRef(false); // đang sai trong khi hienGoiY=true
 
   const [hienReward, setHienReward] = useState(false);
   const [lanReward, setLanReward] = useState(0);
@@ -163,9 +164,7 @@ function TrangTuLuan() {
   const postRewardContinueTimerRef = useRef(null);
   const focusTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
-  const progressFillTipRef = useRef(null);
   const enterUnlockedTimeRef = useRef(0);
-  const daTraLoiSaiLanNayRef = useRef(false); // true nếu card hiện tại đã bị trả lời sai ít nhất 1 lần
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
@@ -454,13 +453,14 @@ function TrangTuLuan() {
   }, [chiSo, daHoanThanh, daKiemTra, ketQuaDung]);
 
   useEffect(() => {
-    if (!daKiemTra || daHoanThanh || hienReward || dangChoReward || !ketQuaDung) {
+    // Không auto-advance nếu đang trong chuyển câu do nhập lại gợi ý đúng
+    if (!daKiemTra || daHoanThanh || hienReward || dangChoReward || !ketQuaDung || dangChuyenCau) {
       return undefined;
     }
 
     const timer = window.setTimeout(() => chuyenCauMem(), lanReward > 0 ? 1000 : 2000);
     return () => clearTimeout(timer);
-  }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward]);
+  }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward, dangChuyenCau]);
 
   // Tự động đọc đáp án đúng qua TTS khi trả lời chính xác
   useEffect(() => {
@@ -606,16 +606,49 @@ function TrangTuLuan() {
     });
   }
 
+  function hienThongBaoCanhBao(thongBao = "Vui lòng nhập đáp án") {
+    setNoiDungCanhBaoNhap(thongBao);
+    setHienCanhBaoNhap(true);
+    setLanCanhBaoNhap((lan) => lan + 1);
+    inputRef.current?.focus();
+  }
+
   function datLaiTrangThaiCauTraLoi() {
     setCauTraLoi("");
     setDaKiemTra(false);
     setKetQuaDung(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
+    setNoiDungCanhBaoNhap("Vui lòng nhập đáp án");
     setDaBoQua(false);
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
-    daTraLoiSaiLanNayRef.current = false;
+    setCheDoNhapLai({ active: false, dapAnDung: "" });
+  }
+
+  // Chèn thẻ hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi nhập đúng ở chế độ nhập lại
+  function chenTheHoiLai() {
+    setDanhSachThe((prev) => {
+      if (!prev[chiSo]) return prev;
+      const moi = [...prev];
+      const [card] = moi.splice(chiSo, 1);
+      const cardRetry = { ...card, __saiBuoc: true };
+      const viTriChen = Math.min(chiSo + 5, moi.length);
+      moi.splice(viTriChen, 0, cardRetry);
+      return moi;
+    });
+  }
+
+  // Chuyển sang câu kế tiếp sau khi nhập đúng ở chế độ nhập lại gợi ý (không ghi nhận tiến trình)
+  function chuyenCauSauNhapLaiDung() {
+    xoaTimerChuyenCau();
+    setDangChuyenCau(true);
+    questionTransitionTimerRef.current = window.setTimeout(() => {
+      chenTheHoiLai();
+      datLaiTrangThaiCauTraLoi();
+      focusInputTre();
+      questionTransitionTimerRef.current = null;
+    }, 600);
   }
 
   function chuyenCauTrongTienTrinhSauKhiLapLai({ delay = 220 } = {}) {
@@ -646,45 +679,60 @@ function TrangTuLuan() {
     if (value.trim()) setHienCanhBaoNhap(false);
   }
 
+  function batDauNhapLaiSauSaiThuong() {
+    const theHienTai = danhSachThe[chiSo];
+    const dapAnDung = layDapAnDung(theHienTai);
+    setDangChoNhanEnterSauSai(false);
+    setDaKiemTra(false);
+    setKetQuaDung(false);
+    setCauTraLoi("");
+    setCheDoNhapLai({ active: true, dapAnDung });
+    hienThongBaoCanhBao("Vui lòng nhập đúng đáp án để tiếp tục");
+  }
+
   function xuLyPhimNhanInput(event) {
     if (dangCooldownSaiRef.current) return;
-    
-    // Nếu đang hiện lỗi sai và người dùng gõ phím khác Enter
-    if (daKiemTra && !ketQuaDung) {
-      if (event.key !== "Enter") {
-        setDaKiemTra(false);
-        setKetQuaDung(false);
+    // Khi đang chờ Enter sau khi sai: Enter bắt đầu nhập lại
+    if (dangChoNhanEnterSauSai) {
+      if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        if (Date.now() < enterUnlockedTimeRef.current) return;
+        xoaTimerTraLoiSai();
+        batDauNhapLaiSauSaiThuong();
       }
+      return;
+    }
+    if (!daKiemTra || ketQuaDung) return;
+    if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+
+    if (event.key === "Backspace" || event.key === "Delete") {
+      event.preventDefault();
+      xoaTrangThaiTraLoiSai();
+      setCauTraLoi("");
+      return;
+    }
+
+    if (event.key.length === 1) {
+      event.preventDefault();
+      xoaTrangThaiTraLoiSai();
+      setCauTraLoi(event.key);
+      if (event.key.trim()) setHienCanhBaoNhap(false);
     }
   }
 
   function xuLyDanInput(event) {
     if (dangCooldownSaiRef.current) return;
-    if (daKiemTra && !ketQuaDung) {
-      setDaKiemTra(false);
-      setKetQuaDung(false);
-    }
+    if (!daKiemTra || ketQuaDung) return;
+
+    event.preventDefault();
+    xoaTrangThaiTraLoiSai();
+    const duLieuDan = event.clipboardData?.getData("text") ?? "";
+    setCauTraLoi(duLieuDan);
+    if (duLieuDan.trim()) setHienCanhBaoNhap(false);
   }
 
   function kiemTraDapAn(event) {
     event.preventDefault();
-
-    // Nếu đang ở trạng thái bỏ qua, Enter sẽ chuyển câu
-    if (daBoQua) {
-      tiepTucSauXemDapAn();
-      return;
-    }
-
-    // Nếu đang ở trạng thái Trả lời sai (daKiemTra && !ketQuaDung)
-    // Nhấn Enter sẽ xóa trắng input và cho phép nhập lại từ đầu
-    if (daKiemTra && !ketQuaDung) {
-      if (dangCooldownSaiRef.current) return;
-      setDaKiemTra(false);
-      setKetQuaDung(false);
-      setCauTraLoi("");
-      inputRef.current?.focus();
-      return;
-    }
 
     if (
       daKiemTra ||
@@ -697,10 +745,76 @@ function TrangTuLuan() {
       return;
     }
 
+    // Nếu đang ở trạng thái bỏ qua, Enter sẽ chuyển câu
+    if (daBoQua) {
+      tiepTucSauXemDapAn();
+      return;
+    }
+
+    // Đang chờ Enter sau khi sai: bắt đầu nhập lại
+    if (dangChoNhanEnterSauSai) {
+      if (Date.now() < enterUnlockedTimeRef.current) return;
+      xoaTimerTraLoiSai();
+      batDauNhapLaiSauSaiThuong();
+      return;
+    }
+
+    // --- CHẾ ĐỘ NHẬP LẠI SAU KHI GỢI Ý / XEM ĐÁP ÁN SAI ---
+    if (cheDoNhapLai.active) {
+      if (!cauTraLoi.trim()) {
+        hienThongBaoCanhBao("Vui lòng nhập đáp án");
+        return;
+      }
+
+      const theHienTai = danhSachThe[chiSo];
+      const dapAnNhapLai = cheDoNhapLai.dapAnDung;
+      const dungNhapLai = chuanHoa(cauTraLoi) === chuanHoa(dapAnNhapLai);
+
+      if (dungNhapLai) {
+        // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
+        setDaKiemTra(true);
+        setKetQuaDung(true);
+        setCheDoNhapLai({ active: false, dapAnDung: "" });
+        setHienCanhBaoNhap(false);
+        phatAmThanhDung();
+        setDanhSachKetQua((hienTai) => [
+          ...hienTai,
+          {
+            id: theHienTai.id,
+            cauHoi: layCauHoi(theHienTai),
+            dapAnDung: dapAnNhapLai,
+            cauTraLoi: cauTraLoi.trim(),
+            dung: true,
+            answerMeta: {
+              mode: "hint-retry-correct",
+              segment_index: theHienTai.__segmentIndex ?? 0,
+              counts_toward_progress: false, // chưa ghi nhận, chờ hỏi lại
+            },
+          },
+        ]);
+        chuyenCauSauNhapLaiDung(); // chèn retry 5 sau và chuyển câu
+      } else {
+        // Nhập sai lại: flash đỏ, ở lại chế độ nhập lại, báo lỗi
+        setShakeKey((k) => k + 1);
+        setDaKiemTra(true);
+        setKetQuaDung(false);
+        xoaTimerTraLoiSai();
+        dangCooldownSaiRef.current = true;
+        wrongAnswerTimerRef.current = window.setTimeout(() => {
+          dangCooldownSaiRef.current = false;
+          wrongAnswerTimerRef.current = null;
+          setDaKiemTra(false);
+          setKetQuaDung(false);
+          setCauTraLoi("");
+          hienThongBaoCanhBao("Vui lòng nhập đúng đáp án để tiếp tục");
+        }, 520);
+      }
+      return;
+    }
+    // --- KẾT THÚC CHẾ ĐỘ NHẬP LẠI ---
+
     if (!cauTraLoi.trim()) {
-      setHienCanhBaoNhap(true);
-      setLanCanhBaoNhap((lan) => lan + 1);
-      inputRef.current?.focus();
+      hienThongBaoCanhBao("Vui lòng nhập đáp án");
       return;
     }
 
@@ -709,37 +823,57 @@ function TrangTuLuan() {
     const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
 
     if (dung) {
-      setDaKiemTra(true);
-      setKetQuaDung(true);
-      setHienGoiY(false);
-      setHienCanhBaoNhap(false);
-      phatAmThanhDung();
-      tangTienTrinhChoThe(theHienTai);
-      incrementCombo();
-
-      setDanhSachKetQua((hienTai) => [
-        ...hienTai,
-        {
-          id: theHienTai.id,
-          cauHoi: layCauHoi(theHienTai),
-          dapAnDung,
-          cauTraLoi: cauTraLoi.trim(),
-          dung: true,
-          daSaiTruoc: daTraLoiSaiLanNayRef.current,
-          answerMeta: {
-            mode: hienGoiY ? "hint" : daTraLoiSaiLanNayRef.current ? "retry" : "normal",
-            segment_index: theHienTai.__segmentIndex ?? 0,
-            counts_toward_progress: true,
+      if (hienGoiY) {
+        // Có dùng Gợi ý và nhập đúng: chèn câu hỏi lại vào 5 câu sau, chưa ghi nhận tiến trình
+        setDaKiemTra(true);
+        setKetQuaDung(true);
+        setHienGoiY(false);
+        setHienCanhBaoNhap(false);
+        phatAmThanhDung();
+        setDanhSachKetQua((hienTai) => [
+          ...hienTai,
+          {
+            id: theHienTai.id,
+            cauHoi: layCauHoi(theHienTai),
+            dapAnDung,
+            cauTraLoi: cauTraLoi.trim(),
+            dung: true,
+            answerMeta: {
+              mode: "hint-correct",
+              segment_index: theHienTai.__segmentIndex ?? 0,
+              counts_toward_progress: false,
+            },
           },
-        },
-      ]);
-
-      // Nếu trước đó đã sai: đưa card vào cuối segment để hỏi lại sau (mechanic "5 câu sau")
-      if (daTraLoiSaiLanNayRef.current) {
-        duaTheHienTaiVeCuoiTienTrinh();
+        ]);
+        chuyenCauSauNhapLaiDung();
+      } else {
+        // Trả lời đúng bình thường (hoặc đúng thẻ retry 5 câu sau)
+        setDaKiemTra(true);
+        setKetQuaDung(true);
+        setHienGoiY(false);
+        setHienCanhBaoNhap(false);
+        phatAmThanhDung();
+        tangTienTrinhChoThe(theHienTai);
+        incrementCombo();
+        setDanhSachKetQua((hienTai) => [
+          ...hienTai,
+          {
+            id: theHienTai.id,
+            cauHoi: layCauHoi(theHienTai),
+            dapAnDung,
+            cauTraLoi: cauTraLoi.trim(),
+            dung: true,
+            answerMeta: {
+              mode: theHienTai.__saiBuoc ? "retry-correct" : "normal",
+              segment_index: theHienTai.__segmentIndex ?? 0,
+              counts_toward_progress: true,
+            },
+          },
+        ]);
       }
-      daTraLoiSaiLanNayRef.current = false;
     } else {
+      const daCoGoiY = hienGoiY;
+      const dapAnLuuLai = dapAnDung; // capture trước khi setTimeout
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
         {
@@ -749,28 +883,39 @@ function TrangTuLuan() {
           cauTraLoi: cauTraLoi.trim(),
           dung: false,
           answerMeta: {
-            mode: hienGoiY ? "hint" : "normal",
+            mode: daCoGoiY ? "hint" : "normal",
             segment_index: theHienTai.__segmentIndex ?? 0,
             retry_in_segment: true,
             counts_toward_progress: false,
           },
         },
       ]);
-      // Flash đỏ, giữ nguyên đáp án sai để người dùng xem và sửa
       setDaKiemTra(true);
       setKetQuaDung(false);
       setHienGoiY(false);
-      setHienCanhBaoNhap(false);
       setShakeKey((k) => k + 1);
       resetCombo();
-      daTraLoiSaiLanNayRef.current = true;
       xoaTimerTraLoiSai();
       dangCooldownSaiRef.current = true;
+      dangTrongCheDoGoiYRef.current = daCoGoiY;
       wrongAnswerTimerRef.current = window.setTimeout(() => {
         dangCooldownSaiRef.current = false;
         wrongAnswerTimerRef.current = null;
-        inputRef.current?.focus();
-      }, 400);
+        if (dangTrongCheDoGoiYRef.current) {
+          // Gợi ý + sai: vào chế độ nhập lại, hiện đáp án để người dùng nhìn vào nhập
+          dangTrongCheDoGoiYRef.current = false;
+          setDaKiemTra(false);
+          setKetQuaDung(false);
+          setCauTraLoi("");
+          setCheDoNhapLai({ active: true, dapAnDung: dapAnLuuLai });
+          hienThongBaoCanhBao("Vui lòng nhập đúng đáp án để tiếp tục");
+        } else {
+          // Thường: chờ Enter để chuyển câu
+          enterUnlockedTimeRef.current = Date.now() + 350;
+          setDangChoNhanEnterSauSai(true);
+          inputRef.current?.focus();
+        }
+      }, 520);
     }
   }
 
@@ -787,11 +932,10 @@ function TrangTuLuan() {
 
   function tiepTucSauXemDapAn() {
     if (dangChuyenCau || hienReward || dangChoReward) return;
+    if (dangCooldownSaiRef.current) return; // block trong cooldown flash đỏ
 
     if (!cauTraLoi.trim()) {
-      setHienCanhBaoNhap(true);
-      setLanCanhBaoNhap((lan) => lan + 1);
-      inputRef.current?.focus();
+      hienThongBaoCanhBao("Vui lòng nhập đáp án");
       return;
     }
 
@@ -799,24 +943,44 @@ function TrangTuLuan() {
     const dapAnDung = layDapAnDung(theHienTai);
     const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
 
-    setDanhSachKetQua((hienTai) => [
-      ...hienTai,
-      {
-        id: theHienTai.id,
-        cauHoi: layCauHoi(theHienTai),
-        dapAnDung,
-        cauTraLoi: cauTraLoi.trim(),
-        dung: false,
-        answerMeta: {
-          mode: "reveal",
-          segment_index: theHienTai.__segmentIndex ?? 0,
-          retry_in_segment: true,
-          revealed_answer_matched: dung,
-          counts_toward_progress: false,
+    if (dung) {
+      // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
+      setDaKiemTra(true);
+      setKetQuaDung(true);
+      setHienCanhBaoNhap(false);
+      phatAmThanhDung();
+      setDanhSachKetQua((hienTai) => [
+        ...hienTai,
+        {
+          id: theHienTai.id,
+          cauHoi: layCauHoi(theHienTai),
+          dapAnDung,
+          cauTraLoi: cauTraLoi.trim(),
+          dung: true,
+          answerMeta: {
+            mode: "reveal-retry-correct",
+            segment_index: theHienTai.__segmentIndex ?? 0,
+            counts_toward_progress: false,
+          },
         },
-      },
-    ]);
-    chuyenCauTrongTienTrinhSauKhiLapLai({ delay: dung ? 220 : 360 });
+      ]);
+      chuyenCauSauNhapLaiDung(); // chèn retry 5 sau và chuyển câu
+    } else {
+      // Nhập sai: flash đỏ, ở lại, xóa input sau cooldown để nhập lại, báo lỗi
+      setShakeKey((k) => k + 1);
+      setDaKiemTra(true);
+      setKetQuaDung(false);
+      xoaTimerTraLoiSai();
+      dangCooldownSaiRef.current = true;
+      wrongAnswerTimerRef.current = window.setTimeout(() => {
+        dangCooldownSaiRef.current = false;
+        wrongAnswerTimerRef.current = null;
+        setDaKiemTra(false);
+        setKetQuaDung(false);
+        setCauTraLoi("");
+        hienThongBaoCanhBao("Vui lòng nhập đúng đáp án để tiếp tục");
+      }, 520);
+    }
   }
 
   function hienThiGoiY() {
@@ -889,7 +1053,6 @@ function TrangTuLuan() {
 
   function doiCheDoReward() {
     setBatReward((dangBat) => {
-      const moi = !dangBat;
       if (dangBat) {
         setHienReward(false);
         setDangChoReward(false);
@@ -897,8 +1060,8 @@ function TrangTuLuan() {
         setRewardProgressPhase("idle");
         setRewardProgressValue(0);
       }
-      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
-      return moi;
+
+      return !dangBat;
     });
   }
 
@@ -1019,7 +1182,7 @@ function TrangTuLuan() {
             onClose={() => setStreakCelebration(null)}
           />
         )}
-        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressFillTipRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <Link
             to={`/decks/${boId}`}
@@ -1053,72 +1216,7 @@ function TrangTuLuan() {
                 </p>
               </div>
             </div>
-            
-            {/* Danh sách các từ trả lời sai */}
-            {(() => {
-              const uniqueWrongCardIds = Array.from(new Set(danhSachKetQua.filter(item => !item.dung).map(item => item.id)));
-              const wrongCards = danhSachGoc.filter(card => uniqueWrongCardIds.includes(card.id));
-              
-              if (wrongCards.length === 0) return null;
-
-              return (
-                <div className="mt-8 text-left border-t border-[var(--mau-vien)] pt-6">
-                  <h3 className="text-lg font-semibold text-[var(--mau-loi)] mb-4 flex items-center gap-2">
-                    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Các từ trả lời sai ({wrongCards.length})
-                  </h3>
-                  <ul className="ui-card-list space-y-3">
-                    {wrongCards.map((the, i) => (
-                      <li
-                        key={the.id}
-                        className="ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
-                      >
-                        <div className="ui-word-row__inner">
-                          <div className="ui-word-main">
-                            <span className="ui-word-index">{i + 1}</span>
-                            <div className="ui-word-pair">
-                              <div className="flex items-center gap-1.5 w-full">
-                                <span className="ui-word-card ui-word-card--term flex-1">
-                                  {the.term_en}
-                                </span>
-                                <button
-                                  type="button"
-                                  className={`tts-speaker-btn${ttsDangDoc && currentPlayingWordId === the.id ? " tts-speaker-btn--active" : ""}`}
-                                  onClick={() => {
-                                    setCurrentPlayingWordId(the.id);
-                                    ttsSpeak(the.term_en, "en-US");
-                                  }}
-                                  aria-label={`Đọc ${the.term_en}`}
-                                  title="Đọc từ vựng"
-                                >
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                                  </svg>
-                                </button>
-                              </div>
-                              <span className="ui-word-card ui-word-card--meaning">
-                                {the.meaning_vi}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        {the.example_sentence && (
-                          <p className="ui-word-example mt-2 pl-8 text-sm text-[var(--mau-chu-phu)]">
-                            {the.example_sentence}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })()}
-
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center">
               <button
                 type="button"
                 onClick={lamLai}
@@ -1151,7 +1249,7 @@ function TrangTuLuan() {
 
   return (
     <>
-      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressFillTipRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
           <Link to={`/decks/${boId}`} className="ui-back-btn">
@@ -1242,7 +1340,6 @@ function TrangTuLuan() {
             activeSegmentIndex={chiSoTienTrinhDangRender}
             phase={rewardProgressPhase}
             endpointRef={progressEndpointRef}
-            activeEndRef={progressFillTipRef}
             combo={combo}
           />
           <div className="mt-1.5 flex justify-end">
@@ -1254,11 +1351,34 @@ function TrangTuLuan() {
           </div>
         </div>
 
-        {/* Card câu hỏi */}
+          {/* Card câu hỏi */}
         <section
           key={danhSachThe[chiSo]?.id}
           className={`ui-question-flow relative mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
+          {danhSachThe[chiSo]?.__saiBuoc && (
+            <span
+              style={{
+                position: "absolute",
+                top: "0.6rem",
+                left: "0.75rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "#b45309",
+                background: "#fef3c7",
+                border: "1px solid #fcd34d",
+                borderRadius: "0.4rem",
+                padding: "0.15rem 0.5rem",
+              }}
+            >
+              ⚠ Lỗi sai trước đây
+            </span>
+          )}
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
@@ -1285,7 +1405,7 @@ function TrangTuLuan() {
                 className="ui-input-tooltip absolute bottom-full left-4 z-20 mb-2 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-3 py-2 text-sm font-semibold text-[var(--mau-chu)] shadow-[var(--bong-nut-phu)]"
                 role="alert"
               >
-                Vui lòng nhập đáp án
+                {noiDungCanhBaoNhap}
               </div>
             )}
             <input
@@ -1371,6 +1491,34 @@ function TrangTuLuan() {
                 </button>
                 <p className="mt-2.5 text-xs text-[oklch(45%_0.03_24)] font-medium">Nhấn Enter để tiếp tục</p>
               </motion.div>
+            ) : cheDoNhapLai.active ? (
+              // Chế độ nhập lại sau khi gợi ý sai: hiện đáp án đúng để nhìn vào nhập
+              <motion.div
+                key="nhap-lai-hint"
+                layout
+                initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                style={{ originY: 0 }}
+                className="overflow-hidden rounded-xl border border-[oklch(80%_0.12_55)] bg-[oklch(98%_0.02_55)] px-5 py-4 text-center shadow-[var(--bong-nut-phu)]"
+              >
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-widest text-[oklch(50%_0.18_55)]">Đáp án đúng — nhập lại</p>
+                <button
+                  type="button"
+                  onClick={() => { ttsSpeak(cheDoNhapLai.dapAnDung, layNgonNguDapAn()); }}
+                  className="inline-flex flex-col items-center gap-1 focus-visible:outline-none"
+                  title="Đọc đáp án"
+                >
+                  <span
+                    className="whitespace-pre-wrap break-words text-2xl font-bold tracking-tight text-[oklch(40%_0.18_55)]"
+                    style={{ wordSpacing: "0.35em" }}
+                  >
+                    {cheDoNhapLai.dapAnDung}
+                  </span>
+                </button>
+                <p className="mt-2 text-xs text-[oklch(50%_0.06_55)] font-medium">Nhìn vào đây và nhập đúng để tiếp tục</p>
+              </motion.div>
             ) : hienGoiY && !ketQuaDung ? (
               <motion.div
                 key="hint"
@@ -1424,17 +1572,17 @@ function TrangTuLuan() {
                 onClick={() => {
                   if (Date.now() < enterUnlockedTimeRef.current) return;
                   xoaTimerTraLoiSai();
-                  chuyenCauTrongTienTrinhSauKhiLapLai();
+                  batDauNhapLaiSauSaiThuong();
                 }}
                 className="ui-button ui-button--danger w-full rounded-xl py-3.5 text-lg font-bold"
               >
-                Tiếp tục
+                Nhập lại đáp án
               </button>
             </motion.div>
           )}
 
           {/* Chưa kiểm tra và chưa xem đáp án: có gợi ý, xem đáp án, kiểm tra */}
-          {!daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && (
+          {!daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active && (
             <motion.div
               layout
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -1460,6 +1608,23 @@ function TrangTuLuan() {
                 className="ui-button ui-button--primary rounded-xl py-3 font-bold"
               >
                 Kiểm tra
+              </button>
+            </motion.div>
+          )}
+
+          {/* Chế độ nhập lại: chỉ hiện nút Kiểm tra */}
+          {cheDoNhapLai.active && !daKiemTra && (
+            <motion.div
+              layout
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <button
+                type="submit"
+                className="ui-button ui-button--primary w-full rounded-xl py-3.5 text-lg font-bold"
+              >
+                Kiểm tra lại
               </button>
             </motion.div>
           )}

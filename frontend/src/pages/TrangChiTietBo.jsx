@@ -943,23 +943,60 @@ function TrangChiTietBo() {
             Từ vựng ({danhSachDaLoc.length}/{soTu})
           </h3>
           {coTheQuanLy && (
-            <div className="ui-control-cluster">
-              <NutIconQuanLyTu
-                label={dangBatChinhSua ? "Tắt sửa" : "Sửa"}
-                onClick={batTatCheDoChinhSua}
-                active={dangBatChinhSua}
-              >
-                <IconEdit />
-              </NutIconQuanLyTu>
-              {dangBatChinhSua && (
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {dangBatChinhSua ? (
                 <>
-                  <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
-                    <IconPlus />
-                  </NutIconQuanLyTu>
-                  <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
-                    <IconUpload />
-                  </NutIconQuanLyTu>
+                  <div className="ui-control-cluster">
+                    <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
+                      <IconPlus />
+                    </NutIconQuanLyTu>
+                    <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
+                      <IconUpload />
+                    </NutIconQuanLyTu>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={tatCheDoChinhSua}
+                    aria-label="Thoát chế độ sửa"
+                    title="Thoát chế độ sửa"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "2rem",
+                      height: "2rem",
+                      borderRadius: "50%",
+                      border: "1.5px solid var(--mau-vien)",
+                      background: "var(--mau-mat)",
+                      color: "var(--mau-chu-phu)",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "color-mix(in srgb, var(--mau-nguy-hiem, #ef4444) 12%, var(--mau-mat))";
+                      e.currentTarget.style.color = "var(--mau-nguy-hiem, #ef4444)";
+                      e.currentTarget.style.borderColor = "var(--mau-nguy-hiem, #ef4444)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "var(--mau-mat)";
+                      e.currentTarget.style.color = "var(--mau-chu-phu)";
+                      e.currentTarget.style.borderColor = "var(--mau-vien)";
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ width: "1rem", height: "1rem" }} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 </>
+              ) : (
+                <NutIconQuanLyTu
+                  label="Sửa"
+                  onClick={batTatCheDoChinhSua}
+                  active={false}
+                >
+                  <IconEdit />
+                </NutIconQuanLyTu>
               )}
             </div>
           )}
@@ -1019,6 +1056,11 @@ function TrangChiTietBo() {
                   key={the.id}
                   data-card-id={the.id}
                   className={`ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5 ${dangBatChinhSua ? "ui-word-row--editing" : ""} ${dangChoMoveTu ? "ui-word-row--move" : ""} ${theDangKeoId === the.id ? "ui-word-row--dragging" : ""}`}
+                  onClick={dangBatChinhSua ? (e) => {
+                    if (e.target.closest("button")) return;
+                    moFormSuaTu(the);
+                  } : undefined}
+                  style={dangBatChinhSua ? { cursor: "pointer" } : undefined}
                 >
                   <div className="ui-word-row__inner">
                     <div className="ui-word-main">
@@ -1086,20 +1128,12 @@ function TrangChiTietBo() {
                           <IconHeart filled={dangYeuThich} />
                         </button>
                         {dangBatChinhSua && (
-                          <>
-                            <NutIconQuanLyTu
-                              label={`Sửa từ ${the.term_en}`}
-                              onClick={() => moFormSuaTu(the)}
-                            >
-                              <IconEdit />
-                            </NutIconQuanLyTu>
-                            <NutIconQuanLyTu
-                              label={`Xóa từ ${the.term_en}`}
-                              onClick={() => xoaTu(the.id)}
-                            >
-                              <IconTrash />
-                            </NutIconQuanLyTu>
-                          </>
+                          <NutIconQuanLyTu
+                            label={`Xóa từ ${the.term_en}`}
+                            onClick={(e) => { e.stopPropagation(); xoaTu(the.id); }}
+                          >
+                            <IconTrash />
+                          </NutIconQuanLyTu>
                         )}
                       </div>
                     )}

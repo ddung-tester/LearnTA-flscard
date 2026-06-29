@@ -176,6 +176,8 @@ function TrangQuiz() {
   const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [dapAnDaChon, setDapAnDaChon] = useState(null);
+  const [dapAnSaiDaChon, setDapAnSaiDaChon] = useState([]);
+  const [daTungSaiOnCard, setDaTungSaiOnCard] = useState(false);
   const [soCauDung, setSoCauDung] = useState(0);
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [hienReward, setHienReward] = useState(false);
@@ -491,6 +493,8 @@ function TrangQuiz() {
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
     setSoCauDung(0);
     setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDanhSachCauHoiRuntime(taoDanhSachTheoTienTrinh(danhSachCauHoi));
@@ -512,6 +516,8 @@ function TrangQuiz() {
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
     setSoCauDung(0);
     setSoCauDungTheoTienTrinh([]);
     setDanhSachCauHoiRuntime([]);
@@ -557,6 +563,8 @@ function TrangQuiz() {
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
     setSoCauDung(0);
     setSoCauDungTheoTienTrinh([]);
     setDanhSachCauHoiRuntime([]);
@@ -581,6 +589,8 @@ function TrangQuiz() {
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
     setSoCauDung(0);
     setSoCauDungTheoTienTrinh([]);
     setDanhSachCauHoiRuntime([]);
@@ -592,35 +602,98 @@ function TrangQuiz() {
     datLaiLuuKetQua();
   }
 
-  function chonDapAn(dapAn) {
-    if (dapAnDaChon !== null || hienReward || dangChoReward || dangChuyenCau) return;
+  // Chèn câu hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi trả lời sai rồi mới chọn đúng
+  function chenTheHoiLai() {
+    setDanhSachCauHoiRuntime((prev) => {
+      if (!prev[chiSo]) return prev;
+      const moi = [...prev];
+      const [cau] = moi.splice(chiSo, 1);
+      const cauRetry = { ...cau, __saiBuoc: true };
+      const viTriChen = Math.min(chiSo + 5, moi.length);
+      moi.splice(viTriChen, 0, cauRetry);
+      return moi;
+    });
+  }
 
-    setDapAnDaChon(dapAn);
+  function chuyenCauSauNhapLaiDung() {
+    xoaTimerChuyenCau();
+    setDangChuyenCau(true);
+    questionTransitionTimerRef.current = setTimeout(() => {
+      chenTheHoiLai();
+      setDapAnDaChon(null);
+      setDapAnSaiDaChon([]);
+      setDaTungSaiOnCard(false);
+      setDangChuyenCau(false);
+      questionTransitionTimerRef.current = null;
+    }, 760);
+  }
+
+  function chonDapAn(dapAn) {
+    if (dapAnDaChon !== null || dangChuyenCau || hienReward || dangChoReward) return;
+    if (dapAnSaiDaChon.includes(dapAn)) return;
+
     const cauDangTraLoi = danhSachCauHoiRuntime[chiSo];
     const traLoiDungMoi = dapAn === cauDangTraLoi.dapAnDung;
 
-    setDanhSachKetQua((hienTai) => [
-      ...hienTai,
-      {
-        card_id: cauDangTraLoi.id,
-        question_text: cauDangTraLoi.cauHoi,
-        correct_answer: cauDangTraLoi.dapAnDung,
-        user_answer: dapAn,
-        is_correct: traLoiDungMoi,
-        answer_meta: {
-          segment_index: cauDangTraLoi.__segmentIndex ?? 0,
-          retry_in_segment: !traLoiDungMoi,
-          counts_toward_progress: traLoiDungMoi,
-        },
-      },
-    ]);
-
     if (traLoiDungMoi) {
+      setDapAnDaChon(dapAn);
       phatAmThanhDung();
-      tangTienTrinhChoCau(cauDangTraLoi);
-      incrementCombo();
+
+      if (daTungSaiOnCard || dapAnSaiDaChon.length > 0) {
+        // Chọn đúng sau khi đã bấm sai trên thẻ này: chèn lại 5 câu sau, CHƯA ghi nhận tiến trình
+        setDanhSachKetQua((hienTai) => [
+          ...hienTai,
+          {
+            card_id: cauDangTraLoi.id,
+            question_text: cauDangTraLoi.cauHoi,
+            correct_answer: cauDangTraLoi.dapAnDung,
+            user_answer: dapAn,
+            is_correct: true,
+            answer_meta: {
+              segment_index: cauDangTraLoi.__segmentIndex ?? 0,
+              counts_toward_progress: false,
+            },
+          },
+        ]);
+        chuyenCauSauNhapLaiDung();
+      } else {
+        // Chọn đúng ngay lần đầu (hoặc đúng thẻ retry 5 câu sau)
+        tangTienTrinhChoCau(cauDangTraLoi);
+        incrementCombo();
+        setDanhSachKetQua((hienTai) => [
+          ...hienTai,
+          {
+            card_id: cauDangTraLoi.id,
+            question_text: cauDangTraLoi.cauHoi,
+            correct_answer: cauDangTraLoi.dapAnDung,
+            user_answer: dapAn,
+            is_correct: true,
+            answer_meta: {
+              segment_index: cauDangTraLoi.__segmentIndex ?? 0,
+              counts_toward_progress: true,
+            },
+          },
+        ]);
+      }
     } else {
+      // Chọn sai: tô đỏ đáp án sai, giữ nguyên giao diện cho chọn tiếp
+      setDapAnSaiDaChon((prev) => [...prev, dapAn]);
+      setDaTungSaiOnCard(true);
       resetCombo();
+      setDanhSachKetQua((hienTai) => [
+        ...hienTai,
+        {
+          card_id: cauDangTraLoi.id,
+          question_text: cauDangTraLoi.cauHoi,
+          correct_answer: cauDangTraLoi.dapAnDung,
+          user_answer: dapAn,
+          is_correct: false,
+          answer_meta: {
+            segment_index: cauDangTraLoi.__segmentIndex ?? 0,
+            counts_toward_progress: false,
+          },
+        },
+      ]);
     }
   }
 
@@ -632,6 +705,8 @@ function TrangQuiz() {
 
     setChiSo((chiSoHienTai) => chiSoHienTai + 1);
     setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
     setDangChuyenCau(false);
   }
 
@@ -647,26 +722,16 @@ function TrangQuiz() {
   }
 
   useEffect(() => {
-    if (dapAnDaChon === null || daHoanThanh || hienReward || dangChoReward) {
+    if (dapAnDaChon === null || daHoanThanh || hienReward || dangChoReward || dangChuyenCau) {
       return undefined;
     }
 
-    const cauDangTraLoi = danhSachCauHoiRuntime[chiSo];
-    const traLoiDungTrongEffect = dapAnDaChon === cauDangTraLoi?.dapAnDung;
-    const thoiGianGiuPhanHoi = traLoiDungTrongEffect ? 760 : 3000;
     const timer = setTimeout(() => {
-      if (traLoiDungTrongEffect) {
-        chuyenCauMem();
-        return;
-      }
-
-      duaCauHienTaiVeCuoiTienTrinh();
-      setDapAnDaChon(null);
-      setDangChuyenCau(false);
-    }, thoiGianGiuPhanHoi);
+      chuyenCauMem();
+    }, 760);
 
     return () => clearTimeout(timer);
-  }, [chiSo, danhSachCauHoiRuntime, dapAnDaChon, daHoanThanh, hienReward, dangChoReward]);
+  }, [dapAnDaChon, daHoanThanh, hienReward, dangChoReward, dangChuyenCau]);
 
   useEffect(
     () => () => {
@@ -1064,6 +1129,29 @@ function TrangQuiz() {
           key={cauHienTai.id}
           className={`ui-question-flow ui-quiz-question-card relative text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
+          {cauHienTai?.__saiBuoc && (
+            <span
+              style={{
+                position: "absolute",
+                top: "0.6rem",
+                left: "0.75rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "#b45309",
+                background: "#fef3c7",
+                border: "1px solid #fcd34d",
+                borderRadius: "0.4rem",
+                padding: "0.15rem 0.5rem",
+              }}
+            >
+              ⚠ Lỗi sai trước đây
+            </span>
+          )}
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
@@ -1087,19 +1175,16 @@ function TrangQuiz() {
           className={`ui-question-flow ui-quiz-answer-list space-y-3 mb-6 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
           {cauHienTai.danhSachDapAn.map((dapAn, index) => {
-            const laDapAnDung = dapAn === cauHienTai.dapAnDung;
-            const laDapAnNguoiDungChon = dapAn === dapAnDaChon;
-            const daTraLoiSai = daTraLoi && !traLoiDung;
+            const laDapAnDungChon = dapAn === dapAnDaChon;
+            const laDapAnSaiChon = dapAnSaiDaChon.includes(dapAn);
 
             let lopTrangThai =
               "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
 
-            if (daTraLoiSai && laDapAnDung) {
-              lopTrangThai = "ui-answer-correct-reveal text-[var(--mau-chu)]";
-            } else if (daTraLoi && laDapAnDung) {
+            if (laDapAnDungChon) {
               lopTrangThai = "ui-answer-correct text-[var(--mau-chu)]";
-            } else if (daTraLoi && laDapAnNguoiDungChon && !laDapAnDung) {
-              lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)]";
+            } else if (laDapAnSaiChon) {
+              lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)] opacity-75 cursor-not-allowed";
             }
 
             return (
@@ -1107,6 +1192,7 @@ function TrangQuiz() {
                 key={`${cauHienTai.id}-${index}-${dapAn}`}
                 type="button"
                 onClick={() => chonDapAn(dapAn)}
+                disabled={laDapAnSaiChon || dapAnDaChon !== null}
                 className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
               >
                 <span className="text-xs font-mono text-[var(--mau-chu-phu)] mr-3">
