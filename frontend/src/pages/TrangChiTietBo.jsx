@@ -1062,13 +1062,29 @@ function TrangChiTietBo() {
                   } : undefined}
                   style={dangBatChinhSua ? { cursor: "pointer" } : undefined}
                 >
+                  {dangChoMoveTu && (
+                    <button
+                      type="button"
+                      disabled={dangLuuThuTu}
+                      onPointerDown={(event) => batDauKeoTu(event, the)}
+                      onKeyDown={(event) => {
+                        if (event.key === "ArrowUp") diChuyenTuBangPhim(event, the, -1);
+                        if (event.key === "ArrowDown") diChuyenTuBangPhim(event, the, 1);
+                      }}
+                      aria-label={`Di chuyển ${the.term_en}`}
+                      title={dangLuuThuTu ? "Đang lưu thứ tự" : "Giữ và kéo để đổi thứ tự"}
+                      className="ui-word-move-handle"
+                    >
+                      <IconGrip />
+                    </button>
+                  )}
                   <div className="ui-word-row__inner">
                     <div className="ui-word-main">
                       <span className="ui-word-index">
                         {i + 1}
                       </span>
                       <div className={`ui-word-pair${dangBatChinhSua ? " ui-word-pair--editing" : ""}`}>
-                        <div className="flex items-center gap-1.5 w-full">
+                        <div className="flex items-center gap-1 w-full min-w-0">
                           <span className="ui-word-card ui-word-card--term flex-1">
                             {the.term_en}
                           </span>
@@ -1095,7 +1111,7 @@ function TrangChiTietBo() {
                             onClick={() => hoiDoiNghiaTrongThe(the)}
                             title="Hoán đổi từ ↔ nghĩa"
                             aria-label={`Hoán đổi "${the.term_en}" và "${the.meaning_vi}"`}
-                            className="inline-flex h-7 w-7 flex-shrink-0 self-center items-center justify-center rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chinh)] transition-all hover:border-[var(--mau-chinh)] hover:bg-[var(--mau-mat-hover)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] active:scale-95"
+                            className="inline-flex h-6 w-6 flex-shrink-0 self-center items-center justify-center rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chinh)] transition-all hover:border-[var(--mau-chinh)] hover:bg-[var(--mau-mat-hover)] hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] active:scale-95"
                           >
                             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M2 7h18M16 3l4 4-4 4" />
@@ -1136,22 +1152,6 @@ function TrangChiTietBo() {
                           </NutIconQuanLyTu>
                         )}
                       </div>
-                    )}
-                    {dangChoMoveTu && (
-                      <button
-                        type="button"
-                        disabled={dangLuuThuTu}
-                        onPointerDown={(event) => batDauKeoTu(event, the)}
-                        onKeyDown={(event) => {
-                          if (event.key === "ArrowUp") diChuyenTuBangPhim(event, the, -1);
-                          if (event.key === "ArrowDown") diChuyenTuBangPhim(event, the, 1);
-                        }}
-                        aria-label={`Di chuyển ${the.term_en}`}
-                        title={dangLuuThuTu ? "Đang lưu thứ tự" : "Giữ và kéo để đổi thứ tự"}
-                        className="ui-word-move-handle"
-                      >
-                        <IconGrip />
-                      </button>
                     )}
                   </div>
 
