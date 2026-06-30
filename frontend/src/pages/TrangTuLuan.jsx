@@ -156,6 +156,10 @@ function TrangTuLuan() {
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
   const [streakCelebration, setStreakCelebration] = useState(null);
   const prevStreakRef = useRef(null);
+  // Set lưu card_id đã bị sai ít nhất 1 lần trong session
+  const [tapCardSai, setTapCardSai] = useState(() => new Set());
+  // Danh sách card chỉ để học lại từ sai (null = học tất cả)
+  const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
   const inputRef = useRef(null);
   const rewardProgressTimerRef = useRef(null);
@@ -238,7 +242,8 @@ function TrangTuLuan() {
 
   useEffect(() => {
     xoaTatCaTimerTuLuan();
-    let ds = chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc;
+    // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc
+    const ds = danhSachHocLai !== null ? danhSachHocLai : (chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc);
     const danhSachTheoThuTu = batRandom
       ? tronMangOnDinh(
         ds,
@@ -268,7 +273,7 @@ function TrangTuLuan() {
     setLoiLuuKetQua("");
     daLuuKetQuaRef.current = false;
     resetAll();
-  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc]);
+  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc, danhSachHocLai]);
 
   useEffect(() => {
     if (!bo || tongSoCauMucTieu === 0 || daHoanThanh) return;
@@ -874,6 +879,12 @@ function TrangTuLuan() {
     } else {
       const daCoGoiY = hienGoiY;
       const dapAnLuuLai = dapAnDung; // capture trước khi setTimeout
+      // Ghi nhận card đã sai (dùng cho tổng kết)
+      setTapCardSai((prev) => {
+        const next = new Set(prev);
+        next.add(theHienTai.id);
+        return next;
+      });
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
         {
@@ -1024,6 +1035,7 @@ function TrangTuLuan() {
 
   function lamLai() {
     xoaTatCaTimerTuLuan();
+    setDanhSachHocLai(null);
     setLanLam((g) => g + 1);
     setChiSo(0);
     setCauTraLoi("");
@@ -1042,6 +1054,7 @@ function TrangTuLuan() {
     setStudySessionId(null);
     setLoiLuuKetQua("");
     daLuuKetQuaRef.current = false;
+    setTapCardSai(new Set());
   }
 
   function doiCheDoHoc(key) {
@@ -1174,6 +1187,36 @@ function TrangTuLuan() {
   }
 
   if (daHoanThanh) {
+    const soCauSai = tapCardSai.size;
+    const soCauDungThucTe = tongSoCauMucTieu - soCauSai;
+    const danhSachCardSai = danhSachGoc.filter((card) => tapCardSai.has(card.id));
+
+    function hocLaiTuSai() {
+      if (danhSachCardSai.length === 0) return;
+      xoaTatCaTimerTuLuan();
+      // Set trước, sau đó tăng lanLam để useEffect pick up đúng danhSachHocLai
+      setDanhSachHocLai(danhSachCardSai);
+      setLanLam((g) => g + 1);
+      setChiSo(0);
+      setCauTraLoi("");
+      setDaKiemTra(false);
+      setHienGoiY(false);
+      setHienCanhBaoNhap(false);
+      setDaBoQua(false);
+      setDangChoNhanEnterSauSai(false);
+      setSoCauDung(0);
+      setDaHoanThanh(false);
+      setDanhSachKetQua([]);
+      setLanReward(0);
+      setDangChuyenCau(false);
+      setDangChoReward(false);
+      resetAll();
+      setStudySessionId(null);
+      setLoiLuuKetQua("");
+      daLuuKetQuaRef.current = false;
+      setTapCardSai(new Set());
+    }
+
     return (
       <>
         {streakCelebration !== null && (
@@ -1212,20 +1255,91 @@ function TrangTuLuan() {
               <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
                 <p className="ui-stat-label mb-1">Đúng</p>
                 <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
-                  {soCauDung}
+                  {soCauDungThucTe}
                 </p>
               </div>
+              {soCauSai > 0 && (
+                <div className="ui-stat-card border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/5">
+                  <p className="ui-stat-label mb-1">Sai</p>
+                  <p className="ui-stat-value text-[var(--mau-loi)]">
+                    {soCauSai}
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <button
                 type="button"
                 onClick={lamLai}
-                className="ui-button ui-button--primary w-full rounded-xl px-5 py-2.5 font-semibold sm:w-auto sm:min-w-[10rem]"
+                className="ui-button ui-button--ghost w-full rounded-xl px-5 py-2.5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
               >
                 Làm lại
               </button>
+              {soCauSai > 0 && (
+                <button
+                  type="button"
+                  onClick={hocLaiTuSai}
+                  className="ui-button ui-button--primary w-full rounded-xl bg-[var(--mau-loi)] px-5 py-2.5 font-semibold text-white transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-loi)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
+                >
+                  Học lại {soCauSai} từ sai
+                </button>
+              )}
             </div>
           </section>
+
+          {/* Danh sách từ đã sai */}
+          {soCauSai > 0 && (
+            <section className="ui-content-enter mt-6">
+              <div className="mb-3 flex items-center gap-2">
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.07em",
+                    textTransform: "uppercase",
+                    color: "var(--mau-loi)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: "0.9rem", height: "0.9rem" }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  {soCauSai} từ cần ôn lại
+                </span>
+              </div>
+              <ul className="ui-card-list">
+                {danhSachCardSai.map((card, i) => (
+                  <li
+                    key={card.id}
+                    className="ui-reading-card ui-word-row border border-[var(--mau-loi)]/30 rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
+                  >
+                    <div className="ui-word-row__inner">
+                      <div className="ui-word-main">
+                        <span className="ui-word-index">{i + 1}</span>
+                        <div className="ui-word-pair">
+                          <div className="flex items-center gap-1 w-full min-w-0">
+                            <span className="ui-word-card ui-word-card--term flex-1">
+                              {card.term_en}
+                            </span>
+                          </div>
+                          <span className="ui-word-card ui-word-card--meaning">
+                            {card.meaning_vi}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {card.example_sentence && (
+                      <p className="ui-word-example">{card.example_sentence}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </>
     );

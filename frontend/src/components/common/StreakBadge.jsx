@@ -22,7 +22,8 @@ const Lottie = _LottieModule?.default ?? _LottieModule;
  *   className string           – class bổ sung
  *   label     string           – nhãn nhỏ (full-card mode)
  *   fullCard  boolean          – true → lửa Lottie fill thẻ stat
- *   frozen    boolean          – true → lửa đóng băng (chưa học hôm nay)
+ *   frozen    boolean          – true → lửa đóng băng (chưa học hôm nay, hôm qua có học)
+ *   broken    boolean          – true → streak bị vỡ (bỏ học ≥2 ngày liên tiếp)
  */
 function StreakBadge({
   streak = 0,
@@ -32,8 +33,9 @@ function StreakBadge({
   label = "",
   fullCard = false,
   frozen = false,
+  broken = false,
 }) {
-  if (!showZero && streak === 0) return null;
+  if (!showZero && streak === 0 && !broken) return null;
 
   const isActive = streak > 0;
   const sizeCls =
@@ -47,38 +49,42 @@ function StreakBadge({
   // Lửa đóng băng khi: chưa học hôm nay (frozen=true) hoặc reduced motion
   const firePaused = frozen || prefersReducedMotion;
 
+  // Tooltip text
+  const titleText = broken
+    ? `Streak bị vỡ 💔 • Hãy học ngay hôm nay để bắt đầu lại!`
+    : frozen
+    ? `${streak} ngày streak • Hôm nay chưa học — đừng để vỡ!`
+    : isActive
+    ? `${streak} ngày học liên tục 🔥`
+    : "Chưa có streak";
+
   return (
     <div
       className={[
         "streak-badge",
         sizeCls,
-        isActive ? "streak-badge--active" : "streak-badge--zero",
+        broken ? "streak-badge--broken" : isActive ? "streak-badge--active" : "streak-badge--zero",
         fullCard ? "streak-badge--full-card" : "",
-        fullCard && frozen ? "streak-badge--frozen" : "",
+        fullCard && frozen && !broken ? "streak-badge--frozen" : "",
+        fullCard && broken ? "streak-badge--broken-card" : "",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
-      title={
-        frozen
-          ? `${streak} ngày streak • Hôm nay chưa học`
-          : isActive
-          ? `${streak} ngày học liên tục 🔥`
-          : "Chưa có streak"
-      }
+      title={titleText}
     >
-      {/* Glow chỉ cho inline pill */}
-      {isActive && !fullCard && (
+      {/* Glow chỉ cho inline pill active */}
+      {isActive && !fullCard && !broken && (
         <div className="streak-badge__glow" aria-hidden="true" />
       )}
 
       {/*
-        FULL-CARD ONLY: lửa Lottie phủ gần toàn thẻ.
-        - Khi active + không frozen: cháy bình thường (autoplay=true, loop=true)
-        - Khi frozen: đóng băng ở frame đầu (autoplay=false) + CSS filter màu lạnh
-        - Luôn hiển thị khi fullCard + (isActive hoặc frozen)
+        FULL-CARD: lửa Lottie phủ gần toàn thẻ — hoặc broken visual
+        - Khi broken: hiển thị lửa tắt + overlay crack
+        - Khi frozen: đóng băng ở frame đầu + CSS filter màu lạnh
+        - Khi active + không frozen: cháy bình thường
       */}
-      {fullCard && (isActive || frozen) && (
+      {fullCard && !broken && (isActive || frozen) && (
         <div
           className={`streak-badge__fire--cover${frozen ? " streak-badge__fire--cover--frozen" : ""}`}
           aria-hidden="true"
@@ -93,18 +99,52 @@ function StreakBadge({
         </div>
       )}
 
-      {/* Content: label (full-card) + số */}
+      {/* FULL-CARD BROKEN: nền đỏ xám + tim vỡ + overlay crack */}
+      {fullCard && broken && (
+        <div className="streak-badge__broken-cover" aria-hidden="true">
+          {/* Crack overlay SVG */}
+          <svg
+            className="streak-badge__crack"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <polyline
+              points="50,10 42,38 58,42 38,90"
+              stroke="rgba(255,255,255,0.18)"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <polyline
+              points="58,42 72,60 65,72"
+              stroke="rgba(255,255,255,0.12)"
+              strokeWidth="1.8"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* Content: label + số/icon */}
       <div className="streak-badge__content">
         {label && (
           <span className="streak-badge__label" aria-hidden="true">
-            {label}
+            {broken ? "STREAK VỠ" : label}
           </span>
         )}
 
-        {/* Số ngày — inline chỉ hiện số, fullCard có lửa phía sau */}
-        <span className="streak-badge__number">
-          {isActive ? streak : "0"}
-        </span>
+        {broken && fullCard ? (
+          /* Tim vỡ lớn cho full-card broken */
+          <span className="streak-badge__broken-heart" aria-label="Streak bị vỡ">
+            💔
+          </span>
+        ) : (
+          <span className="streak-badge__number">
+            {isActive ? streak : "0"}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -181,6 +181,8 @@ function TrangChiTietBo() {
   const phienLuuThuTuRef = useRef(0);
   const [userStreak, setUserStreak] = useState(0);
   const [studiedToday, setStudiedToday] = useState(false);
+  // streak bị vỡ: đã từng có streak nhưng bỏ học >= 2 ngày liên tiếp
+  const [streakBroken, setStreakBroken] = useState(false);
 
   async function taiDuLieuBo() {
     setDangTaiDuLieu(true);
@@ -243,12 +245,19 @@ function TrangChiTietBo() {
     getUserStats()
       .then((stats) => {
         setUserStreak(stats.current_streak ?? 0);
-        // Kiểm tra xem hôm nay đã học chưa dựa vào last_study_date
-        const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+        // Tính ngày hôm nay và hôm qua theo giờ Việt Nam (UTC+7)
+        const nowVN = new Date(Date.now() + 7 * 60 * 60 * 1000);
+        const todayVN = nowVN.toISOString().slice(0, 10);
+        const yesterdayVN = new Date(nowVN - 86400000).toISOString().slice(0, 10);
         const lastStudy = stats.last_study_date
           ? String(stats.last_study_date).slice(0, 10)
           : null;
-        setStudiedToday(lastStudy === today);
+        const daHocHomNay = lastStudy === todayVN;
+        const daHocHomQua = lastStudy === yesterdayVN;
+        setStudiedToday(daHocHomNay);
+        // Streak bị vỡ khi: đã từng học (lastStudy tồn tại) nhưng bỏ >= 2 ngày
+        // (không phải hôm nay và không phải hôm qua)
+        setStreakBroken(!!lastStudy && !daHocHomNay && !daHocHomQua);
       })
       .catch(() => {});
   }, [isAuthenticated, boId]);
@@ -258,8 +267,11 @@ function TrangChiTietBo() {
     function onStreakUpdated(e) {
       const newStreak = e.detail?.streak ?? 0;
       setUserStreak(newStreak);
-      // Vừa học xong → đánh dấu đã học hôm nay → lửa cháy lên
-      if (newStreak > 0) setStudiedToday(true);
+      // Vừa học xong → đánh dấu đã học hôm nay → lửa cháy lên, bỏ broken
+      if (newStreak > 0) {
+        setStudiedToday(true);
+        setStreakBroken(false);
+      }
     }
     window.addEventListener("streak-updated", onStreakUpdated);
     return () => window.removeEventListener("streak-updated", onStreakUpdated);
@@ -888,7 +900,7 @@ function TrangChiTietBo() {
             {soTu}
           </p>
         </div>
-        {/* Thẻ Streak: lửa phủ full thẻ — đóng băng khi chưa học hôm nay, cháy khi đã học */}
+        {/* Thẻ Streak: 3 trạng thái — cháy (học hôm nay) / đóng băng (chưa học hôm nay) / vỡ (bỏ ≥2 ngày) */}
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
           <StreakBadge
             streak={streak}
@@ -896,7 +908,8 @@ function TrangChiTietBo() {
             showZero
             label="Streak"
             fullCard
-            frozen={!studiedToday}
+            frozen={!studiedToday && !streakBroken}
+            broken={streakBroken}
           />
         </div>
 

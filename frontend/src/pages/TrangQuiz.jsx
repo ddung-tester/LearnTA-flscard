@@ -108,8 +108,12 @@ function layDapAnNhieuTuongDong(danhSachThe, theHienTai, laEnVi, seed) {
     .map(({ dapAn }) => dapAn);
 }
 
-function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "quiz") {
-  if (!danhSachThe || danhSachThe.length < 4) return [];
+// danhSachNhieu: pool để lấy đáp án sai (mặc định = danhSachThe,
+// nhưng khi học lại từ sai thì dùng toàn bộ bộ từ gốc để luôn có đủ 3 đáp án nhiễu)
+function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "quiz", danhSachNhieu = null) {
+  if (!danhSachThe || danhSachThe.length === 0) return [];
+  const poolNhieu = (danhSachNhieu && danhSachNhieu.length >= 4) ? danhSachNhieu : danhSachThe;
+  if (poolNhieu.length < 4) return [];
 
   const laEnVi = cheDo === "en-vi";
 
@@ -117,7 +121,7 @@ function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "qu
     const cauHoi = laEnVi ? the.term_en : the.meaning_vi;
     const dapAnDung = laEnVi ? the.meaning_vi : the.term_en;
 
-    const dapAnNhieu = layDapAnNhieuTuongDong(danhSachThe, the, laEnVi, seed);
+    const dapAnNhieu = layDapAnNhieuTuongDong(poolNhieu, the, laEnVi, seed);
 
     return {
       id: the.id,
@@ -207,6 +211,10 @@ function TrangQuiz() {
   const [streakCelebration, setStreakCelebration] = useState(null); // streak mới nếu tăng
   const prevStreakRef = useRef(null);
   const [danhSachCauHoiRuntime, setDanhSachCauHoiRuntime] = useState([]);
+  // Set lưu card_id nào đã bị trả lời sai ít nhất 1 lần trong session này
+  const [tapCardSai, setTapCardSai] = useState(() => new Set());
+  // Danh sách card gốc chỉ để học lại (null = học tất cả, mảng = học lại từ sai)
+  const [danhSachHocLai, setDanhSachHocLai] = useState(null);
   const chiSoTienTrinhDangHoatDong = danhSachCauHoiRuntime[chiSo]?.__segmentIndex
     ?? soCauDungTheoTienTrinh.findIndex(
       (soDungTrongTienTrinh, index) =>
@@ -277,8 +285,12 @@ function TrangQuiz() {
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   const danhSachLocQuiz = useMemo(
-    () => locTuYeuThich(danhSachGoc, chiHocTuYeuThich),
-    [danhSachGoc, chiHocTuYeuThich]
+    () => {
+      // Nếu đang học lại từ sai thì dùng thẳng danhSachHocLai, bỏ qua filter yêu thích
+      if (danhSachHocLai !== null) return danhSachHocLai;
+      return locTuYeuThich(danhSachGoc, chiHocTuYeuThich);
+    },
+    [danhSachGoc, danhSachHocLai, chiHocTuYeuThich]
   );
   const danhSachThe = useMemo(() => {
     if (!batRandom) return danhSachLocQuiz;
@@ -290,9 +302,16 @@ function TrangQuiz() {
   }, [batRandom, boId, lanTronQuiz, danhSachLocQuiz]);
 
   const danhSachCauHoi = useMemo(
-    () => taoDanhSachCauHoi(danhSachThe, cheDo, `quiz-${boId}-${cheDo}-${lanLam}`),
-    [boId, danhSachThe, cheDo, lanLam]
+    // Khi học lại từ sai: dùng toàn bộ danhSachGoc làm pool nhiễu để luôn đủ 3 đáp án sai dù chỉ có 1 từ sai
+    () => taoDanhSachCauHoi(
+      danhSachThe,
+      cheDo,
+      `quiz-${boId}-${cheDo}-${lanLam}`,
+      danhSachHocLai !== null ? danhSachGoc : null
+    ),
+    [boId, danhSachThe, danhSachGoc, danhSachHocLai, cheDo, lanLam]
   );
+
 
   useEffect(() => {
     const tongSoCau = danhSachCauHoi.length;
@@ -443,6 +462,10 @@ function TrangQuiz() {
     daLuuKetQuaRef.current = false;
   }
 
+  function datLaiTapCardSai() {
+    setTapCardSai(new Set());
+  }
+
   function tangTienTrinhChoCau(cauDangTraLoi) {
     if (!cauDangTraLoi) return;
 
@@ -490,6 +513,7 @@ function TrangQuiz() {
     xoaTimerChuyenCau();
     datLaiProgressReward();
     setDangChuyenCau(false);
+    setDanhSachHocLai(null);
     setLanLam((giaTri) => giaTri + 1);
     setChiSo(0);
     setDapAnDaChon(null);
@@ -504,6 +528,7 @@ function TrangQuiz() {
     setLanReward(0);
     resetAll();
     datLaiLuuKetQua();
+    datLaiTapCardSai();
   }
 
   function doiCheDoHoc(key) {
@@ -527,6 +552,7 @@ function TrangQuiz() {
     setLanReward(0);
     resetAll();
     datLaiLuuKetQua();
+    datLaiTapCardSai();
   }
 
   function doiCheDoReward() {
@@ -574,6 +600,7 @@ function TrangQuiz() {
     setLanReward(0);
     resetAll();
     datLaiLuuKetQua();
+    datLaiTapCardSai();
   }
 
   function doiRandom() {
@@ -600,16 +627,36 @@ function TrangQuiz() {
     setLanReward(0);
     resetAll();
     datLaiLuuKetQua();
+    datLaiTapCardSai();
   }
 
-  // Chèn câu hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi trả lời sai rồi mới chọn đúng
+  // Chèn câu hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi trả lời sai rồi mới chọn đúng.
+  // Đảm bảo câu retry KHÔNG vượt qua ranh giới sang segment khác —
+  // nếu vị trí chiSo+5 đã thuộc segment khác thì chèn vào cuối segment hiện tại.
   function chenTheHoiLai() {
     setDanhSachCauHoiRuntime((prev) => {
       if (!prev[chiSo]) return prev;
       const moi = [...prev];
       const [cau] = moi.splice(chiSo, 1);
       const cauRetry = { ...cau, __saiBuoc: true };
-      const viTriChen = Math.min(chiSo + 5, moi.length);
+      const segmentHienTai = cau.__segmentIndex ?? 0;
+
+      // Tìm vị trí muốn chèn (chiSo + 5 sau khi đã splice)
+      const viTriMong = Math.min(chiSo + 5, moi.length);
+
+      // Tìm ranh giới cuối segment hiện tại: vị trí cuối cùng (exclusive) của
+      // câu có cùng __segmentIndex tính từ chiSo trở đi.
+      let viTriCuoiSegment = chiSo; // ít nhất chèn ngay sau vị trí hiện tại
+      for (let i = chiSo; i < moi.length; i += 1) {
+        if ((moi[i]?.__segmentIndex ?? -1) === segmentHienTai) {
+          viTriCuoiSegment = i + 1;
+        } else {
+          break;
+        }
+      }
+
+      // Chèn vào min(chiSo+5, cuối segment) để không tràn sang segment khác
+      const viTriChen = Math.min(viTriMong, viTriCuoiSegment);
       moi.splice(viTriChen, 0, cauRetry);
       return moi;
     });
@@ -680,6 +727,12 @@ function TrangQuiz() {
       setDapAnSaiDaChon((prev) => [...prev, dapAn]);
       setDaTungSaiOnCard(true);
       resetCombo();
+      // Ghi nhận card này đã bị sai (dùng cho tổng kết)
+      setTapCardSai((prev) => {
+        const next = new Set(prev);
+        next.add(cauDangTraLoi.id);
+        return next;
+      });
       setDanhSachKetQua((hienTai) => [
         ...hienTai,
         {
@@ -878,6 +931,30 @@ function TrangQuiz() {
   }
 
   if (danhSachThe.length < 4) {
+    // Trường hợp đặc biệt: đang học lại từ sai
+    // Nếu danhSachGoc đủ 4+ thì luôn có đủ pool nhiễu — không nên bị block
+    // Chỉ block khi cả hai danhSachThe và danhSachGoc đều < 4
+    if (danhSachHocLai !== null && danhSachGoc.length >= 4 && danhSachThe.length === 0) {
+      return (
+        <div className="ui-study-empty-wrap">
+          <section className="ui-study-empty-card">
+            <p className="ui-study-empty-card__eyebrow">Học lại từ sai</p>
+            <h2 className="ui-study-empty-card__title">Không có từ sai nào</h2>
+            <p className="ui-study-empty-card__copy">Bạn đã trả lời chính xác tất cả.</p>
+            <div className="ui-study-empty-card__actions">
+              <button
+                type="button"
+                onClick={lamLai}
+                className="ui-button ui-button--primary ui-study-empty-card__button"
+              >
+                Làm lại toàn bộ
+              </button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
     const dangLocYeuThich = chiHocTuYeuThich && danhSachGoc.length >= 4;
 
     return (
@@ -918,7 +995,37 @@ function TrangQuiz() {
     );
   }
 
+
   if (daHoanThanh) {
+    const soCauSai = tapCardSai.size;
+    const soCauDungThucTe = tongSoCauMucTieu - soCauSai;
+    // Lấy danh sách card gốc tương ứng những card đã sai
+    const danhSachCardSai = danhSachGoc.filter((card) => tapCardSai.has(card.id));
+
+    function hocLaiTuSai() {
+      // Cho phép dù chỉ 1 từ sai — sẽ dùng danhSachGoc làm pool nhiễu
+      if (danhSachCardSai.length === 0) return;
+      xoaTimerChuyenCau();
+      datLaiProgressReward();
+      setDangChuyenCau(false);
+      setDanhSachHocLai(danhSachCardSai);
+      setLanLam((giaTri) => giaTri + 1);
+      setChiSo(0);
+      setDapAnDaChon(null);
+      setDapAnSaiDaChon([]);
+      setDaTungSaiOnCard(false);
+      setSoCauDung(0);
+      setSoCauDungTheoTienTrinh([]);
+      setDanhSachCauHoiRuntime([]);
+      setDaHoanThanh(false);
+      setHienReward(false);
+      setDangChoReward(false);
+      setLanReward(0);
+      resetAll();
+      datLaiLuuKetQua();
+      datLaiTapCardSai();
+    }
+
     return (
       <>
         {/* Streak celebration overlay — Duolingo style */}
@@ -966,21 +1073,92 @@ function TrangQuiz() {
               <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
                 <p className="ui-stat-label mb-1">Đúng</p>
                 <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
-                  {soCauDung}
+                  {soCauDungThucTe}
                 </p>
               </div>
+              {soCauSai > 0 && (
+                <div className="ui-stat-card border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/5">
+                  <p className="ui-stat-label mb-1">Sai</p>
+                  <p className="ui-stat-value text-[var(--mau-loi)]">
+                    {soCauSai}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <button
                 type="button"
                 onClick={lamLai}
-                className="ui-button ui-button--primary w-full rounded-xl bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] transition-colors hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
+                className="ui-button ui-button--ghost w-full rounded-xl px-5 py-2.5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
               >
                 Làm lại
               </button>
+              {soCauSai > 0 && (
+                <button
+                  type="button"
+                  onClick={hocLaiTuSai}
+                  className="ui-button ui-button--primary w-full rounded-xl bg-[var(--mau-loi)] px-5 py-2.5 font-semibold text-white transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-loi)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
+                >
+                  Học lại {soCauSai} từ sai
+                </button>
+              )}
             </div>
           </section>
+
+          {/* Danh sách từ đã sai — hiển thị như trang quản lý từ */}
+          {soCauSai > 0 && (
+            <section className="ui-content-enter mt-6">
+              <div className="mb-3 flex items-center gap-2">
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.3rem",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.07em",
+                    textTransform: "uppercase",
+                    color: "var(--mau-loi)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: "0.9rem", height: "0.9rem" }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  {soCauSai} từ cần ôn lại
+                </span>
+              </div>
+              <ul className="ui-card-list">
+                {danhSachCardSai.map((card, i) => (
+                  <li
+                    key={card.id}
+                    className="ui-reading-card ui-word-row border border-[var(--mau-loi)]/30 rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
+                  >
+                    <div className="ui-word-row__inner">
+                      <div className="ui-word-main">
+                        <span className="ui-word-index">{i + 1}</span>
+                        <div className="ui-word-pair">
+                          <div className="flex items-center gap-1 w-full min-w-0">
+                            <span className="ui-word-card ui-word-card--term flex-1">
+                              {card.term_en}
+                            </span>
+                          </div>
+                          <span className="ui-word-card ui-word-card--meaning">
+                            {card.meaning_vi}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {card.example_sentence && (
+                      <p className="ui-word-example">{card.example_sentence}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </>
     );

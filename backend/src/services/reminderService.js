@@ -1,5 +1,5 @@
 /**
- * reminderService.js — Gửi email nhắc học hàng ngày qua Resend.
+ * reminderService.js — Gửi email nhắc học hàng ngày qua Gmail SMTP (Nodemailer).
  *
  * Chỉ gửi cho users:
  *   1. Có email
@@ -7,21 +7,27 @@
  *   3. Đã bật email_reminders = true trong user_settings
  */
 
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 const pool = require("../config/db");
 const { getTodayVN } = require("./streakService");
 
-let resendClient = null;
-function getResend() {
-  if (!resendClient) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) return null;
-    resendClient = new Resend(apiKey);
+let transporter = null;
+
+function getTransporter() {
+  if (!transporter) {
+    const user = process.env.GMAIL_USER;
+    const pass = process.env.GMAIL_APP_PASS;
+    if (!user || !pass) return null;
+
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
   }
-  return resendClient;
+  return transporter;
 }
 
-const EMAIL_FROM = process.env.EMAIL_FROM || "LearnTA <onboarding@resend.dev>";
+const GMAIL_USER = () => process.env.GMAIL_USER || "";
 const APP_URL = "https://dungdinh-vocab.vercel.app/decks";
 
 // ─── 15 Template Messages ──────────────────────────────────────────────────────
@@ -123,13 +129,14 @@ Bạn hoàn toàn có thể có cảm giác đó ngay ngày mai — chỉ cần 
 // ─── HTML email builder ────────────────────────────────────────────────────────
 
 function buildReminderEmail({ displayName, subject, headline, body, streak }) {
-  const streakSection = streak > 0
-    ? `<div style="text-align:center;margin:20px 0;">
-        <div style="display:inline-block;background:linear-gradient(135deg,#f97316,#dc2626);padding:10px 24px;border-radius:999px;color:#fff;font-weight:700;font-size:15px;">
-          🔥 Streak hiện tại: ${streak} ngày
-        </div>
-       </div>`
-    : "";
+  const streakSection =
+    streak > 0
+      ? `<div style="text-align:center;margin:20px 0;">
+          <div style="display:inline-block;background:linear-gradient(135deg,#f97316,#dc2626);padding:10px 24px;border-radius:999px;color:#fff;font-weight:700;font-size:15px;">
+            🔥 Streak hiện tại: ${streak} ngày
+          </div>
+         </div>`
+      : "";
 
   const html = `<!DOCTYPE html>
 <html lang="vi">
@@ -203,9 +210,9 @@ function buildReminderEmail({ displayName, subject, headline, body, streak }) {
 // ─── Core: send reminders to all eligible users ───────────────────────────────
 
 async function sendDailyReminders() {
-  const resend = getResend();
-  if (!resend) {
-    console.warn("[reminderService] RESEND_API_KEY chưa cấu hình → bỏ qua.");
+  const transport = getTransporter();
+  if (!transport) {
+    console.warn("[reminderService] GMAIL_USER / GMAIL_APP_PASS chưa cấu hình → bỏ qua.");
     return { sent: 0, skipped: 0 };
   }
 
@@ -227,7 +234,6 @@ async function sendDailyReminders() {
 
   for (const user of users) {
     try {
-      // Chọn template ngẫu nhiên
       const template = REMINDER_TEMPLATES[Math.floor(Math.random() * REMINDER_TEMPLATES.length)];
       const { html, text, subject } = buildReminderEmail({
         displayName: user.fullname || "bạn",
@@ -237,8 +243,8 @@ async function sendDailyReminders() {
         streak: user.current_streak || 0,
       });
 
-      await resend.emails.send({
-        from: EMAIL_FROM,
+      await transport.sendMail({
+        from: `"LearnTA" <${GMAIL_USER()}>`,
         to: user.email,
         subject,
         html,

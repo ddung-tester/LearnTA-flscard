@@ -1,31 +1,35 @@
 /**
- * emailService.js — Gửi email qua Resend API
+ * emailService.js — Gửi email qua Gmail SMTP (Nodemailer)
  *
  * Biến môi trường cần thiết:
- *   RESEND_API_KEY  — API key từ resend.com
- *   EMAIL_FROM      — Địa chỉ gửi, ví dụ: "LearnTA <no-reply@yourdomain.com>"
- *                     (domain phải được verify trên Resend)
+ *   GMAIL_USER     — Địa chỉ Gmail dùng để gửi, ví dụ: learnta.app@gmail.com
+ *   GMAIL_APP_PASS — App Password 16 ký tự (Google Account → Security → App passwords)
  *
- * Nếu RESEND_API_KEY không được set → email bị bỏ qua (log warning).
+ * Nếu thiếu biến môi trường → email bị bỏ qua (log warning).
  */
 
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-let resendClient = null;
+let transporter = null;
 
-function getResend() {
-  if (!resendClient) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) return null;
-    resendClient = new Resend(apiKey);
+function getTransporter() {
+  if (!transporter) {
+    const user = process.env.GMAIL_USER;
+    const pass = process.env.GMAIL_APP_PASS;
+    if (!user || !pass) return null;
+
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
   }
-  return resendClient;
+  return transporter;
 }
 
-const EMAIL_FROM =
-  process.env.EMAIL_FROM || "LearnTA <no-reply@learnta.app>";
+const GMAIL_USER = () => process.env.GMAIL_USER || "";
+const APP_URL = "https://dungdinh-vocab.vercel.app/decks";
 
-// ─── Template ────────────────────────────────────────────────────────────────
+// ─── Template ─────────────────────────────────────────────────────────────────
 
 function buildWelcomeEmail(displayName) {
   const html = `<!DOCTYPE html>
@@ -44,7 +48,7 @@ function buildWelcomeEmail(displayName) {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#4c1d95,#2563eb);padding:50px 40px 40px;text-align:center;">
-              <div style="font-size:44px;margin-bottom:12px;animation: pulse 2s infinite;">✨🎓✨</div>
+              <div style="font-size:44px;margin-bottom:12px;">✨🎓✨</div>
               <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-0.5px;">LearnTA</h1>
               <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:15px;font-style:italic;">Hành trình vạn dặm bắt đầu từ một từ vựng</p>
             </td>
@@ -58,14 +62,14 @@ function buildWelcomeEmail(displayName) {
               </h2>
               
               <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.7;">
-                Chào mừng bạn đã chính thức đặt chân vào ngôi nhà chung của những người yêu thích và chinh phục Tiếng Anh — **LearnTA**! Chúng tôi vô cùng hạnh phúc khi được trở thành một phần nhỏ trên con đường phát triển bản thân của bạn.
+                Chào mừng bạn đã chính thức đặt chân vào ngôi nhà chung của những người yêu thích và chinh phục Tiếng Anh — <strong>LearnTA</strong>! Chúng tôi vô cùng hạnh phúc khi được trở thành một phần nhỏ trên con đường phát triển bản thân của bạn.
               </p>
 
               <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.7;">
                 Học một ngôn ngữ mới chưa bao giờ là việc dễ dàng. Sẽ có những ngày bạn tràn đầy hứng khởi, nhưng cũng sẽ có những lúc bạn cảm thấy mệt mỏi. Đừng lo lắng! LearnTA được xây dựng để đồng hành cùng bạn từng bước nhỏ mỗi ngày, biến những giờ phút học tập khô khan trở nên sinh động, trực quan và tràn ngập niềm vui.
               </p>
 
-              <!-- Inspiring Quote / Message -->
+              <!-- Inspiring Quote -->
               <table width="100%" cellpadding="0" cellspacing="0" style="border-left:4px solid #8b5cf6;padding:8px 0 8px 18px;margin:24px 0;">
                 <tr>
                   <td>
@@ -82,41 +86,21 @@ function buildWelcomeEmail(displayName) {
                   <td>
                     <p style="margin:0 0 16px;color:#4c1d95;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;text-align:center;">Những trải nghiệm đang chờ đón bạn</p>
                     <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;">
-                          <strong>📚 Bộ từ cá nhân hóa:</strong> Tự thiết kế và quản lý các nhóm từ vựng của riêng bạn hoặc học theo kho từ mẫu.
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;">
-                          <strong>🃏 Flashcard thông minh:</strong> Học qua phương pháp ghi nhớ chủ động (Active Recall) chỉ bằng những cú lật thẻ nhẹ nhàng.
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;">
-                          <strong>🧠 Thử thách Quiz & Tự luận:</strong> Luyện tập đa dạng hình thức để khắc sâu phản xạ từ vựng vào trí nhớ dài hạn.
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;">
-                          <strong>🎉 Cột mốc & Phần thưởng:</strong> Tích lũy chuỗi câu trả lời đúng và mở khóa những video phần thưởng đầy thú vị tiếp thêm động lực!
-                        </td>
-                      </tr>
+                      <tr><td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;"><strong>📚 Bộ từ cá nhân hóa:</strong> Tự thiết kế và quản lý các nhóm từ vựng của riêng bạn.</td></tr>
+                      <tr><td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;"><strong>🃏 Flashcard thông minh:</strong> Học qua phương pháp ghi nhớ chủ động (Active Recall).</td></tr>
+                      <tr><td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;"><strong>🧠 Thử thách Quiz &amp; Tự luận:</strong> Luyện tập đa dạng hình thức để khắc sâu từ vựng.</td></tr>
+                      <tr><td style="padding:8px 0;color:#374151;font-size:14.5px;line-height:1.5;"><strong>🎉 Cột mốc &amp; Phần thưởng:</strong> Tích lũy streak và mở khóa phần thưởng đầy thú vị!</td></tr>
                     </table>
                   </td>
                 </tr>
               </table>
 
-              <p style="margin:0 0 24px;color:#4b5563;font-size:15px;line-height:1.7;">
-                Bây giờ, hãy gác lại những âu lo, click vào nút bên dưới và bắt đầu tích lũy những từ vựng đầu tiên cùng chúng tôi nhé. Hãy nhớ rằng, chỉ cần tốt hơn 1% mỗi ngày là bạn đã đi được một quãng đường rất xa rồi!
-              </p>
-
               <!-- CTA -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
                 <tr>
                   <td align="center">
-                    <a href="https://dungdinh-vocab.vercel.app/decks"
-                       style="display:inline-block;background:linear-gradient(135deg,#4c1d95,#2563eb);color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:16px 40px;border-radius:12px;box-shadow:0 4px 15px rgba(76,29,149,0.22);letter-spacing:0.01em;transition: all 0.3s ease;">
+                    <a href="${APP_URL}"
+                       style="display:inline-block;background:linear-gradient(135deg,#4c1d95,#2563eb);color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:16px 40px;border-radius:12px;box-shadow:0 4px 15px rgba(76,29,149,0.22);">
                       Khám phá thế giới từ vựng ngay →
                     </a>
                   </td>
@@ -143,7 +127,7 @@ function buildWelcomeEmail(displayName) {
 </body>
 </html>`;
 
-  const text = `Chào mừng ${displayName} đến với thế giới từ vựng LearnTA!\n\nHành trình vạn dặm bắt đầu từ một từ vựng. Cảm ơn bạn đã lựa chọn LearnTA làm người bạn đồng hành.\n\nBắt đầu học ngay tại đây: https://dungdinh-vocab.vercel.app/decks`;
+  const text = `Chào mừng ${displayName} đến với thế giới từ vựng LearnTA!\n\nHành trình vạn dặm bắt đầu từ một từ vựng. Cảm ơn bạn đã lựa chọn LearnTA làm người bạn đồng hành.\n\nBắt đầu học ngay tại đây: ${APP_URL}`;
 
   return { html, text };
 }
@@ -155,17 +139,17 @@ function buildWelcomeEmail(displayName) {
  * Không throw — lỗi email không được ảnh hưởng luồng đăng nhập.
  */
 async function sendWelcomeEmail({ to, displayName }) {
-  const resend = getResend();
+  const transport = getTransporter();
 
-  if (!resend) {
-    console.warn("[emailService] RESEND_API_KEY chưa được cấu hình — bỏ qua gửi email.");
+  if (!transport) {
+    console.warn("[emailService] GMAIL_USER / GMAIL_APP_PASS chưa cấu hình — bỏ qua gửi email.");
     return;
   }
 
   try {
     const { html, text } = buildWelcomeEmail(displayName);
-    await resend.emails.send({
-      from: EMAIL_FROM,
+    await transport.sendMail({
+      from: `"LearnTA" <${GMAIL_USER()}>`,
       to,
       subject: `Chào mừng ${displayName} đến với LearnTA! 🎉`,
       html,
@@ -173,7 +157,6 @@ async function sendWelcomeEmail({ to, displayName }) {
     });
     console.info(`[emailService] Welcome email sent to ${to}`);
   } catch (err) {
-    // Lỗi email không block luồng đăng nhập
     console.error("[emailService] Failed to send welcome email:", err?.message ?? err);
   }
 }

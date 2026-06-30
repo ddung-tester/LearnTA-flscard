@@ -3734,6 +3734,93 @@ body.is-page-loading .ui-route-transition {
 }
 
 
+/* ── Broken state — streak bị vỡ (bỏ học ≥2 ngày) ──────────────────────── */
+
+/* Inline pill broken */
+.streak-badge--broken {
+  background: linear-gradient(
+    155deg,
+    oklch(38% 0.09 18) 0%,
+    oklch(28% 0.06 22) 50%,
+    oklch(22% 0.04 20) 100%
+  );
+  border: 1.5px solid oklch(52% 0.13 22 / 0.45);
+  color: oklch(75% 0.08 22);
+  animation: streak-broken-pulse 2.8s ease-in-out infinite;
+}
+
+/* Full-card broken: nền u tối đỏ xám */
+.streak-badge--broken-card.streak-badge--full-card {
+  animation: streak-broken-pulse 2.8s ease-in-out infinite;
+}
+
+/* Cover toàn card */
+.streak-badge__broken-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(
+    155deg,
+    oklch(36% 0.1 18) 0%,
+    oklch(26% 0.07 22) 48%,
+    oklch(20% 0.04 20) 100%
+  );
+}
+
+/* SVG crack lines */
+.streak-badge__crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.7;
+}
+
+/* Tim vỡ to trong full-card broken */
+.streak-badge__broken-heart {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px oklch(55% 0.2 18 / 0.7));
+  animation: streak-heart-throb 2.2s ease-in-out infinite;
+}
+
+/* Label "STREAK VỠ" */
+.streak-badge--broken-card .streak-badge__label {
+  color: oklch(72% 0.1 22 / 0.9);
+  text-shadow: 0 1px 4px oklch(15% 0.04 20 / 0.6);
+}
+
+/* Số streak trong full-card broken — xám đỏ */
+.streak-badge--broken-card .streak-badge__number {
+  color: oklch(70% 0.09 22);
+  text-shadow:
+    0 0 10px oklch(55% 0.16 18 / 0.5),
+    0 1px 4px oklch(15% 0.04 20 / 0.6);
+}
+
+@keyframes streak-broken-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 oklch(52% 0.18 18 / 0),
+      inset 0 0 20px oklch(38% 0.1 18 / 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 16px 4px oklch(52% 0.18 18 / 0.22),
+      inset 0 0 28px oklch(38% 0.1 18 / 0.35);
+  }
+}
+
+@keyframes streak-heart-throb {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 6px oklch(55% 0.2 18 / 0.5)); }
+  40%       { transform: scale(1.08); filter: drop-shadow(0 0 14px oklch(58% 0.22 18 / 0.75)); }
+  55%       { transform: scale(0.96); }
+  70%       { transform: scale(1.04); filter: drop-shadow(0 0 10px oklch(55% 0.2 18 / 0.6)); }
+}
+
+
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 
 @keyframes streak-border-flicker {
