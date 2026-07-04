@@ -1,10 +1,8 @@
 /**
- * reminderService.js — Gửi email nhắc học hàng ngày qua Gmail SMTP (Nodemailer).
+ * reminderService.js — Gửi email nhắc học & khen ngợi qua Gmail SMTP (Nodemailer).
  *
- * Chỉ gửi cho users:
- *   1. Có email
- *   2. Chưa học hôm nay (last_study_date < today hoặc NULL)
- *   3. Đã bật email_reminders = true trong user_settings
+ * sendDailyReminders()  — 23:00 VN — Gửi cho user CHƯA học hôm nay
+ * sendPraiseEmails()    — 18:00 VN — Gửi cho user ĐÃ học hôm nay
  */
 
 const nodemailer = require("nodemailer");
@@ -18,11 +16,7 @@ function getTransporter() {
     const user = process.env.GMAIL_USER;
     const pass = process.env.GMAIL_APP_PASS;
     if (!user || !pass) return null;
-
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user, pass },
-    });
+    transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
   }
   return transporter;
 }
@@ -30,110 +24,104 @@ function getTransporter() {
 const GMAIL_USER = () => process.env.GMAIL_USER || "";
 const APP_URL = "https://dungdinh-vocab.vercel.app/decks";
 
-// ─── 15 Template Messages ──────────────────────────────────────────────────────
+// ─── Email nhắc học (23:00 VN) ────────────────────────────────────────────────
 
 const REMINDER_TEMPLATES = [
   {
-    subject: "🔥 Đừng để streak của bạn tắt hôm nay!",
-    headline: "Ngọn lửa đang leo lét...",
-    body: `Ôi không! Hôm nay bạn vẫn chưa học gì cả. Streak của bạn đang rất cần bạn ghé thăm để tiếp tục cháy mãi! 🔥<br/><br/>
-Chỉ cần <strong>5 phút thôi</strong> — học vài từ vựng nhanh, và hôm nay sẽ lại được tính vào chuỗi ngày học liên tục của bạn. Đừng để bao nhiêu công sức trước đây trôi xuống sông xuống bể nhé!`,
+    subject: "🔥 Ơi, hôm nay bạn chưa học!",
+    headline: "Streak đang chờ bạn giải cứu...",
+    body: `Chỉ <strong>5 phút thôi</strong>. Mở app, lật vài thẻ — xong rồi ngủ ngon. Đừng để hôm nay là ngày bạn nhớ mãi vì đã bỏ lỡ. 🔥`,
   },
   {
-    subject: "📚 Hôm nay chưa ghé LearnTA — từ vựng đang nhớ bạn!",
-    headline: "Những từ vựng đang chờ đợi...",
-    body: `Xin chào! Hôm nay đã gần qua đi mà chưa thấy bóng dáng bạn trên LearnTA. Những bộ từ vựng của bạn đang cô đơn lắm đấy! 🥺<br/><br/>
-<strong>"Mỗi ngày học một từ, mười năm sau bạn có cả một thế giới."</strong><br/><br/>
-Hãy dành chút thời gian nhỏ bé để ghi thêm vào ký ức những từ hay ho trước khi ngủ nhé!`,
+    subject: "⏰ Ngày sắp hết — bạn chưa học gì!",
+    headline: "Còn kịp. Thật sự còn kịp.",
+    body: `Không cần nhiều. <strong>3 từ vựng</strong> cũng đủ để hôm nay được tính. Bắt đầu đi — não bạn đang sẵn sàng hơn bạn nghĩ. 💡`,
   },
   {
-    subject: "⏰ Còn chút thời gian — đừng bỏ lỡ ngày học hôm nay!",
-    headline: "Thời gian trong ngày sắp hết!",
-    body: `Ngày hôm nay sắp khép lại rồi! Bạn có biết không — chỉ cần học <strong>1 flashcard</strong> thôi cũng đã đủ để ngày hôm nay được tính là một ngày học nghiêm túc. 🌙<br/><br/>
-Não bộ của chúng ta ghi nhớ tốt nhất vào buổi tối, trước khi ngủ. Đây chính là thời điểm vàng — đừng bỏ lỡ!`,
+    subject: "😤 Hôm nay chưa học — hối tiếc không?",
+    headline: "Đừng để 'hôm nay' thành 'thôi ngày mai'",
+    body: `Câu đó bạn đã tự nói bao nhiêu lần rồi? <strong>Mở LearnTA ngay bây giờ</strong> — chỉ cần bắt đầu, phần còn lại tự chạy. ⚡`,
   },
   {
-    subject: "🧠 Não bạn đang khát kiến thức đấy!",
-    headline: "Thói quen học tạo nên sự khác biệt",
-    body: `Theo nghiên cứu tâm lý học, <strong>nhất quán và đều đặn</strong> quan trọng hơn cường độ học. Người học 10 phút mỗi ngày sẽ nhớ tốt hơn người học 2 tiếng mỗi tuần. 📊<br/><br/>
-Hôm nay bạn chưa có streak. Hãy để LearnTA giúp bạn xây dựng thói quen đó — từng ngày, từng ngày một. Bắt đầu ngay bây giờ nhé!`,
+    subject: "🫵 Bạn ơi — streak cần bạn tối nay!",
+    headline: "1 ngày bỏ. 7 ngày tiếc.",
+    body: `Bạn đã xây được bao nhiêu ngày rồi — đừng để tất cả sụp đổ vì <strong>một tối lười biếng</strong>. Học đi, tôi tin bạn! 💪`,
   },
   {
-    subject: "💪 Sếp ơi! Streak đang cần bạn!",
-    headline: "Một ngày không học là một ngày lãng phí?",
-    body: `Không hẳn vậy — nhưng nếu bạn học thêm vài từ vựng hôm nay, ngày mai bạn sẽ tự hào lắm đó! 😄<br/><br/>
-Streak của bạn là bằng chứng cho sự kiên trì. Mỗi ngày được đánh dấu là một ngày bạn đã vượt qua chính mình. Đừng để chuỗi ngày đẹp đẽ đó bị gián đoạn — chỉ cần một click nhỏ thôi!`,
+    subject: "🌙 Trước khi ngủ — học vài từ đi!",
+    headline: "Buổi tối: não nhớ giỏi nhất",
+    body: `Không cần nhiều. <strong>5 phút trước khi tắt đèn</strong> — sáng mai thức dậy bạn sẽ ngạc nhiên vì mình nhớ tốt đến vậy. 🧠`,
   },
   {
-    subject: "🌟 Cơ hội để toả sáng hôm nay vẫn còn đó!",
-    headline: "Mỗi từ học được là một bước tiến",
-    body: `Học ngoại ngữ là một cuộc đua không có đích đến cuối cùng, mà chỉ có những cột mốc. Hôm nay bạn có thể đặt thêm một cột mốc nhỏ cho chính mình không? 🏁<br/><br/>
-Hãy mở LearnTA, chọn bộ từ bạn yêu thích, và lật vài thẻ flashcard. Đơn giản vậy thôi — nhưng ý nghĩa thì lớn lắm!`,
+    subject: "💔 Streak của bạn đang cầu cứu!",
+    headline: "Đừng bỏ nó một mình tối nay",
+    body: `Streak chỉ cần <strong>bạn ghé qua một lần</strong> mỗi ngày. Hôm nay bạn chưa ghé. Còn kịp đấy! 🥺`,
   },
   {
-    subject: "🎯 Mission hôm nay: Học ít nhất 5 từ vựng!",
-    headline: "Thử thách nhỏ, chiến thắng lớn",
-    body: `Nhiệm vụ đặc biệt dành cho bạn hôm nay: <strong>Học ít nhất 5 từ vựng trước khi đi ngủ!</strong> 🎮<br/><br/>
-Nghe có vẻ đơn giản, phải không? Nhưng đây chính là "bí kíp" của những người thành công trong việc học ngoại ngữ — nhất quán và có mục tiêu rõ ràng, dù nhỏ đến đâu. Bạn làm được không?`,
-  },
-  {
-    subject: "🌙 Kết thúc ngày với điều gì đó có ý nghĩa nhé!",
-    headline: "Buổi tối là thời điểm vàng để học",
-    body: `Khi cơ thể và tâm trí đang thư giãn, đó cũng là lúc não bộ tốt nhất trong việc tiếp nhận và lưu trữ thông tin mới. 🌟<br/><br/>
-Trước khi đặt điện thoại xuống và đi ngủ, hãy dành 5-10 phút cho LearnTA. Sáng mai thức dậy, bạn sẽ thấy những từ vựng đó đã được ghi vào trí nhớ dài hạn một cách kỳ diệu!`,
-  },
-  {
-    subject: "🚀 Chỉ 1% tốt hơn mỗi ngày — bắt đầu từ hôm nay!",
-    headline: "Sức mạnh của sự cải thiện từng ngày nhỏ bé",
-    body: `James Clear trong "Atomic Habits" đã nói: <em>"Bạn không vươn tới đỉnh cao nhờ mục tiêu, bạn vươn tới đỉnh cao nhờ hệ thống."</em><br/><br/>
-Hệ thống của bạn là LearnTA. Mỗi ngày học một chút chính là hệ thống đó đang hoạt động. Hôm nay, hãy thêm một ngày nữa vào hệ thống của bạn! 🔥`,
-  },
-  {
-    subject: "😊 Nhớ đến bạn và muốn nhắc một điều nhỏ thôi!",
-    headline: "Một lời nhắc nhỏ từ LearnTA",
-    body: `Chào bạn! Hôm nay LearnTA nhớ bạn lắm — vì hôm nay chưa thấy bạn ghé học. 🥰<br/><br/>
-Không có áp lực nào hết. Nếu bạn bận, cứ học 2-3 từ thôi cũng đủ. Nếu bạn có thời gian, hãy thử thách bản thân với một vòng Quiz hoặc Tự luận. Dù ít hay nhiều — mỗi bước tiến đều đáng trân trọng!`,
-  },
-  {
-    subject: "🏆 Những người thành công làm gì mỗi ngày?",
-    headline: "Bí quyết của những người giỏi ngoại ngữ",
-    body: `Họ không nhất thiết học nhiều hơn bạn. Họ chỉ học <strong>đều đặn hơn</strong>. 📅<br/><br/>
-10 phút mỗi ngày, 7 ngày mỗi tuần = 70 phút học tập chất lượng cao. Đó là lý do streak lại quan trọng đến vậy! Hôm nay bạn đã có 70 phút đó chưa?`,
-  },
-  {
-    subject: "✨ Đừng để hôm nay trở thành ngày đứt streak!",
-    headline: "Bạn đã đi được một đoạn đường dài...",
-    body: `Nghĩ lại xem — bạn đã bỏ bao nhiêu công sức và thời gian để xây dựng thói quen học tập đó. Mỗi ngày trong streak là một ngày bạn đã chọn bản thân mình, chọn sự phát triển. 💪<br/><br/>
-Hôm nay, hãy tiếp tục lựa chọn đó. Chỉ một lần nhỏ thôi — đủ để chuỗi ngày đẹp đẽ được kéo dài thêm!`,
-  },
-  {
-    subject: "🌏 Tiếng Anh mở ra cả thế giới — học thêm một chút đi!",
-    headline: "Ngôn ngữ là chiếc chìa khoá của cơ hội",
-    body: `Mỗi từ vựng bạn học được là một chiếc chìa khoá nhỏ. Gom đủ nhiều chìa khoá, một ngày nào đó bạn sẽ mở được những cánh cửa mà người khác chưa từng chạm tới — cơ hội công việc, bạn bè quốc tế, những cuốn sách hay, những bộ phim không cần phụ đề... 🌐<br/><br/>
-Hôm nay, hãy thêm một vài chiếc chìa khoá nữa vào tay bạn nhé!`,
-  },
-  {
-    subject: "⚡ Năng lượng học tập — bạn có còn không?",
-    headline: "Đôi khi chỉ cần bắt đầu thôi!",
-    body: `Thường thì không phải thiếu động lực mà khiến chúng ta không học. Đó là <strong>sự trì hoãn</strong>. Bạn chỉ cần mở app ra và bắt đầu — năng lượng và hứng khởi sẽ tự đến sau! ⚡<br/><br/>
-Quy tắc 2 phút: Nếu một việc mất dưới 2 phút để bắt đầu, hãy làm ngay. Mở LearnTA mất bao lâu? Đúng rồi — ít hơn 2 giây!`,
-  },
-  {
-    subject: "🎉 Hôm nay học một chút, mai tự hào một nhiều!",
-    headline: "Phần thưởng của sự kiên trì",
-    body: `Tưởng tượng cảm giác này: Sáng mai thức dậy, nhìn vào streak của mình và thấy nó vẫn còn nguyên vẹn. Thậm chí còn tăng lên một ngày nữa. Cảm giác đó có phải tuyệt vời không? 😍<br/><br/>
-Bạn hoàn toàn có thể có cảm giác đó ngay ngày mai — chỉ cần dành chút thời gian học tối nay. LearnTA đang chờ bạn!`,
+    subject: "🚀 Người giỏi tiếng Anh làm gì tối nay?",
+    headline: "Họ học. Dù chỉ 5 phút.",
+    body: `Không phải vì họ có nhiều thời gian. Họ chỉ <strong>bắt đầu khi chưa muốn</strong> — và đó là tất cả sự khác biệt. Bạn thì sao? 🎯`,
   },
 ];
 
-// ─── HTML email builder ────────────────────────────────────────────────────────
+// ─── Email khen/động viên (18:00 VN) ─────────────────────────────────────────
 
-function buildReminderEmail({ displayName, subject, headline, body, streak }) {
+const PRAISE_TEMPLATES = [
+  {
+    subject: "🔥 Bạn đã học hôm nay — tôi tự hào!",
+    headline: "Đỉnh. Thật sự đỉnh.",
+    body: `Không phải ai cũng làm được điều bạn vừa làm hôm nay. <strong>Giữ streak, giữ thói quen, giữ chính mình.</strong> Ngày mai tiếp tục nhé! 🚀`,
+  },
+  {
+    subject: "⭐ Hôm nay bạn đã thắng!",
+    headline: "Chiến thắng nhỏ. Ý nghĩa lớn.",
+    body: `Hôm nay bạn đã chọn <strong>tương lai tốt hơn</strong> thay vì sự tiện lợi trước mắt. Đó là lựa chọn đúng đắn nhất trong ngày. Tự hào đi! 🏆`,
+  },
+  {
+    subject: "💚 Streak của bạn đang bùng cháy!",
+    headline: "Đừng dừng — bạn đang có đà rồi!",
+    body: `Khi đã có momentum thì đừng phá vỡ. Bạn đã học hôm nay — <strong>ngày mai chỉ cần làm lại đúng vậy</strong>. Đơn giản thôi! 🔥`,
+  },
+  {
+    subject: "🎯 Mission complete! Bạn xịn thật!",
+    headline: "Học rồi — giờ thư giãn xứng đáng!",
+    body: `Bạn đã làm phần khó nhất: <strong>bắt đầu và hoàn thành</strong>. Hãy nghỉ ngơi và biết rằng hôm nay của bạn thật có ý nghĩa. 😊`,
+  },
+  {
+    subject: "🌟 Bạn thuộc top 1% người học đều đặn!",
+    headline: "Hiếm lắm đó — thật sự hiếm!",
+    body: `Phần lớn mọi người bỏ cuộc sau vài ngày. Bạn thì không. <strong>Đó là điều làm bạn khác biệt</strong> — và kết quả sẽ đến theo thời gian. Tin tôi đi! 💫`,
+  },
+  {
+    subject: "🥳 Hôm nay học xong — cảm giác thế nào?",
+    headline: "Tốt hơn hôm qua một chút!",
+    body: `Mỗi từ bạn học hôm nay sẽ ở lại mãi. <strong>Không ai lấy đi được kiến thức của bạn.</strong> Cứ học đi — đó là khoản đầu tư sinh lời nhất! 📈`,
+  },
+  {
+    subject: "💪 Dù bận, dù mệt — bạn vẫn học!",
+    headline: "Đó mới là kỷ luật thật sự.",
+    body: `<strong>Sự kiên trì khi không có ai nhìn</strong> — đó là phẩm chất hiếm có. Bạn có nó. Và nó sẽ đưa bạn đến nơi bạn muốn. Cứ tiếp tục! 🎖️`,
+  },
+];
+
+// ─── HTML builder ─────────────────────────────────────────────────────────────
+
+function buildEmail({ displayName, subject, headline, body, streak, type = "reminder" }) {
+  const isReminder = type === "reminder";
+  const headerGradient = isReminder
+    ? "linear-gradient(135deg,#92400e,#f97316)"
+    : "linear-gradient(135deg,#065f46,#10b981)";
+  const ctaGradient = isReminder
+    ? "linear-gradient(135deg,#f97316,#dc2626)"
+    : "linear-gradient(135deg,#059669,#0284c7)";
+  const icon = isReminder ? "🔥" : "🌟";
+  const ctaText = isReminder ? "Học ngay 🚀" : "Học thêm hôm nay 📚";
+
   const streakSection =
     streak > 0
       ? `<div style="text-align:center;margin:20px 0;">
-          <div style="display:inline-block;background:linear-gradient(135deg,#f97316,#dc2626);padding:10px 24px;border-radius:999px;color:#fff;font-weight:700;font-size:15px;">
-            🔥 Streak hiện tại: ${streak} ngày
+          <div style="display:inline-block;background:${ctaGradient};padding:10px 24px;border-radius:999px;color:#fff;font-weight:700;font-size:15px;">
+            🔥 Streak: ${streak} ngày
           </div>
          </div>`
       : "";
@@ -146,38 +134,30 @@ function buildReminderEmail({ displayName, subject, headline, body, streak }) {
   <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:40px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.07);">
-          
+        <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.07);">
+
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#92400e,#f97316);padding:32px 40px;text-align:center;">
-              <div style="font-size:40px;margin-bottom:8px;">🔥</div>
-              <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">${headline}</h1>
+            <td style="background:${headerGradient};padding:28px 36px;text-align:center;">
+              <div style="font-size:36px;margin-bottom:6px;">${icon}</div>
+              <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">${headline}</h1>
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
-            <td style="padding:36px 40px;">
-              <p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#1e1b4b;">
-                Chào ${displayName}! 👋
-              </p>
-              <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.75;">
-                ${body}
-              </p>
-
+            <td style="padding:28px 36px;">
+              <p style="margin:0 0 10px;font-size:15px;font-weight:600;color:#1e1b4b;">Chào ${displayName}! 👋</p>
+              <p style="margin:0 0 20px;color:#4b5563;font-size:14px;line-height:1.7;">${body}</p>
               ${streakSection}
-
-              <!-- CTA -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;">
                 <tr>
                   <td align="center">
-                    <a href="${APP_URL}"
-                       style="display:inline-block;background:linear-gradient(135deg,#f97316,#dc2626);color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;box-shadow:0 4px 14px rgba(249,115,22,0.3);">
-                      Học ngay hôm nay 🚀
+                    <a href="${APP_URL}" style="display:inline-block;background:${ctaGradient};color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 32px;border-radius:10px;">
+                      ${ctaText}
                     </a>
                   </td>
                 </tr>
@@ -187,10 +167,10 @@ function buildReminderEmail({ displayName, subject, headline, body, streak }) {
 
           <!-- Footer -->
           <tr>
-            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px;text-align:center;">
-              <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;">
-                Bạn nhận email này vì đã bật nhắc nhở học tập từ LearnTA.<br/>
-                Để tắt nhắc nhở, vào <strong>Cài đặt → Nhắc nhở email</strong> trong ứng dụng.
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:16px 36px;text-align:center;">
+              <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
+                Bạn nhận email này vì đã bật nhắc nhở từ LearnTA.<br/>
+                Tắt tại <strong>Cài đặt → Nhắc nhở email</strong>.
               </p>
             </td>
           </tr>
@@ -202,23 +182,20 @@ function buildReminderEmail({ displayName, subject, headline, body, streak }) {
 </body>
 </html>`;
 
-  const text = `Chào ${displayName}!\n\n${headline}\n\n${body.replace(/<[^>]*>/g, "")}\n\nHọc ngay: ${APP_URL}`;
-
+  const text = `Chào ${displayName}!\n\n${headline}\n\n${body.replace(/<[^>]*>/g, "")}\n\n${ctaText}: ${APP_URL}`;
   return { html, text, subject };
 }
 
-// ─── Core: send reminders to all eligible users ───────────────────────────────
+// ─── sendDailyReminders — 23:00 VN — user CHƯA học hôm nay ───────────────────
 
 async function sendDailyReminders() {
   const transport = getTransporter();
   if (!transport) {
-    console.warn("[reminderService] GMAIL_USER / GMAIL_APP_PASS chưa cấu hình → bỏ qua.");
+    console.warn("[reminderService] GMAIL chưa cấu hình → bỏ qua.");
     return { sent: 0, skipped: 0 };
   }
 
   const today = getTodayVN();
-
-  // Lấy tất cả users chưa học hôm nay + có email + bật email_reminders
   const [users] = await pool.query(
     `SELECT u.id, u.fullname, u.email, u.current_streak
      FROM users u
@@ -229,38 +206,74 @@ async function sendDailyReminders() {
     [today]
   );
 
-  let sent = 0;
-  let skipped = 0;
-
+  let sent = 0, skipped = 0;
   for (const user of users) {
     try {
-      const template = REMINDER_TEMPLATES[Math.floor(Math.random() * REMINDER_TEMPLATES.length)];
-      const { html, text, subject } = buildReminderEmail({
+      const tpl = REMINDER_TEMPLATES[Math.floor(Math.random() * REMINDER_TEMPLATES.length)];
+      const { html, text, subject } = buildEmail({
         displayName: user.fullname || "bạn",
-        subject: template.subject,
-        headline: template.headline,
-        body: template.body,
+        subject: tpl.subject,
+        headline: tpl.headline,
+        body: tpl.body,
         streak: user.current_streak || 0,
+        type: "reminder",
       });
-
-      await transport.sendMail({
-        from: `"LearnTA" <${GMAIL_USER()}>`,
-        to: user.email,
-        subject,
-        html,
-        text,
-      });
-
+      await transport.sendMail({ from: `"LearnTA" <${GMAIL_USER()}>`, to: user.email, subject, html, text });
       sent++;
-      console.info(`[reminderService] Sent reminder to ${user.email}`);
+      console.info(`[reminderService] Reminder → ${user.email}`);
     } catch (err) {
       skipped++;
-      console.error(`[reminderService] Failed to send to ${user.email}:`, err?.message);
+      console.error(`[reminderService] Failed → ${user.email}:`, err?.message);
     }
   }
 
-  console.info(`[reminderService] Done: ${sent} sent, ${skipped} failed, ${users.length} total.`);
+  console.info(`[reminderService] Reminder done: ${sent} sent, ${skipped} failed / ${users.length} total`);
   return { sent, skipped, total: users.length };
 }
 
-module.exports = { sendDailyReminders };
+// ─── sendPraiseEmails — 18:00 VN — user ĐÃ học hôm nay ──────────────────────
+
+async function sendPraiseEmails() {
+  const transport = getTransporter();
+  if (!transport) {
+    console.warn("[reminderService] GMAIL chưa cấu hình → bỏ qua.");
+    return { sent: 0, skipped: 0 };
+  }
+
+  const today = getTodayVN();
+  const [users] = await pool.query(
+    `SELECT u.id, u.fullname, u.email, u.current_streak
+     FROM users u
+     LEFT JOIN user_settings us ON us.user_id = u.id
+     WHERE u.email IS NOT NULL
+       AND u.last_study_date = ?
+       AND (us.email_reminders IS NULL OR us.email_reminders = TRUE)`,
+    [today]
+  );
+
+  let sent = 0, skipped = 0;
+  for (const user of users) {
+    try {
+      const tpl = PRAISE_TEMPLATES[Math.floor(Math.random() * PRAISE_TEMPLATES.length)];
+      const { html, text, subject } = buildEmail({
+        displayName: user.fullname || "bạn",
+        subject: tpl.subject,
+        headline: tpl.headline,
+        body: tpl.body,
+        streak: user.current_streak || 0,
+        type: "praise",
+      });
+      await transport.sendMail({ from: `"LearnTA" <${GMAIL_USER()}>`, to: user.email, subject, html, text });
+      sent++;
+      console.info(`[reminderService] Praise → ${user.email}`);
+    } catch (err) {
+      skipped++;
+      console.error(`[reminderService] Praise failed → ${user.email}:`, err?.message);
+    }
+  }
+
+  console.info(`[reminderService] Praise done: ${sent} sent, ${skipped} failed / ${users.length} total`);
+  return { sent, skipped, total: users.length };
+}
+
+module.exports = { sendDailyReminders, sendPraiseEmails };

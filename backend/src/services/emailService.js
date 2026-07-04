@@ -149,7 +149,7 @@ async function sendWelcomeEmail({ to, displayName }) {
   try {
     const { html, text } = buildWelcomeEmail(displayName);
     await transport.sendMail({
-      from: `"LearnTA" <${GMAIL_USER()}>`,
+      from: `"Learn English with Dung Dinh" <${GMAIL_USER()}>`,
       to,
       subject: `Chào mừng ${displayName} đến với LearnTA! 🎉`,
       html,

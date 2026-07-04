@@ -8,6 +8,7 @@ const cardRoutes = require("./routes/cardRoutes");
 const studyRoutes = require("./routes/studyRoutes");
 const progressRoutes = require("./routes/progressRoutes");
 const userRoutes = require("./routes/userRoutes");
+const cronRoutes = require("./routes/cronRoutes");
 const { startCron } = require("./services/cronService");
 
 const app = express();
@@ -59,8 +60,9 @@ app.use("/api", cardRoutes);
 app.use("/api", studyRoutes);
 app.use("/api", progressRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/cron", cronRoutes);
 
-// Khởi động cron job nhắc học
+// Khởi động cron job nhắc học (backup — primary trigger là Cloud Scheduler HTTP)
 startCron();
 
 app.use((req, res) => {
