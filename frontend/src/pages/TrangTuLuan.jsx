@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
@@ -10,7 +10,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { locTuYeuThich } from "../data/duLieuMau";
+import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
@@ -108,9 +108,16 @@ function TrangTuLuan() {
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
-    () => docCaiDatHocTap("tuluan").chiHocTuYeuThich
-  );
+  const [searchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter") || "tat-ca";
+  const sortParam = searchParams.get("sort") || "mac-dinh";
+
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
+    const param = searchParams.get("filter");
+    if (param === "yeu-thich") return true;
+    if (param === "moi-them" || param === "tat-ca") return false;
+    return docCaiDatHocTap("tuluan").chiHocTuYeuThich;
+  });
   const [lanLam, setLanLam] = useState(0);
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("tuluan").cheDo ?? "vi-en");
   const [batReward, setBatReward] = useState(false);
@@ -244,7 +251,40 @@ function TrangTuLuan() {
   useEffect(() => {
     xoaTatCaTimerTuLuan();
     // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc
-    const ds = danhSachHocLai !== null ? danhSachHocLai : (chiHocTuYeuThich ? locTuYeuThich(danhSachGoc, true) : danhSachGoc);
+    let ds = danhSachHocLai !== null ? danhSachHocLai : danhSachGoc;
+
+    if (danhSachHocLai === null) {
+      if (chiHocTuYeuThich) {
+        ds = ds.filter(laTuYeuThich);
+      } else if (filterParam === "moi-them") {
+        ds = ds.filter(laTuMoiThem);
+      }
+    }
+
+    if (sortParam && sortParam !== "mac-dinh") {
+      const copy = [...ds];
+      if (sortParam === "ten") {
+        copy.sort((a, b) =>
+          a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
+        );
+      } else if (sortParam === "ngay-them") {
+        copy.sort((a, b) => {
+          const da = new Date(a.created_at || 0).getTime();
+          const db = new Date(b.created_at || 0).getTime();
+          return da - db;
+        });
+      } else if (sortParam === "so-cau-sai") {
+        copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
+      } else if (sortParam === "chua-hoc") {
+        copy.sort((a, b) => {
+          const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
+          const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
+          return aNew - bNew;
+        });
+      }
+      ds = copy;
+    }
+
     const danhSachTheoThuTu = batRandom
       ? tronMangOnDinh(
         ds,
@@ -274,7 +314,7 @@ function TrangTuLuan() {
     setLoiLuuKetQua("");
     daLuuKetQuaRef.current = false;
     resetAll();
-  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc, danhSachHocLai]);
+  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc, danhSachHocLai, filterParam, sortParam]);
 
   useEffect(() => {
     if (!bo || tongSoCauMucTieu === 0 || daHoanThanh) return;

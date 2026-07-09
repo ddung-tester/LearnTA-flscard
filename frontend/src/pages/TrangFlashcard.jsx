@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
@@ -9,7 +9,7 @@ import RewardTikTokEffect, {
 } from "../components/RewardTikTokEffect";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useTTS from "../hooks/useTTS";
-import { locTuYeuThich } from "../data/duLieuMau";
+import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { ketThucStudySession, taoStudySession } from "../services/studyApi";
@@ -99,12 +99,19 @@ function TrangFlashcard() {
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
   const sessionKeyRef = useRef("");
 
+  const [searchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter") || "tat-ca";
+  const sortParam = searchParams.get("sort") || "mac-dinh";
+
   const [chiSo, setChiSo] = useState(0);
   const [daLat, setDaLat] = useState(false);
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("flashcard").cheDo);
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
-    () => docCaiDatHocTap("flashcard").chiHocTuYeuThich
-  );
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
+    const param = searchParams.get("filter");
+    if (param === "yeu-thich") return true;
+    if (param === "moi-them" || param === "tat-ca") return false;
+    return docCaiDatHocTap("flashcard").chiHocTuYeuThich;
+  });
   const [batRandom, setBatRandom] = useState(
     () => docCaiDatHocTap("flashcard").batRandom
   );
@@ -187,10 +194,41 @@ function TrangFlashcard() {
     };
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
-  const danhSachLoc = useMemo(
-    () => locTuYeuThich(danhSachGoc, chiHocTuYeuThich),
-    [danhSachGoc, chiHocTuYeuThich]
-  );
+  const danhSachLoc = useMemo(() => {
+    let ds = danhSachGoc;
+
+    if (chiHocTuYeuThich) {
+      ds = ds.filter(laTuYeuThich);
+    } else if (filterParam === "moi-them") {
+      ds = ds.filter(laTuMoiThem);
+    }
+
+    if (sortParam && sortParam !== "mac-dinh") {
+      const copy = [...ds];
+      if (sortParam === "ten") {
+        copy.sort((a, b) =>
+          a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
+        );
+      } else if (sortParam === "ngay-them") {
+        copy.sort((a, b) => {
+          const da = new Date(a.created_at || 0).getTime();
+          const db = new Date(b.created_at || 0).getTime();
+          return da - db;
+        });
+      } else if (sortParam === "so-cau-sai") {
+        copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
+      } else if (sortParam === "chua-hoc") {
+        copy.sort((a, b) => {
+          const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
+          const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
+          return aNew - bNew;
+        });
+      }
+      return copy;
+    }
+
+    return ds;
+  }, [danhSachGoc, chiHocTuYeuThich, filterParam, sortParam]);
   // useMemo để chỉ re-shuffle khi lanTron hoặc danh sách nguồn thay đổi
   const danhSach = useMemo(() => {
     if (!batRandom) return danhSachLoc;

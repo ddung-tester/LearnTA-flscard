@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
@@ -14,7 +14,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { locTuYeuThich } from "../data/duLieuMau";
+import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -167,10 +167,17 @@ function TrangQuiz() {
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
+  const [searchParams] = useSearchParams();
+  const filterParam = searchParams.get("filter") || "tat-ca";
+  const sortParam = searchParams.get("sort") || "mac-dinh";
+
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("quiz").cheDo ?? CHE_DO_MAC_DINH_QUIZ);
-  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(
-    () => docCaiDatHocTap("quiz").chiHocTuYeuThich
-  );
+  const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
+    const param = searchParams.get("filter");
+    if (param === "yeu-thich") return true;
+    if (param === "moi-them" || param === "tat-ca") return false;
+    return docCaiDatHocTap("quiz").chiHocTuYeuThich;
+  });
   const [batRandom, setBatRandom] = useState(
     () => docCaiDatHocTap("quiz").batRandom
   );
@@ -289,9 +296,41 @@ function TrangQuiz() {
     () => {
       // Nếu đang học lại từ sai thì dùng thẳng danhSachHocLai, bỏ qua filter yêu thích
       if (danhSachHocLai !== null) return danhSachHocLai;
-      return locTuYeuThich(danhSachGoc, chiHocTuYeuThich);
+
+      let ds = danhSachGoc;
+      if (chiHocTuYeuThich) {
+        ds = ds.filter(laTuYeuThich);
+      } else if (filterParam === "moi-them") {
+        ds = ds.filter(laTuMoiThem);
+      }
+
+      if (sortParam && sortParam !== "mac-dinh") {
+        const copy = [...ds];
+        if (sortParam === "ten") {
+          copy.sort((a, b) =>
+            a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
+          );
+        } else if (sortParam === "ngay-them") {
+          copy.sort((a, b) => {
+            const da = new Date(a.created_at || 0).getTime();
+            const db = new Date(b.created_at || 0).getTime();
+            return da - db;
+          });
+        } else if (sortParam === "so-cau-sai") {
+          copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
+        } else if (sortParam === "chua-hoc") {
+          copy.sort((a, b) => {
+            const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
+            const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
+            return aNew - bNew;
+          });
+        }
+        return copy;
+      }
+
+      return ds;
     },
-    [danhSachGoc, danhSachHocLai, chiHocTuYeuThich]
+    [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, filterParam, sortParam]
   );
   const danhSachThe = useMemo(() => {
     if (!batRandom) return danhSachLocQuiz;

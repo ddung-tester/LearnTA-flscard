@@ -413,18 +413,13 @@ function TrangChiTietBo() {
     if (event.currentTarget.name === "word") {
       event.preventDefault();
       meaningInputRef.current?.focus();
-      return;
-    }
-
-    if (event.currentTarget.name === "meaning") {
-      event.preventDefault();
-      event.currentTarget.form?.requestSubmit();
     }
   }
 
   async function luuTu(event) {
     event.preventDefault();
 
+    if (dangLuuTu) return;
     if (!yeuCauCheDoChinhSua()) return;
 
     const word = formTu.word.trim();
@@ -466,6 +461,7 @@ function TrangChiTietBo() {
   async function importTu(event) {
     event.preventDefault();
 
+    if (dangLuuTu) return;
     if (!yeuCauCheDoChinhSua()) return;
 
     const cacDong = noiDungImport.split(/\r?\n/);
@@ -487,6 +483,8 @@ function TrangChiTietBo() {
       return;
     }
 
+    setDangLuuTu(true);
+
     try {
       const ketQua = await importCards(
         boId,
@@ -500,11 +498,13 @@ function TrangChiTietBo() {
 
       setDanhSach((hienTai) => [...hienTai, ...ketQua.cards]);
 
-    setNoiDungImport("");
-    setDangMoImport(false);
-    showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
+      setNoiDungImport("");
+      setDangMoImport(false);
+      showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setDangLuuTu(false);
     }
   }
 
@@ -955,7 +955,7 @@ function TrangChiTietBo() {
 
       <div className="ui-action-grid">
         <Link
-          to={`/decks/${boId}/flashcard`}
+          to={`/decks/${boId}/flashcard?filter=${filterTu}&sort=${sortTu}`}
           className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           <span className="font-semibold text-[var(--mau-chinh)]">Học Flashcard</span>
@@ -963,7 +963,7 @@ function TrangChiTietBo() {
 
         {coTheQuiz ? (
           <Link
-            to={`/decks/${boId}/quiz`}
+            to={`/decks/${boId}/quiz?filter=${filterTu}&sort=${sortTu}`}
             className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
             <span className="font-semibold text-[var(--mau-chinh)]">Làm trắc nghiệm</span>
@@ -978,7 +978,7 @@ function TrangChiTietBo() {
         )}
 
         <Link
-          to={`/decks/${boId}/tu-luan`}
+          to={`/decks/${boId}/tu-luan?filter=${filterTu}&sort=${sortTu}`}
           className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
         >
           <span className="font-semibold text-[var(--mau-chinh)]">Tự luận</span>
