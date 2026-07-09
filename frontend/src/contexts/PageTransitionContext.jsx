@@ -32,7 +32,9 @@ export function PageTransitionProvider({ children }) {
   const tacVuTaiDuLieuRef = useRef(new Set());
   const hienThiLoading = dangChuyenTrang || soTacVuTaiDuLieu > 0;
 
-  currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
+  useLayoutEffect(() => {
+    currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
+  }, [location]);
 
   useLayoutEffect(() => {
     if (hienThiLoading) {
@@ -142,3 +144,17 @@ export function usePageTransition() { // eslint-disable-line react-refresh/only-
 
   return context;
 }
+
+export function SuspenseLoader() {
+  const { setPageDataLoading } = usePageTransition();
+
+  useLayoutEffect(() => {
+    setPageDataLoading("suspense", true);
+    return () => {
+      setPageDataLoading("suspense", false);
+    };
+  }, [setPageDataLoading]);
+
+  return null;
+}
+

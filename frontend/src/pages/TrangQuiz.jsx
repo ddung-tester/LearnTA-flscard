@@ -14,7 +14,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -183,8 +183,6 @@ function TrangQuiz() {
   );
   const [lanTronQuiz, setLanTronQuiz] = useState(0);
   const [lanLam, setLanLam] = useState(0);
-  const [tongSoCauMucTieu, setTongSoCauMucTieu] = useState(0);
-  const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
   const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [dapAnDaChon, setDapAnDaChon] = useState(null);
@@ -250,6 +248,7 @@ function TrangQuiz() {
   }));
 
   async function taiDuLieuQuiz() {
+    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -271,7 +270,10 @@ function TrangQuiz() {
   }
 
   useEffect(() => {
-    taiDuLieuQuiz();
+    Promise.resolve().then(() => {
+      taiDuLieuQuiz();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boId]);
 
   // Lấy streak hiện tại làm baseline để detect tăng sau khi học xong
@@ -352,15 +354,35 @@ function TrangQuiz() {
     [boId, danhSachThe, danhSachGoc, danhSachHocLai, cheDo, lanLam]
   );
 
+  const tongSoCauMucTieu = danhSachCauHoi.length;
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const danhSachTienTrinh = useMemo(() => {
+    return taoDanhSachTienTrinh(danhSachCauHoi.length);
+  }, [danhSachCauHoi]);
 
-  useEffect(() => {
-    const tongSoCau = danhSachCauHoi.length;
-    const cacTienTrinh = taoDanhSachTienTrinh(tongSoCau);
-
-    setTongSoCauMucTieu(tongSoCau);
-    setDanhSachTienTrinh(cacTienTrinh);
-    setSoCauDungTheoTienTrinh(cacTienTrinh.map(() => 0));
+  const [prevDanhSachCauHoi, setPrevDanhSachCauHoi] = useState(danhSachCauHoi);
+  if (danhSachCauHoi !== prevDanhSachCauHoi) {
+    setPrevDanhSachCauHoi(danhSachCauHoi);
+    setChiSo(0);
+    setDapAnDaChon(null);
+    setDapAnSaiDaChon([]);
+    setDaTungSaiOnCard(false);
+    setSoCauDung(0);
+    setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDanhSachCauHoiRuntime(taoDanhSachTheoTienTrinh(danhSachCauHoi));
+    setDaHoanThanh(false);
+    setHienReward(false);
+    setDangChoReward(false);
+    setLanReward(0);
+    resetAll();
+    setStudySessionId(null);
+    setDanhSachKetQua([]);
+    setLoiLuuKetQua("");
+    setTapCardSai(new Set());
+  }
+
+  useLayoutEffect(() => {
+    daLuuKetQuaRef.current = false;
   }, [danhSachCauHoi]);
 
   useEffect(() => {
@@ -404,7 +426,7 @@ function TrangQuiz() {
     lanLam,
     lanTronQuiz,
     tongSoCauMucTieu,
-    danhSachTienTrinh.length,
+    danhSachTienTrinh,
     daHoanThanh,
   ]);
 
@@ -442,6 +464,14 @@ function TrangQuiz() {
       questionTransitionTimerRef.current = null;
     }
   }
+
+  useEffect(() => {
+    xoaTimerChuyenCau();
+    Promise.resolve().then(() => {
+      datLaiProgressReward();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [danhSachCauHoi]);
 
   function batDauTienTrinhReward(diemMoi, coReward) {
     xoaTimerProgressReward();
@@ -803,6 +833,7 @@ function TrangQuiz() {
     }, 760);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dapAnDaChon, daHoanThanh, hienReward, dangChoReward, dangChuyenCau]);
 
   useEffect(
@@ -1315,4 +1346,9 @@ function TrangQuiz() {
   );
 }
 
-export default TrangQuiz;
+function TrangQuizWrapper() {
+  const { deckId } = useParams();
+  return <TrangQuiz key={deckId} />;
+}
+
+export default TrangQuizWrapper;

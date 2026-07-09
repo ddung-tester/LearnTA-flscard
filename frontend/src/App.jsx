@@ -8,6 +8,8 @@ import {
   BACKGROUND_QUIZ_VIDEO,
 } from "./constants/backgrounds";
 
+import { SuspenseLoader } from "./contexts/PageTransitionContext";
+
 const TrangChu = lazy(() => import("./pages/TrangChu"));
 const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
 const TrangDanhSachBo = lazy(() => import("./pages/TrangDanhSachBo"));
@@ -49,8 +51,9 @@ function UngDung() {
       : BACKGROUND_QUIZ_VIDEO;
 
   const noiDungRoutes = (
-    <Suspense fallback={null}>
+    <Suspense fallback={<SuspenseLoader />}>
       <Routes>
+
         <Route element={<BoCuc />}>
           <Route path="/" element={<TrangChu />} />
           <Route path="/login" element={<TrangDangNhap />} />

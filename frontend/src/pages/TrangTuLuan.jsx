@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
@@ -10,7 +10,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
@@ -130,8 +130,6 @@ function TrangTuLuan() {
   const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
-  const [tongSoCauMucTieu, setTongSoCauMucTieu] = useState(0);
-  const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
   const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [cauTraLoi, setCauTraLoi] = useState("");
@@ -208,6 +206,7 @@ function TrangTuLuan() {
   }));
 
   async function taiDuLieuTuLuan() {
+    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -229,7 +228,10 @@ function TrangTuLuan() {
   }
 
   useEffect(() => {
-    taiDuLieuTuLuan();
+    Promise.resolve().then(() => {
+      taiDuLieuTuLuan();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boId]);
 
   // Baseline streak khi mount
@@ -248,8 +250,7 @@ function TrangTuLuan() {
     };
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
-  useEffect(() => {
-    xoaTatCaTimerTuLuan();
+  const danhSachLocTuLuan = useMemo(() => {
     // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc
     let ds = danhSachHocLai !== null ? danhSachHocLai : danhSachGoc;
 
@@ -282,39 +283,48 @@ function TrangTuLuan() {
           return aNew - bNew;
         });
       }
-      ds = copy;
+      return copy;
     }
 
-    const danhSachTheoThuTu = batRandom
-      ? tronMangOnDinh(
-        ds,
-        `written-${boId}-${lanTronTuLuan}`,
-        (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
-      )
-      : [...ds];
-    const tongSoCau = danhSachTheoThuTu.length;
-    const cacTienTrinh = taoDanhSachTienTrinh(tongSoCau);
+    return ds;
+  }, [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, filterParam, sortParam]);
 
-    setTongSoCauMucTieu(tongSoCau);
-    setDanhSachTienTrinh(cacTienTrinh);
-    setSoCauDungTheoTienTrinh(cacTienTrinh.map(() => 0));
-    setDanhSachThe(taoDanhSachTheTheoTienTrinh(danhSachTheoThuTu));
+  const danhSachTheGoc = useMemo(() => {
+    const ds = batRandom
+      ? tronMangOnDinh(
+          danhSachLocTuLuan,
+          `written-${boId}-${lanTronTuLuan}`,
+          (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
+        )
+      : [...danhSachLocTuLuan];
+    return taoDanhSachTheTheoTienTrinh(ds);
+  }, [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan]);
+
+  const tongSoCauMucTieu = danhSachTheGoc.length;
+  const danhSachTienTrinh = useMemo(() => {
+    return taoDanhSachTienTrinh(danhSachTheGoc.length);
+  }, [danhSachTheGoc]);
+
+  const [prevDanhSachTheGoc, setPrevDanhSachTheGoc] = useState(danhSachTheGoc);
+  if (danhSachTheGoc !== prevDanhSachTheGoc) {
+    setPrevDanhSachTheGoc(danhSachTheGoc);
+    setDanhSachThe(danhSachTheGoc);
     setChiSo(0);
     setSoCauDung(0);
-    setDaHoanThanh(false);
-    setDanhSachKetQua([]);
-    setDaKiemTra(false);
+    setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setCauTraLoi("");
+    setDaKiemTra(false);
+    setKetQuaDung(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
-    setDangChuyenCau(false);
     setDaBoQua(false);
-    setDangChoReward(false);
-    setStudySessionId(null);
-    setLoiLuuKetQua("");
+    setDangChuyenCau(false);
+    setDangChoNhanEnterSauSai(false);
+    setCheDoNhapLai({ active: false, dapAnDung: "" });
+    setDanhSachKetQua([]);
     daLuuKetQuaRef.current = false;
     resetAll();
-  }, [boId, lanLam, chiHocTuYeuThich, batRandom, lanTronTuLuan, danhSachGoc, danhSachHocLai, filterParam, sortParam]);
+  }
 
   useEffect(() => {
     if (!bo || tongSoCauMucTieu === 0 || daHoanThanh) return;
@@ -356,7 +366,7 @@ function TrangTuLuan() {
     batRandom,
     lanLam,
     tongSoCauMucTieu,
-    danhSachTienTrinh.length,
+    danhSachTienTrinh,
     daHoanThanh,
   ]);
 
@@ -414,6 +424,17 @@ function TrangTuLuan() {
     xoaTimerSauReward();
     xoaTimerFocusInput();
   }
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      xoaTatCaTimerTuLuan();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [danhSachTheGoc]);
+
+  useLayoutEffect(() => {
+    daLuuKetQuaRef.current = false;
+  }, [danhSachTheGoc]);
 
   useEffect(
     () => () => {
@@ -506,6 +527,7 @@ function TrangTuLuan() {
 
     const timer = window.setTimeout(() => chuyenCauMem(), lanReward > 0 ? 1000 : 2000);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward, dangChuyenCau]);
 
   // Tự động đọc đáp án đúng qua TTS khi trả lời chính xác
@@ -1670,4 +1692,9 @@ function TrangTuLuan() {
   );
 }
 
-export default TrangTuLuan;
+function TrangTuLuanWrapper() {
+  const { deckId } = useParams();
+  return <TrangTuLuan key={deckId} />;
+}
+
+export default TrangTuLuanWrapper;

@@ -9,7 +9,7 @@ import RewardTikTokEffect, {
 } from "../components/RewardTikTokEffect";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useTTS from "../hooks/useTTS";
-import { locTuYeuThich, laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { ketThucStudySession, taoStudySession } from "../services/studyApi";
@@ -116,8 +116,6 @@ function TrangFlashcard() {
     () => docCaiDatHocTap("flashcard").batRandom
   );
   const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
-  const [tongSoTheMucTieu, setTongSoTheMucTieu] = useState(0);
-  const [danhSachTienTrinh, setDanhSachTienTrinh] = useState([]);
   const [soTheDaHoanTatTheoTienTrinh, setSoTheDaHoanTatTheoTienTrinh] = useState([]);
   const [soTheDaHoanTat, setSoTheDaHoanTat] = useState(0);
   const [hienReward, setHienReward] = useState(false);
@@ -143,20 +141,10 @@ function TrangFlashcard() {
     }
   }
 
-  function datLaiReward() {
-    xoaTimerReward();
-    cacTheDaTinhDiemRef.current = new Set();
-    cacTheDaHoanTatRef.current = new Set();
-    daDanhGiaRef.current = new Set();
-    setSoTheDaHoanTat(0);
-    setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
-    setDiemReward(0);
-    setHienReward(false);
-    setLanReward(0);
-    daLuuKetQuaRef.current = false;
-  }
+
 
   async function taiDuLieuHoc() {
+    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -178,11 +166,13 @@ function TrangFlashcard() {
   }
 
   useEffect(() => {
-    setChiSo(0);
-    setDaLat(false);
     sessionKeyRef.current = "";
-    datLaiReward();
-    taiDuLieuHoc();
+    Promise.resolve().then(() => {
+      setChiSo(0);
+      setDaLat(false);
+      datLaiReward();
+      taiDuLieuHoc();
+    });
   }, [boId]);
 
   useLayoutEffect(() => {
@@ -242,6 +232,35 @@ function TrangFlashcard() {
     () => taoDanhSachTheoTienTrinh(danhSach),
     [danhSach]
   );
+  const tongSoTheMucTieu = danhSach.length;
+  const danhSachTienTrinh = useMemo(() => {
+    return taoDanhSachTienTrinh(danhSach.length);
+  }, [danhSach]);
+
+  function datLaiReward() {
+    xoaTimerReward();
+    cacTheDaTinhDiemRef.current = new Set();
+    cacTheDaHoanTatRef.current = new Set();
+    daDanhGiaRef.current = new Set();
+    setSoTheDaHoanTat(0);
+    setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
+    setDiemReward(0);
+    setHienReward(false);
+    setLanReward(0);
+    daLuuKetQuaRef.current = false;
+  }
+
+  const [prevDanhSach, setPrevDanhSach] = useState(danhSach);
+  if (danhSach !== prevDanhSach) {
+    setPrevDanhSach(danhSach);
+    setSoTheDaHoanTat(0);
+    setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
+  }
+
+  useLayoutEffect(() => {
+    cacTheDaHoanTatRef.current = new Set();
+    daLuuKetQuaRef.current = false;
+  }, [danhSach]);
   const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
     const currentValue = soTheDaHoanTatTheoTienTrinh[index] ?? 0;
     const totalValue = tienTrinh.totalValue || 1;
@@ -269,13 +288,7 @@ function TrangFlashcard() {
   const mauTienDo = getProgressColor(tienDoAnToan);
 
   useEffect(() => {
-    const cacTienTrinh = taoDanhSachTienTrinh(danhSach.length);
-    setTongSoTheMucTieu(danhSach.length);
-    setDanhSachTienTrinh(cacTienTrinh);
-    setSoTheDaHoanTatTheoTienTrinh(cacTienTrinh.map(() => 0));
-    setSoTheDaHoanTat(0);
-    cacTheDaHoanTatRef.current = new Set();
-    daLuuKetQuaRef.current = false;
+    xoaTimerReward();
   }, [danhSach]);
 
   function ghiNhanDiemReward() {
@@ -845,4 +858,9 @@ function TrangFlashcard() {
   );
 }
 
-export default TrangFlashcard;
+function TrangFlashcardWrapper() {
+  const { deckId } = useParams();
+  return <TrangFlashcard key={deckId} />;
+}
+
+export default TrangFlashcardWrapper;

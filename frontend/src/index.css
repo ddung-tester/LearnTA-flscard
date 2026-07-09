@@ -3373,6 +3373,13 @@ body.is-page-loading .ui-route-transition {
   height: 1.35rem;
 }
 
+/* Prevent parent card translation on hover inside session pages to eliminate layout jitter when speaker buttons are hovered */
+.ui-flashcard-card:hover,
+.ui-quiz-card:hover,
+.ui-written-card:hover {
+  transform: none !important;
+}
+
 /* ─── Google Sign-In Button ─────────────────────────────────────────────────── */
 .google-signin-btn {
   display: flex;
