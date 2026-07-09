@@ -4290,7 +4290,7 @@ body.is-page-loading .ui-route-transition {
 
 /* ── Tooltip Fade ─────────────────────────────────────────────────────── */
 
-[title]:not(.ui-word-move-handle):hover {
+[title]:not(.ui-word-move-handle):not(.tts-speaker-btn):hover {
   position: relative;
 }
 
