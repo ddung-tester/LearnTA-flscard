@@ -221,31 +221,6 @@ function TrangQuiz() {
   const [tapCardSai, setTapCardSai] = useState(() => new Set());
   // Danh sách card gốc chỉ để học lại (null = học tất cả, mảng = học lại từ sai)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
-  const chiSoTienTrinhDangHoatDong = danhSachCauHoiRuntime[chiSo]?.__segmentIndex
-    ?? soCauDungTheoTienTrinh.findIndex(
-      (soDungTrongTienTrinh, index) =>
-        soDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
-    );
-  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
-    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
-    const totalValue = tienTrinh.totalValue || 1;
-
-    return {
-      index,
-      currentValue,
-      totalValue,
-      progressPercent: (currentValue / totalValue) * 100,
-    };
-  });
-  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
-    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
-  ).length;
-  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
-    segment_index: tienTrinh.index,
-    current: tienTrinh.currentValue,
-    total: tienTrinh.totalValue,
-    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
-  }));
 
   async function taiDuLieuQuiz() {
     await Promise.resolve();
@@ -380,6 +355,32 @@ function TrangQuiz() {
     setLoiLuuKetQua("");
     setTapCardSai(new Set());
   }
+
+  const chiSoTienTrinhDangHoatDong = danhSachCauHoiRuntime[chiSo]?.__segmentIndex
+    ?? soCauDungTheoTienTrinh.findIndex(
+      (soDungTrongTienTrinh, index) =>
+        soDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
+    );
+  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
+    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
+    const totalValue = tienTrinh.totalValue || 1;
+
+    return {
+      index,
+      currentValue,
+      totalValue,
+      progressPercent: (currentValue / totalValue) * 100,
+    };
+  });
+  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
+    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
+  ).length;
+  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
+    segment_index: tienTrinh.index,
+    current: tienTrinh.currentValue,
+    total: tienTrinh.totalValue,
+    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
+  }));
 
   useLayoutEffect(() => {
     daLuuKetQuaRef.current = false;
