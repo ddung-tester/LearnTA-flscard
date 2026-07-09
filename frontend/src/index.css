@@ -3311,34 +3311,36 @@ body.is-page-loading .ui-route-transition {
   flex-shrink: 0;
   transition:
     color var(--tuong-tac-hover) var(--tuong-tac-ease),
-    background-color var(--tuong-tac-hover) var(--tuong-tac-ease),
-    transform 120ms var(--tuong-tac-ease-soft);
+    background-color var(--tuong-tac-hover) var(--tuong-tac-ease);
 }
 
 .tts-speaker-btn svg {
   width: 1.45rem;
   height: 1.45rem;
   transition: transform 150ms var(--tuong-tac-ease);
+  pointer-events: none;
 }
 
 @media (hover: hover) {
   .tts-speaker-btn:hover {
     color: var(--mau-chinh);
     background: oklch(55% 0.105 164 / 0.1);
-    transform: scale(1.08);
   }
 
   .tts-speaker-btn:hover svg {
-    transform: scale(1.06);
+    transform: scale(1.12);
   }
 }
 
-.tts-speaker-btn:active {
-  transform: scale(0.92);
+.tts-speaker-btn:active svg {
+  transform: scale(0.88);
 }
 
 .tts-speaker-btn--active {
   color: var(--mau-chinh);
+}
+
+.tts-speaker-btn--active svg {
   animation: tts-pulse 1.2s ease-in-out infinite;
 }
 
@@ -3349,13 +3351,13 @@ body.is-page-loading .ui-route-transition {
   }
   50% {
     opacity: 0.72;
-    transform: scale(1.12);
+    transform: scale(1.16);
   }
 }
 
-.tts-speaker-btn--active:active {
+.tts-speaker-btn--active:active svg {
   animation: none;
-  transform: scale(0.92);
+  transform: scale(0.88);
 }
 
 /* Corner variant — absolute top-right of parent */
@@ -3375,6 +3377,8 @@ body.is-page-loading .ui-route-transition {
 
 /* Prevent parent card translation on hover inside session pages to eliminate layout jitter when speaker buttons are hovered */
 .ui-flashcard-card:hover,
+.ui-quiz-question-card:hover,
+.ui-question-flow:hover,
 .ui-quiz-card:hover,
 .ui-written-card:hover {
   transform: none !important;

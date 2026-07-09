@@ -1525,4 +1525,9 @@ function IconTrash() {
   );
 }
 
-export default TrangChiTietBo;
+function TrangChiTietBoWrapper() {
+  const { deckId } = useParams();
+  return <TrangChiTietBo key={deckId} />;
+}
+
+export default TrangChiTietBoWrapper;
