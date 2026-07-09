@@ -204,6 +204,7 @@ function TrangQuiz() {
   const [dangChoReward, setDangChoReward] = useState(false);
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const progressEndpointRef = useRef(null);
+  const progressOriginRef = useRef(null);
   const rewardProgressValueRef = useRef(0);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const rewardLaunchTimerRef = useRef(null);
@@ -1092,6 +1093,7 @@ function TrangQuiz() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
+          progressOriginRef={progressOriginRef}
           progressEndpointRef={progressEndpointRef}
           onRequestClose={() => setHienReward(false)}
           onHideComplete={xuLyRewardDongXong}
@@ -1144,6 +1146,7 @@ function TrangQuiz() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
+        progressOriginRef={progressOriginRef}
         progressEndpointRef={progressEndpointRef}
         onRequestClose={() => setHienReward(false)}
         onHideComplete={xuLyRewardDongXong}
@@ -1243,6 +1246,7 @@ function TrangQuiz() {
             totalValue={tongSoCauHoi}
             progressPercent={tienDoReward}
             phase={rewardProgressPhase}
+            activeEndRef={progressOriginRef}
             endpointRef={progressEndpointRef}
             label="Tiến độ"
             combo={combo}

@@ -729,6 +729,7 @@ function TrangFlashcard() {
         </div>
         <div className="ui-study-progress">
           <div
+            ref={progressEndpointRef}
             className="ui-progress-fill ui-study-progress__fill"
             style={{
               "--progress-scale": tiLeTienDo,

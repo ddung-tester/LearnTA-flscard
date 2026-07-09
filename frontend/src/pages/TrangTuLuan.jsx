@@ -174,37 +174,12 @@ function TrangTuLuan() {
   const postRewardContinueTimerRef = useRef(null);
   const focusTimerRef = useRef(null);
   const progressEndpointRef = useRef(null);
+  const progressOriginRef = useRef(null);
   const enterUnlockedTimeRef = useRef(0);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
-  const chiSoTienTrinhDangHoatDong = danhSachThe[chiSo]?.__segmentIndex
-    ?? soCauDungTheoTienTrinh.findIndex(
-      (soCauDungTrongTienTrinh, index) =>
-        soCauDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
-    );
-  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
-    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
-    const totalValue = tienTrinh.totalValue || 1;
-
-    return {
-      index,
-      currentValue,
-      totalValue,
-      progressPercent: (currentValue / totalValue) * 100,
-    };
-  });
-  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
-    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
-  ).length;
-  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
-    segment_index: tienTrinh.index,
-    current: tienTrinh.currentValue,
-    total: tienTrinh.totalValue,
-    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
-  }));
-
   async function taiDuLieuTuLuan() {
     await Promise.resolve();
     setDangTaiDuLieu(true);
@@ -304,6 +279,31 @@ function TrangTuLuan() {
   const danhSachTienTrinh = useMemo(() => {
     return taoDanhSachTienTrinh(danhSachTheGoc.length);
   }, [danhSachTheGoc]);
+  const chiSoTienTrinhDangHoatDong = danhSachThe[chiSo]?.__segmentIndex
+    ?? soCauDungTheoTienTrinh.findIndex(
+      (soCauDungTrongTienTrinh, index) =>
+        soCauDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
+    );
+  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
+    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
+    const totalValue = tienTrinh.totalValue || 1;
+
+    return {
+      index,
+      currentValue,
+      totalValue,
+      progressPercent: (currentValue / totalValue) * 100,
+    };
+  });
+  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
+    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
+  ).length;
+  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
+    segment_index: tienTrinh.index,
+    current: tienTrinh.currentValue,
+    total: tienTrinh.totalValue,
+    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
+  }));
 
   const [prevDanhSachTheGoc, setPrevDanhSachTheGoc] = useState(danhSachTheGoc);
   if (danhSachTheGoc !== prevDanhSachTheGoc) {
@@ -1259,7 +1259,7 @@ function TrangTuLuan() {
             onClose={() => setStreakCelebration(null)}
           />
         )}
-        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <StudyResult
             deckTitle={bo.title}
@@ -1298,7 +1298,7 @@ function TrangTuLuan() {
 
   return (
     <>
-      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
           <Link to={`/decks/${boId}`} className="ui-back-btn">
@@ -1388,6 +1388,7 @@ function TrangTuLuan() {
             totalTarget={tongSoCauHoi}
             activeSegmentIndex={chiSoTienTrinhDangRender}
             phase={rewardProgressPhase}
+            activeEndRef={progressOriginRef}
             endpointRef={progressEndpointRef}
             combo={combo}
           />

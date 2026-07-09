@@ -14,9 +14,14 @@ function layDiemNguon(originRect) {
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
   }
 
+  const laMarkerNho = originRect.width <= 16 && originRect.height <= 16;
+  const xNguon = laMarkerNho
+    ? originRect.left + originRect.width / 2
+    : originRect.right;
+
   return {
     x: Math.min(
-      Math.max(originRect.right - Math.min(originRect.width * 0.08, 14), 24),
+      Math.max(xNguon, 24),
       window.innerWidth - 24
     ),
     y: Math.min(

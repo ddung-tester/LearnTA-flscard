@@ -21,6 +21,7 @@ function RewardTikTokEffect({
   active,
   lanKichHoat = 0,
   config = CAU_HINH_REWARD_QUIZ,
+  progressOriginRef,
   progressEndpointRef,
   onRequestClose,
   onHideComplete,
@@ -299,7 +300,7 @@ function RewardTikTokEffect({
       lanTimelineRewardRef.current = lanKichHoat;
       setChoPhepPhatVideo(false);
 
-      const node = progressEndpointRef?.current;
+      const node = progressOriginRef?.current ?? progressEndpointRef?.current;
       setOriginRect(node ? node.getBoundingClientRect() : null);
 
       const video = videoRef.current;
@@ -341,6 +342,7 @@ function RewardTikTokEffect({
     daDoViewport,
     danhSachVideo,
     lanKichHoat,
+    progressOriginRef,
     progressEndpointRef,
     videoSanSang,
     videoSrc,
