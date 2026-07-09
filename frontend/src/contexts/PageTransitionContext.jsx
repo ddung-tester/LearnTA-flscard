@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -134,7 +133,7 @@ export function PageTransitionProvider({ children }) {
   );
 }
 
-export function usePageTransition() {
+export function usePageTransition() { // eslint-disable-line react-refresh/only-export-components
   const context = useContext(PageTransitionContext);
 
   if (!context) {

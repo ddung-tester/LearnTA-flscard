@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   user_id BIGINT UNSIGNED NULL,
   deck_id BIGINT UNSIGNED NOT NULL,
 
-  mode ENUM('flashcard', 'quiz', 'written') NOT NULL,
+  mode ENUM('flashcard', 'quiz', 'written', 'review') NOT NULL,
   direction ENUM('en-vi', 'vi-en') NOT NULL,
 
   only_favorite BOOLEAN NOT NULL DEFAULT FALSE,
@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
 
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   ended_at TIMESTAMP NULL,
+  duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
 
   total INT UNSIGNED NOT NULL DEFAULT 0,
   correct INT UNSIGNED NOT NULL DEFAULT 0,
@@ -95,6 +96,8 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   segment_total INT UNSIGNED NOT NULL DEFAULT 0,
   segment_completed INT UNSIGNED NOT NULL DEFAULT 0,
   progress_segments JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_study_sessions_user
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -106,6 +109,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
 
   INDEX idx_study_sessions_user_id (user_id),
   INDEX idx_study_sessions_deck_id (deck_id),
+  INDEX idx_study_sessions_user_mode (user_id, mode),
   INDEX idx_study_sessions_created (started_at)
 ) ENGINE=InnoDB;
 
@@ -161,6 +165,84 @@ CREATE TABLE IF NOT EXISTS card_progress (
   UNIQUE KEY unique_user_card_progress (user_id, card_id),
   INDEX idx_card_progress_user_id (user_id),
   INDEX idx_card_progress_card_id (card_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS mistake_words (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NULL,
+  deck_id BIGINT UNSIGNED NULL,
+
+  term_en VARCHAR(255) NOT NULL,
+  meaning_vi VARCHAR(255) NOT NULL,
+  example_sentence TEXT,
+  source VARCHAR(40) NOT NULL DEFAULT 'quiz',
+  mistake_count INT UNSIGNED NOT NULL DEFAULT 1,
+  status ENUM('active', 'reviewed') NOT NULL DEFAULT 'active',
+
+  last_wrong_at TIMESTAMP NULL,
+  last_reviewed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_mistake_words_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_mistake_words_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_mistake_words_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_mistake_user_card (user_id, card_id),
+  INDEX idx_mistake_words_user_id (user_id),
+  INDEX idx_mistake_words_deck_id (deck_id),
+  INDEX idx_mistake_words_status (status),
+  INDEX idx_mistake_words_last_wrong_at (last_wrong_at),
+  INDEX idx_mistake_words_created_at (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS card_reviews (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NULL,
+  deck_id BIGINT UNSIGNED NULL,
+
+  term_en VARCHAR(255) NOT NULL,
+  meaning_vi VARCHAR(255) NOT NULL,
+  example_sentence TEXT,
+  source VARCHAR(40) NOT NULL DEFAULT 'quiz',
+  level TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ease VARCHAR(20) NULL,
+  review_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_reviewed_at TIMESTAMP NULL,
+  next_review_at TIMESTAMP NULL,
+  status ENUM('active', 'mastered') NOT NULL DEFAULT 'active',
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_card_reviews_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_card_reviews_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_card_reviews_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_card_reviews_user_card (user_id, card_id),
+  INDEX idx_card_reviews_user_id (user_id),
+  INDEX idx_card_reviews_deck_id (deck_id),
+  INDEX idx_card_reviews_next_review_at (next_review_at),
+  INDEX idx_card_reviews_status (status),
+  INDEX idx_card_reviews_created_at (created_at)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS quiz_results (

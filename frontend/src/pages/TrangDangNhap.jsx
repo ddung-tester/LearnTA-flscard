@@ -21,7 +21,7 @@ function TrangDangNhap() {
   const [failTick, setFailTick] = useState(0);
   const [dangChoChuyenTrang, setDangChoChuyenTrang] = useState(false);
   const redirectTimerRef = useRef(null);
-  const redirectTo = location.state?.from?.pathname || "/decks";
+  const redirectTo = location.state?.from?.pathname || "/dashboard";
   const isLogoutRedirect = location.state?.loggedOut;
 
   useEffect(
@@ -34,7 +34,7 @@ function TrangDangNhap() {
   );
 
   if (isAuthReady && isAuthenticated && !isLogoutRedirect && !isSubmitting && !dangChoChuyenTrang) {
-    return <Navigate to="/decks" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   function updateForm(event) {

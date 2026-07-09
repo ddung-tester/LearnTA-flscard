@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import AnimatedModal from "../components/common/AnimatedModal";
-import ToastMessage from "../components/common/ToastMessage";
+import EmptyState from "../components/common/EmptyState";
+import { DeckListSkeleton } from "../components/common/Skeleton";
+import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
@@ -18,6 +20,40 @@ const FORM_BO_RONG = {
 
 function chuanHoaTenBo(name) {
   return String(name || "").trim().toLocaleLowerCase("vi-VN");
+}
+
+const ICON_MAP = {
+  code: "💻",
+  server: "🖥️",
+  cpu: "⚙️",
+  book: "📖",
+  globe: "🌍",
+  star: "⭐",
+  pen: "✏️",
+  chat: "💬",
+  music: "🎵",
+  science: "🔬",
+  math: "🔢",
+  heart: "❤️",
+};
+
+const MAU_MAP = {
+  blue: "#3b82f6",
+  purple: "#8b5cf6",
+  orange: "#f59e0b",
+  green: "#22c55e",
+  red: "#ef4444",
+  pink: "#ec4899",
+  teal: "#14b8a6",
+  indigo: "#6366f1",
+};
+
+function layIconDeck(icon) {
+  return ICON_MAP[icon] || "📚";
+}
+
+function layMauDeck(themeColor) {
+  return MAU_MAP[themeColor] || "#3b82f6";
 }
 
 function IconPlus() {
@@ -110,7 +146,7 @@ function TrangDanhSachBo() {
   const [menuBoDangMo, setMenuBoDangMo] = useState(null);
   const [formBo, setFormBo] = useState(FORM_BO_RONG);
   const [loiFormBo, setLoiFormBo] = useState("");
-  const [toast, setToast] = useState("");
+  const toast = useToast();
 
   async function taiDanhSachDeck() {
     setIsLoadingDecks(true);
@@ -189,7 +225,7 @@ function TrangDanhSachBo() {
 
   function moFormSuaBo(bo) {
     if (!laBoCuaUser(bo)) {
-      setToast("Chỉ có thể sửa bộ từ của bạn");
+      toast.warning("Chỉ có thể sửa bộ từ của bạn");
       return;
     }
 
@@ -223,7 +259,7 @@ function TrangDanhSachBo() {
 
   function moXacNhanXoaBo(bo) {
     if (!laBoCuaUser(bo)) {
-      setToast("Chỉ có thể xóa bộ từ của bạn");
+      toast.warning("Chỉ có thể xóa bộ từ của bạn");
       return;
     }
 
@@ -294,7 +330,7 @@ function TrangDanhSachBo() {
         setDanhSachDeck((hienTai) => [deckMoi, ...hienTai]);
       }
 
-      setToast(boDangSua ? "Đã lưu thay đổi bộ từ" : "Đã thêm bộ từ mới");
+      toast.success(boDangSua ? "Đã lưu thay đổi bộ từ" : "Đã thêm bộ từ mới");
       dongFormBo();
     } catch (error) {
       if (error.status === 409) {
@@ -302,7 +338,7 @@ function TrangDanhSachBo() {
         return;
       }
 
-      setToast(error.message);
+      toast.error(error.message);
     } finally {
       setDangLuuBo(false);
     }
@@ -318,10 +354,10 @@ function TrangDanhSachBo() {
       setDanhSachDeck((hienTai) =>
         hienTai.filter((bo) => String(bo.id) !== String(boDangXoa.id))
       );
-      setToast("Đã xóa bộ từ");
+      toast.success("Đã xóa bộ từ");
       setBoDangXoa(null);
     } catch (error) {
-      setToast(error.message);
+      toast.error(error.message);
     } finally {
       setDangXoaBo(false);
     }
@@ -369,45 +405,31 @@ function TrangDanhSachBo() {
       </div>
 
       {isLoadingDecks ? (
-        <div className="ui-empty-panel border-dashed">
-          <p className="text-[var(--mau-chu-phu)]">Đang tải dữ liệu...</p>
-        </div>
+        <DeckListSkeleton count={3} />
       ) : loiTaiDecks ? (
-        <div className="ui-empty-panel border-dashed">
-          <p className="font-medium text-[var(--mau-chu)] mb-2">
-            Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.
-          </p>
-          <button
-            type="button"
-            onClick={taiDanhSachDeck}
-            className="ui-button ui-button--ghost rounded-lg border border-[var(--mau-vien)] px-4 py-2 text-sm"
-          >
-            Thử lại
-          </button>
-        </div>
+        <EmptyState
+          icon="error"
+          title="Không thể tải dữ liệu"
+          description="Kiểm tra kết nối mạng hoặc thử lại."
+          action="Thử lại"
+          onAction={taiDanhSachDeck}
+        />
       ) : danhSachDeck.length === 0 ? (
-        <div className="ui-empty-panel border-dashed">
-          <p className="font-medium text-[var(--mau-chu)] mb-1">
-            {tieuDeRong}
-          </p>
-          <p className="text-sm text-[var(--mau-chu-phu)] mb-4">
-            {moTaRong}
-          </p>
-          <button
-            type="button"
-            onClick={moFormThemBo}
-            aria-label="Thêm bộ từ"
-            title="Thêm bộ từ"
-            className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-          >
-            <IconPlus />
-          </button>
-        </div>
+        <EmptyState
+          icon="deck"
+          title={tieuDeRong}
+          description={moTaRong}
+          action={isAuthenticated ? "Tạo bộ từ đầu tiên" : "Đăng nhập"}
+          onAction={isAuthenticated ? moFormThemBo : chuyenSangDangNhap}
+          actionIcon={isAuthenticated ? <IconPlus /> : undefined}
+        />
       ) : (
         <ul className="ui-content-enter ui-deck-grid">
           {danhSachDeck.map((bo) => {
             const soThe = bo.card_count ?? 0;
             const tienDo = bo.latest_quiz ? { quiz: bo.latest_quiz } : layTienDoDeck(bo.id);
+            const deckIcon = layIconDeck(bo.icon);
+            const mauDeck = layMauDeck(bo.theme_color);
 
             return (
               <li
@@ -417,22 +439,30 @@ function TrangDanhSachBo() {
                 onClick={() => moChiTietBo(bo.id)}
                 onKeyDown={(event) => xuLyPhimCard(event, bo.id)}
                 className="ui-card-interactive ui-deck-card group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5"
+                style={{ borderTopColor: mauDeck }}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 pt-0.5">
-                    <h3 className="truncate text-[1.03rem] font-semibold leading-6 text-[var(--mau-chu)] transition-colors group-hover:text-[var(--mau-chinh)]">
-                      {bo.title}
-                    </h3>
-                    {bo.description && (
-                      <p className="ui-deck-card__description mt-1 text-sm leading-6 text-[var(--mau-chu-phu)]">
-                        {bo.description}
-                      </p>
-                    )}
+                  <div className="flex items-start gap-3 min-w-0 pt-0.5">
+                    <span
+                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg"
+                      style={{ background: `${mauDeck}18` }}
+                      aria-hidden="true"
+                    >
+                      {deckIcon}
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[1.03rem] font-semibold leading-6 text-[var(--mau-chu)] transition-colors group-hover:text-[var(--mau-chinh)]">
+                        {bo.title}
+                      </h3>
+                      {bo.description && (
+                        <p className="ui-deck-card__description mt-1 text-sm leading-6 text-[var(--mau-chu-phu)]">
+                          {bo.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-
-
                     {laBoCuaUser(bo) && (
                       <div className="relative">
                         <button
@@ -485,7 +515,12 @@ function TrangDanhSachBo() {
                   </span>
                   {tienDo?.quiz && (
                     <span className="ui-chip ui-chip--muted ui-chip--small">
-                      Quiz gần nhất: {tienDo.quiz.correct}/{tienDo.quiz.total}
+                      Quiz: {tienDo.quiz.correct}/{tienDo.quiz.total}
+                    </span>
+                  )}
+                  {bo.streak > 0 && (
+                    <span className="ui-chip ui-chip--small" style={{ color: mauDeck }}>
+                      🔥 {bo.streak} ngày
                     </span>
                   )}
                 </div>
@@ -617,7 +652,7 @@ function TrangDanhSachBo() {
           </div>
         </div>
       </AnimatedModal>
-      <ToastMessage message={toast} onDone={() => setToast("")} />
+
     </div>
   );
 }

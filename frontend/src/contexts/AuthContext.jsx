@@ -14,6 +14,7 @@ import {
   layNguoiDungHienTai,
 } from "../services/authApi";
 import { dongBoCaiDatTuDatabase } from "../utils/caiDatHocTap";
+import { dongBoDuLieuHocTapLenBackend } from "../utils/learningSync";
 
 const AuthContext = createContext(null);
 
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
     setToken(data.token);
     setUser(data.user);
     dongBoCaiDatTuDatabase();
+    dongBoDuLieuHocTapLenBackend();
   }, []);
 
   const clearAuth = useCallback(() => {
@@ -55,6 +57,7 @@ export function AuthProvider({ children }) {
         if (isMounted) {
           setUser(currentUser);
           dongBoCaiDatTuDatabase();
+          dongBoDuLieuHocTapLenBackend();
         }
       } catch {
         localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
@@ -94,7 +97,6 @@ export function AuthProvider({ children }) {
     [saveAuth]
   );
 
-
   const dangKy = useCallback(
     async (payload) => {
       const data = await dangKyTaiKhoan(payload);
@@ -120,7 +122,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth() { // eslint-disable-line react-refresh/only-export-components
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth phai duoc dung trong AuthProvider");

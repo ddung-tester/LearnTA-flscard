@@ -4,7 +4,6 @@ import { useParams, Link } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
-import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -19,6 +18,7 @@ import {
   getProgressColor,
 } from "../utils/progressColor";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import { ghiNhanDungVaoSRSDongBo, ghiNhanSaiVaoSRSDongBo } from "../utils/srsReview";
 
 const DS_CHE_DO = [
   {
@@ -123,6 +123,8 @@ function TrangFlashcard() {
   const cacTheDaTinhDiemRef = useRef(new Set());
   const cacTheDaHoanTatRef = useRef(new Set());
   const rewardTimerRef = useRef(null);
+  // Theo dõi card đã được đánh giá (đã nhớ/chưa nhớ) trong session này — tránh đánh giá lại
+  const daDanhGiaRef = useRef(new Set());
   const progressEndpointRef = useRef(null);
   const [studySessionId, setStudySessionId] = useState(null);
   const daLuuKetQuaRef = useRef(false);
@@ -138,6 +140,7 @@ function TrangFlashcard() {
     xoaTimerReward();
     cacTheDaTinhDiemRef.current = new Set();
     cacTheDaHoanTatRef.current = new Set();
+    daDanhGiaRef.current = new Set();
     setSoTheDaHoanTat(0);
     setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDiemReward(0);
@@ -201,11 +204,6 @@ function TrangFlashcard() {
     () => taoDanhSachTheoTienTrinh(danhSach),
     [danhSach]
   );
-  const chiSoTienTrinhDangHoatDong = danhSachTheoTienTrinh[chiSo]?.__segmentIndex
-    ?? soTheDaHoanTatTheoTienTrinh.findIndex(
-      (soTheHoanTat, index) =>
-        soTheHoanTat < (danhSachTienTrinh[index]?.totalValue ?? 0)
-    );
   const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
     const currentValue = soTheDaHoanTatTheoTienTrinh[index] ?? 0;
     const totalValue = tienTrinh.totalValue || 1;
@@ -341,6 +339,40 @@ function TrangFlashcard() {
       return chiSoMoi;
     });
     setDaLat(false);
+  }
+
+  /**
+   * Xuân lý đánh giá flashcard — gọi SRS và tự chuyển thẻ.
+   * Chỉ đánh giá 1 lần / card trong session (để không spam SRS).
+   */
+  function xuLyDaNho() {
+    const card = theHienTai;
+    if (!card || !bo) return;
+    const cardKey = `${cheDo}-${card.id}`;
+    if (!daDanhGiaRef.current.has(cardKey)) {
+      daDanhGiaRef.current.add(cardKey);
+      ghiNhanDungVaoSRSDongBo([card], {
+        deckId: boId,
+        deckTitle: bo.title ?? "",
+        source: "flashcard",
+      });
+    }
+    diChuyen(1);
+  }
+
+  function xuLyChuaNho() {
+    const card = theHienTai;
+    if (!card || !bo) return;
+    const cardKey = `${cheDo}-${card.id}`;
+    if (!daDanhGiaRef.current.has(cardKey)) {
+      daDanhGiaRef.current.add(cardKey);
+      ghiNhanSaiVaoSRSDongBo([card], {
+        deckId: boId,
+        deckTitle: bo.title ?? "",
+        source: "flashcard",
+      });
+    }
+    diChuyen(1);
   }
 
   function doiCheDoHoc(key) {
@@ -554,7 +586,6 @@ function TrangFlashcard() {
   const ngonNguMatSau = cheDo === "en-vi" ? "vi-VN" : "en-US";
   const vanBanDangHien = daLat ? matSau : matTruoc;
   const ngonNguDangHien = daLat ? ngonNguMatSau : ngonNguMatTruoc;
-  const chiSoTienTrinhDangRender = Math.max(0, chiSoTienTrinhDangHoatDong);
   const thietLapLatThe = giamChuyenDong
     ? { duration: 0 }
     : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
@@ -747,6 +778,30 @@ function TrangFlashcard() {
           Sau &rarr;
         </button>
       </div>
+
+      {/* Nút đánh giá nhớ/chưa nhớ — chỉ hiện sau khi lật thẻ */}
+      {daLat && (
+        <div className="fc-rate-row ui-content-enter">
+          <button
+            type="button"
+            onClick={xuLyChuaNho}
+            className="fc-rate-btn fc-rate-btn--fail"
+            id="btn-flashcard-chua-nho"
+          >
+            <span className="fc-rate-btn__icon">✕</span>
+            <span>Chưa nhớ</span>
+          </button>
+          <button
+            type="button"
+            onClick={xuLyDaNho}
+            className="fc-rate-btn fc-rate-btn--pass"
+            id="btn-flashcard-da-nho"
+          >
+            <span className="fc-rate-btn__icon">✓</span>
+            <span>Đã nhớ</span>
+          </button>
+        </div>
+      )}
       </div>
     </>
   );

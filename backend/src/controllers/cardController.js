@@ -261,10 +261,12 @@ async function importCards(req, res) {
   try {
     await connection.beginTransaction();
 
-    await connection.execute(
-      "UPDATE cards SET sort_order = sort_order + ? WHERE deck_id = ?",
-      [validCards.length, deckId]
+    // Find current max sort_order to append new cards below existing ones
+    const [[maxRow]] = await connection.query(
+      "SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM cards WHERE deck_id = ?",
+      [deckId]
     );
+    const baseOrder = Number(maxRow.max_order) + 1;
 
     const insertedIds = [];
     for (let index = 0; index < validCards.length; index += 1) {
@@ -282,7 +284,7 @@ async function importCards(req, res) {
           card.pronunciation,
           card.part_of_speech,
           card.is_favorite,
-          index,
+          baseOrder + index,
         ]
       );
 
@@ -293,7 +295,7 @@ async function importCards(req, res) {
       `SELECT *
        FROM cards
        WHERE id IN (?)
-       ORDER BY sort_order ASC, created_at DESC, id DESC`,
+       ORDER BY sort_order ASC, created_at ASC, id ASC`,
       [insertedIds]
     );
 

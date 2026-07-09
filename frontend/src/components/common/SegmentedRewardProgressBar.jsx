@@ -3,7 +3,6 @@
  * Gradient màu là 1 dải đồng nhất xuyên suốt toàn bộ (dùng CSS clip trick).
  * Không dùng divider overlay nữa — mỗi thanh là 1 track độc lập với gap nhỏ.
  */
-import { useRef } from "react";
 
 function SegmentBar({ segmentIndex, totalSegments, currentValue, totalValue, phase, combo, endpointRef, activeEndRef }) {
   const fillPercent = totalValue > 0 ? Math.min((currentValue / totalValue) * 100, 100) : 0;

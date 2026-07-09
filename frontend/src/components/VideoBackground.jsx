@@ -12,6 +12,7 @@ const BODY_VARIANT_CLASSES = [
   "has-video-background-variant--default",
   "has-video-background-variant--auth",
   "has-video-background-variant--study",
+  "has-video-background-variant--dashboard",
 ];
 const NOOP_VIDEO_READY = () => {};
 

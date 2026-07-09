@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import StreakBadge from "../components/common/StreakBadge";
 import { useParams, Link } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
-import ToastMessage from "../components/common/ToastMessage";
+import DeckDetailSkeleton from "../components/common/DeckDetailSkeleton";
+import EmptyState from "../components/common/EmptyState";
+import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useTTS from "../hooks/useTTS";
@@ -32,6 +34,14 @@ const FILTER_TU = [
   { key: "tat-ca", label: "Tất cả" },
   { key: "yeu-thich", label: "Yêu thích" },
   { key: "moi-them", label: "Mới thêm" },
+];
+
+const SORT_TU = [
+  { key: "mac-dinh", label: "Mặc định" },
+  { key: "ten", label: "Theo tên" },
+  { key: "ngay-them", label: "Ngày thêm" },
+  { key: "so-cau-sai", label: "Số câu sai" },
+  { key: "chua-hoc", label: "Chưa học" },
 ];
 
 function IconPlus() {
@@ -160,8 +170,9 @@ function TrangChiTietBo() {
   const [dangChinhSua, setDangChinhSua] = useState(false);
   const [dangMoImport, setDangMoImport] = useState(false);
   const [noiDungImport, setNoiDungImport] = useState("");
-  const [toast, setToast] = useState("");
+  const toast = useToast();
   const [filterTu, setFilterTu] = useState("tat-ca");
+  const [sortTu, setSortTu] = useState("mac-dinh");
   const [theDangKeoId, setTheDangKeoId] = useState(null);
   const [dangLuuThuTu, setDangLuuThuTu] = useState(false);
   const [banSaoKeoTu, setBanSaoKeoTu] = useState(null);
@@ -213,6 +224,7 @@ function TrangChiTietBo() {
     setDangMoImport(false);
     setNoiDungImport("");
     setFilterTu("tat-ca");
+    setSortTu("mac-dinh");
     setTheDangKeoId(null);
     setDangXacNhanXoa(null);
     taiDuLieuBo();
@@ -233,6 +245,7 @@ function TrangChiTietBo() {
 
   useEffect(() => () => {
     cleanupPointerKeoRef.current?.();
+    // eslint-disable-next-line react-hooks/immutability -- function declaration is hoisted, safe to call before source-order declaration
     dungAutoScroll();
     if (frameKeoRef.current) {
       window.cancelAnimationFrame(frameKeoRef.current);
@@ -295,7 +308,7 @@ function TrangChiTietBo() {
     if (!isAuthenticated) {
       navigateWithLoading("/login", { state: { from: { pathname: `/decks/${boId}` } } });
     } else {
-      setToast("Chỉ có thể sửa bộ từ của bạn");
+      toast.warning("Chỉ có thể sửa bộ từ của bạn");
     }
 
     return false;
@@ -305,7 +318,7 @@ function TrangChiTietBo() {
     if (!yeuCauQuyenChinhSua()) return false;
     if (dangChinhSua) return true;
 
-    setToast("Bật chế độ sửa để quản lý từ");
+    toast.info("Bật chế độ sửa để quản lý từ");
     return false;
   }
 
@@ -327,6 +340,7 @@ function TrangChiTietBo() {
 
     setDangChinhSua(true);
     setFilterTu("tat-ca");
+    setSortTu("mac-dinh");
   }
 
   function moFormThemTu() {
@@ -381,7 +395,7 @@ function TrangChiTietBo() {
       );
       showSuccess("Đã hoán đổi");
     } catch (error) {
-      setToast(error.message);
+      toast.error(error.message);
     }
   }
 
@@ -443,7 +457,7 @@ function TrangChiTietBo() {
     showSuccess(theDangSua ? "Đã cập nhật" : "Đã thêm từ");
     dongFormTu();
     } catch (error) {
-      setToast(error.message);
+      toast.error(error.message);
     } finally {
       setDangLuuTu(false);
     }
@@ -469,7 +483,7 @@ function TrangChiTietBo() {
     });
 
     if (danhSachHopLe.length === 0) {
-      setToast("Không có từ hợp lệ");
+      toast.warning("Không có từ hợp lệ");
       return;
     }
 
@@ -484,13 +498,13 @@ function TrangChiTietBo() {
         }))
       );
 
-      setDanhSach((hienTai) => [...ketQua.cards, ...hienTai]);
+      setDanhSach((hienTai) => [...hienTai, ...ketQua.cards]);
 
     setNoiDungImport("");
     setDangMoImport(false);
     showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
     } catch (error) {
-      setToast(error.message);
+      toast.error(error.message);
     }
   }
 
@@ -510,7 +524,7 @@ function TrangChiTietBo() {
       setDangXacNhanXoa(null);
     showSuccess("Đã xóa");
     } catch (error) {
-      setToast(error.message);
+      toast.error(error.message);
     }
   }
 
@@ -524,6 +538,35 @@ function TrangChiTietBo() {
     }
 
     return danhSachCanLoc;
+  }
+
+  function sapXepDanhSachTu(danhSachCanSap) {
+    if (sortTu === "mac-dinh") return danhSachCanSap;
+
+    const copy = [...danhSachCanSap];
+
+    if (sortTu === "ten") {
+      copy.sort((a, b) =>
+        a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
+      );
+    } else if (sortTu === "ngay-them") {
+      copy.sort((a, b) => {
+        const da = new Date(a.created_at || 0).getTime();
+        const db = new Date(b.created_at || 0).getTime();
+        return da - db; // cũ nhất lên đầu
+      });
+    } else if (sortTu === "so-cau-sai") {
+      copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
+    } else if (sortTu === "chua-hoc") {
+      // Từ chưa học (correct_count < 5) lên trên, sau đó theo sort_order
+      copy.sort((a, b) => {
+        const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
+        const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
+        return aNew - bNew;
+      });
+    }
+
+    return copy;
   }
 
   function sapXepTheoViTri(danhSachCanSap, cardId, viTriMoi) {
@@ -575,7 +618,7 @@ function TrangChiTietBo() {
       if (phienLuu !== phienLuuThuTuRef.current) return;
       danhSachRef.current = danhSachCu;
       setDanhSach(danhSachCu);
-      setToast(error.message);
+      toast.error(error.message);
     } finally {
       if (phienLuu === phienLuuThuTuRef.current) {
         setDangLuuThuTu(false);
@@ -812,34 +855,25 @@ function TrangChiTietBo() {
             : item
         )
       );
-      setToast(error.message);
+      toast.error(error.message);
       return;
     }
-    setToast(yeuThichMoi ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích");
+    toast.success(yeuThichMoi ? "Đã thêm vào yêu thích" : "Đã bỏ yêu thích");
   }
 
   if (dangTaiDuLieu) {
-    return (
-      <div className="ui-empty-panel border-dashed">
-        <p className="text-[var(--mau-chu-phu)]">Đang tải dữ liệu...</p>
-      </div>
-    );
+    return <DeckDetailSkeleton />;
   }
 
   if (loiTaiDuLieu) {
     return (
-      <div className="ui-empty-panel border-dashed">
-        <p className="font-medium text-[var(--mau-chu)] mb-2">
-          Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.
-        </p>
-        <button
-          type="button"
-          onClick={taiDuLieuBo}
-          className="ui-button ui-button--ghost rounded-lg border border-[var(--mau-vien)] px-4 py-2 text-sm"
-        >
-          Thử lại
-        </button>
-      </div>
+      <EmptyState
+        icon="error"
+        title="Không thể tải dữ liệu"
+        description="Kiểm tra kết nối mạng hoặc thử lại."
+        action="Thử lại"
+        onAction={taiDuLieuBo}
+      />
     );
   }
 
@@ -866,14 +900,16 @@ function TrangChiTietBo() {
   }
 
   const soTu = danhSach.length;
-  const danhSachDaLoc = locDanhSachTu(danhSach);
+  const danhSachDaLoc = sapXepDanhSachTu(locDanhSachTu(danhSach));
   const soTuYeuThich = danhSach.filter(laTuYeuThich).length;
   const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
+  const soTuChuaHoc = danhSach.filter((t) => (t.correct_count || 0) < 5).length;
   const streak = userStreak;
   const coTheQuiz = soTu >= 4;
   const coTheQuanLy = coQuyenQuanLyBo();
   const dangBatChinhSua = dangChinhSua && coTheQuanLy;
-  const dangChoMoveTu = dangBatChinhSua;
+  // Chỉ cho kéo thứ tự khi đang ở chế độ sắp xếp mặc định
+  const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh";
 
   return (
     <div className="ui-page-stack">
@@ -1015,50 +1051,65 @@ function TrangChiTietBo() {
           )}
         </div>
 
-        <div className="ui-filter-tabs" aria-label="Lọc từ vựng">
-          {FILTER_TU.map((filter) => {
-            const soLuong =
-              filter.key === "yeu-thich"
-                ? soTuYeuThich
-                : filter.key === "moi-them"
-                  ? soTuMoiThem
-                  : soTu;
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="ui-filter-tabs" aria-label="Lọc từ vựng">
+            {FILTER_TU.map((filter) => {
+              const soLuong =
+                filter.key === "yeu-thich"
+                  ? soTuYeuThich
+                  : filter.key === "moi-them"
+                    ? soTuMoiThem
+                    : soTu;
 
-            return (
-              <button
-                key={filter.key}
-                type="button"
-                onClick={() => setFilterTu(filter.key)}
-                disabled={dangBatChinhSua}
-                aria-pressed={filterTu === filter.key}
-                className="ui-filter-tab"
-              >
-                <span>{filter.label}</span>
-                <span className="ui-filter-tab__count">{soLuong}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setFilterTu(filter.key)}
+                  disabled={dangBatChinhSua}
+                  aria-pressed={filterTu === filter.key}
+                  className="ui-filter-tab"
+                >
+                  <span>{filter.label}</span>
+                  <span className="ui-filter-tab__count">{soLuong}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            <span className="text-xs text-[var(--mau-chu-phu)] font-medium hidden sm:inline">Sắp xếp:</span>
+            <select
+              value={sortTu}
+              onChange={(e) => setSortTu(e.target.value)}
+              disabled={dangBatChinhSua}
+              aria-label="Sắp xếp từ vựng"
+              className="rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
+            >
+              {SORT_TU.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                  {s.key === "chua-hoc" ? ` (${soTuChuaHoc})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {danhSach.length === 0 ? (
-          <div className="ui-empty-panel border-dashed">
-            <p className="text-[var(--mau-chu-phu)]">Chưa có từ nào.</p>
-            {dangBatChinhSua && (
-              <button
-                type="button"
-                onClick={moFormThemTu}
-                className="ui-link mt-3 text-sm text-[var(--mau-chinh)] hover:underline"
-              >
-                + Thêm từ vựng đầu tiên
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon="card"
+            title="Chưa có từ nào"
+            description="Thêm từ vựng đầu tiên để bắt đầu học."
+            action={coTheQuanLy ? "Thêm từ vựng" : undefined}
+            onAction={coTheQuanLy ? moFormThemTu : undefined}
+          />
         ) : danhSachDaLoc.length === 0 ? (
-          <div className="ui-empty-panel border-dashed">
-            <p className="text-[var(--mau-chu-phu)]">
-              Chưa có từ phù hợp với bộ lọc này.
-            </p>
-          </div>
+          <EmptyState
+            icon={filterTu === "yeu-thich" ? "favorite" : "search"}
+            title={filterTu === "yeu-thich" ? "Chưa có từ yêu thích" : "Không tìm thấy"}
+            description={filterTu === "yeu-thich" ? "Nhấn ♥ để đánh dấu từ yêu thích." : "Chưa có từ phù hợp với bộ lọc này."}
+          />
         ) : (
           <ul ref={listTuRef} className="ui-card-list">
             {danhSachDaLoc.map((the, i) => {
@@ -1430,7 +1481,7 @@ function TrangChiTietBo() {
         </div>
       </AnimatedModal>
 
-      <ToastMessage message={toast} onDone={() => setToast("")} />
+
     </div>
   );
 }

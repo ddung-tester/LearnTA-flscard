@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import ToastMessage from "../components/common/ToastMessage";
+import { useToast } from "../contexts/ToastContext";
 import { layBoTheoId } from "../data/duLieuMau";
 
 /**
@@ -19,7 +19,7 @@ function TrangThemTu() {
     note: "",
   });
   const [danhSachDaLuu, setDanhSachDaLuu] = useState([]);
-  const [toast, setToast] = useState("");
+  const toast = useToast();
 
   if (!bo) {
     return (
@@ -49,7 +49,7 @@ function TrangThemTu() {
       { ...tuMoi, id: Date.now() },
     ]);
     setTuMoi({ term_en: "", meaning_vi: "", example_sentence: "", note: "" });
-    setToast("Đã thêm từ vào danh sách tạm");
+    toast.success("Đã thêm từ vào danh sách tạm");
   }
 
   return (
@@ -164,7 +164,7 @@ function TrangThemTu() {
           </p>
         </div>
       )}
-      <ToastMessage message={toast} onDone={() => setToast("")} />
+
     </div>
   );
 }

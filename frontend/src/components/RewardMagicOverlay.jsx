@@ -136,6 +136,7 @@ function RewardMagicOverlay({
     if (!canvasRefs?.current) return;
 
     if (node) {
+      // eslint-disable-next-line react-hooks/immutability -- callback ref populating a ref map (correct pattern)
       canvasRefs.current[viTri] = node;
     } else {
       delete canvasRefs.current[viTri];
@@ -342,7 +343,6 @@ function RewardMagicOverlay({
       const studyFrame = q(".reward-magic__study-frame");
       const sourceGlow = q(".reward-magic__source-glow");
       const sparks = q(".reward-magic__spark");
-      const paths = q(".reward-magic__path");
       const bursts = q(".reward-magic__burst");
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"

@@ -5,6 +5,7 @@ import ToggleSwitch from "../components/common/ToggleSwitch";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import StreakCelebration from "../components/common/StreakCelebration";
+import StudyResult from "../components/common/StudyResult";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -487,27 +488,6 @@ function TrangQuiz() {
     });
   }
 
-  function duaCauHienTaiVeCuoiTienTrinh() {
-    setDanhSachCauHoiRuntime((danhSachHienTai) => {
-      if (!danhSachHienTai[chiSo]) return danhSachHienTai;
-
-      const danhSachMoi = [...danhSachHienTai];
-      const [cauCanLap] = danhSachMoi.splice(chiSo, 1);
-      const chiSoTienTrinh = cauCanLap?.__segmentIndex ?? 0;
-      let viTriChen = chiSo;
-
-      for (let index = chiSo; index < danhSachMoi.length; index += 1) {
-        if ((danhSachMoi[index]?.__segmentIndex ?? -1) === chiSoTienTrinh) {
-          viTriChen = index + 1;
-        } else {
-          break;
-        }
-      }
-
-      danhSachMoi.splice(viTriChen, 0, cauCanLap);
-      return danhSachMoi;
-    });
-  }
 
   function lamLai() {
     xoaTimerChuyenCau();
@@ -1001,6 +981,8 @@ function TrangQuiz() {
     const soCauDungThucTe = tongSoCauMucTieu - soCauSai;
     // Lấy danh sách card gốc tương ứng những card đã sai
     const danhSachCardSai = danhSachGoc.filter((card) => tapCardSai.has(card.id));
+    // Lấy danh sách card đúng (toàn bộ - sai) để cập nhật SRS mastery
+    const danhSachCardDung = danhSachGoc.filter((card) => !tapCardSai.has(card.id));
 
     function hocLaiTuSai() {
       // Cho phép dù chỉ 1 từ sai — sẽ dùng danhSachGoc làm pool nhiễu
@@ -1045,120 +1027,20 @@ function TrangQuiz() {
           combo={combo}
         />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
-          <Link
-            to={`/decks/${boId}`}
-            className="ui-back-link ui-back-link--quiet"
-          >
-            &larr; {bo.title}
-          </Link>
-          <section className="ui-content-enter mt-6 rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-6 py-8 text-center shadow-[var(--bong-card)] sm:px-8 sm:py-9">
-            <p className="mb-3 text-xs font-mono uppercase tracking-wider text-[var(--mau-chinh)]">
-              Tổng kết quiz
-            </p>
-            <h2 className="text-2xl font-semibold text-[var(--mau-chu)] sm:text-[2rem]">
-              Hoàn thành bài học
-            </h2>
-            {loiLuuKetQua && (
-              <p className="mt-3 text-sm text-[var(--mau-loi)]">
-                Không thể lưu kết quả lên backend. Kết quả trên màn hình vẫn được giữ.
-              </p>
-            )}
-            <div className="ui-stat-grid mx-auto mt-8 mb-8 max-w-xl">
-              <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat-2)]">
-                <p className="ui-stat-label mb-1">Tổng câu</p>
-                <p className="ui-stat-value text-[var(--mau-chu)]">
-                  {tongSoCauMucTieu}
-                </p>
-              </div>
-              <div className="ui-stat-card border border-[var(--mau-thanh-cong)]/30 bg-[var(--mau-thanh-cong)]/5">
-                <p className="ui-stat-label mb-1">Đúng</p>
-                <p className="ui-stat-value text-[var(--mau-thanh-cong)]">
-                  {soCauDungThucTe}
-                </p>
-              </div>
-              {soCauSai > 0 && (
-                <div className="ui-stat-card border border-[var(--mau-loi)]/30 bg-[var(--mau-loi)]/5">
-                  <p className="ui-stat-label mb-1">Sai</p>
-                  <p className="ui-stat-value text-[var(--mau-loi)]">
-                    {soCauSai}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <button
-                type="button"
-                onClick={lamLai}
-                className="ui-button ui-button--ghost w-full rounded-xl px-5 py-2.5 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
-              >
-                Làm lại
-              </button>
-              {soCauSai > 0 && (
-                <button
-                  type="button"
-                  onClick={hocLaiTuSai}
-                  className="ui-button ui-button--primary w-full rounded-xl bg-[var(--mau-loi)] px-5 py-2.5 font-semibold text-white transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-loi)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:w-auto sm:min-w-[10rem]"
-                >
-                  Học lại {soCauSai} từ sai
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* Danh sách từ đã sai — hiển thị như trang quản lý từ */}
-          {soCauSai > 0 && (
-            <section className="ui-content-enter mt-6">
-              <div className="mb-3 flex items-center gap-2">
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                    fontSize: "0.75rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.07em",
-                    textTransform: "uppercase",
-                    color: "var(--mau-loi)",
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" style={{ width: "0.9rem", height: "0.9rem" }} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  {soCauSai} từ cần ôn lại
-                </span>
-              </div>
-              <ul className="ui-card-list">
-                {danhSachCardSai.map((card, i) => (
-                  <li
-                    key={card.id}
-                    className="ui-reading-card ui-word-row border border-[var(--mau-loi)]/30 rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
-                  >
-                    <div className="ui-word-row__inner">
-                      <div className="ui-word-main">
-                        <span className="ui-word-index">{i + 1}</span>
-                        <div className="ui-word-pair">
-                          <div className="flex items-center gap-1 w-full min-w-0">
-                            <span className="ui-word-card ui-word-card--term flex-1">
-                              {card.term_en}
-                            </span>
-                          </div>
-                          <span className="ui-word-card ui-word-card--meaning">
-                            {card.meaning_vi}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {card.example_sentence && (
-                      <p className="ui-word-example">{card.example_sentence}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <StudyResult
+            deckTitle={bo.title}
+            deckId={boId}
+            tongSoCau={tongSoCauMucTieu}
+            soCauDung={soCauDungThucTe}
+            soCauSai={soCauSai}
+            maxCombo={maxCombo}
+            loiLuu={loiLuuKetQua}
+            onLamLai={lamLai}
+            onHocLaiTuSai={soCauSai > 0 ? hocLaiTuSai : undefined}
+            danhSachCardSai={danhSachCardSai}
+            danhSachCardDung={danhSachCardDung}
+            mode="quiz"
+          />
         </div>
       </>
     );

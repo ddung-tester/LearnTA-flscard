@@ -9,15 +9,19 @@ import {
 } from "./constants/backgrounds";
 
 const TrangChu = lazy(() => import("./pages/TrangChu"));
+const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
 const TrangDanhSachBo = lazy(() => import("./pages/TrangDanhSachBo"));
 const TrangChiTietBo = lazy(() => import("./pages/TrangChiTietBo"));
 const TrangThemTu = lazy(() => import("./pages/TrangThemTu"));
 const TrangFlashcard = lazy(() => import("./pages/TrangFlashcard"));
 const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
 const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
+const TrangTuSai = lazy(() => import("./pages/TrangTuSai"));
+const TrangOnTapHomNay = lazy(() => import("./pages/TrangOnTapHomNay"));
 const TrangDangNhap = lazy(() => import("./pages/TrangDangNhap"));
 const TrangDangKy = lazy(() => import("./pages/TrangDangKy"));
 const TrangCaiDat = lazy(() => import("./pages/TrangCaiDat"));
+const TrangThongKe = lazy(() => import("./pages/TrangThongKe"));
 
 /**
  * UngDung — Routing chinh.
@@ -30,14 +34,19 @@ function UngDung() {
     viTri.pathname === "/login" ||
     viTri.pathname === "/register";
   const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
+  const laTrangDashboard = viTri.pathname === "/dashboard";
   const backgroundVariant = laTrangImmersive
     ? "auth"
     : laPhienHoc
       ? "study"
-      : "default";
+      : laTrangDashboard
+        ? "dashboard"
+        : "default";
   const backgroundSrc = laTrangImmersive
     ? BACKGROUND_DEFAULT_VIDEO
-    : BACKGROUND_QUIZ_VIDEO;
+    : laTrangDashboard
+      ? BACKGROUND_DEFAULT_VIDEO
+      : BACKGROUND_QUIZ_VIDEO;
 
   const noiDungRoutes = (
     <Suspense fallback={null}>
@@ -49,6 +58,10 @@ function UngDung() {
           <Route path="/decks" element={<TrangDanhSachBo />} />
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<TrangDashboard />} />
+            <Route path="/tu-sai" element={<TrangTuSai />} />
+            <Route path="/review" element={<TrangOnTapHomNay />} />
+            <Route path="/stats" element={<TrangThongKe />} />
             <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
             <Route path="/cai-dat" element={<TrangCaiDat />} />
           </Route>

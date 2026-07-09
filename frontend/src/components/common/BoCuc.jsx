@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
-import { getUserStats } from "../../services/userApi";
 
 /**
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
@@ -15,10 +14,10 @@ function BoCuc() {
   const { dangXuat, isAuthenticated, user } = useAuth();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
   const menuTaiKhoanRef = useRef(null);
-  const [userStreak, setUserStreak] = useState(0);
   const laTrangChu = viTri.pathname === "/";
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
+  const laTrangDashboard = viTri.pathname === "/dashboard";
   const dangTrongKhuBoTu = viTri.pathname.startsWith("/decks");
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
@@ -29,26 +28,7 @@ function BoCuc() {
     setDangMoMenuTaiKhoan(false);
   }, [viTri.pathname]);
 
-  // Fetch user streak khi đăng nhập hoặc chuyển trang
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setUserStreak(0);
-      return;
-    }
-    getUserStats()
-      .then((stats) => setUserStreak(stats.current_streak ?? 0))
-      .catch(() => {}); // silent fail
-  }, [isAuthenticated, viTri.pathname]);
 
-  // Lắng nghe event streak-updated từ trang học — cập nhật badge ngay lập tức
-  useEffect(() => {
-    function onStreakUpdated(e) {
-      const newStreak = e.detail?.streak ?? 0;
-      setUserStreak(newStreak);
-    }
-    window.addEventListener("streak-updated", onStreakUpdated);
-    return () => window.removeEventListener("streak-updated", onStreakUpdated);
-  }, []);
 
   useEffect(() => {
     if (!dangMoMenuTaiKhoan) return undefined;
@@ -87,24 +67,51 @@ function BoCuc() {
 
   return (
     <div className={laPhienHoc ? "app-shell app-shell--study" : "min-h-screen"}>
-      <header className="app-shell-header px-4 py-3 sm:px-6">
-        <div className="app-shell-header__inner mx-auto flex items-center justify-between gap-3">
+      <header className={`app-shell-header${laTrangDashboard ? " app-shell-header--dashboard" : " px-4 py-3 sm:px-6"}`}>
+        <div className={`${laTrangDashboard ? "app-shell-header__inner--dashboard mx-auto px-4 sm:px-6" : "app-shell-header__inner mx-auto px-0"} flex items-center justify-between gap-3`}>
           {!laTrangAuth && (
             <Link
-              to="/decks"
-              className="ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"
+              to={isAuthenticated ? "/dashboard" : "/decks"}
+              className={laTrangDashboard ? "dash-nav__brand" : "ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"}
             >
               Streak Drop
             </Link>
           )}
-          <nav className="flex flex-wrap items-center justify-end gap-2">
+          <nav className={laTrangDashboard ? "dash-nav__links" : "flex flex-wrap items-center justify-end gap-2"}>
+            {isAuthenticated && !laTrangAuth && (
+              laTrangDashboard ? (
+                <Link
+                  to="/dashboard"
+                  className={`dash-nav__link${laTrangDashboard ? " dash-nav__link--active" : ""}`}
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <Link
+                  to="/dashboard"
+                  className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                    laTrangDashboard
+                      ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
+                      : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
+                  }`}
+                >
+                  Dashboard
+                </Link>
+              )
+            )}
             {!dangTrongKhuBoTu && !laTrangAuth && (
-              <Link
-                to="/decks"
-                className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
-              >
-                Bộ từ vựng
-              </Link>
+              laTrangDashboard ? (
+                <Link to="/decks" className="dash-nav__link">
+                  Bộ từ vựng
+                </Link>
+              ) : (
+                <Link
+                  to="/decks"
+                  className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
+                >
+                  Bộ từ vựng
+                </Link>
+              )
             )}
 
             {!laTrangAuth && isAuthenticated ? (
@@ -114,7 +121,7 @@ function BoCuc() {
                   onClick={() => setDangMoMenuTaiKhoan((dangMo) => !dangMo)}
                   aria-haspopup="menu"
                   aria-expanded={dangMoMenuTaiKhoan}
-                  className="ui-button ui-button--ghost flex max-w-[12rem] items-center gap-2 rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
+                  className={laTrangDashboard ? "dash-nav__user-btn" : "ui-button ui-button--ghost flex max-w-[12rem] items-center gap-2 rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"}
                 >
                   <span className="truncate">{user?.fullname}</span>
                   <svg
@@ -211,7 +218,7 @@ function BoCuc() {
       </header>
 
       <main
-        className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}`}
+        className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}${laTrangDashboard ? " app-shell-main--dashboard" : ""}`}
       >
         {noiDungTrang}
       </main>

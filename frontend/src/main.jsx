@@ -4,15 +4,18 @@ import { BrowserRouter } from "react-router-dom";
 import UngDung from "./App.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import { PageTransitionProvider } from "./contexts/PageTransitionContext.jsx";
+import { ToastProvider } from "./contexts/ToastContext.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <PageTransitionProvider>
-        <AuthProvider>
-          <UngDung />
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <UngDung />
+          </AuthProvider>
+        </ToastProvider>
       </PageTransitionProvider>
     </BrowserRouter>
   </StrictMode>

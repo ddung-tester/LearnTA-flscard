@@ -68,6 +68,19 @@
     radial-gradient(circle at 72% 26%, oklch(72% 0.1 162 / 0.16), transparent 28rem);
 }
 
+/* Dashboard overlay — directional wash: readable top, open bottom */
+.video-bg__overlay--dashboard {
+  background:
+    linear-gradient(
+      175deg,
+      oklch(97% 0.022 88 / 0.62) 0%,
+      oklch(96% 0.025 100 / 0.46) 45%,
+      oklch(95% 0.028 110 / 0.28) 100%
+    ),
+    radial-gradient(ellipse at 70% 20%, oklch(88% 0.06 172 / 0.10), transparent 38rem),
+    radial-gradient(ellipse at 20% 80%, oklch(90% 0.05 82 / 0.06), transparent 30rem);
+}
+
 .video-bg-content {
   position: relative;
   z-index: 1;
@@ -253,6 +266,16 @@ body.has-video-background--app .app-shell-header nav > .relative > .ui-button--g
 body.has-video-background--app .app-shell-main {
   position: relative;
   z-index: 1;
+}
+
+/* ── Dashboard variant body overrides ───────────────────────────────────── */
+/* On dashboard, override the dark --app styles so the header is cream/glass */
+
+/* Dashboard nav uses its own glass background via .app-shell-header--dashboard — no override needed */
+
+body.has-video-background-variant--dashboard .app-shell-header__inner > .ui-link {
+  color: var(--mau-chu) !important;
+  text-shadow: none !important;
 }
 
 body.has-video-background--immersive .video-auth-card {

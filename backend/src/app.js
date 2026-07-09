@@ -7,6 +7,8 @@ const deckRoutes = require("./routes/deckRoutes");
 const cardRoutes = require("./routes/cardRoutes");
 const studyRoutes = require("./routes/studyRoutes");
 const progressRoutes = require("./routes/progressRoutes");
+const mistakeRoutes = require("./routes/mistakeRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cronRoutes = require("./routes/cronRoutes");
 const { startCron } = require("./services/cronService");
@@ -59,6 +61,8 @@ app.use("/api/decks", deckRoutes);
 app.use("/api", cardRoutes);
 app.use("/api", studyRoutes);
 app.use("/api", progressRoutes);
+app.use("/api", mistakeRoutes);
+app.use("/api", reviewRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/cron", cronRoutes);
 

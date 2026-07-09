@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { getUserSettings, updateUserSettings } from "../services/userApi";
 import { getUserStats } from "../services/userApi";
+import { useToast } from "../contexts/ToastContext";
 
 function TrangCaiDat() {
   const [settings, setSettings] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     Promise.all([getUserSettings(), getUserStats()])
@@ -15,14 +16,11 @@ function TrangCaiDat() {
         setSettings(s);
         setStats(st);
       })
-      .catch(() => setToast({ type: "error", message: "Không tải được cài đặt" }))
+      .catch(() => toast.error("Không tải được cài đặt"))
       .finally(() => setLoading(false));
   }, []);
 
-  function showToast(type, message) {
-    setToast({ type, message });
-    setTimeout(() => setToast(null), 3000);
-  }
+
 
   async function handleToggle(field, value) {
     if (saving) return;
@@ -33,10 +31,10 @@ function TrangCaiDat() {
     try {
       const updated = await updateUserSettings({ [field]: value });
       setSettings(updated);
-      showToast("success", "Đã lưu cài đặt");
+      toast.success("Đã lưu cài đặt");
     } catch {
       setSettings(prev);
-      showToast("error", "Không lưu được, thử lại nhé!");
+      toast.error("Không lưu được, thử lại nhé!");
     } finally {
       setSaving(false);
     }
@@ -66,19 +64,7 @@ function TrangCaiDat() {
         </div>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 text-sm font-semibold shadow-lg transition-all ${
-            toast.type === "success"
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
-        >
-          {toast.type === "success" ? "✅ " : "❌ "}
-          {toast.message}
-        </div>
-      )}
+
 
       <div className="max-w-xl space-y-4">
 

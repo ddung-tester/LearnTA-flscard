@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import RewardMagicOverlay from "./RewardMagicOverlay";
 import "./RewardTikTokEffect.css";
 
-export const CAU_HINH_REWARD_QUIZ = {
+export const CAU_HINH_REWARD_QUIZ = { // eslint-disable-line react-refresh/only-export-components
   triggerCount: 10,
   opacity: 0.78,
   duration: 10800,
@@ -217,6 +217,7 @@ function RewardTikTokEffect({
           video.loop = false;
           video.src = src;
           video.load();
+          // eslint-disable-next-line react-hooks/immutability -- callback ref populating a ref map (correct pattern)
           cacheVideoRefs.current[src] = video;
         });
       } catch {

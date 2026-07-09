@@ -6,7 +6,7 @@
  *   streak   (number) — streak mới (sau khi tăng)
  *   onClose  (fn)     — callback sau khi animation xong
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function FireParticle({ delay, x, size, drift, color }) {
   return (
@@ -43,13 +43,15 @@ function StreakCelebration({ streak, onClose }) {
     return () => clearTimeout(timerRef.current);
   }, [onClose]);
 
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    delay: Math.random() * 0.8,
-    x: 5 + Math.random() * 90,
-    size: 4 + Math.random() * 8,
-    drift: -30 + Math.random() * 60,
-    color: COLORS[i % COLORS.length],
-  }));
+  const [particles] = useState(() =>
+    Array.from({ length: 20 }, (_, i) => ({
+      delay: Math.random() * 0.8,
+      x: 5 + Math.random() * 90,
+      size: 4 + Math.random() * 8,
+      drift: -30 + Math.random() * 60,
+      color: COLORS[i % COLORS.length],
+    }))
+  );
 
   return (
     <div

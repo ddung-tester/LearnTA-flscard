@@ -22,7 +22,7 @@ const DEV_WORDS = [
  */
 function TrangChu() {
   const { isAuthenticated } = useAuth();
-  const startPath = isAuthenticated ? "/decks" : "/login";
+  const startPath = isAuthenticated ? "/dashboard" : "/login";
   const startState = isAuthenticated ? undefined : { from: { pathname: "/decks" } };
 
   return (
