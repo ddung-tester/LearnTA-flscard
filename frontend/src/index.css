@@ -3300,8 +3300,10 @@ body.is-page-loading .ui-route-transition {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -3309,6 +3311,7 @@ body.is-page-loading .ui-route-transition {
   color: var(--mau-chu-phu);
   cursor: pointer;
   flex-shrink: 0;
+  touch-action: manipulation;
   transition:
     color var(--tuong-tac-hover) var(--tuong-tac-ease),
     background-color var(--tuong-tac-hover) var(--tuong-tac-ease);
@@ -3317,7 +3320,7 @@ body.is-page-loading .ui-route-transition {
 .tts-speaker-btn svg {
   width: 1.45rem;
   height: 1.45rem;
-  transition: transform 150ms var(--tuong-tac-ease);
+  transition: opacity 150ms var(--tuong-tac-ease);
   pointer-events: none;
 }
 
@@ -3326,38 +3329,26 @@ body.is-page-loading .ui-route-transition {
     color: var(--mau-chinh);
     background: oklch(55% 0.105 164 / 0.1);
   }
-
-  .tts-speaker-btn:hover svg {
-    transform: scale(1.12);
-  }
-}
-
-.tts-speaker-btn:active svg {
-  transform: scale(0.88);
 }
 
 .tts-speaker-btn--active {
   color: var(--mau-chinh);
+  background: oklch(55% 0.105 164 / 0.12);
 }
 
 .tts-speaker-btn--active svg {
-  animation: tts-pulse 1.2s ease-in-out infinite;
+  opacity: 0.78;
 }
 
-@keyframes tts-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.72;
-    transform: scale(1.16);
-  }
-}
-
-.tts-speaker-btn--active:active svg {
-  animation: none;
-  transform: scale(0.88);
+.tts-speaker-btn,
+.tts-speaker-btn:hover,
+.tts-speaker-btn:active,
+.tts-speaker-btn:focus,
+.tts-speaker-btn--active,
+.tts-speaker-btn--active:active {
+  filter: none !important;
+  transform: none !important;
+  box-shadow: none;
 }
 
 /* Corner variant — absolute top-right of parent */
@@ -3365,8 +3356,8 @@ body.is-page-loading .ui-route-transition {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.75rem;
+  height: 2.75rem;
   z-index: 2;
 }
 
@@ -4697,8 +4688,8 @@ body.is-page-loading .ui-route-transition {
 
 /* --- TTS button: consistent size and touch target --- */
 .tts-speaker-btn {
-  min-width: 2.5rem;
-  min-height: 2.5rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
 }
 
 /* --- Progress bar: smoother transition --- */

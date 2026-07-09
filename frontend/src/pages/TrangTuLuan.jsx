@@ -1431,7 +1431,13 @@ function TrangTuLuan() {
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-            onClick={docCauHoiHienTai}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              docCauHoiHienTai();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="Đọc câu hỏi"
             title="Đọc câu hỏi"
           >
@@ -1555,7 +1561,13 @@ function TrangTuLuan() {
                 <p className="mb-1 text-[11px] font-extrabold uppercase tracking-widest text-[oklch(50%_0.18_55)]">Đáp án đúng — nhập lại</p>
                 <button
                   type="button"
-                  onClick={() => { ttsSpeak(cheDoNhapLai.dapAnDung, layNgonNguDapAn()); }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    ttsSpeak(cheDoNhapLai.dapAnDung, layNgonNguDapAn());
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                   className="inline-flex flex-col items-center gap-1 focus-visible:outline-none"
                   title="Đọc đáp án"
                 >

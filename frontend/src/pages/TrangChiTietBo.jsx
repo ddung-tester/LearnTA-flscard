@@ -1155,10 +1155,14 @@ function TrangChiTietBo() {
                           <button
                             type="button"
                             className={`tts-speaker-btn${ttsDangDoc && currentPlayingWordId === the.id ? " tts-speaker-btn--active" : ""}`}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setCurrentPlayingWordId(the.id);
                               ttsSpeak(the.term_en, "en-US");
                             }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             aria-label={`Đọc ${the.term_en}`}
                             title="Đọc từ vựng"
                           >
