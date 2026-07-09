@@ -71,14 +71,14 @@ function BoCuc() {
         <div className={`${laTrangDashboard ? "app-shell-header__inner--dashboard mx-auto px-4 sm:px-6" : "app-shell-header__inner mx-auto px-0"} flex items-center justify-between gap-3`}>
           {!laTrangAuth && (
             <Link
-              to={isAuthenticated ? "/dashboard" : "/decks"}
+              to={isAuthenticated ? "/dashboard" : "/login"}
               className={laTrangDashboard ? "dash-nav__brand" : "ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"}
             >
               Streak Drop
             </Link>
           )}
           <nav className={laTrangDashboard ? "dash-nav__links" : "flex flex-wrap items-center justify-end gap-2"}>
-            {isAuthenticated && !laTrangAuth && (
+            {isAuthenticated && !laTrangAuth && !laPhienHoc && (
               laTrangDashboard ? (
                 <Link
                   to="/dashboard"
@@ -99,7 +99,7 @@ function BoCuc() {
                 </Link>
               )
             )}
-            {!dangTrongKhuBoTu && !laTrangAuth && (
+            {false && !dangTrongKhuBoTu && !laTrangAuth && (
               laTrangDashboard ? (
                 <Link to="/decks" className="dash-nav__link">
                   Bộ từ vựng

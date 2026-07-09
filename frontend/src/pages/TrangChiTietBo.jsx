@@ -887,13 +887,13 @@ function TrangChiTietBo() {
           Bộ từ này không tồn tại
         </h2>
         <p className="text-[var(--mau-chu-phu)] mb-6">
-          Kiểm tra lại đường dẫn hoặc quay về danh sách bộ từ để chọn một bộ khác.
+          Kiểm tra lại đường dẫn hoặc quay về Dashboard để chọn một bộ khác.
         </p>
         <Link
-          to="/decks"
+          to="/dashboard"
           className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
-          Quay về danh sách
+          Quay về Dashboard
         </Link>
       </div>
     );
@@ -916,10 +916,10 @@ function TrangChiTietBo() {
       <div className="ui-page-header">
         <div className="ui-page-header__title ui-deck-detail-header__title">
           <Link
-            to="/decks"
+            to="/dashboard"
             className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
-            ← Danh sách bộ từ
+            ← Dashboard
           </Link>
           <h2 className="ui-deck-detail-header__heading text-2xl font-semibold text-[var(--mau-chu)]">
             {bo.title}
