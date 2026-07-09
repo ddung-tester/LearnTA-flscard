@@ -130,7 +130,7 @@ select {
 .app-shell-main--study {
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .app-shell-header__inner,
