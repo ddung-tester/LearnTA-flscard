@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import LoginMascot from "../components/LoginMascot";
@@ -12,6 +12,7 @@ function TrangDangKy() {
   const { navigateWithLoading } = usePageTransition();
   const { dangKy, dangNhapViaGoogle, isAuthReady, isAuthenticated } = useAuth();
   const redirectTimerRef = useRef(null);
+  const submitLockRef = useRef(false);
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -29,6 +30,15 @@ function TrangDangKy() {
   const activeTextValue =
     focusedTextField === "fullname" ? form.fullname : form.email;
 
+  useEffect(
+    () => () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    },
+    []
+  );
+
   if (isAuthReady && isAuthenticated && !isSubmitting && !dangMoXacNhanThanhCong) {
     return <Navigate to="/decks" replace />;
   }
@@ -43,6 +53,7 @@ function TrangDangKy() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitLockRef.current) return;
     setError("");
 
     if (
@@ -60,6 +71,7 @@ function TrangDangKy() {
       return;
     }
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -74,6 +86,7 @@ function TrangDangKy() {
       setError(submitError.message);
       setFailTick((current) => current + 1);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   }
@@ -84,6 +97,8 @@ function TrangDangKy() {
   }
 
   async function handleGoogleToken(idToken) {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setError("");
     setIsSubmitting(true);
     try {
@@ -97,6 +112,7 @@ function TrangDangKy() {
       setError(googleError.message);
       setFailTick((current) => current + 1);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   }

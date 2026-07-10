@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-const { createHttpError } = require("../utils/http");
+const { cleanText, createHttpError, parseBoolean } = require("../utils/http");
 const { currentUserId } = require("./deckController");
 
 /**
@@ -64,20 +64,33 @@ async function updateUserSettings(req, res) {
   const userId = currentUserId(req);
   if (!userId) throw createHttpError(401, "Cần đăng nhập");
 
-  const allowed = [
-    "default_direction",
+  const updates = {};
+
+  if (req.body.default_direction !== undefined) {
+    const direction = cleanText(req.body.default_direction);
+    if (!new Set(["en-vi", "vi-en"]).has(direction)) {
+      throw createHttpError(400, "default_direction khong hop le");
+    }
+    updates.default_direction = direction;
+  }
+
+  for (const key of [
     "only_favorite",
     "random_order",
     "reward_enabled",
-    "reward_trigger_count",
     "email_reminders",
-  ];
-
-  const updates = {};
-  for (const key of allowed) {
+  ]) {
     if (req.body[key] !== undefined) {
-      updates[key] = req.body[key];
+      updates[key] = parseBoolean(req.body[key]);
     }
+  }
+
+  if (req.body.reward_trigger_count !== undefined) {
+    const triggerCount = Number(req.body.reward_trigger_count);
+    if (!Number.isInteger(triggerCount) || triggerCount < 1 || triggerCount > 1000) {
+      throw createHttpError(400, "reward_trigger_count phai tu 1 den 1000");
+    }
+    updates.reward_trigger_count = triggerCount;
   }
 
   if (Object.keys(updates).length === 0) {
@@ -87,7 +100,6 @@ async function updateUserSettings(req, res) {
   const setClauses = Object.keys(updates)
     .map((key) => `${key} = ?`)
     .join(", ");
-  const values = [...Object.values(updates), userId];
 
   await pool.execute(
     `INSERT INTO user_settings (user_id, ${Object.keys(updates).join(", ")})

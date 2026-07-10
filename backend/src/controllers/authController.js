@@ -55,7 +55,7 @@ function validateDisplayName(value) {
 
 function validateEmail(value) {
   const email = cleanText(value).toLowerCase();
-  if (!EMAIL_PATTERN.test(email)) {
+  if (email.length > 255 || !EMAIL_PATTERN.test(email)) {
     throw createHttpError(400, "Email không hợp lệ");
   }
 
@@ -66,6 +66,12 @@ function validatePassword(value) {
   const password = typeof value === "string" ? value : "";
   if (password.length < 6) {
     throw createHttpError(400, "Mật khẩu cần ít nhất 6 ký tự");
+  }
+
+  // bcrypt only considers the first 72 UTF-8 bytes. Reject longer inputs so
+  // two visually different passwords cannot authenticate with the same hash.
+  if (Buffer.byteLength(password, "utf8") > 72) {
+    throw createHttpError(400, "Mật khẩu không được vượt quá 72 byte UTF-8");
   }
 
   return password;
@@ -132,7 +138,10 @@ async function login(req, res) {
     throw createHttpError(401, "Email hoặc mật khẩu không đúng");
   }
 
-  const isPasswordValid = await bcrypt.compare(password, row.password_hash);
+  // Google-only accounts intentionally have no password hash.
+  const isPasswordValid = row.password_hash
+    ? await bcrypt.compare(password, row.password_hash)
+    : false;
   if (!isPasswordValid) {
     throw createHttpError(401, "Email hoặc mật khẩu không đúng");
   }
@@ -173,11 +182,13 @@ async function googleAuth(req, res) {
     throw createHttpError(401, "Token Google không hợp lệ hoặc đã hết hạn");
   }
 
-  const { sub: googleId, email, name, picture } = payload;
+  const { sub: googleId, email, email_verified: emailVerified, name, picture } = payload;
 
-  if (!email) {
-    throw createHttpError(400, "Tài khoản Google không có email");
+  if (!email || emailVerified !== true) {
+    throw createHttpError(400, "Tài khoản Google chưa xác minh email");
   }
+
+  const normalizedEmail = validateEmail(email);
 
   // Tìm user theo google_id trước
   let [rows] = await pool.query(
@@ -195,7 +206,7 @@ async function googleAuth(req, res) {
        FROM users
        WHERE email = ?
        LIMIT 1`,
-      [email]
+      [normalizedEmail]
     );
 
     if (rows[0]) {
@@ -218,12 +229,12 @@ async function googleAuth(req, res) {
 
     const [result] = await pool.execute(
       `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?)`,
-      [fullname, email, googleId, picture ?? null]
+      [fullname, normalizedEmail, googleId, picture ?? null]
     );
     user = await findUserById(result.insertId);
 
     // Gửi email chào mừng (không block response)
-    sendWelcomeEmail({ to: email, displayName: user.fullname }).catch(() => {});
+    sendWelcomeEmail({ to: normalizedEmail, displayName: user.fullname }).catch(() => {});
   }
 
   res.json({ user, token: signToken(user) });

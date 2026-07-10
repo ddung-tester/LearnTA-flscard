@@ -194,8 +194,10 @@ function TrangChiTietBo() {
   const [studiedToday, setStudiedToday] = useState(false);
   // streak bị vỡ: đã từng có streak nhưng bỏ học >= 2 ngày liên tiếp
   const [streakBroken, setStreakBroken] = useState(false);
+  const dataRequestRef = useRef(0);
 
   async function taiDuLieuBo() {
+    const requestId = ++dataRequestRef.current;
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -205,14 +207,20 @@ function TrangChiTietBo() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSach(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSach(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSach([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSach([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 

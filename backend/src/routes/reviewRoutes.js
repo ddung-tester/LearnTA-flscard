@@ -23,5 +23,15 @@ router.patch(
   requireAuth,
   asyncHandler(reviewController.updateReviewResultByCard)
 );
+router.delete(
+  "/reviews/:reviewId",
+  requireAuth,
+  asyncHandler(reviewController.deleteReview)
+);
+router.delete(
+  "/reviews/by-card/:cardId",
+  requireAuth,
+  asyncHandler(reviewController.deleteReviewByCard)
+);
 
 module.exports = router;

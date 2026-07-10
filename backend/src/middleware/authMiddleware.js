@@ -20,8 +20,9 @@ function readBearerToken(req) {
   const authorization = req.get("authorization");
   if (!authorization) return null;
 
-  const [scheme, token] = authorization.split(" ");
-  if (scheme !== "Bearer" || !token) {
+  const parts = authorization.trim().split(/\s+/);
+  const [scheme, token] = parts;
+  if (parts.length !== 2 || scheme.toLowerCase() !== "bearer" || !token) {
     throw createHttpError(401, "Token không hợp lệ");
   }
 
@@ -32,7 +33,7 @@ async function loadUserFromToken(token) {
   let payload;
 
   try {
-    payload = jwt.verify(token, getJwtSecret());
+    payload = jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] });
   } catch (error) {
     throw createHttpError(401, "Token không hợp lệ hoặc đã hết hạn");
   }

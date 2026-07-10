@@ -218,12 +218,14 @@ function TrangQuiz() {
   const [streakCelebration, setStreakCelebration] = useState(null); // streak mới nếu tăng
   const prevStreakRef = useRef(null);
   const [danhSachCauHoiRuntime, setDanhSachCauHoiRuntime] = useState([]);
+  const dataRequestRef = useRef(0);
   // Set lưu card_id nào đã bị trả lời sai ít nhất 1 lần trong session này
   const [tapCardSai, setTapCardSai] = useState(() => new Set());
   // Danh sách card gốc chỉ để học lại (null = học tất cả, mảng = học lại từ sai)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
   async function taiDuLieuQuiz() {
+    const requestId = ++dataRequestRef.current;
     await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
@@ -234,14 +236,20 @@ function TrangQuiz() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSachGoc(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSachGoc(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSachGoc([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSachGoc([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 

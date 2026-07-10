@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 
@@ -9,7 +9,6 @@ import { usePageTransition } from "../../contexts/PageTransitionContext";
  */
 function BoCuc() {
   const viTri = useLocation();
-  const navigate = useNavigate();
   const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
@@ -18,7 +17,6 @@ function BoCuc() {
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
   const laTrangDashboard = viTri.pathname === "/dashboard";
-  const dangTrongKhuBoTu = viTri.pathname.startsWith("/decks");
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
@@ -99,21 +97,6 @@ function BoCuc() {
                 </Link>
               )
             )}
-            {false && !dangTrongKhuBoTu && !laTrangAuth && (
-              laTrangDashboard ? (
-                <Link to="/decks" className="dash-nav__link">
-                  Bộ từ vựng
-                </Link>
-              ) : (
-                <Link
-                  to="/decks"
-                  className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
-                >
-                  Bộ từ vựng
-                </Link>
-              )
-            )}
-
             {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">
                 <button
@@ -166,7 +149,7 @@ function BoCuc() {
                       role="menuitem"
                       onClick={() => {
                         setDangMoMenuTaiKhoan(false);
-                        navigate("/cai-dat");
+                        navigateWithLoading("/cai-dat");
                       }}
                       className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-phu)] hover:bg-[var(--mau-mat)] hover:text-[var(--mau-chu)] transition-colors"
                     >

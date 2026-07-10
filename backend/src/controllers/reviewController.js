@@ -1,7 +1,9 @@
 const pool = require("../config/db");
 const {
   cleanNullableText,
+  cleanNullableTextWithLimit,
   cleanText,
+  cleanTextWithLimit,
   createHttpError,
   parsePositiveInt,
 } = require("../utils/http");
@@ -93,12 +95,16 @@ function readReviewPayload(body) {
   return {
     cardId,
     deckId,
-    termEn: cleanText(body.term_en ?? body.word),
-    meaningVi: cleanText(body.meaning_vi ?? body.meaning),
+    termEn: cleanTextWithLimit(body.term_en ?? body.word, 255, "term_en"),
+    meaningVi: cleanTextWithLimit(
+      body.meaning_vi ?? body.meaning,
+      255,
+      "meaning_vi"
+    ),
     exampleSentence: cleanNullableText(body.example_sentence ?? body.example),
-    source: cleanText(body.source) || "quiz",
+    source: cleanTextWithLimit(body.source, 40, "source") || "quiz",
     level: Number.isInteger(rawLevel) && rawLevel >= 0 ? Math.min(rawLevel, 5) : 0,
-    ease: cleanNullableText(body.ease),
+    ease: cleanNullableTextWithLimit(body.ease, 20, "ease"),
     reviewCount:
       Number.isInteger(rawReviewCount) && rawReviewCount >= 0 ? rawReviewCount : 0,
     lastReviewedAt: parseDate(body.last_reviewed_at ?? body.lastReviewedAt),
@@ -107,13 +113,14 @@ function readReviewPayload(body) {
   };
 }
 
-async function resolveOwnedCardLink(connection, userId, payload) {
+async function resolveReadableCardLink(connection, userId, payload) {
   if (payload.cardId) {
     const [rows] = await connection.query(
       `SELECT c.id, c.deck_id, c.term_en, c.meaning_vi, c.example_sentence
        FROM cards c
        JOIN decks d ON d.id = c.deck_id
-       WHERE c.id = ? AND d.user_id = ?
+       WHERE c.id = ?
+         AND (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE)
        LIMIT 1`,
       [payload.cardId, userId]
     );
@@ -131,7 +138,10 @@ async function resolveOwnedCardLink(connection, userId, payload) {
 
   if (payload.deckId) {
     const [rows] = await connection.query(
-      "SELECT id FROM decks WHERE id = ? AND user_id = ? LIMIT 1",
+      `SELECT id
+       FROM decks
+       WHERE id = ? AND (user_id = ? OR user_id IS NULL OR is_public = TRUE)
+       LIMIT 1`,
       [payload.deckId, userId]
     );
 
@@ -183,12 +193,13 @@ async function findReviewByCard(connection, userId, cardId, { lock = false } = {
   return normalizeReview(rows[0]);
 }
 
-async function loadOwnedCard(connection, userId, cardId) {
+async function loadReadableCard(connection, userId, cardId) {
   const [rows] = await connection.query(
     `SELECT c.id, c.deck_id, c.term_en, c.meaning_vi, c.example_sentence
      FROM cards c
      JOIN decks d ON d.id = c.deck_id
-     WHERE c.id = ? AND d.user_id = ?
+     WHERE c.id = ?
+       AND (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE)
      LIMIT 1`,
     [cardId, userId]
   );
@@ -198,7 +209,7 @@ async function loadOwnedCard(connection, userId, cardId) {
 
 async function upsertReview(connection, userId, rawPayload) {
   const payload = readReviewPayload(rawPayload);
-  const cardLink = await resolveOwnedCardLink(connection, userId, payload);
+  const cardLink = await resolveReadableCardLink(connection, userId, payload);
 
   const termEn = cardLink.termEn || payload.termEn;
   const meaningVi = cardLink.meaningVi || payload.meaningVi;
@@ -432,6 +443,10 @@ async function bulkUpsertReviews(req, res) {
     throw createHttpError(400, "items la bat buoc");
   }
 
+  if (items.length > 200) {
+    throw createHttpError(400, "items khong duoc vuot qua 200 phan tu");
+  }
+
   const connection = await pool.getConnection();
 
   try {
@@ -530,7 +545,7 @@ async function updateReviewResultByCard(req, res) {
     });
 
     if (!current) {
-      const card = await loadOwnedCard(connection, userId, cardId);
+      const card = await loadReadableCard(connection, userId, cardId);
       if (!card) {
         throw createHttpError(404, "Khong tim thay tu vung");
       }
@@ -559,6 +574,28 @@ async function updateReviewResultByCard(req, res) {
   }
 }
 
+async function deleteReview(req, res) {
+  const userId = currentUserId(req);
+  const reviewId = parsePositiveInt(req.params.reviewId, "reviewId");
+  const [result] = await pool.execute(
+    "DELETE FROM card_reviews WHERE id = ? AND user_id = ?",
+    [reviewId, userId]
+  );
+
+  res.json({ success: true, deleted: result.affectedRows > 0 });
+}
+
+async function deleteReviewByCard(req, res) {
+  const userId = currentUserId(req);
+  const cardId = parsePositiveInt(req.params.cardId, "cardId");
+  const [result] = await pool.execute(
+    "DELETE FROM card_reviews WHERE card_id = ? AND user_id = ?",
+    [cardId, userId]
+  );
+
+  res.json({ success: true, deleted: result.affectedRows > 0 });
+}
+
 module.exports = {
   listReviews,
   listDueReviews,
@@ -566,4 +603,6 @@ module.exports = {
   bulkUpsertReviews,
   updateReviewResult,
   updateReviewResultByCard,
+  deleteReview,
+  deleteReviewByCard,
 };

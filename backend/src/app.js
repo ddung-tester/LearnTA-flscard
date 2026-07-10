@@ -11,7 +11,6 @@ const mistakeRoutes = require("./routes/mistakeRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cronRoutes = require("./routes/cronRoutes");
-const { startCron } = require("./services/cronService");
 
 const app = express();
 const allowedCorsOrigins = new Set(corsOrigins);
@@ -36,6 +35,17 @@ app.use(
   })
 );
 app.use(express.json());
+app.use((req, res, next) => {
+  if (
+    !req.path.startsWith("/api/cron/") &&
+    ["POST", "PUT", "PATCH"].includes(req.method) &&
+    (!req.body || typeof req.body !== "object" || Array.isArray(req.body))
+  ) {
+    return res.status(400).json({ message: "Request body phai la JSON object" });
+  }
+
+  next();
+});
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -66,9 +76,6 @@ app.use("/api", reviewRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/cron", cronRoutes);
 
-// Khởi động cron job nhắc học (backup — primary trigger là Cloud Scheduler HTTP)
-startCron();
-
 app.use((req, res) => {
   res.status(404).json({
     message: "Route not found",
@@ -78,9 +85,21 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error(err);
 
-  const statusCode = err.statusCode || 500;
+  let statusCode = err.statusCode || err.status || 500;
+  if (err.code === "ER_DUP_ENTRY") statusCode = 409;
+  if (err.code === "ER_DATA_TOO_LONG" || err.code === "WARN_DATA_TRUNCATED") {
+    statusCode = 400;
+  }
+
+  const safeClientMessage =
+    err.code === "ER_DUP_ENTRY"
+      ? "Du lieu da ton tai"
+      : err.code === "ER_DATA_TOO_LONG" || err.code === "WARN_DATA_TRUNCATED"
+        ? "Du lieu vuot qua gioi han cho phep"
+        : err.message;
+
   res.status(statusCode).json({
-    message: statusCode === 500 ? "Internal server error" : err.message,
+    message: statusCode >= 500 ? "Internal server error" : safeClientMessage,
   });
 });
 

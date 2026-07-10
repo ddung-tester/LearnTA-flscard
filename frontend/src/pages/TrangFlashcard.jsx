@@ -133,6 +133,7 @@ function TrangFlashcard() {
   const progressEndpointRef = useRef(null);
   const [studySessionId, setStudySessionId] = useState(null);
   const daLuuKetQuaRef = useRef(false);
+  const dataRequestRef = useRef(0);
 
   function xoaTimerReward() {
     if (rewardTimerRef.current) {
@@ -144,6 +145,7 @@ function TrangFlashcard() {
 
 
   async function taiDuLieuHoc() {
+    const requestId = ++dataRequestRef.current;
     await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
@@ -154,14 +156,20 @@ function TrangFlashcard() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSachGoc(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSachGoc(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSachGoc([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSachGoc([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 

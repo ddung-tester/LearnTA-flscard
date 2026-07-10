@@ -180,7 +180,9 @@ function TrangTuLuan() {
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
+  const dataRequestRef = useRef(0);
   async function taiDuLieuTuLuan() {
+    const requestId = ++dataRequestRef.current;
     await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
@@ -191,14 +193,20 @@ function TrangTuLuan() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSachGoc(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSachGoc(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSachGoc([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSachGoc([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 

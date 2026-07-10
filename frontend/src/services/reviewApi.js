@@ -39,3 +39,13 @@ export async function capNhatReviewResultTheoCard(cardId, result) {
   const response = await api.patch(`/reviews/by-card/${cardId}/result`, { result });
   return response.data;
 }
+
+export async function xoaReview(reviewId) {
+  const response = await api.delete(`/reviews/${reviewId}`);
+  return response.data;
+}
+
+export async function xoaReviewTheoCard(cardId) {
+  const response = await api.delete(`/reviews/by-card/${cardId}`);
+  return response.data;
+}

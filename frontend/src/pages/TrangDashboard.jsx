@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { layDanhSachDeck } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
-import { layThongKeTuSai } from "../utils/mistakeNotebook";
-import { layThongKeSRS } from "../utils/srsReview";
+import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
+import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import EmptyState from "../components/common/EmptyState";
 import DashBackground from "../components/DashBackground";
@@ -39,11 +39,12 @@ function phanTramTienDo(deck) {
   const td = layTienDoDeck(deck.id);
   if (!td || !deck.total_words || deck.total_words === 0) return null;
   const daThuoc = td.flashcard?.remembered ?? td.quiz?.correct ?? 0;
-  return Math.round((daThuoc / deck.total_words) * 100);
+  return Math.min(100, Math.max(0, Math.round((daThuoc / deck.total_words) * 100)));
 }
 
 function formatNgayKey(date = new Date()) {
-  return date.toISOString().slice(0, 10);
+  const vietnamTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  return vietnamTime.toISOString().slice(0, 10);
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -114,20 +115,36 @@ function TrangDashboard() {
   const [sessionSummary, setSessionSummary] = useState(null);
   const [loi, setLoi] = useState(false);
 
-  const mistakeStats = useMemo(() => layThongKeTuSai(), []);
-  const srsStats = useMemo(() => layThongKeSRS(), []);
+  const [mistakeStats, setMistakeStats] = useState(() => layThongKeTuSai());
+  const [srsStats, setSrsStats] = useState(() => layThongKeSRS());
 
   useEffect(() => {
-    Promise.all([layDanhSachDeck(), getUserStats(), layStudySessionSummary()])
+    let active = true;
+
+    Promise.all([
+      layDanhSachDeck(),
+      getUserStats(),
+      layStudySessionSummary(),
+      taiTuSaiDongBo({ limit: 200 }),
+      taiSRSDongBo({ limit: 200 }),
+    ])
       .then(([ds, st, sessionData]) => {
+        if (!active) return;
         setDecks(ds);
         setStats(st);
         setSessionSummary(sessionData);
+        setMistakeStats(layThongKeTuSai());
+        setSrsStats(layThongKeSRS());
       })
       .catch(() => {
+        if (!active) return;
         setDecks([]);
         setLoi(true);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const dangTai = decks === null;

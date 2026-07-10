@@ -21,6 +21,7 @@ function TrangDangNhap() {
   const [failTick, setFailTick] = useState(0);
   const [dangChoChuyenTrang, setDangChoChuyenTrang] = useState(false);
   const redirectTimerRef = useRef(null);
+  const submitLockRef = useRef(false);
   const redirectTo = location.state?.from?.pathname || "/dashboard";
   const isLogoutRedirect = location.state?.loggedOut;
 
@@ -56,6 +57,7 @@ function TrangDangNhap() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitLockRef.current) return;
     setError("");
 
     if (form.password.length < PASSWORD_MIN_LENGTH) {
@@ -64,6 +66,7 @@ function TrangDangNhap() {
       return;
     }
 
+    submitLockRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -80,11 +83,14 @@ function TrangDangNhap() {
       setError(submitError.message);
       setFailTick((current) => current + 1);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   }
 
   async function handleGoogleToken(idToken) {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setError("");
     setIsSubmitting(true);
     try {
@@ -98,6 +104,7 @@ function TrangDangNhap() {
       setError(googleError.message);
       setFailTick((current) => current + 1);
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   }

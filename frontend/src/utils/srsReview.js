@@ -37,6 +37,8 @@ import {
   dongBoReviews,
   layReviews,
   layReviewsDenHan,
+  xoaReview,
+  xoaReviewTheoCard,
 } from "../services/reviewApi";
 
 const KHO_SRS = "streak_drop_srs_v1";
@@ -354,6 +356,26 @@ export function xoaKhoiSRS(id) {
   const tatCa = docTatCa();
   delete tatCa[String(id)];
   ghiTatCa(tatCa);
+}
+
+export async function xoaKhoiSRSDongBo(id) {
+  const entry = docTatCa()[String(id)];
+  xoaKhoiSRS(id);
+
+  try {
+    if (entry?.backendId) {
+      await xoaReview(entry.backendId);
+      return;
+    }
+
+    const cardId = Number(id);
+    if (Number.isInteger(cardId) && cardId > 0) {
+      await xoaReviewTheoCard(cardId);
+    }
+  } catch {
+    // Local removal remains available while offline. A later explicit sync may
+    // restore the server item, which is safer than claiming a remote delete.
+  }
 }
 
 /**

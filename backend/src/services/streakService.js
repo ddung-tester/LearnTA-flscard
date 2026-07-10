@@ -41,7 +41,7 @@ async function updateUserStreak(connection, userId, { xpEarned = 0, cardsReviewe
 
   const [rows] = await connection.query(
     `SELECT current_streak, longest_streak, last_study_date
-     FROM users WHERE id = ? LIMIT 1`,
+     FROM users WHERE id = ? LIMIT 1 FOR UPDATE`,
     [userId]
   );
 
@@ -68,9 +68,12 @@ async function updateUserStreak(connection, userId, { xpEarned = 0, cardsReviewe
 
   await connection.execute(
     `UPDATE users
-     SET current_streak = ?, longest_streak = ?, last_study_date = ?
+     SET current_streak = ?,
+         longest_streak = ?,
+         last_study_date = ?,
+         total_xp = total_xp + ?
      WHERE id = ?`,
-    [newStreak, newLongest, today, userId]
+    [newStreak, newLongest, today, xpEarned, userId]
   );
 
   // Upsert streak_logs — cộng dồn nếu đã có record hôm nay
