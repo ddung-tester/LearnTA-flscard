@@ -10,8 +10,8 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import PageLoadingOverlay from "../components/PageLoadingOverlay";
 
-const DELAY_BEFORE_NAVIGATE_MS = 700;
-const DELAY_AFTER_NAVIGATE_MS = 500;
+const DELAY_BEFORE_NAVIGATE_MS = 120;
+const DELAY_AFTER_NAVIGATE_MS = 180;
 
 const PageTransitionContext = createContext(null);
 
@@ -75,18 +75,20 @@ export function PageTransitionProvider({ children }) {
       dangChuyenTrangRef.current = true;
       setDangChuyenTrang(true);
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, DELAY_BEFORE_NAVIGATE_MS);
-      });
+      try {
+        await new Promise((resolve) => {
+          setTimeout(resolve, DELAY_BEFORE_NAVIGATE_MS);
+        });
 
-      navigate(to, options);
+        navigate(to, options);
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, DELAY_AFTER_NAVIGATE_MS);
-      });
-
-      dangChuyenTrangRef.current = false;
-      setDangChuyenTrang(false);
+        await new Promise((resolve) => {
+          setTimeout(resolve, DELAY_AFTER_NAVIGATE_MS);
+        });
+      } finally {
+        dangChuyenTrangRef.current = false;
+        setDangChuyenTrang(false);
+      }
     },
     [navigate]
   );

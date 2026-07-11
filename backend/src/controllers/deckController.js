@@ -1,7 +1,9 @@
 const pool = require("../config/db");
 const {
   cleanNullableText,
+  cleanNullableTextWithLimit,
   cleanText,
+  cleanTextWithLimit,
   createHttpError,
   parseBoolean,
   parsePositiveInt,
@@ -39,6 +41,8 @@ function deckWithStatsSql() {
 function normalizeDeck(row) {
   if (!row) return null;
 
+  const cardCount = Number(row.card_count || 0);
+
   return {
     id: row.id,
     user_id: row.user_id === null ? null : row.user_id,
@@ -50,7 +54,9 @@ function normalizeDeck(row) {
     streak: row.streak || 0,
     mastered_count: row.mastered_count || 0,
     masteredCount: row.mastered_count || 0,
-    card_count: Number(row.card_count || 0),
+    card_count: cardCount,
+    total_words: cardCount,
+    totalWords: cardCount,
     latest_quiz: row.latest_quiz_id
       ? {
           correct: row.latest_quiz_correct,
@@ -79,11 +85,7 @@ function sameId(left, right) {
 }
 
 function canReadDeck(deck, userId) {
-  if (deck.user_id === null && userId === null) {
-    return true;
-  }
-
-  return sameId(deck.user_id, userId);
+  return deck.user_id === null || deck.is_public || sameId(deck.user_id, userId);
 }
 
 function canWriteDeck(deck, userId) {
@@ -140,7 +142,7 @@ async function listDecks(req, res) {
   if (userId === null) {
     const [rows] = await pool.query(
       `${deckWithStatsSql()}
-       WHERE d.user_id IS NULL
+       WHERE d.user_id IS NULL OR d.is_public = TRUE
        ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
       [userId]
     );
@@ -151,7 +153,7 @@ async function listDecks(req, res) {
 
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE d.user_id = ?
+     WHERE d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE
      ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
     [userId, userId]
   );
@@ -173,15 +175,15 @@ async function getDeck(req, res) {
 }
 
 async function createDeck(req, res) {
-  const title = cleanText(req.body.title ?? req.body.name);
+  const title = cleanTextWithLimit(req.body.title ?? req.body.name, 255, "title");
   if (!title) {
     throw createHttpError(400, "title la bat buoc");
   }
 
   const userId = currentUserId(req);
   const description = cleanText(req.body.description);
-  const icon = cleanNullableText(req.body.icon);
-  const themeColor = cleanNullableText(req.body.theme_color);
+  const icon = cleanNullableTextWithLimit(req.body.icon, 80, "icon");
+  const themeColor = cleanNullableTextWithLimit(req.body.theme_color, 50, "theme_color");
   const isPublic = parseBoolean(req.body.is_public, false);
 
   await assertUniqueDeckTitle(userId, title);
@@ -208,18 +210,20 @@ async function updateDeck(req, res) {
 
   assertDeckWritable(current, userId);
 
-  const title = cleanText(req.body.title ?? req.body.name);
+  const title = cleanTextWithLimit(req.body.title ?? req.body.name, 255, "title");
   if (!title) {
     throw createHttpError(400, "title la bat buoc");
   }
 
   const description = cleanText(req.body.description);
   const icon =
-    req.body.icon === undefined ? current.icon : cleanNullableText(req.body.icon);
+    req.body.icon === undefined
+      ? current.icon
+      : cleanNullableTextWithLimit(req.body.icon, 80, "icon");
   const themeColor =
     req.body.theme_color === undefined
       ? current.theme_color
-      : cleanNullableText(req.body.theme_color);
+      : cleanNullableTextWithLimit(req.body.theme_color, 50, "theme_color");
   const isPublic =
     req.body.is_public === undefined
       ? current.is_public

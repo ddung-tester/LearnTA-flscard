@@ -6,7 +6,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import { AUTH_TOKEN_STORAGE_KEY } from "../services/api";
+import {
+  clearStoredAuthToken,
+  getStoredAuthToken,
+  storeAuthToken,
+} from "../services/api";
 import {
   dangKyTaiKhoan,
   dangNhapTaiKhoan,
@@ -19,14 +23,12 @@ import { dongBoDuLieuHocTapLenBackend } from "../utils/learningSync";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() =>
-    localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
-  );
+  const [token, setToken] = useState(() => getStoredAuthToken());
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const saveAuth = useCallback((data) => {
-    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.token);
+    storeAuthToken(data.token);
     setToken(data.token);
     setUser(data.user);
     dongBoCaiDatTuDatabase();
@@ -34,7 +36,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const clearAuth = useCallback(() => {
-    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    clearStoredAuthToken();
     setToken(null);
     setUser(null);
     setIsAuthReady(true);
@@ -60,7 +62,7 @@ export function AuthProvider({ children }) {
           dongBoDuLieuHocTapLenBackend();
         }
       } catch {
-        localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+        clearStoredAuthToken();
         if (isMounted) {
           setToken(null);
           setUser(null);
@@ -78,6 +80,17 @@ export function AuthProvider({ children }) {
       isMounted = false;
     };
   }, [token]);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      clearAuth();
+    }
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
+    };
+  }, [clearAuth]);
 
   const dangNhap = useCallback(
     async (payload) => {

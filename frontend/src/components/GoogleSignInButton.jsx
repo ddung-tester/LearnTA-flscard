@@ -18,9 +18,15 @@ export default function GoogleSignInButton({
 }) {
   const containerRef = useRef(null);
   const initializedRef = useRef(false);
+  const onTokenRef = useRef(onToken);
+
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  }, [onToken]);
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
+    let pendingScript = null;
 
     function initButton() {
       if (initializedRef.current || !containerRef.current) return;
@@ -31,7 +37,7 @@ export default function GoogleSignInButton({
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: ({ credential }) => {
-          if (credential && onToken) onToken(credential);
+          if (credential) onTokenRef.current?.(credential);
         },
         cancel_on_tap_outside: true,
       });
@@ -70,9 +76,14 @@ export default function GoogleSignInButton({
     } else if (window.google?.accounts?.id) {
       initButton();
     } else {
-      document.getElementById("gsi-script").addEventListener("load", initButton);
+      pendingScript = document.getElementById("gsi-script");
+      pendingScript.addEventListener("load", initButton);
     }
-  }, [onToken, variant]);
+
+    return () => {
+      pendingScript?.removeEventListener("load", initButton);
+    };
+  }, [variant]);
 
   if (!GOOGLE_CLIENT_ID) return null;
 

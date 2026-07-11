@@ -8,18 +8,25 @@ function PageLoadingOverlay({ hienThi }) {
   const [loadingAnimation, setLoadingAnimation] = useState(null);
 
   useEffect(() => {
-    let daHuy = false;
+    const controller = new AbortController();
 
-    fetch("/animation/loading.json")
-      .then((response) => response.json())
-      .then((animation) => {
-        if (!daHuy) {
-          setLoadingAnimation(animation);
+    fetch("/animation/loading.json", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Loading animation returned ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(setLoadingAnimation)
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          // The text fallback keeps navigation usable when the optional asset fails.
+          setLoadingAnimation(null);
         }
       });
 
     return () => {
-      daHuy = true;
+      controller.abort();
     };
   }, []);
 
@@ -35,7 +42,7 @@ function PageLoadingOverlay({ hienThi }) {
           }}
           exit={{
             opacity: 0,
-            transition: { duration: 0.48, ease: [0.4, 0, 0.2, 1] },
+            transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
           }}
         >
           <div className="page-loading-overlay__content">

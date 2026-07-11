@@ -15,8 +15,8 @@ const router = express.Router();
 function verifyCronSecret(req, res, next) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    console.warn("[cronRoutes] CRON_SECRET chưa cấu hình — endpoint không được bảo vệ!");
-    return next();
+    console.error("[cronRoutes] CRON_SECRET chưa cấu hình; từ chối cron HTTP.");
+    return res.status(503).json({ error: "Cron endpoint is not configured" });
   }
   const provided = req.headers["x-cron-secret"];
   if (!provided || provided !== secret) {
@@ -37,7 +37,7 @@ router.post("/daily-reminders", verifyCronSecret, async (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (err) {
     console.error("[cronRoutes] Reminder error:", err?.message);
-    return res.status(500).json({ ok: false, error: err?.message });
+    return res.status(500).json({ ok: false, error: "Reminder job failed" });
   }
 });
 
@@ -52,7 +52,7 @@ router.post("/praise", verifyCronSecret, async (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (err) {
     console.error("[cronRoutes] Praise error:", err?.message);
-    return res.status(500).json({ ok: false, error: err?.message });
+    return res.status(500).json({ ok: false, error: "Praise job failed" });
   }
 });
 

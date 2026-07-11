@@ -195,12 +195,12 @@ function assertSessionOwner(session, userId) {
   throw createHttpError(403, "Khong co quyen cap nhat phien hoc nay");
 }
 
-async function findSessionById(sessionId, connection = pool) {
+async function findSessionById(sessionId, connection = pool, { lock = false } = {}) {
   const [rows] = await connection.query(
     `SELECT ss.*, d.title AS deck_title
      FROM study_sessions ss
      LEFT JOIN decks d ON d.id = ss.deck_id
-     WHERE ss.id = ?`,
+     WHERE ss.id = ?${lock ? " FOR UPDATE" : ""}`,
     [sessionId]
   );
   return normalizeSession(rows[0]);
@@ -224,7 +224,7 @@ async function createStudySession(req, res) {
   const total = parseCount(req.body.total ?? req.body.total_cards, "total");
   const correct = parseCount(req.body.correct ?? req.body.correct_count, "correct");
   const review = parseCount(req.body.review ?? req.body.wrong_count, "review");
-  const xpEarned = parseCount(req.body.xp_earned ?? req.body.xpEarned, "xp_earned");
+  const xpEarned = correct * (mode === "review" ? 5 : 10);
   const maxCombo = parseCount(req.body.max_combo ?? req.body.maxCombo, "max_combo");
   const durationSeconds = parseCount(
     req.body.duration_seconds ?? req.body.durationSeconds,
@@ -240,69 +240,86 @@ async function createStudySession(req, res) {
     "progress_segments"
   );
 
-  const [result] = await pool.execute(
-    `INSERT INTO study_sessions
-      (
-        user_id,
-        deck_id,
+  if (endedAt && correct + review !== total) {
+    throw createHttpError(400, "correct + review phai bang total");
+  }
+
+  const connection = await pool.getConnection();
+  let session;
+
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.execute(
+      `INSERT INTO study_sessions
+        (
+          user_id,
+          deck_id,
+          mode,
+          direction,
+          only_favorite,
+          random_order,
+          started_at,
+          ended_at,
+          duration_seconds,
+          total,
+          correct,
+          review,
+          xp_earned,
+          max_combo,
+          segment_size,
+          segment_total,
+          segment_completed,
+          progress_segments
+        )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        deckId,
         mode,
         direction,
-        only_favorite,
-        random_order,
-        started_at,
-        ended_at,
-        duration_seconds,
+        onlyFavorite,
+        randomOrder,
+        startedAt || new Date(),
+        endedAt,
+        durationSeconds,
         total,
         correct,
         review,
-        xp_earned,
-        max_combo,
-        segment_size,
-        segment_total,
-        segment_completed,
-        progress_segments
-      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      userId,
-      deckId,
-      mode,
-      direction,
-      onlyFavorite,
-      randomOrder,
-      startedAt || new Date(),
-      endedAt,
-      durationSeconds,
-      total,
-      correct,
-      review,
-      xpEarned,
-      maxCombo,
-      segmentSize,
-      segmentTotal,
-      segmentCompleted,
-      progressSegments,
-    ]
-  );
+        xpEarned,
+        maxCombo,
+        segmentSize,
+        segmentTotal,
+        segmentCompleted,
+        progressSegments,
+      ]
+    );
 
-  const session = await findSessionById(result.insertId);
+    session = await findSessionById(result.insertId, connection);
+
+    if (endedAt && userId && correct > 0) {
+      await updateUserStreak(connection, userId, {
+        xpEarned,
+        cardsReviewed: total,
+      });
+      await updateDeckStreak(connection, deckId, userId);
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
   res.status(201).json(session);
 }
 
 async function finishStudySession(req, res) {
   const sessionId = parsePositiveInt(req.params.sessionId, "sessionId");
-  const current = await findSessionById(sessionId);
-
-  if (!current) {
-    throw createHttpError(404, "Khong tim thay phien hoc");
-  }
-
-  assertSessionOwner(current, currentUserId(req));
-
   const correct = parseCount(req.body.correct, "correct");
   const review = parseCount(req.body.review, "review");
   const total = parseCount(req.body.total, "total");
-  const xpEarned = parseCount(req.body.xp_earned, "xp_earned");
   const maxCombo = parseCount(req.body.max_combo, "max_combo");
   const durationSeconds = parseCount(
     req.body.duration_seconds ?? req.body.durationSeconds,
@@ -316,59 +333,82 @@ async function finishStudySession(req, res) {
     "progress_segments"
   );
 
-  await pool.execute(
-    `UPDATE study_sessions
-     SET ended_at = CURRENT_TIMESTAMP,
-         correct = ?,
-         review = ?,
-         total = ?,
-         duration_seconds = CASE
-           WHEN ? > 0 THEN ?
-           ELSE GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP))
-         END,
-         xp_earned = ?,
-         max_combo = ?,
-         segment_size = ?,
-         segment_total = ?,
-         segment_completed = ?,
-         progress_segments = ?
-     WHERE id = ?`,
-    [
-      correct,
-      review,
-      total,
-      durationSeconds,
-      durationSeconds,
-      xpEarned,
-      maxCombo,
-      segmentSize,
-      segmentTotal,
-      segmentCompleted,
-      progressSegments,
-      sessionId,
-    ]
-  );
+  if (correct + review !== total) {
+    throw createHttpError(400, "correct + review phai bang total");
+  }
 
-  const session = await findSessionById(sessionId);
-
-  // Cập nhật streak nếu user đăng nhập và có câu trả lời đúng
   const userId = currentUserId(req);
-  if (userId && correct > 0) {
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-      await updateUserStreak(conn, userId, {
-        xpEarned: xpEarned,
+  const connection = await pool.getConnection();
+  let session;
+
+  try {
+    await connection.beginTransaction();
+    const current = await findSessionById(sessionId, connection, { lock: true });
+
+    if (!current) {
+      throw createHttpError(404, "Khong tim thay phien hoc");
+    }
+
+    assertSessionOwner(current, userId);
+
+    // A retry after a lost response must not add XP/streak a second time.
+    if (current.ended_at) {
+      await connection.commit();
+      res.json(current);
+      return;
+    }
+
+    const xpEarned = correct * (current.mode === "review" ? 5 : 10);
+
+    await connection.execute(
+      `UPDATE study_sessions
+       SET ended_at = CURRENT_TIMESTAMP,
+           correct = ?,
+           review = ?,
+           total = ?,
+           duration_seconds = CASE
+             WHEN ? > 0 THEN ?
+             ELSE GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP))
+           END,
+           xp_earned = ?,
+           max_combo = ?,
+           segment_size = ?,
+           segment_total = ?,
+           segment_completed = ?,
+           progress_segments = ?
+       WHERE id = ?`,
+      [
+        correct,
+        review,
+        total,
+        durationSeconds,
+        durationSeconds,
+        xpEarned,
+        maxCombo,
+        segmentSize,
+        segmentTotal,
+        segmentCompleted,
+        progressSegments,
+        sessionId,
+      ]
+    );
+
+    session = await findSessionById(sessionId, connection);
+
+    if (userId && correct > 0) {
+      await updateUserStreak(connection, userId, {
+        xpEarned,
         cardsReviewed: total,
       });
-      await updateDeckStreak(conn, session.deck_id, userId);
-      await conn.commit();
-    } catch (err) {
-      await conn.rollback();
-      console.error("[streak] Failed to update streak:", err?.message);
-    } finally {
-      conn.release();
+      await updateDeckStreak(connection, session.deck_id, userId);
     }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 
   res.json(session);
@@ -398,12 +438,16 @@ async function listStudySessions(req, res) {
   }
 
   if (req.query.from) {
-    conditions.push("DATE(COALESCE(ss.ended_at, ss.started_at)) >= ?");
+    conditions.push(
+      "DATE(CONVERT_TZ(COALESCE(ss.ended_at, ss.started_at), '+00:00', '+07:00')) >= ?"
+    );
     params.push(cleanText(req.query.from));
   }
 
   if (req.query.to) {
-    conditions.push("DATE(COALESCE(ss.ended_at, ss.started_at)) <= ?");
+    conditions.push(
+      "DATE(CONVERT_TZ(COALESCE(ss.ended_at, ss.started_at), '+00:00', '+07:00')) <= ?"
+    );
     params.push(cleanText(req.query.to));
   }
 
@@ -454,7 +498,7 @@ async function getStudySessionsSummary(req, res) {
 
   const [activityRows] = await pool.query(
     `SELECT
-       DATE(COALESCE(ended_at, started_at)) AS study_date,
+       DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00')) AS study_date,
        COUNT(*) AS session_count,
        COALESCE(SUM(total), 0) AS cards_studied,
        COALESCE(SUM(correct), 0) AS correct_count,
@@ -468,8 +512,9 @@ async function getStudySessionsSummary(req, res) {
        ), 0) AS duration_seconds
      FROM study_sessions
      WHERE user_id = ?
-       AND DATE(COALESCE(ended_at, started_at)) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-     GROUP BY DATE(COALESCE(ended_at, started_at))
+       AND DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00')) >=
+           DATE_SUB(DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00')), INTERVAL 6 DAY)
+     GROUP BY DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00'))
      ORDER BY study_date ASC`,
     [userId]
   );
@@ -536,6 +581,10 @@ async function addStudyAnswers(req, res) {
     throw createHttpError(400, "answers la bat buoc");
   }
 
+  if (inputAnswers.length > 500) {
+    throw createHttpError(400, "answers khong duoc vuot qua 500 phan tu");
+  }
+
   const connection = await pool.getConnection();
 
   try {
@@ -567,35 +616,61 @@ async function addStudyAnswers(req, res) {
       const isCorrect = parseBoolean(answer.is_correct, false);
       const answerMeta = parseOptionalJsonPayload(answer.answer_meta, "answer_meta");
 
-      const [result] = await connection.execute(
-        `INSERT INTO study_answers
-          (
-            session_id,
-            card_id,
-            question_text,
-            correct_answer,
-            user_answer,
-            is_correct,
-            answer_meta
-          )
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [
-          sessionId,
-          cardId,
-          questionText,
-          correctAnswer,
-          userAnswer,
-          isCorrect,
-          answerMeta,
-        ]
+      const [existingAnswers] = await connection.query(
+        `SELECT id
+         FROM study_answers
+         WHERE session_id = ? AND card_id = ?
+         LIMIT 1`,
+        [sessionId, cardId]
       );
 
-      insertedIds.push(result.insertId);
-      await updateProgressFromAnswer(connection, {
-        userId: session.user_id,
-        cardId,
-        isCorrect,
-      });
+      if (existingAnswers[0]) {
+        insertedIds.push(existingAnswers[0].id);
+        continue;
+      }
+
+      try {
+        const [result] = await connection.execute(
+          `INSERT INTO study_answers
+            (
+              session_id,
+              card_id,
+              question_text,
+              correct_answer,
+              user_answer,
+              is_correct,
+              answer_meta
+            )
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            sessionId,
+            cardId,
+            questionText,
+            correctAnswer,
+            userAnswer,
+            isCorrect,
+            answerMeta,
+          ]
+        );
+
+        insertedIds.push(result.insertId);
+        await updateProgressFromAnswer(connection, {
+          userId: session.user_id,
+          cardId,
+          isCorrect,
+        });
+      } catch (error) {
+        if (error.code !== "ER_DUP_ENTRY") throw error;
+
+        const [duplicateRows] = await connection.query(
+          `SELECT id
+           FROM study_answers
+           WHERE session_id = ? AND card_id = ?
+           LIMIT 1`,
+          [sessionId, cardId]
+        );
+        if (duplicateRows[0]) insertedIds.push(duplicateRows[0].id);
+      }
     }
 
     const [rows] = await connection.query(
@@ -641,6 +716,10 @@ async function createQuizResult(req, res) {
     "progress_segments"
   );
 
+  if (correct + review !== total) {
+    throw createHttpError(400, "correct + review phai bang total");
+  }
+
   if (userId === null) {
     res.json(
       createUnsavedQuizResult({
@@ -685,22 +764,6 @@ async function createQuizResult(req, res) {
   const [rows] = await pool.query("SELECT * FROM quiz_results WHERE id = ?", [
     result.insertId,
   ]);
-
-  // Cập nhật user streak sau khi lưu quiz result
-  if (correct > 0) {
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-      await updateUserStreak(conn, userId, { cardsReviewed: total });
-      await updateDeckStreak(conn, deckId, userId);
-      await conn.commit();
-    } catch (err) {
-      await conn.rollback();
-      console.error("[streak] Failed to update streak:", err?.message);
-    } finally {
-      conn.release();
-    }
-  }
 
   res.status(201).json(normalizeQuizResult(rows[0]));
 }

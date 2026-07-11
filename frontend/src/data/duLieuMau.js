@@ -13,7 +13,10 @@ function docYeuThichDaLuu() {
   if (typeof window === "undefined") return {};
 
   try {
-    return JSON.parse(window.localStorage.getItem(FAVORITES_STORAGE_KEY)) || {};
+    const parsed = JSON.parse(window.localStorage.getItem(FAVORITES_STORAGE_KEY));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }
@@ -22,14 +25,18 @@ function docYeuThichDaLuu() {
 function luuYeuThich(cardId, isFavorite) {
   if (typeof window === "undefined") return;
 
-  const hienTai = docYeuThichDaLuu();
-  if (isFavorite) {
-    hienTai[cardId] = true;
-  } else {
-    delete hienTai[cardId];
-  }
+  try {
+    const hienTai = docYeuThichDaLuu();
+    if (isFavorite) {
+      hienTai[cardId] = true;
+    } else {
+      delete hienTai[cardId];
+    }
 
-  window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(hienTai));
+    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(hienTai));
+  } catch {
+    // Storage can be unavailable or full. The in-memory card state still works.
+  }
 }
 
 function ngayTaoTuId(id) {

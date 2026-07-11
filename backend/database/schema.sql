@@ -8,8 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   fullname VARCHAR(50) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  avatar_url VARCHAR(500),
+  password_hash VARCHAR(255) NULL,
+  google_id VARCHAR(255) NULL UNIQUE,
+  avatar_url VARCHAR(512),
 
   total_xp INT UNSIGNED NOT NULL DEFAULT 0,
   current_streak INT UNSIGNED NOT NULL DEFAULT 0,
@@ -135,7 +136,8 @@ CREATE TABLE IF NOT EXISTS study_answers (
     ON DELETE CASCADE,
 
   INDEX idx_study_answers_session_id (session_id),
-  INDEX idx_study_answers_card_id (card_id)
+  INDEX idx_study_answers_card_id (card_id),
+  UNIQUE KEY unique_study_answer_session_card (session_id, card_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS card_progress (

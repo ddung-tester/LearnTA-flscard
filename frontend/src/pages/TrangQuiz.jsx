@@ -204,6 +204,7 @@ function TrangQuiz() {
   const [dangChoReward, setDangChoReward] = useState(false);
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const progressEndpointRef = useRef(null);
+  const progressOriginRef = useRef(null);
   const rewardProgressValueRef = useRef(0);
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const rewardLaunchTimerRef = useRef(null);
@@ -217,12 +218,14 @@ function TrangQuiz() {
   const [streakCelebration, setStreakCelebration] = useState(null); // streak mới nếu tăng
   const prevStreakRef = useRef(null);
   const [danhSachCauHoiRuntime, setDanhSachCauHoiRuntime] = useState([]);
+  const dataRequestRef = useRef(0);
   // Set lưu card_id nào đã bị trả lời sai ít nhất 1 lần trong session này
   const [tapCardSai, setTapCardSai] = useState(() => new Set());
   // Danh sách card gốc chỉ để học lại (null = học tất cả, mảng = học lại từ sai)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
   async function taiDuLieuQuiz() {
+    const requestId = ++dataRequestRef.current;
     await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
@@ -233,14 +236,20 @@ function TrangQuiz() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSachGoc(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSachGoc(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSachGoc([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSachGoc([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 
@@ -1092,6 +1101,7 @@ function TrangQuiz() {
           active={batReward && hienReward}
           lanKichHoat={lanReward}
           config={CAU_HINH_REWARD_QUIZ}
+          progressOriginRef={progressOriginRef}
           progressEndpointRef={progressEndpointRef}
           onRequestClose={() => setHienReward(false)}
           onHideComplete={xuLyRewardDongXong}
@@ -1144,6 +1154,7 @@ function TrangQuiz() {
         active={batReward && hienReward}
         lanKichHoat={lanReward}
         config={CAU_HINH_REWARD_QUIZ}
+        progressOriginRef={progressOriginRef}
         progressEndpointRef={progressEndpointRef}
         onRequestClose={() => setHienReward(false)}
         onHideComplete={xuLyRewardDongXong}
@@ -1243,6 +1254,7 @@ function TrangQuiz() {
             totalValue={tongSoCauHoi}
             progressPercent={tienDoReward}
             phase={rewardProgressPhase}
+            activeEndRef={progressOriginRef}
             endpointRef={progressEndpointRef}
             label="Tiến độ"
             combo={combo}
@@ -1286,7 +1298,13 @@ function TrangQuiz() {
           <button
             type="button"
             className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-            onClick={() => ttsSpeak(cauHienTai.cauHoi, cheDo === "en-vi" ? "en-US" : "vi-VN")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              ttsSpeak(cauHienTai.cauHoi, cheDo === "en-vi" ? "en-US" : "vi-VN");
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="Đọc câu hỏi"
             title="Đọc câu hỏi"
           >

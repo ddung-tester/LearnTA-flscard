@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Timing config — dễ chỉnh sau
 const CONFIG = {
@@ -19,9 +19,15 @@ function useTypingEffect(words) {
   const [wordIndex, setWordIndex] = useState(0);
   const [phase, setPhase] = useState("typing");
   const timerRef = useRef(null);
+  const normalizedWords = useMemo(
+    () => (Array.isArray(words) ? words.map((word) => String(word ?? "")).filter(Boolean) : []),
+    [words]
+  );
 
   useEffect(() => {
-    const currentWord = words[wordIndex % words.length];
+    if (normalizedWords.length === 0) return undefined;
+
+    const currentWord = normalizedWords[wordIndex % normalizedWords.length];
 
     function scheduleNext(fn, delay) {
       timerRef.current = setTimeout(fn, delay);
@@ -44,16 +50,16 @@ function useTypingEffect(words) {
         }, rand(CONFIG.deleteMinMs, CONFIG.deleteMaxMs));
       } else {
         scheduleNext(() => {
-          setWordIndex((i) => (i + 1) % words.length);
+          setWordIndex((i) => (i + 1) % normalizedWords.length);
           setPhase("typing");
         }, CONFIG.pauseBeforeMs);
       }
     }
 
     return () => clearTimeout(timerRef.current);
-  }, [displayText, phase, wordIndex, words]);
+  }, [displayText, normalizedWords, phase, wordIndex]);
 
-  return { displayText };
+  return { displayText: normalizedWords.length > 0 ? displayText : "" };
 }
 
 /**

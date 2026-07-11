@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { layDanhSachDeck } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
-import { layThongKeSRS, layTatCaSRS } from "../utils/srsReview";
-import { layThongKeTuSai, layTatCaTuSai } from "../utils/mistakeNotebook";
+import { layTatCaSRS, taiSRSDongBo } from "../utils/srsReview";
+import { layTatCaTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import EmptyState from "../components/common/EmptyState";
@@ -18,6 +18,29 @@ function tinhPhanPhoiMastery(srsList) {
     dist[lv] = (dist[lv] || 0) + 1;
   }
   return dist;
+}
+
+function tinhThongKeSrsDanhSach(entries) {
+  const active = entries.filter((entry) => entry.status === "active");
+  const due = active.filter((entry) => {
+    if (!entry.nextReviewAt) return true;
+    return new Date(entry.nextReviewAt) <= new Date();
+  }).length;
+  const mastered = entries.filter((entry) => entry.status === "mastered").length;
+
+  return {
+    total: entries.length,
+    duHomNay: due,
+    active: active.length,
+    mastered,
+    khoHoc: active.length - due,
+  };
+}
+
+function tinhThongKeTuSaiDanhSach(entries) {
+  const active = entries.filter((entry) => entry.status === "active").length;
+  const reviewed = entries.filter((entry) => entry.status === "reviewed").length;
+  return { total: entries.length, active, reviewed };
 }
 
 function layTuKhoNhat(all, n = 8) {
@@ -209,23 +232,42 @@ function TrangThongKe() {
   const [sessionSummary, setSessionSummary] = useState(null);
   const [dangTai, setDangTai] = useState(true);
 
-  const srsStats     = useMemo(() => layThongKeSRS(), []);
-  const srsList      = useMemo(() => layTatCaSRS(), []);
-  const mistakeStats = useMemo(() => layThongKeTuSai(), []);
-  const mistakeList  = useMemo(() => layTatCaTuSai(), []);
+  const [srsList, setSrsList] = useState(() => layTatCaSRS());
+  const [mistakeList, setMistakeList] = useState(() => layTatCaTuSai());
+  const srsStats     = useMemo(() => tinhThongKeSrsDanhSach(srsList), [srsList]);
+  const mistakeStats = useMemo(() => tinhThongKeTuSaiDanhSach(mistakeList), [mistakeList]);
   const masteryDist  = useMemo(() => tinhPhanPhoiMastery(srsList), [srsList]);
   const tuKhoNhat    = useMemo(() => layTuKhoNhat(mistakeList, 8), [mistakeList]);
   const tongTu = useMemo(() => (decks ?? []).reduce((s, d) => s + (d.total_words ?? 0), 0), [decks]);
 
   useEffect(() => {
-    Promise.all([layDanhSachDeck(), getUserStats(), layStudySessionSummary()])
-      .then(([ds, st, sessionData]) => {
+    let active = true;
+
+    Promise.all([
+      layDanhSachDeck(),
+      getUserStats(),
+      layStudySessionSummary(),
+      taiSRSDongBo({ limit: 200 }),
+      taiTuSaiDongBo({ limit: 200 }),
+    ])
+      .then(([ds, st, sessionData, syncedSrs, syncedMistakes]) => {
+        if (!active) return;
         setDecks(ds);
         setUserStats(st);
         setSessionSummary(sessionData);
+        setSrsList(syncedSrs);
+        setMistakeList(syncedMistakes);
       })
-      .catch(() => setDecks([]))
-      .finally(() => setDangTai(false));
+      .catch(() => {
+        if (active) setDecks([]);
+      })
+      .finally(() => {
+        if (active) setDangTai(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const totalSrsItems = srsList.length;

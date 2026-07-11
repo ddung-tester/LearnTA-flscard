@@ -7,7 +7,9 @@ const {
 } = require("./deckController");
 const {
   cleanNullableText,
+  cleanNullableTextWithLimit,
   cleanText,
+  cleanTextWithLimit,
   createHttpError,
   parseBoolean,
   parsePositiveInt,
@@ -138,8 +140,12 @@ async function findCardById(cardId, connection = pool, options = {}) {
 }
 
 function readCardPayload(body, { requireTerms = true } = {}) {
-  const termEn = cleanText(body.term_en ?? body.word);
-  const meaningVi = cleanText(body.meaning_vi ?? body.meaning);
+  const termEn = cleanTextWithLimit(body.term_en ?? body.word, 255, "term_en");
+  const meaningVi = cleanTextWithLimit(
+    body.meaning_vi ?? body.meaning,
+    255,
+    "meaning_vi"
+  );
 
   if (requireTerms && !termEn) {
     throw createHttpError(400, "term_en la bat buoc");
@@ -154,8 +160,8 @@ function readCardPayload(body, { requireTerms = true } = {}) {
     meaning_vi: meaningVi,
     example_sentence: cleanText(body.example_sentence ?? body.example),
     note: cleanText(body.note),
-    pronunciation: cleanNullableText(body.pronunciation),
-    part_of_speech: cleanNullableText(body.part_of_speech),
+    pronunciation: cleanNullableTextWithLimit(body.pronunciation, 255, "pronunciation"),
+    part_of_speech: cleanNullableTextWithLimit(body.part_of_speech, 50, "part_of_speech"),
     is_favorite: parseBoolean(body.is_favorite ?? body.isFavorite, false),
   };
 }
@@ -209,6 +215,10 @@ async function createCard(req, res) {
   try {
     await connection.beginTransaction();
 
+    // Serialize inserts for the same deck so two requests cannot both claim
+    // sort_order 0.
+    await connection.query("SELECT id FROM decks WHERE id = ? FOR UPDATE", [deckId]);
+
     await connection.execute(
       "UPDATE cards SET sort_order = sort_order + 1 WHERE deck_id = ?",
       [deckId]
@@ -248,6 +258,9 @@ async function importCards(req, res) {
   await ensureDeckWritable(deckId, req);
 
   const inputCards = Array.isArray(req.body.cards) ? req.body.cards : [];
+  if (inputCards.length > 500) {
+    throw createHttpError(400, "cards khong duoc vuot qua 500 phan tu");
+  }
   const validCards = inputCards
     .map((card) => readCardPayload(card, { requireTerms: false }))
     .filter((card) => card.term_en && card.meaning_vi);
@@ -260,6 +273,8 @@ async function importCards(req, res) {
 
   try {
     await connection.beginTransaction();
+
+    await connection.query("SELECT id FROM decks WHERE id = ? FOR UPDATE", [deckId]);
 
     // Find current max sort_order to append new cards below existing ones
     const [[maxRow]] = await connection.query(

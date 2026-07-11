@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * useCombo — quản lý combo state cho learning modes.
@@ -15,6 +15,7 @@ function useCombo() {
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [comboPhase, setComboPhase] = useState("idle");
+  const comboRef = useRef(0);
   const phaseTimerRef = useRef(null);
 
   function clearPhaseTimer() {
@@ -26,11 +27,10 @@ function useCombo() {
 
   const incrementCombo = useCallback(() => {
     clearPhaseTimer();
-    setCombo((prev) => {
-      const next = prev + 1;
-      setMaxCombo((max) => Math.max(max, next));
-      return next;
-    });
+    const next = comboRef.current + 1;
+    comboRef.current = next;
+    setCombo(next);
+    setMaxCombo((max) => Math.max(max, next));
     setComboPhase("increment");
     phaseTimerRef.current = setTimeout(() => {
       setComboPhase("idle");
@@ -39,23 +39,28 @@ function useCombo() {
   }, []);
 
   const resetCombo = useCallback(() => {
-    setCombo((prev) => {
-      if (prev === 0) return 0; // đã 0 rồi, không cần break
-      clearPhaseTimer();
-      setComboPhase("break");
-      phaseTimerRef.current = setTimeout(() => {
-        setComboPhase("idle");
-        phaseTimerRef.current = null;
-      }, 700);
-      return 0;
-    });
+    if (comboRef.current === 0) return;
+
+    comboRef.current = 0;
+    setCombo(0);
+    clearPhaseTimer();
+    setComboPhase("break");
+    phaseTimerRef.current = setTimeout(() => {
+      setComboPhase("idle");
+      phaseTimerRef.current = null;
+    }, 700);
   }, []);
 
   const resetAll = useCallback(() => {
     clearPhaseTimer();
+    comboRef.current = 0;
     setCombo(0);
     setMaxCombo(0);
     setComboPhase("idle");
+  }, []);
+
+  useEffect(() => () => {
+    clearPhaseTimer();
   }, []);
 
   return { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll };

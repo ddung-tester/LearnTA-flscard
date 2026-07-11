@@ -3300,10 +3300,17 @@ body.is-page-loading .ui-route-transition {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   width: 2.6rem;
   height: 2.6rem;
   min-width: 2.6rem;
   min-height: 2.6rem;
+=======
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -3311,9 +3318,13 @@ body.is-page-loading .ui-route-transition {
   color: var(--mau-chu-phu);
   cursor: pointer;
   flex-shrink: 0;
+<<<<<<< HEAD
   overflow: hidden;
   transform: translateZ(0);
   backface-visibility: hidden;
+=======
+  touch-action: manipulation;
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   transition:
     color var(--tuong-tac-hover) var(--tuong-tac-ease),
     background-color var(--tuong-tac-hover) var(--tuong-tac-ease),
@@ -3323,7 +3334,10 @@ body.is-page-loading .ui-route-transition {
 .tts-speaker-btn svg {
   width: 1.45rem;
   height: 1.45rem;
+<<<<<<< HEAD
   flex-shrink: 0;
+=======
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   transition: opacity 150ms var(--tuong-tac-ease);
   pointer-events: none;
 }
@@ -3333,21 +3347,26 @@ body.is-page-loading .ui-route-transition {
     color: var(--mau-chinh);
     background: oklch(55% 0.105 164 / 0.1);
   }
+<<<<<<< HEAD
 }
 
 .tts-speaker-btn:active {
   color: var(--mau-chinh);
   background: oklch(55% 0.105 164 / 0.14);
+=======
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
 }
 
 .tts-speaker-btn--active {
   color: var(--mau-chinh);
+  background: oklch(55% 0.105 164 / 0.12);
 }
 
 .tts-speaker-btn--active svg {
-  animation: tts-pulse 1.2s ease-in-out infinite;
+  opacity: 0.78;
 }
 
+<<<<<<< HEAD
 @keyframes tts-pulse {
   0%, 100% {
     opacity: 1;
@@ -3359,6 +3378,17 @@ body.is-page-loading .ui-route-transition {
 
 .tts-speaker-btn--active:active svg {
   animation: tts-pulse 1.2s ease-in-out infinite;
+=======
+.tts-speaker-btn,
+.tts-speaker-btn:hover,
+.tts-speaker-btn:active,
+.tts-speaker-btn:focus,
+.tts-speaker-btn--active,
+.tts-speaker-btn--active:active {
+  filter: none !important;
+  transform: none !important;
+  box-shadow: none;
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
 }
 
 /* Corner variant — absolute top-right of parent */
@@ -3366,10 +3396,15 @@ body.is-page-loading .ui-route-transition {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
+<<<<<<< HEAD
   width: 2.4rem;
   height: 2.4rem;
   min-width: 2.4rem;
   min-height: 2.4rem;
+=======
+  width: 2.75rem;
+  height: 2.75rem;
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   z-index: 2;
 }
 
@@ -4302,7 +4337,7 @@ body.is-page-loading .ui-route-transition {
 
 /* ── Tooltip Fade ─────────────────────────────────────────────────────── */
 
-[title]:not(.ui-word-move-handle):hover {
+[title]:not(.ui-word-move-handle):not(.tts-speaker-btn):hover {
   position: relative;
 }
 
@@ -4698,6 +4733,15 @@ body.is-page-loading .ui-route-transition {
   padding-bottom: 2rem;
 }
 
+<<<<<<< HEAD
+=======
+/* --- TTS button: consistent size and touch target --- */
+.tts-speaker-btn {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+>>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
 /* --- Progress bar: smoother transition --- */
 .ui-study-progress__fill,
 .ui-reward-progress__fill {

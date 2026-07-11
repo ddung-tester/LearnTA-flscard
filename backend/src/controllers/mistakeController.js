@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const {
   cleanNullableText,
+  cleanTextWithLimit,
   cleanText,
   createHttpError,
   parsePositiveInt,
@@ -84,10 +85,14 @@ function readMistakePayload(body) {
   return {
     cardId,
     deckId,
-    termEn: cleanText(body.term_en ?? body.word),
-    meaningVi: cleanText(body.meaning_vi ?? body.meaning),
+    termEn: cleanTextWithLimit(body.term_en ?? body.word, 255, "term_en"),
+    meaningVi: cleanTextWithLimit(
+      body.meaning_vi ?? body.meaning,
+      255,
+      "meaning_vi"
+    ),
     exampleSentence: cleanNullableText(body.example_sentence ?? body.example),
-    source: cleanText(body.source) || "quiz",
+    source: cleanTextWithLimit(body.source, 40, "source") || "quiz",
     mistakeCount:
       Number.isInteger(mistakeCount) && mistakeCount > 0 ? mistakeCount : 1,
     status: VALID_STATUSES.has(body.status) ? body.status : "active",
@@ -96,13 +101,14 @@ function readMistakePayload(body) {
   };
 }
 
-async function resolveOwnedCardLink(connection, userId, payload) {
+async function resolveReadableCardLink(connection, userId, payload) {
   if (payload.cardId) {
     const [rows] = await connection.query(
       `SELECT c.id, c.deck_id, c.term_en, c.meaning_vi, c.example_sentence
        FROM cards c
        JOIN decks d ON d.id = c.deck_id
-       WHERE c.id = ? AND d.user_id = ?
+       WHERE c.id = ?
+         AND (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE)
        LIMIT 1`,
       [payload.cardId, userId]
     );
@@ -120,7 +126,10 @@ async function resolveOwnedCardLink(connection, userId, payload) {
 
   if (payload.deckId) {
     const [rows] = await connection.query(
-      "SELECT id FROM decks WHERE id = ? AND user_id = ? LIMIT 1",
+      `SELECT id
+       FROM decks
+       WHERE id = ? AND (user_id = ? OR user_id IS NULL OR is_public = TRUE)
+       LIMIT 1`,
       [payload.deckId, userId]
     );
 
@@ -170,7 +179,7 @@ async function findMistakeByCard(connection, userId, cardId) {
 
 async function upsertMistake(connection, userId, rawPayload, { mode = "increment" } = {}) {
   const payload = readMistakePayload(rawPayload);
-  const cardLink = await resolveOwnedCardLink(connection, userId, payload);
+  const cardLink = await resolveReadableCardLink(connection, userId, payload);
 
   const termEn = cardLink.termEn || payload.termEn;
   const meaningVi = cardLink.meaningVi || payload.meaningVi;
@@ -341,6 +350,10 @@ async function bulkUpsertMistakes(req, res) {
 
   if (items.length === 0) {
     throw createHttpError(400, "items la bat buoc");
+  }
+
+  if (items.length > 200) {
+    throw createHttpError(400, "items khong duoc vuot qua 200 phan tu");
   }
 
   const connection = await pool.getConnection();

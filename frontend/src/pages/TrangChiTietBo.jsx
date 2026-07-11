@@ -194,8 +194,10 @@ function TrangChiTietBo() {
   const [studiedToday, setStudiedToday] = useState(false);
   // streak bị vỡ: đã từng có streak nhưng bỏ học >= 2 ngày liên tiếp
   const [streakBroken, setStreakBroken] = useState(false);
+  const dataRequestRef = useRef(0);
 
   async function taiDuLieuBo() {
+    const requestId = ++dataRequestRef.current;
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -205,14 +207,20 @@ function TrangChiTietBo() {
         layCardsTheoDeck(boId),
       ]);
 
-      setBo(deck);
-      setDanhSach(cards);
+      if (requestId === dataRequestRef.current) {
+        setBo(deck);
+        setDanhSach(cards);
+      }
     } catch (error) {
-      setBo(null);
-      setDanhSach([]);
-      setLoiTaiDuLieu(error.message);
+      if (requestId === dataRequestRef.current) {
+        setBo(null);
+        setDanhSach([]);
+        setLoiTaiDuLieu(error.message);
+      }
     } finally {
-      setDangTaiDuLieu(false);
+      if (requestId === dataRequestRef.current) {
+        setDangTaiDuLieu(false);
+      }
     }
   }
 
@@ -887,13 +895,13 @@ function TrangChiTietBo() {
           Bộ từ này không tồn tại
         </h2>
         <p className="text-[var(--mau-chu-phu)] mb-6">
-          Kiểm tra lại đường dẫn hoặc quay về danh sách bộ từ để chọn một bộ khác.
+          Kiểm tra lại đường dẫn hoặc quay về Dashboard để chọn một bộ khác.
         </p>
         <Link
-          to="/decks"
+          to="/dashboard"
           className="ui-button ui-button--primary inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-[var(--mau-chinh)] text-[var(--mau-chu-tren-chinh)] font-semibold hover:bg-[var(--mau-chinh-hover)] transition-colors"
         >
-          Quay về danh sách
+          Quay về Dashboard
         </Link>
       </div>
     );
@@ -916,10 +924,10 @@ function TrangChiTietBo() {
       <div className="ui-page-header">
         <div className="ui-page-header__title ui-deck-detail-header__title">
           <Link
-            to="/decks"
+            to="/dashboard"
             className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
-            ← Danh sách bộ từ
+            ← Dashboard
           </Link>
           <h2 className="ui-deck-detail-header__heading text-2xl font-semibold text-[var(--mau-chu)]">
             {bo.title}
@@ -1155,10 +1163,14 @@ function TrangChiTietBo() {
                           <button
                             type="button"
                             className={`tts-speaker-btn${ttsDangDoc && currentPlayingWordId === the.id ? " tts-speaker-btn--active" : ""}`}
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setCurrentPlayingWordId(the.id);
                               ttsSpeak(the.term_en, "en-US");
                             }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onPointerDown={(e) => e.stopPropagation()}
                             aria-label={`Đọc ${the.term_en}`}
                             title="Đọc từ vựng"
                           >

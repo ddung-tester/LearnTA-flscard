@@ -7,14 +7,22 @@
  * 2. Gọi backend PATCH /cards/:cardId/progress (is_correct) nếu có thể
  * 3. Show toast + chuyển sang card tiếp theo
  */
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 import EmptyState from "../components/common/EmptyState";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,
-  xoaKhoiSRS,
+  xoaKhoiSRSDongBo,
   taiSRSDongBo,
 } from "../utils/srsReview";
 import { luuStudySessionHoanThanh } from "../services/studySessionApi";
@@ -212,6 +220,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
         <button
           type="button"
           onClick={() => onRemove(entry.id)}
+          disabled={isLoading}
           className="review-card__remove"
           aria-label="Xoá khỏi hàng ôn"
           title="Xoá khỏi hàng ôn"
@@ -297,9 +306,12 @@ function CompletionScreen({ total }) {
 
 function TrangOnTapHomNay() {
   const toast = useToast();
+  const { setPageDataLoading } = usePageTransition();
 
   const [allCards, setAllCards] = useState(() => layTatCaSRS());
-  const [dangTai, setDangTai] = useState(false);
+  // The remote queue always syncs on mount. Starting at true lets the global
+  // route overlay hand off to page loading without a blank frame in between.
+  const [dangTai, setDangTai] = useState(true);
   const [filterMode, setFilterMode] = useState("due");
   const [deckFilter, setDeckFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
@@ -311,15 +323,23 @@ function TrangOnTapHomNay() {
   const [removedIds, setRemovedIds] = useState(new Set());
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
+  const [entryOverrides, setEntryOverrides] = useState({});
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
+  const actionLockRef = useRef(false);
+  const removedIdsRef = useRef(new Set());
 
-  // Map from id → entry data (kept in ref so we don't re-render on every rating)
-  const entryMap = useRef({});
+  useLayoutEffect(() => {
+    const loadingKey = "review-page";
+    setPageDataLoading(loadingKey, dangTai);
+
+    return () => {
+      setPageDataLoading(loadingKey, false);
+    };
+  }, [dangTai, setPageDataLoading]);
 
   useEffect(() => {
     let mounted = true;
-    setDangTai(true);
 
     taiSRSDongBo({ limit: 200 })
       .then((items) => {
@@ -367,37 +387,63 @@ function TrangOnTapHomNay() {
     return [...ds].sort((a, b) => new Date(a.nextReviewAt || 0) - new Date(b.nextReviewAt || 0));
   }, [allCards, filterMode, deckFilter, levelFilter, sourceFilter, search]);
 
-  useEffect(() => {
-    entryMap.current = Object.fromEntries(filteredCards.map((card) => [card.id, card]));
-    setQueue(filteredCards.map((card) => card.id));
+  const entryMap = useMemo(
+    () =>
+      Object.fromEntries(
+        filteredCards.map((card) => [
+          card.id,
+          { ...card, ...(entryOverrides[card.id] || {}) },
+        ])
+      ),
+    [entryOverrides, filteredCards]
+  );
+
+  const visibleFilteredCards = useMemo(
+    () => filteredCards.filter((card) => !removedIds.has(String(card.id))),
+    [filteredCards, removedIds]
+  );
+
+  useLayoutEffect(() => {
+    setQueue(
+      filteredCards
+        .filter((card) => !removedIdsRef.current.has(String(card.id)))
+        .map((card) => card.id)
+    );
     setDoneCount(0);
     setCorrectCount(0);
     setWrongCount(0);
-    setRemovedIds(new Set());
     startedAtRef.current = new Date().toISOString();
     daLuuSessionRef.current = false;
   }, [filteredCards]);
 
   // Current card is the first in queue
   const currentId = queue[0];
-  const currentEntry = currentId ? entryMap.current[currentId] : null;
+  const currentEntry = currentId ? entryMap[currentId] : null;
   const isComplete = queue.length === 0 && doneCount > 0;
-  const nothingDue = filteredCards.length === 0;
+  const nothingDue = visibleFilteredCards.length === 0;
 
   // Global SRS stats (for header)
-  const srsStats = useMemo(() => tinhThongKeSRS(allCards), [allCards]);
+  const srsStats = useMemo(
+    () => tinhThongKeSRS(allCards.filter((card) => !removedIds.has(String(card.id)))),
+    [allCards, removedIds]
+  );
 
   const handleRate = useCallback(
     async (id, ease) => {
-      if (isLoading) return;
+      if (actionLockRef.current) return;
 
+      actionLockRef.current = true;
       setIsLoading(true);
       try {
-        await capNhatKetQuaOnDongBo(id, ease);
+        const updatedEntry = await capNhatKetQuaOnDongBo(id, ease);
+        if (updatedEntry) {
+          setEntryOverrides((current) => ({
+            ...current,
+            [id]: updatedEntry,
+          }));
+        }
       } catch {
         // Silent — helper already keeps local SRS as fallback.
-      } finally {
-        setIsLoading(false);
       }
 
       // 3. Update queue — remove current card, move "again" to end
@@ -424,15 +470,26 @@ function TrangOnTapHomNay() {
         easy:  "🌟 Xuất sắc! Ôn lại sau 7 ngày.",
       };
       toast.success(msgs[ease] ?? "Đã lưu!");
+
+      actionLockRef.current = false;
+      setIsLoading(false);
     },
-    [isLoading, toast]
+    [toast]
   );
 
   const handleRemove = useCallback(
     (id) => {
-      xoaKhoiSRS(id);
+      if (actionLockRef.current) return;
+
+      xoaKhoiSRSDongBo(id);
+      removedIdsRef.current.add(String(id));
+      setEntryOverrides((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
       setQueue((prev) => prev.filter((x) => x !== id));
-      setRemovedIds((prev) => new Set([...prev, id]));
+      setRemovedIds((prev) => new Set([...prev, String(id)]));
       toast.info("Đã xoá khỏi hàng ôn.");
     },
     [toast]
@@ -485,7 +542,7 @@ function TrangOnTapHomNay() {
               ? "Không có từ nào phù hợp với bộ lọc hiện tại."
               : isComplete
               ? "Đã ôn xong tất cả từ hôm nay!"
-              : `${filteredCards.length} từ trong hàng ôn · SRS queue: ${srsStats.total} từ`}
+              : `${visibleFilteredCards.length} từ trong hàng ôn · SRS queue: ${srsStats.total} từ`}
           </p>
         </div>
         <div className="review-header__actions">
@@ -519,7 +576,7 @@ function TrangOnTapHomNay() {
       {/* Progress bar */}
       {!nothingDue && !isComplete && (
         <StatsBar
-          total={filteredCards.length}
+          total={visibleFilteredCards.length}
           done={effectiveDone}
           remaining={remaining}
         />
@@ -550,7 +607,7 @@ function TrangOnTapHomNay() {
       {!nothingDue && !isComplete && queue.length > 1 && (
         <div className="review-queue-preview">
           <p className="review-queue-preview__label">
-            Tiếp theo: <strong>{queue.slice(1, 4).map((id) => entryMap.current[id]?.word).filter(Boolean).join(", ")}</strong>
+            Tiếp theo: <strong>{queue.slice(1, 4).map((id) => entryMap[id]?.word).filter(Boolean).join(", ")}</strong>
             {queue.length > 4 ? ` và ${queue.length - 4} từ nữa…` : ""}
           </p>
         </div>
