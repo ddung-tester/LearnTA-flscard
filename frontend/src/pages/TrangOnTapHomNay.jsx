@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import EmptyState from "../components/common/EmptyState";
+import "./TrangOnTapHomNay.css";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,

@@ -1,5 +1,6 @@
 import {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useLayoutEffect,
@@ -9,9 +10,6 @@ import {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageLoadingOverlay from "../components/PageLoadingOverlay";
-
-const DELAY_BEFORE_NAVIGATE_MS = 120;
-const DELAY_AFTER_NAVIGATE_MS = 180;
 
 const PageTransitionContext = createContext(null);
 
@@ -28,12 +26,28 @@ export function PageTransitionProvider({ children }) {
   const [dangChuyenTrang, setDangChuyenTrang] = useState(false);
   const [soTacVuTaiDuLieu, setSoTacVuTaiDuLieu] = useState(0);
   const dangChuyenTrangRef = useRef(false);
+  const navigationFrameRef = useRef(null);
   const currentPathRef = useRef("");
   const tacVuTaiDuLieuRef = useRef(new Set());
   const hienThiLoading = dangChuyenTrang || soTacVuTaiDuLieu > 0;
 
   useLayoutEffect(() => {
     currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
+
+    if (!dangChuyenTrangRef.current) return undefined;
+
+    navigationFrameRef.current = window.requestAnimationFrame(() => {
+      navigationFrameRef.current = null;
+      dangChuyenTrangRef.current = false;
+      setDangChuyenTrang(false);
+    });
+
+    return () => {
+      if (navigationFrameRef.current) {
+        window.cancelAnimationFrame(navigationFrameRef.current);
+        navigationFrameRef.current = null;
+      }
+    };
   }, [location]);
 
   useLayoutEffect(() => {
@@ -65,7 +79,7 @@ export function PageTransitionProvider({ children }) {
   }, []);
 
   const navigateWithLoading = useCallback(
-    async (to, options = {}) => {
+    (to, options = {}) => {
       const targetPath = normalizeTo(to);
 
       if (!targetPath || targetPath === currentPathRef.current || dangChuyenTrangRef.current) {
@@ -76,18 +90,13 @@ export function PageTransitionProvider({ children }) {
       setDangChuyenTrang(true);
 
       try {
-        await new Promise((resolve) => {
-          setTimeout(resolve, DELAY_BEFORE_NAVIGATE_MS);
+        startTransition(() => {
+          navigate(to, options);
         });
-
-        navigate(to, options);
-
-        await new Promise((resolve) => {
-          setTimeout(resolve, DELAY_AFTER_NAVIGATE_MS);
-        });
-      } finally {
+      } catch (error) {
         dangChuyenTrangRef.current = false;
         setDangChuyenTrang(false);
+        throw error;
       }
     },
     [navigate]

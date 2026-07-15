@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useLayoutEffect } from "react";
 import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
@@ -8,7 +8,11 @@ import {
   BACKGROUND_QUIZ_VIDEO,
 } from "./constants/backgrounds";
 
-import { SuspenseLoader } from "./contexts/PageTransitionContext";
+import { useAuth } from "./contexts/AuthContext";
+import {
+  SuspenseLoader,
+  usePageTransition,
+} from "./contexts/PageTransitionContext";
 
 const TrangChu = lazy(() => import("./pages/TrangChu"));
 const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
@@ -23,6 +27,25 @@ const TrangDangNhap = lazy(() => import("./pages/TrangDangNhap"));
 const TrangDangKy = lazy(() => import("./pages/TrangDangKy"));
 const TrangCaiDat = lazy(() => import("./pages/TrangCaiDat"));
 const TrangThongKe = lazy(() => import("./pages/TrangThongKe"));
+
+function AuthReadyGate({ children }) {
+  const { isAuthReady } = useAuth();
+  const { setPageDataLoading } = usePageTransition();
+
+  useLayoutEffect(() => {
+    setPageDataLoading("auth-session", !isAuthReady);
+
+    return () => {
+      setPageDataLoading("auth-session", false);
+    };
+  }, [isAuthReady, setPageDataLoading]);
+
+  if (!isAuthReady) {
+    return null;
+  }
+
+  return children;
+}
 
 /**
  * UngDung — Routing chinh.
@@ -81,7 +104,7 @@ function UngDung() {
       variant={backgroundVariant}
       mode={laTrangImmersive ? "immersive" : "app"}
     >
-      {noiDungRoutes}
+      <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
     </VideoBackground>
   );
 }

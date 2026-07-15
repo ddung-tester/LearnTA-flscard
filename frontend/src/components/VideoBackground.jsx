@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BACKGROUND_QUIZ_VIDEO } from "../constants/backgrounds";
+import {
+  BACKGROUND_DEFAULT_VIDEO,
+  BACKGROUND_QUIZ_VIDEO,
+} from "../constants/backgrounds";
 import "./VideoBackground.css";
 
-const VIDEO_FADE_MS = 420;
+const BACKGROUND_SOURCES = [BACKGROUND_DEFAULT_VIDEO, BACKGROUND_QUIZ_VIDEO];
 const BODY_MODE_CLASSES = [
   "has-video-background--immersive",
   "has-video-background--app",
@@ -14,29 +17,16 @@ const BODY_VARIANT_CLASSES = [
   "has-video-background-variant--study",
   "has-video-background-variant--dashboard",
 ];
-const NOOP_VIDEO_READY = () => {};
-
-function VideoLayer({ src, active, onReady }) {
+function VideoLayer({ src, active }) {
   const videoRef = useRef(null);
-  const onReadyRef = useRef(onReady);
-
-  useEffect(() => {
-    onReadyRef.current = onReady;
-  }, [onReady]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const video = videoRef.current;
     if (!video) return undefined;
 
-    let disposed = false;
-
-    function handleReady() {
-      if (!disposed) onReadyRef.current();
-    }
-
     function applyMotionPref() {
-      if (mq.matches || !video) {
+      if (mq.matches || !active) {
         video?.pause();
         return;
       }
@@ -45,32 +35,13 @@ function VideoLayer({ src, active, onReady }) {
     }
 
     video.loop = true;
-    video.addEventListener("loadeddata", handleReady);
-    video.addEventListener("canplay", handleReady);
     mq.addEventListener("change", applyMotionPref);
-
-    if (!mq.matches) {
-      video.play().catch(() => {});
-    }
+    applyMotionPref();
 
     return () => {
-      disposed = true;
-      video.removeEventListener("loadeddata", handleReady);
-      video.removeEventListener("canplay", handleReady);
       mq.removeEventListener("change", applyMotionPref);
     };
-  }, [src]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (active && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [active]);
+  }, [active, src]);
 
   return (
     <video
@@ -93,10 +64,10 @@ function VideoBackground({
   mode = "app",
   children,
 }) {
-  const [activeSrc, setActiveSrc] = useState(src);
-  const [previousSrc, setPreviousSrc] = useState(null);
-  const fadeTimerRef = useRef(null);
-  const pendingSrc = src !== activeSrc ? src : null;
+  const videoSources = useMemo(
+    () => [...new Set([...BACKGROUND_SOURCES, src])],
+    [src]
+  );
 
   useLayoutEffect(() => {
     document.body.classList.add("has-video-background");
@@ -118,53 +89,16 @@ function VideoBackground({
     document.body.classList.add(modeClass, variantClass);
   }, [mode, variant]);
 
-  const clearFadeTimer = useCallback(() => {
-    if (fadeTimerRef.current) {
-      window.clearTimeout(fadeTimerRef.current);
-      fadeTimerRef.current = null;
-    }
-  }, []);
-
-  const activatePendingVideo = useCallback(() => {
-    if (!pendingSrc || pendingSrc === activeSrc) return;
-
-    clearFadeTimer();
-    setPreviousSrc(activeSrc);
-    setActiveSrc(pendingSrc);
-
-    fadeTimerRef.current = window.setTimeout(() => {
-      setPreviousSrc(null);
-      fadeTimerRef.current = null;
-    }, VIDEO_FADE_MS);
-  }, [activeSrc, clearFadeTimer, pendingSrc]);
-
-  useEffect(() => clearFadeTimer, [clearFadeTimer]);
-
   return (
     <>
       <div className="video-bg" aria-hidden="true">
-        {previousSrc && (
+        {videoSources.map((videoSrc) => (
           <VideoLayer
-            key={previousSrc}
-            src={previousSrc}
-            active={false}
-            onReady={NOOP_VIDEO_READY}
+            key={videoSrc}
+            src={videoSrc}
+            active={videoSrc === src}
           />
-        )}
-        <VideoLayer
-          key={activeSrc}
-          src={activeSrc}
-          active
-          onReady={NOOP_VIDEO_READY}
-        />
-        {pendingSrc && (
-          <VideoLayer
-            key={pendingSrc === previousSrc ? `pending-${pendingSrc}` : pendingSrc}
-            src={pendingSrc}
-            active={false}
-            onReady={activatePendingVideo}
-          />
-        )}
+        ))}
         <AnimatePresence initial={false}>
           <motion.div
             key={variant}
@@ -172,7 +106,7 @@ function VideoBackground({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
           />
         </AnimatePresence>
       </div>

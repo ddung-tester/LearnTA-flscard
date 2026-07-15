@@ -142,10 +142,7 @@ select {
 .ui-route-transition {
   min-height: 0;
   animation: ui-page-enter 170ms var(--tuong-tac-ease-soft) both;
-  backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
   transform-origin: center top;
-  will-change: opacity, transform;
 }
 
 .app-shell-main--study > .ui-route-transition {
@@ -460,16 +457,10 @@ a[href][class*="rounded"]:active,
 
 .ui-page-enter {
   animation: ui-page-enter var(--content-duration) var(--tuong-tac-ease-soft) both;
-  backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
-  will-change: opacity, transform;
 }
 
 .ui-content-enter {
   animation: ui-content-enter var(--content-duration) var(--tuong-tac-ease-soft) both;
-  backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
-  will-change: opacity, transform;
 }
 
 .ui-feedback-pop {
@@ -488,12 +479,6 @@ body.is-page-loading .page-transition-root {
   pointer-events: none;
 }
 
-body.is-page-loading .ui-page-enter,
-body.is-page-loading .ui-content-enter,
-body.is-page-loading .ui-route-transition {
-  animation: none !important;
-}
-
 .page-loading-overlay {
   position: fixed;
   inset: 0;
@@ -501,6 +486,8 @@ body.is-page-loading .ui-route-transition {
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  pointer-events: none;
   background:
     radial-gradient(circle at 50% 42%, oklch(92% 0.05 172 / 0.28), transparent 28rem),
     linear-gradient(
@@ -513,6 +500,10 @@ body.is-page-loading .ui-route-transition {
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: opacity;
+}
+
+.page-loading-overlay--visible {
+  pointer-events: auto;
 }
 
 .page-loading-overlay__content {
@@ -2590,7 +2581,7 @@ body.is-page-loading .ui-route-transition {
 
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 }
 
@@ -2602,7 +2593,7 @@ body.is-page-loading .ui-route-transition {
 
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
   }
 }
 
@@ -3300,17 +3291,10 @@ body.is-page-loading .ui-route-transition {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-<<<<<<< HEAD
-  width: 2.6rem;
-  height: 2.6rem;
-  min-width: 2.6rem;
-  min-height: 2.6rem;
-=======
   width: 2.75rem;
   height: 2.75rem;
   min-width: 2.75rem;
   min-height: 2.75rem;
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -3318,13 +3302,10 @@ body.is-page-loading .ui-route-transition {
   color: var(--mau-chu-phu);
   cursor: pointer;
   flex-shrink: 0;
-<<<<<<< HEAD
   overflow: hidden;
   transform: translateZ(0);
   backface-visibility: hidden;
-=======
   touch-action: manipulation;
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   transition:
     color var(--tuong-tac-hover) var(--tuong-tac-ease),
     background-color var(--tuong-tac-hover) var(--tuong-tac-ease),
@@ -3334,10 +3315,7 @@ body.is-page-loading .ui-route-transition {
 .tts-speaker-btn svg {
   width: 1.45rem;
   height: 1.45rem;
-<<<<<<< HEAD
   flex-shrink: 0;
-=======
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
   transition: opacity 150ms var(--tuong-tac-ease);
   pointer-events: none;
 }
@@ -3347,14 +3325,11 @@ body.is-page-loading .ui-route-transition {
     color: var(--mau-chinh);
     background: oklch(55% 0.105 164 / 0.1);
   }
-<<<<<<< HEAD
 }
 
 .tts-speaker-btn:active {
   color: var(--mau-chinh);
   background: oklch(55% 0.105 164 / 0.14);
-=======
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
 }
 
 .tts-speaker-btn--active {
@@ -3366,7 +3341,6 @@ body.is-page-loading .ui-route-transition {
   opacity: 0.78;
 }
 
-<<<<<<< HEAD
 @keyframes tts-pulse {
   0%, 100% {
     opacity: 1;
@@ -3376,9 +3350,6 @@ body.is-page-loading .ui-route-transition {
   }
 }
 
-.tts-speaker-btn--active:active svg {
-  animation: tts-pulse 1.2s ease-in-out infinite;
-=======
 .tts-speaker-btn,
 .tts-speaker-btn:hover,
 .tts-speaker-btn:active,
@@ -3388,7 +3359,10 @@ body.is-page-loading .ui-route-transition {
   filter: none !important;
   transform: none !important;
   box-shadow: none;
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
+}
+
+.tts-speaker-btn--active:active svg {
+  animation: tts-pulse 1.2s ease-in-out infinite;
 }
 
 /* Corner variant — absolute top-right of parent */
@@ -3396,15 +3370,10 @@ body.is-page-loading .ui-route-transition {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
-<<<<<<< HEAD
-  width: 2.4rem;
-  height: 2.4rem;
-  min-width: 2.4rem;
-  min-height: 2.4rem;
-=======
   width: 2.75rem;
   height: 2.75rem;
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   z-index: 2;
 }
 
@@ -4733,15 +4702,12 @@ body.is-page-loading .ui-route-transition {
   padding-bottom: 2rem;
 }
 
-<<<<<<< HEAD
-=======
 /* --- TTS button: consistent size and touch target --- */
 .tts-speaker-btn {
   min-width: 2.75rem;
   min-height: 2.75rem;
 }
 
->>>>>>> 481e3bb09d9c9a657ae11440398181854cc202de
 /* --- Progress bar: smoother transition --- */
 .ui-study-progress__fill,
 .ui-reward-progress__fill {
