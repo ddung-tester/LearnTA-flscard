@@ -146,7 +146,6 @@ function TrangFlashcard() {
 
   async function taiDuLieuHoc() {
     const requestId = ++dataRequestRef.current;
-    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -175,12 +174,10 @@ function TrangFlashcard() {
 
   useEffect(() => {
     sessionKeyRef.current = "";
-    Promise.resolve().then(() => {
-      setChiSo(0);
-      setDaLat(false);
-      datLaiReward();
-      taiDuLieuHoc();
-    });
+    setChiSo(0);
+    setDaLat(false);
+    datLaiReward();
+    taiDuLieuHoc();
   }, [boId]);
 
   useLayoutEffect(() => {
@@ -732,7 +729,9 @@ function TrangFlashcard() {
         style={{ "--progress-current-color": mauTienDo }}
       >
         <div className="ui-study-progress__meta mb-2 flex items-center justify-between gap-3 text-xs font-medium">
-          <span>Tiến độ</span>
+          <span className="text-[var(--mau-chu-phu)]">
+            Thẻ <span className="text-[var(--mau-chu)] font-semibold">{chiSo + 1}</span>/{tongSoTheMucTieu}
+          </span>
           <span>{Math.round(tienDoAnToan)}%</span>
         </div>
         <div className="ui-study-progress">

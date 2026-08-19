@@ -7,16 +7,20 @@ import {
 import "./VideoBackground.css";
 
 const BACKGROUND_SOURCES = [BACKGROUND_DEFAULT_VIDEO, BACKGROUND_QUIZ_VIDEO];
+
 const BODY_MODE_CLASSES = [
   "has-video-background--immersive",
   "has-video-background--app",
 ];
+
 const BODY_VARIANT_CLASSES = [
   "has-video-background-variant--default",
   "has-video-background-variant--auth",
   "has-video-background-variant--study",
   "has-video-background-variant--dashboard",
+  "has-video-background-variant--flat",
 ];
+
 function VideoLayer({ src, active }) {
   const videoRef = useRef(null);
 
@@ -57,16 +61,18 @@ function VideoLayer({ src, active }) {
   );
 }
 
-
 function VideoBackground({
   src = BACKGROUND_QUIZ_VIDEO,
   variant = "default",
   mode = "app",
   children,
 }) {
+  const isFlat = variant === "flat";
+
+  // Flat variant: không cần video sources — tránh load file media thừa
   const videoSources = useMemo(
-    () => [...new Set([...BACKGROUND_SOURCES, src])],
-    [src]
+    () => (isFlat ? [] : [...new Set([...BACKGROUND_SOURCES, src])]),
+    [src, isFlat]
   );
 
   useLayoutEffect(() => {
@@ -91,25 +97,28 @@ function VideoBackground({
 
   return (
     <>
-      <div className="video-bg" aria-hidden="true">
-        {videoSources.map((videoSrc) => (
-          <VideoLayer
-            key={videoSrc}
-            src={videoSrc}
-            active={videoSrc === src}
-          />
-        ))}
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={variant}
-            className={`video-bg__overlay video-bg__overlay--${variant}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </AnimatePresence>
-      </div>
+      {/* Flat variant: không render video hay overlay — chỉ dùng CSS body background */}
+      {!isFlat && (
+        <div className="video-bg" aria-hidden="true">
+          {videoSources.map((videoSrc) => (
+            <VideoLayer
+              key={videoSrc}
+              src={videoSrc}
+              active={videoSrc === src}
+            />
+          ))}
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={variant}
+              className={`video-bg__overlay video-bg__overlay--${variant}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </AnimatePresence>
+        </div>
+      )}
       <div className={`video-bg-content video-bg-content--${mode}`}>
         {children}
       </div>

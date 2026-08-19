@@ -1,7 +1,7 @@
-﻿/**
+/**
  * TrangThongKe — Trang thống ke hoc tap tong hop.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { layDanhSachDeck } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
@@ -10,6 +10,7 @@ import { layTatCaTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import EmptyState from "../components/common/EmptyState";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 
 function tinhPhanPhoiMastery(srsList) {
   const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -227,6 +228,7 @@ const MASTERY_LEVELS = [
 ];
 
 function TrangThongKe() {
+  const { setPageDataLoading } = usePageTransition();
   const [decks, setDecks] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -269,6 +271,14 @@ function TrangThongKe() {
       active = false;
     };
   }, []);
+
+  // Báo cho PageTransitionContext biết trang đang tải dữ liệu
+  useLayoutEffect(() => {
+    setPageDataLoading("thong-ke", dangTai);
+    return () => {
+      setPageDataLoading("thong-ke", false);
+    };
+  }, [dangTai, setPageDataLoading]);
 
   const totalSrsItems = srsList.length;
   const activityDays = sessionSummary?.last_7_days_activity ?? [];

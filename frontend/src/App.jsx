@@ -57,20 +57,13 @@ function UngDung() {
     viTri.pathname === "/" ||
     viTri.pathname === "/login" ||
     viTri.pathname === "/register";
-  const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
-  const laTrangDashboard = viTri.pathname === "/dashboard";
-  const backgroundVariant = laTrangImmersive
-    ? "auth"
-    : laPhienHoc
-      ? "study"
-      : laTrangDashboard
-        ? "dashboard"
-        : "default";
+
+  // Trang chu/auth → video background co animation (giu nguyen)
+  // Tat ca trang con lai (dashboard, hoc, thong ke...) → nen phang mau loading
+  const backgroundVariant = laTrangImmersive ? "auth" : "flat";
   const backgroundSrc = laTrangImmersive
     ? BACKGROUND_DEFAULT_VIDEO
-    : laTrangDashboard
-      ? BACKGROUND_DEFAULT_VIDEO
-      : BACKGROUND_QUIZ_VIDEO;
+    : BACKGROUND_QUIZ_VIDEO;
 
   const noiDungRoutes = (
     <Suspense fallback={<SuspenseLoader />}>

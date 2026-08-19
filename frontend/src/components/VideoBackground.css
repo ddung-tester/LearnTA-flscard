@@ -190,6 +190,22 @@ body.has-video-background--app {
   overflow-x: hidden;
 }
 
+/* ── flat variant: — background đậm hơn hẳn để card/button float rõ ── */
+body.has-video-background-variant--flat {
+  background:
+    radial-gradient(circle at 8% 12%,  oklch(72% 0.14 158 / 0.82), transparent 40rem),
+    radial-gradient(circle at 90% 85%, oklch(75% 0.16 84  / 0.80), transparent 36rem),
+    radial-gradient(circle at 82% 10%, oklch(74% 0.12 108 / 0.65), transparent 28rem),
+    radial-gradient(circle at 50% 50%, oklch(72% 0.10 145 / 0.35), transparent 42rem),
+    linear-gradient(165deg,
+      oklch(88% 0.048 94)  0%,
+      oklch(86% 0.065 108) 36%,
+      oklch(84% 0.075 155) 70%,
+      oklch(88% 0.050 90)  100%
+    ) !important;
+}
+
+
 /* Immersive pages use their own viewport-sized layout. */
 body.has-video-background--immersive .app-shell,
 body.has-video-background--immersive .app-shell-main,
@@ -278,6 +294,75 @@ body.has-video-background-variant--dashboard .app-shell-header__inner > .ui-link
   text-shadow: none !important;
 }
 
+/* ── flat variant header: đồng bộ màu loading overlay ── */
+body.has-video-background-variant--flat .app-shell-header {
+  background: oklch(96% 0.035 155 / 0.88) !important;
+  border-bottom: 1px solid oklch(82% 0.055 158 / 0.45) !important;
+  backdrop-filter: blur(14px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08) !important;
+}
+
+body.has-video-background-variant--flat .app-shell-header__inner > .ui-link {
+  color: var(--mau-chu) !important;
+  text-shadow: none !important;
+}
+
+body.has-video-background-variant--flat .app-shell-header nav > .ui-button--ghost,
+body.has-video-background-variant--flat .app-shell-header nav > .relative > .ui-button--ghost {
+  background: oklch(97% 0.025 96 / 0.82) !important;
+  border-color: oklch(70% 0.06 162 / 0.55) !important;
+  color: var(--mau-chu) !important;
+  box-shadow: 0 2px 8px oklch(23% 0.03 220 / 0.08) !important;
+}
+
+body.has-video-background-variant--flat .app-shell-header nav > .ui-button--ghost:hover,
+body.has-video-background-variant--flat .app-shell-header nav > .relative > .ui-button--ghost:hover {
+  background: oklch(99% 0.018 96 / 0.96) !important;
+  border-color: oklch(50% 0.11 164 / 0.6) !important;
+  color: var(--mau-chinh) !important;
+}
+
+/* ── flat variant: card / button contrast fix ──
+   Background gradient L≈72-88% now. Cards at L=100% (white) = clear separation.
+   Buttons/ghost-buttons get solid white so they don't pick up gradient color. */
+body.has-video-background-variant--flat {
+  --mau-mat: oklch(100% 0 0);
+  --mau-mat-2: oklch(97% 0.022 92);
+  --mau-input: oklch(100% 0 0);
+  --mau-vien: oklch(40% 0.22 168 / 0.55);
+  --mau-vien-manh: oklch(32% 0.22 170 / 0.80);
+  --bong-card: 0 3px 14px oklch(30% 0.10 170 / 0.22);
+}
+
+/* Ghost / secondary buttons — solid white on flat variant so they read clearly */
+body.has-video-background-variant--flat .ui-button--ghost,
+body.has-video-background-variant--flat .ui-button--secondary {
+  background: oklch(100% 0 0 / 0.96) !important;
+  border-color: oklch(40% 0.22 168 / 0.55) !important;
+  color: var(--mau-chu) !important;
+  box-shadow: 0 2px 8px oklch(30% 0.10 170 / 0.16) !important;
+}
+
+body.has-video-background-variant--flat .ui-button--ghost:hover,
+body.has-video-background-variant--flat .ui-button--secondary:hover {
+  background: oklch(97% 0.022 92 / 1) !important;
+  border-color: oklch(36% 0.22 168 / 0.72) !important;
+  box-shadow: 0 4px 14px oklch(30% 0.10 170 / 0.22) !important;
+}
+
+/* Action cards (“Học Flashcard” etc.) — teal surface so clearly interactive */
+body.has-video-background-variant--flat .ui-action-card {
+  background: oklch(96% 0.055 162 / 0.96) !important;
+  border-color: oklch(40% 0.22 168 / 0.45) !important;
+  box-shadow: 0 2px 8px oklch(30% 0.10 170 / 0.18) !important;
+}
+
+body.has-video-background-variant--flat .ui-action-card:hover {
+  background: oklch(93% 0.080 162 / 1) !important;
+  border-color: oklch(36% 0.22 168 / 0.62) !important;
+  box-shadow: 0 4px 14px oklch(30% 0.10 170 / 0.24) !important;
+}
+
 body.has-video-background--immersive .video-auth-card {
   color: var(--mau-chu);
 }
@@ -360,12 +445,12 @@ body.has-video-background--app .ui-reading-card,
 body.has-video-background--app .ui-card-interactive,
 body.has-video-background--app .ui-action-card,
 body.has-video-background--app .ui-quiz-question-card {
-  background: oklch(96.8% 0.021 92 / 0.93) !important;
-  border-color: oklch(96% 0.018 96 / 0.54) !important;
+  background: oklch(97.5% 0.018 96 / 0.95) !important;
+  border-color: oklch(74% 0.055 162 / 0.38) !important;
   color: var(--mau-chu) !important;
   box-shadow:
-    0 18px 42px oklch(17% 0.035 220 / 0.26),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+    0 6px 22px oklch(17% 0.035 220 / 0.12),
+    inset 0 1px 0 oklch(99% 0.012 94 / 0.80);
 }
 
 body.has-video-background--app .ui-empty-panel p,

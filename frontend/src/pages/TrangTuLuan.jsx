@@ -183,7 +183,6 @@ function TrangTuLuan() {
   const dataRequestRef = useRef(0);
   async function taiDuLieuTuLuan() {
     const requestId = ++dataRequestRef.current;
-    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -211,9 +210,7 @@ function TrangTuLuan() {
   }
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      taiDuLieuTuLuan();
-    });
+    taiDuLieuTuLuan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boId]);
 
@@ -287,11 +284,15 @@ function TrangTuLuan() {
   const danhSachTienTrinh = useMemo(() => {
     return taoDanhSachTienTrinh(danhSachTheGoc.length);
   }, [danhSachTheGoc]);
-  const chiSoTienTrinhDangHoatDong = danhSachThe[chiSo]?.__segmentIndex
-    ?? soCauDungTheoTienTrinh.findIndex(
+  // Luôn dùng findIndex để tìm segment đầu tiên chưa hoàn thành.
+  // Không dùng __segmentIndex của câu hiện tại vì chiSo tăng kể cả khi trả lời sai.
+  const chiSoTienTrinhDangHoatDong = (() => {
+    const idx = soCauDungTheoTienTrinh.findIndex(
       (soCauDungTrongTienTrinh, index) =>
         soCauDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
     );
+    return idx === -1 ? Math.max(0, danhSachTienTrinh.length - 1) : idx;
+  })();
   const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
     const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
     const totalValue = tienTrinh.totalValue || 1;
@@ -1385,9 +1386,12 @@ function TrangTuLuan() {
         </div>
 
         <div className="ui-written-progress mb-4">
-          <div className="mb-1.5 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="ui-mode-chip">
-              {cheDo === "vi-en" ? "VI → EN" : "EN → VI"}
+              {cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"}
+            </span>
+            <span className="text-xs font-semibold tabular-nums text-[var(--mau-chu-phu)]">
+              Câu <span className="text-[var(--mau-chu)]">{Math.min(soCauDung + 1, tongSoCauHoi)}</span>/{tongSoCauHoi}
             </span>
           </div>
           <SegmentedRewardProgressBar

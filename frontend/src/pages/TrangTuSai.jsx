@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import EmptyState from "../components/common/EmptyState";
 import { useToast } from "../contexts/ToastContext";
@@ -9,6 +9,7 @@ import {
   xoaTatCaTuSaiDongBo,
   taiTuSaiDongBo,
 } from "../utils/mistakeNotebook";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -238,11 +239,12 @@ function MistakeCard({ entry, onMarkReviewed, onRemove }) {
 
 function TrangTuSai() {
   const toast = useToast();
+  const { setPageDataLoading } = usePageTransition();
   const [searchParams] = useSearchParams();
   const initialDeck = searchParams.get("deckId") ?? "";
 
   const [allEntries, setAllEntries] = useState(() => layTatCaTuSai());
-  const [dangTai, setDangTai] = useState(false);
+  const [dangTai, setDangTai] = useState(true);
   const [filter, setFilter] = useState("all");
   const [deckFilter, setDeckFilter] = useState(initialDeck);
   const [search, setSearch] = useState("");
@@ -258,6 +260,14 @@ function TrangTuSai() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Báo cho PageTransitionContext biết trang đang tải
+  useLayoutEffect(() => {
+    setPageDataLoading("tu-sai", dangTai);
+    return () => {
+      setPageDataLoading("tu-sai", false);
+    };
+  }, [dangTai, setPageDataLoading]);
 
   const stats = useMemo(() => tinhThongKeTuSai(allEntries), [allEntries]);
 

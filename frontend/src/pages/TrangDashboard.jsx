@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { layDanhSachDeck } from "../services/deckApi";
@@ -8,8 +8,8 @@ import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import EmptyState from "../components/common/EmptyState";
-import DashBackground from "../components/DashBackground";
 import DashIcon from "../components/DashIcon";
+import { usePageTransition } from "../contexts/PageTransitionContext";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +110,7 @@ function DeckMiniCard({ deck }) {
 
 function TrangDashboard() {
   const { user } = useAuth();
+  const { setPageDataLoading } = usePageTransition();
   const [decks, setDecks] = useState(null);
   const [stats, setStats] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -148,6 +149,16 @@ function TrangDashboard() {
   }, []);
 
   const dangTai = decks === null;
+
+  // Báo cho PageTransitionContext biết trang đang tải dữ liệu
+  // để overlay không tắt sớm trước khi data về
+  useLayoutEffect(() => {
+    setPageDataLoading("dashboard", dangTai);
+    return () => {
+      setPageDataLoading("dashboard", false);
+    };
+  }, [dangTai, setPageDataLoading]);
+
   const khongCoBo = !dangTai && decks.length === 0;
   const tongTu = decks ? decks.reduce((sum, d) => sum + (d.total_words ?? 0), 0) : 0;
   const deckDeNghi = decks ? layDeckDeNghiTiepTuc(decks) : null;
@@ -164,7 +175,6 @@ function TrangDashboard() {
 
   return (
     <>
-      <DashBackground />
       <div className="ui-content-enter ui-page-stack dash-page">
 
       {/* ── A. Hero ── */}

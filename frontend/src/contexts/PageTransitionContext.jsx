@@ -23,44 +23,14 @@ function normalizeTo(to) {
 export function PageTransitionProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [dangChuyenTrang, setDangChuyenTrang] = useState(false);
   const [soTacVuTaiDuLieu, setSoTacVuTaiDuLieu] = useState(0);
   const dangChuyenTrangRef = useRef(false);
-  const navigationFrameRef = useRef(null);
   const currentPathRef = useRef("");
   const tacVuTaiDuLieuRef = useRef(new Set());
-  const hienThiLoading = dangChuyenTrang || soTacVuTaiDuLieu > 0;
 
-  useLayoutEffect(() => {
-    currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
-
-    if (!dangChuyenTrangRef.current) return undefined;
-
-    navigationFrameRef.current = window.requestAnimationFrame(() => {
-      navigationFrameRef.current = null;
-      dangChuyenTrangRef.current = false;
-      setDangChuyenTrang(false);
-    });
-
-    return () => {
-      if (navigationFrameRef.current) {
-        window.cancelAnimationFrame(navigationFrameRef.current);
-        navigationFrameRef.current = null;
-      }
-    };
-  }, [location]);
-
-  useLayoutEffect(() => {
-    if (hienThiLoading) {
-      document.body.classList.add("is-page-loading");
-    } else {
-      document.body.classList.remove("is-page-loading");
-    }
-
-    return () => {
-      document.body.classList.remove("is-page-loading");
-    };
-  }, [hienThiLoading]);
+  // Loading hiển thị khi có ít nhất 1 task đang chạy
+  // (bao gồm __nav__ key khi đang chuyển trang)
+  const hienThiLoading = soTacVuTaiDuLieu > 0;
 
   const setPageDataLoading = useCallback((key, dangTai) => {
     const khoa = String(key || "page");
@@ -78,6 +48,49 @@ export function PageTransitionProvider({ children }) {
     }
   }, []);
 
+  useLayoutEffect(() => {
+    currentPathRef.current = `${location.pathname}${location.search}${location.hash}`;
+
+    // Chỉ xử lý khi đang trong quá trình navigation
+    if (!dangChuyenTrangRef.current) return undefined;
+
+    // Double-rAF bridge: đợi 2 animation frames để component mới kịp mount
+    // và gọi setPageDataLoading(dataKey, true) TRƯỚC KHI tắt __nav__ key.
+    //
+    // Luồng mong muốn:
+    //   frame 1: component mới bắt đầu render
+    //   frame 2: useLayoutEffect của component mới đã chạy, dataKey đã được đăng ký
+    //   → clear __nav__ → soTacVuTaiDuLieu vẫn > 0 (do dataKey) → overlay không tắt sớm
+    let raf2Id = null;
+    const raf1Id = window.requestAnimationFrame(() => {
+      raf2Id = window.requestAnimationFrame(() => {
+        raf2Id = null;
+        dangChuyenTrangRef.current = false;
+        setPageDataLoading("__nav__", false);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf1Id);
+      if (raf2Id !== null) {
+        window.cancelAnimationFrame(raf2Id);
+        raf2Id = null;
+      }
+    };
+  }, [location, setPageDataLoading]);
+
+  useLayoutEffect(() => {
+    if (hienThiLoading) {
+      document.body.classList.add("is-page-loading");
+    } else {
+      document.body.classList.remove("is-page-loading");
+    }
+
+    return () => {
+      document.body.classList.remove("is-page-loading");
+    };
+  }, [hienThiLoading]);
+
   const navigateWithLoading = useCallback(
     (to, options = {}) => {
       const targetPath = normalizeTo(to);
@@ -86,8 +99,11 @@ export function PageTransitionProvider({ children }) {
         return;
       }
 
+      // Dùng __nav__ key thay cho dangChuyenTrang state:
+      // key này sẽ giữ overlay sống cho đến khi double-rAF xóa nó,
+      // đảm bảo không có khoảng hở giữa navigation và data loading.
       dangChuyenTrangRef.current = true;
-      setDangChuyenTrang(true);
+      setPageDataLoading("__nav__", true);
 
       try {
         startTransition(() => {
@@ -95,11 +111,11 @@ export function PageTransitionProvider({ children }) {
         });
       } catch (error) {
         dangChuyenTrangRef.current = false;
-        setDangChuyenTrang(false);
+        setPageDataLoading("__nav__", false);
         throw error;
       }
     },
-    [navigate]
+    [navigate, setPageDataLoading]
   );
 
   function handleClickCapture(event) {
@@ -168,4 +184,3 @@ export function SuspenseLoader() {
 
   return null;
 }
-

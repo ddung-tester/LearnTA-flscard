@@ -226,7 +226,6 @@ function TrangQuiz() {
 
   async function taiDuLieuQuiz() {
     const requestId = ++dataRequestRef.current;
-    await Promise.resolve();
     setDangTaiDuLieu(true);
     setLoiTaiDuLieu("");
 
@@ -254,9 +253,7 @@ function TrangQuiz() {
   }
 
   useEffect(() => {
-    Promise.resolve().then(() => {
-      taiDuLieuQuiz();
-    });
+    taiDuLieuQuiz();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boId]);
 
@@ -365,11 +362,17 @@ function TrangQuiz() {
     setTapCardSai(new Set());
   }
 
-  const chiSoTienTrinhDangHoatDong = danhSachCauHoiRuntime[chiSo]?.__segmentIndex
-    ?? soCauDungTheoTienTrinh.findIndex(
+  // Luôn dùng findIndex để tìm segment đầu tiên chưa hoàn thành.
+  // Không dùng __segmentIndex của câu hiện tại vì chiSo tăng kể cả khi trả lời sai,
+  // dẫn đến activeSegmentIndex nhảy sai segment trong khi câu sai chưa được tính tiến trình.
+  const chiSoTienTrinhDangHoatDong = (() => {
+    const idx = soCauDungTheoTienTrinh.findIndex(
       (soDungTrongTienTrinh, index) =>
         soDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
     );
+    // Nếu tất cả segment đã đầy (hoàn thành), giữ ở segment cuối
+    return idx === -1 ? Math.max(0, danhSachTienTrinh.length - 1) : idx;
+  })();
   const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
     const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
     const totalValue = tienTrinh.totalValue || 1;
@@ -991,68 +994,71 @@ function TrangQuiz() {
   }
 
   if (danhSachThe.length < 4) {
-    // Trường hợp đặc biệt: đang học lại từ sai
-    // Nếu danhSachGoc đủ 4+ thì luôn có đủ pool nhiễu — không nên bị block
-    // Chỉ block khi cả hai danhSachThe và danhSachGoc đều < 4
-    if (danhSachHocLai !== null && danhSachGoc.length >= 4 && danhSachThe.length === 0) {
+    // Chế độ học lại từ sai: dùng toàn bộ danhSachGoc làm pool nhiễu
+    // → cho phép học kể cả khi chỉ có 1-3 từ sai, miễn là danhSachGoc đủ 4+ để tạo đáp án nhiễu
+    if (danhSachHocLai !== null && danhSachGoc.length >= 4) {
+      if (danhSachThe.length === 0) {
+        return (
+          <div className="ui-study-empty-wrap">
+            <section className="ui-study-empty-card">
+              <p className="ui-study-empty-card__eyebrow">Học lại từ sai</p>
+              <h2 className="ui-study-empty-card__title">Không có từ sai nào</h2>
+              <p className="ui-study-empty-card__copy">Bạn đã trả lời chính xác tất cả.</p>
+              <div className="ui-study-empty-card__actions">
+                <button
+                  type="button"
+                  onClick={lamLai}
+                  className="ui-button ui-button--primary ui-study-empty-card__button"
+                >
+                  Làm lại toàn bộ
+                </button>
+              </div>
+            </section>
+          </div>
+        );
+      }
+      // 1–3 từ sai: pool nhiễu lấy từ danhSachGoc, cho phép tiếp tục render bình thường
+    } else {
+      // Chế độ bình thường hoặc pool nhiễu không đủ: chặn
+      const dangLocYeuThich = chiHocTuYeuThich && danhSachGoc.length >= 4;
+
       return (
         <div className="ui-study-empty-wrap">
           <section className="ui-study-empty-card">
-            <p className="ui-study-empty-card__eyebrow">Học lại từ sai</p>
-            <h2 className="ui-study-empty-card__title">Không có từ sai nào</h2>
-            <p className="ui-study-empty-card__copy">Bạn đã trả lời chính xác tất cả.</p>
+            <p className="ui-study-empty-card__eyebrow">
+              Quiz trắc nghiệm
+            </p>
+            <h2 className="ui-study-empty-card__title">
+              {dangLocYeuThich
+                ? "Cần ít nhất 4 từ yêu thích"
+                : "Cần ít nhất 4 từ để làm quiz"}
+            </h2>
+            <p className="ui-study-empty-card__copy">
+              {dangLocYeuThich
+                ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ để bắt đầu."
+                : "Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu."}
+            </p>
             <div className="ui-study-empty-card__actions">
-              <button
-                type="button"
-                onClick={lamLai}
+              {dangLocYeuThich && (
+                <button
+                  type="button"
+                  onClick={doiChiHocTuYeuThich}
+                  className="ui-button ui-button--ghost ui-study-empty-card__button"
+                >
+                  Tắt lọc yêu thích
+                </button>
+              )}
+              <Link
+                to={`/decks/${boId}`}
                 className="ui-button ui-button--primary ui-study-empty-card__button"
               >
-                Làm lại toàn bộ
-              </button>
+                Quay lại bộ từ
+              </Link>
             </div>
           </section>
         </div>
       );
     }
-
-    const dangLocYeuThich = chiHocTuYeuThich && danhSachGoc.length >= 4;
-
-    return (
-      <div className="ui-study-empty-wrap">
-        <section className="ui-study-empty-card">
-          <p className="ui-study-empty-card__eyebrow">
-            Quiz trắc nghiệm
-          </p>
-          <h2 className="ui-study-empty-card__title">
-            {dangLocYeuThich
-              ? "Cần ít nhất 4 từ yêu thích"
-              : "Cần ít nhất 4 từ để làm quiz"}
-          </h2>
-          <p className="ui-study-empty-card__copy">
-            {dangLocYeuThich
-              ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ để bắt đầu."
-              : "Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu."}
-          </p>
-          <div className="ui-study-empty-card__actions">
-            {dangLocYeuThich && (
-              <button
-                type="button"
-                onClick={doiChiHocTuYeuThich}
-                className="ui-button ui-button--ghost ui-study-empty-card__button"
-              >
-                Tắt lọc yêu thích
-              </button>
-            )}
-            <Link
-              to={`/decks/${boId}`}
-              className="ui-button ui-button--primary ui-study-empty-card__button"
-            >
-              Quay lại bộ từ
-            </Link>
-          </div>
-        </section>
-      </div>
-    );
   }
 
 
@@ -1240,9 +1246,12 @@ function TrangQuiz() {
           </StudySettingsPopover>
         </div>
         <div className="ui-quiz-progress mb-8">
-          <div className="mb-1.5 flex items-center gap-2">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="ui-mode-chip">
-              {cheDo === "vi-en" ? "VI → EN" : "EN → VI"}
+              {cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"}
+            </span>
+            <span className="text-xs font-semibold tabular-nums text-[var(--mau-chu-phu)]">
+              Câu <span className="text-[var(--mau-chu)]">{Math.min(soCauDung + 1, tongSoCauHoi)}</span>/{tongSoCauHoi}
             </span>
           </div>
           <SegmentedRewardProgressBar
