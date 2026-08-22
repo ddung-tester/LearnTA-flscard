@@ -920,31 +920,25 @@ function TrangChiTietBo() {
   const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh";
 
   return (
-    <div className="ui-page-stack">
-      <div className="ui-page-header">
-        <div className="ui-page-header__title ui-deck-detail-header__title">
-          <Link
-            to="/dashboard"
-            className="ui-back-link ui-back-link--quiet ui-back-link--wide"
-          >
-            ← Dashboard
-          </Link>
-          <h2 className="ui-deck-detail-header__heading text-2xl font-semibold text-[var(--mau-chu)]">
-            {bo.title}
-          </h2>
-        </div>
+    <div className="ui-page-stack ui-page-stack--deck-detail">
+      <div className="ui-deck-detail-top">
+        <Link
+          to="/dashboard"
+          className="ui-back-link ui-back-link--quiet ui-deck-detail-top__back"
+        >
+          ← Dashboard
+        </Link>
+        <h2 className="ui-deck-detail-top__heading">
+          {bo.title}
+        </h2>
       </div>
 
       <div className="ui-stat-grid">
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
-          <p className="ui-stat-label mb-1">
-            Tổng từ
-          </p>
-          <p className="ui-stat-value text-[var(--mau-chu)]">
-            {soTu}
-          </p>
+          <p className="ui-stat-label mb-1">Tổng từ</p>
+          <p className="ui-stat-value text-[var(--mau-chu)]">{soTu}</p>
         </div>
-        {/* Thẻ Streak: 3 trạng thái — cháy (học hôm nay) / đóng băng (chưa học hôm nay) / vỡ (bỏ ≥2 ngày) */}
+        {/* Thẻ Streak: 3 trạng thái — cháy / đóng băng / vỡ */}
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
           <StreakBadge
             streak={streak}
@@ -956,12 +950,17 @@ function TrangChiTietBo() {
             broken={streakBroken}
           />
         </div>
-
-
-
+        <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
+          <p className="ui-stat-label mb-1">Yêu thích</p>
+          <p className="ui-stat-value" style={{ color: "oklch(51% 0.15 24)" }}>{soTuYeuThich}</p>
+        </div>
+        <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
+          <p className="ui-stat-label mb-1">Chưa học</p>
+          <p className="ui-stat-value text-[var(--mau-chinh)]">{soTuChuaHoc}</p>
+        </div>
       </div>
 
-      <div className="ui-action-grid">
+      <div className="ui-action-grid ui-action-grid--3col">
         <Link
           to={`/decks/${boId}/flashcard?filter=${filterTu}&sort=${sortTu}`}
           className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
@@ -974,14 +973,14 @@ function TrangChiTietBo() {
             to={`/decks/${boId}/quiz?filter=${filterTu}&sort=${sortTu}`}
             className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            <span className="font-semibold text-[var(--mau-chinh)]">Làm trắc nghiệm</span>
+            <span className="font-semibold text-[var(--mau-chinh)]">Trắc nghiệm</span>
           </Link>
         ) : (
           <div
             className="flex min-h-14 items-center justify-center rounded-xl border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 cursor-not-allowed opacity-60"
             title="Cần ít nhất 4 từ để làm trắc nghiệm"
           >
-            <span className="font-semibold text-[var(--mau-chu-phu)]">Làm trắc nghiệm</span>
+            <span className="font-semibold text-[var(--mau-chu-phu)]">Trắc nghiệm</span>
           </div>
         )}
 
@@ -991,7 +990,6 @@ function TrangChiTietBo() {
         >
           <span className="font-semibold text-[var(--mau-chinh)]">Tự luận</span>
         </Link>
-
       </div>
 
       <div className="ui-section-stack">
@@ -1119,7 +1117,7 @@ function TrangChiTietBo() {
             description={filterTu === "yeu-thich" ? "Nhấn ♥ để đánh dấu từ yêu thích." : "Chưa có từ phù hợp với bộ lọc này."}
           />
         ) : (
-          <ul ref={listTuRef} className="ui-card-list">
+          <ul ref={listTuRef} className={`ui-card-list ui-card-list--deck-detail${dangBatChinhSua ? " ui-card-list--editing" : ""}`}>
             {danhSachDaLoc.map((the, i) => {
               const dangYeuThich = laTuYeuThich(the);
 
@@ -1235,6 +1233,27 @@ function TrangChiTietBo() {
                     <p className="ui-word-example">
                       {the.example_sentence}
                     </p>
+                  )}
+
+                  {!dangBatChinhSua && (
+                    <div className="ui-card-status-row">
+                      {(the.correct_count || 0) === 0 && (
+                        <span className="ui-card-badge ui-card-badge--new">Mới</span>
+                      )}
+                      {(the.correct_count || 0) > 0 && (the.correct_count || 0) < 5 && (
+                        <span className="ui-card-badge ui-card-badge--progress">
+                          {the.correct_count}/5
+                        </span>
+                      )}
+                      {(the.correct_count || 0) >= 5 && (
+                        <span className="ui-card-badge ui-card-badge--learned">✓ Đã học</span>
+                      )}
+                      {(the.wrong_count || 0) > 0 && (
+                        <span className="ui-card-badge ui-card-badge--wrong">
+                          {the.wrong_count} sai
+                        </span>
+                      )}
+                    </div>
                   )}
 
                 </li>

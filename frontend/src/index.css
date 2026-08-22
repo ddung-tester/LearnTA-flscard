@@ -7039,3 +7039,126 @@ body.is-page-loading .page-transition-root {
     align-items: flex-start;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Deck Detail — wider layout & richer card list
+   Deck detail is a management screen, not a study screen, so it doesn't need
+   to reserve side space for the reward video overlay. These rules widen the
+   shell only on deck-detail pages and leave flashcard/quiz/tu-luan untouched.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Shell width override — targets the <main> when deck detail is inside it */
+.app-shell-main:has(.ui-page-stack--deck-detail) {
+  max-width: min(72rem, 100%);
+}
+
+/* Also override the narrow @media rule for ≥1280px */
+@media (min-width: 1280px) and (min-height: 640px) {
+  .app-shell-main:has(.ui-page-stack--deck-detail) {
+    max-width: min(72rem, 100%);
+  }
+}
+
+/* Header: back link + title as a single left-aligned row */
+.ui-deck-detail-top {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.ui-deck-detail-top__back {
+  flex-shrink: 0;
+}
+
+.ui-deck-detail-top__heading {
+  min-width: 0;
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action grid — 3 columns at ≥480px */
+.ui-action-grid--3col {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 480px) {
+  .ui-action-grid--3col {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Card list — 2-column grid at ≥640px in deck detail */
+@media (min-width: 640px) {
+  .ui-card-list--deck-detail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 0.6rem;
+  }
+}
+
+/* Revert to 1-col in edit mode so drag-and-drop works (linear order needed) */
+.ui-card-list--deck-detail.ui-card-list--editing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Status badge row per card */
+.ui-card-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding-left: 2rem; /* indent under index badge */
+}
+
+.ui-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+/* New / unstarted */
+.ui-card-badge--new {
+  background: oklch(55% 0.105 164 / 0.08);
+  border-color: oklch(55% 0.105 164 / 0.18);
+  color: var(--mau-chinh);
+}
+
+/* In progress — partially learned */
+.ui-card-badge--progress {
+  background: oklch(55% 0.105 164 / 0.1);
+  border-color: oklch(55% 0.105 164 / 0.22);
+  color: var(--mau-chinh);
+}
+
+/* Fully learned (correct_count ≥ 5) */
+.ui-card-badge--learned {
+  background: oklch(55% 0.105 164 / 0.08);
+  border-color: oklch(55% 0.105 164 / 0.15);
+  color: var(--mau-chinh);
+}
+
+/* Has wrong answers — amber */
+.ui-card-badge--wrong {
+  background: oklch(68% 0.18 60 / 0.1);
+  border-color: oklch(68% 0.18 60 / 0.22);
+  color: oklch(50% 0.15 50);
+}
