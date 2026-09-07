@@ -5546,6 +5546,7 @@ body.is-page-loading .page-transition-root {
 .dash-deck-grid {
   display: grid;
   grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
   gap: 0.5rem;
 }
 
@@ -5567,6 +5568,7 @@ body.is-page-loading .page-transition-root {
   gap: 0.4rem;
   padding: 1rem 1.125rem;
   min-height: 5.5rem;
+  height: 100%;
   border: 1px solid oklch(48% 0.16 168 / 0.28);
   border-radius: 0.875rem;
   background: oklch(99.5% 0.008 90 / 0.98);
@@ -7220,4 +7222,9 @@ body.is-page-loading .page-transition-root {
   overflow-y: auto;
   justify-content: center;
   overflow-wrap: break-word;
+}
+
+.ui-card-list--deck-detail.ui-card-list--editing .ui-word-row {
+  height: auto;
+  min-height: auto;
 }

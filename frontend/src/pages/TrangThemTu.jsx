@@ -18,7 +18,6 @@ function TrangThemTu() {
 
   useEffect(() => {
     let active = true;
-    setDangTai(true);
     layDeckTheoId(boId).then((deck) => { if (active) setBo(deck); })
       .catch((error) => { if (active) setLoi(error.message); })
       .finally(() => { if (active) setDangTai(false); });
