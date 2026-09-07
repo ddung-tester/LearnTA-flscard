@@ -78,23 +78,43 @@ function BoCuc() {
           <nav className={laTrangDashboard ? "dash-nav__links" : "flex flex-wrap items-center justify-end gap-2"}>
             {isAuthenticated && !laTrangAuth && !laPhienHoc && (
               laTrangDashboard ? (
-                <Link
-                  to="/dashboard"
-                  className={`dash-nav__link${laTrangDashboard ? " dash-nav__link--active" : ""}`}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="dash-nav__link dash-nav__link--active"
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/decks"
+                    className="dash-nav__link"
+                  >
+                    Bộ từ
+                  </Link>
+                </>
               ) : (
-                <Link
-                  to="/dashboard"
-                  className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                    laTrangDashboard
-                      ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
-                      : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
-                  }`}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link
+                    to="/dashboard"
+                    className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                      laTrangDashboard
+                        ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
+                        : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
+                    }`}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/decks"
+                    className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                      viTri.pathname === "/decks"
+                        ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
+                        : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
+                    }`}
+                  >
+                    Bộ từ
+                  </Link>
+                </>
               )
             )}
             {!laTrangAuth && isAuthenticated ? (

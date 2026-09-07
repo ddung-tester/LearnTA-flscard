@@ -810,8 +810,9 @@ function TrangFlashcard() {
                 {matSau}
               </span>
               {theHienTai?.example_sentence && (
-                <p className="mt-6 max-w-md break-words text-center text-sm italic text-[var(--mau-chu-phu)]">
-                  {theHienTai.example_sentence}
+                <p className="mt-6 max-w-md break-words text-center text-sm text-[var(--mau-chu-phu)]" lang="en">
+                  <span className="not-italic font-medium text-[var(--mau-chu)]">Ví dụ: </span>
+                  <span className="italic">{theHienTai.example_sentence}</span>
                 </p>
               )}
             </div>

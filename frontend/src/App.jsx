@@ -1,5 +1,5 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
-import { Navigate, Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import VideoBackground from "./components/VideoBackground";
@@ -15,6 +15,7 @@ import {
 } from "./contexts/PageTransitionContext";
 
 const TrangChu = lazy(() => import("./pages/TrangChu"));
+const TrangDanhSachBo = lazy(() => import("./pages/TrangDanhSachBo"));
 const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
 const TrangChiTietBo = lazy(() => import("./pages/TrangChiTietBo"));
 const TrangThemTu = lazy(() => import("./pages/TrangThemTu"));
@@ -73,7 +74,7 @@ function UngDung() {
           <Route path="/" element={<TrangChu />} />
           <Route path="/login" element={<TrangDangNhap />} />
           <Route path="/register" element={<TrangDangKy />} />
-          <Route path="/decks" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/decks" element={<TrangDanhSachBo />} />
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />

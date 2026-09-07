@@ -1218,19 +1218,28 @@ function TrangChiTietBo() {
                           <IconHeart filled={dangYeuThich} />
                         </button>
                         {dangBatChinhSua && (
-                          <NutIconQuanLyTu
-                            label={`Xóa từ ${the.term_en}`}
-                            onClick={(e) => { e.stopPropagation(); xoaTu(the.id); }}
-                          >
-                            <IconTrash />
-                          </NutIconQuanLyTu>
+                          <>
+                            <NutIconQuanLyTu
+                              label={`Sửa từ ${the.term_en}`}
+                              onClick={(e) => { e.stopPropagation(); moFormSuaTu(the); }}
+                            >
+                              <IconEdit />
+                            </NutIconQuanLyTu>
+                            <NutIconQuanLyTu
+                              label={`Xóa từ ${the.term_en}`}
+                              onClick={(e) => { e.stopPropagation(); xoaTu(the.id); }}
+                            >
+                              <IconTrash />
+                            </NutIconQuanLyTu>
+                          </>
                         )}
                       </div>
                     )}
                   </div>
 
                   {the.example_sentence && (
-                    <p className="ui-word-example">
+                    <p className="ui-word-example" lang="en">
+                      <span lang="vi" className="not-italic font-medium">Ví dụ: </span>
                       {the.example_sentence}
                     </p>
                   )}
@@ -1367,7 +1376,7 @@ function TrangChiTietBo() {
 
           <div>
             <label htmlFor="example" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-              Ví dụ (tuỳ chọn)
+              Câu ví dụ tiếng Anh (tuỳ chọn)
             </label>
             <textarea
               id="example"
@@ -1376,8 +1385,10 @@ function TrangChiTietBo() {
               onChange={capNhatFormTu}
               rows={3}
               className="w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder="I use this word in a sentence."
+              placeholder="I study English every day."
+              aria-describedby="example-help"
             />
+            <p id="example-help" className="mt-2 text-sm text-[var(--mau-chu-phu)]">Dùng hiện tại đơn, hiện tại tiếp diễn hoặc quá khứ đơn. Ví dụ: I am studying English now.</p>
           </div>
 
           <div className="ui-form-actions">

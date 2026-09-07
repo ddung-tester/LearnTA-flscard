@@ -219,14 +219,14 @@ function TrangDashboard() {
               </Link>
             ) : (
               <Link
-                to="/dashboard"
+                to="/decks"
                 className="ui-button ui-button--primary dash-cta-primary"
               >
                 Xem bộ từ
               </Link>
             )}
             <Link
-              to="/dashboard"
+              to="/decks"
               className="ui-button ui-button--ghost dash-cta-secondary"
             >
               Xem bộ từ
@@ -325,6 +325,7 @@ function TrangDashboard() {
           <section className="dash-section">
             <div className="dash-section__header">
               <h2 className="dash-section__title">Bộ từ của bạn</h2>
+              <Link to="/decks?create=1" className="ui-button ui-button--primary">+ Thêm bộ từ</Link>
             </div>
 
             {dangTai ? (
@@ -343,7 +344,7 @@ function TrangDashboard() {
                 title="Chưa có bộ từ nào"
                 message="Tạo bộ từ đầu tiên để bắt đầu học."
                 actionLabel="Tạo bộ từ"
-                actionHref="/dashboard"
+                actionHref="/decks?create=1"
               />
             ) : (
               <div className="dash-deck-grid">
@@ -414,7 +415,7 @@ function TrangDashboard() {
               </Link>
             )}
             <div className="dash-quick-grid">
-              <QuickAction icon="decks" to="/dashboard" label="Quản lý bộ từ" sub="Xem và chỉnh sửa các bộ từ" />
+              <QuickAction icon="decks" to="/decks" label="Quản lý bộ từ" sub="Xem và chỉnh sửa các bộ từ" />
               <QuickAction
                 icon="notebook"
                 to="/tu-sai"

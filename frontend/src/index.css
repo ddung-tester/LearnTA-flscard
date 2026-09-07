@@ -1828,12 +1828,21 @@ body.is-page-loading .page-transition-root {
 .ui-deck-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.8rem;
+  grid-auto-rows: 1fr;
+  gap: 0.85rem;
+}
+
+.ui-deck-grid > li {
+  display: flex;
+  min-width: 0;
 }
 
 .ui-deck-card {
   display: flex;
-  min-height: 9.25rem;
+  width: 100%;
+  height: 100%;
+  min-height: 11rem;
+  min-width: 0;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -1844,6 +1853,7 @@ body.is-page-loading .page-transition-root {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  min-height: 2.75rem;
 }
 
 .ui-deck-action-menu {
@@ -4810,7 +4820,7 @@ body.is-page-loading .page-transition-root {
 /* --- Deck card: mobile tap target and spacing --- */
 @media (max-width: 639px) {
   .ui-deck-card {
-    min-height: 8rem;
+    min-height: 11rem;
     padding: 0.875rem 1rem;
   }
 
@@ -7100,7 +7110,8 @@ body.is-page-loading .page-transition-root {
   .ui-card-list--deck-detail {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    align-items: stretch;
+    grid-auto-rows: 1fr;
     gap: 0.6rem;
   }
 }
@@ -7161,4 +7172,52 @@ body.is-page-loading .page-transition-root {
   background: oklch(68% 0.18 60 / 0.1);
   border-color: oklch(68% 0.18 60 / 0.22);
   color: oklch(50% 0.15 50);
-}
+}
+/* Uniform deck detail word cards */
+.ui-card-list--deck-detail .ui-word-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  min-height: 7rem;
+}
+
+.ui-card-list--deck-detail .ui-word-row__inner {
+  flex: 0 0 auto;
+}
+
+.ui-card-list--deck-detail .ui-word-example {
+  flex: 1 1 auto;
+  margin-top: 0.45rem;
+  margin-left: 2rem;
+  overflow-wrap: break-word;
+}
+
+.ui-card-list--deck-detail .ui-card-status-row {
+  margin-top: auto;
+  padding-top: 0.45rem;
+  padding-left: 2rem;
+}
+
+/* Stable uniform flashcard height */
+.ui-flashcard-card {
+  position: relative;
+  width: 100%;
+  min-height: 20rem;
+  height: 22rem;
+  max-height: calc(100dvh - 14rem);
+}
+
+@media (min-width: 640px) {
+  .ui-flashcard-card {
+    min-height: 24rem;
+    height: 25rem;
+    max-height: calc(100dvh - 13rem);
+  }
+}
+
+.ui-flashcard-card__inner > div {
+  overflow-y: auto;
+  justify-content: center;
+  overflow-wrap: break-word;
+}

@@ -1,16 +1,29 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
-import { layBoTheoId } from "../data/duLieuMau";
+import { layDeckTheoId } from "../services/deckApi";
+import { taoCard } from "../services/cardApi";
 
 /**
  * TrangThemTu — Form them tu vung vao bo.
- * Phase 1: chi luu vao state tam, khong goi backend.
+ * Luu tu va cau vi du qua API.
  */
 function TrangThemTu() {
   const { deckId } = useParams();
   const boId = Number(deckId);
-  const bo = layBoTheoId(boId);
+  const [bo, setBo] = useState(null);
+  const [dangTai, setDangTai] = useState(true);
+  const [dangLuu, setDangLuu] = useState(false);
+  const [loi, setLoi] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setDangTai(true);
+    layDeckTheoId(boId).then((deck) => { if (active) setBo(deck); })
+      .catch((error) => { if (active) setLoi(error.message); })
+      .finally(() => { if (active) setDangTai(false); });
+    return () => { active = false; };
+  }, [boId]);
 
   const [tuMoi, setTuMoi] = useState({
     term_en: "",
@@ -21,10 +34,12 @@ function TrangThemTu() {
   const [danhSachDaLuu, setDanhSachDaLuu] = useState([]);
   const toast = useToast();
 
+  if (dangTai) return <p role="status">Đang tải bộ từ...</p>;
+
   if (!bo) {
     return (
       <div className="text-center py-12">
-        <p className="text-[var(--mau-chu-phu)]">Không tìm thấy bộ từ.</p>
+        <p role="alert" className="text-[var(--mau-chu-phu)]">{loi || "Không tìm thấy bộ từ."}</p>
         <Link
           to="/decks"
           className="ui-back-link ui-back-link--quiet mt-4"
@@ -40,16 +55,20 @@ function TrangThemTu() {
     setTuMoi((truoc) => ({ ...truoc, [name]: value }));
   }
 
-  function xuLyGui(e) {
+  async function xuLyGui(e) {
     e.preventDefault();
-    if (!tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()) return;
-
-    setDanhSachDaLuu((truoc) => [
-      ...truoc,
-      { ...tuMoi, id: Date.now() },
-    ]);
-    setTuMoi({ term_en: "", meaning_vi: "", example_sentence: "", note: "" });
-    toast.success("Đã thêm từ vào danh sách tạm");
+    if (dangLuu || !tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()) return;
+    setDangLuu(true);
+    try {
+      const card = await taoCard(boId, tuMoi);
+      setDanhSachDaLuu((truoc) => [...truoc, card]);
+      setTuMoi({ term_en: "", meaning_vi: "", example_sentence: "", note: "" });
+      toast.success("Đã lưu từ và câu ví dụ");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDangLuu(false);
+    }
   }
 
   return (
@@ -115,6 +134,7 @@ function TrangThemTu() {
             placeholder="Ví dụ: I eat an apple every morning."
             className="w-full border border-[var(--mau-vien)] rounded-lg px-3 py-2 bg-[var(--mau-input)] text-[var(--mau-chu)] placeholder:text-[var(--mau-chu-mo)] focus:border-[var(--mau-chinh)] focus:outline-none transition-colors"
           />
+          <p className="mt-1.5 text-xs text-[var(--mau-chu-phu)]">Dùng hiện tại đơn, hiện tại tiếp diễn hoặc quá khứ đơn.</p>
         </div>
 
         <div>
@@ -134,14 +154,15 @@ function TrangThemTu() {
         <div className="ui-form-actions">
           <button
             type="submit"
+            disabled={dangLuu}
             className="ui-button ui-button--primary w-full rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] transition-colors sm:w-auto"
           >
-            Thêm từ
+            {dangLuu ? "Đang lưu..." : "Thêm từ"}
           </button>
         </div>
       </form>
 
-      {/* Danh sach tu vua them (tam thoi, chua luu backend) */}
+      {/* Danh sach tu vua luu */}
       {danhSachDaLuu.length > 0 && (
         <div className="ui-content-enter ui-section-stack">
           <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
@@ -156,11 +177,12 @@ function TrangThemTu() {
                 <span className="break-words font-semibold">{tu.term_en}</span>
                 <span className="mx-2 text-[var(--mau-vien)]">—</span>
                 <span className="break-words">{tu.meaning_vi}</span>
+                {tu.example_sentence && <p lang="en" className="w-full text-sm text-[var(--mau-chu-phu)]">{tu.example_sentence}</p>}
               </li>
             ))}
           </ul>
           <p className="text-xs text-[var(--mau-chu-phu)] mt-2">
-            * Dữ liệu tạm. Sẽ lưu vào database khi kết nối backend.
+            Đã lưu vào bộ từ. Bạn có thể quay lại để học ngay.
           </p>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useLayoutEffect, useState } from "react";
 import AnimatedModal from "../components/common/AnimatedModal";
 import EmptyState from "../components/common/EmptyState";
@@ -147,6 +148,14 @@ function TrangDanhSachBo() {
   const [formBo, setFormBo] = useState(FORM_BO_RONG);
   const [loiFormBo, setLoiFormBo] = useState("");
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (isAuthReady && isAuthenticated && searchParams.get("create") === "1") {
+      setDangMoForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [isAuthReady, isAuthenticated, searchParams, setSearchParams]);
 
   async function taiDanhSachDeck() {
     setIsLoadingDecks(true);
@@ -300,7 +309,7 @@ function TrangDanhSachBo() {
 
     const tenDaTonTai = danhSachDeck.some(
       (bo) =>
-        chuanHoaTenBo(bo.title) === chuanHoaTenBo(name) &&
+        laBoCuaUser(bo) && chuanHoaTenBo(bo.title) === chuanHoaTenBo(name) &&
         String(bo.id) !== String(boDangSua?.id ?? "")
     );
 
@@ -397,9 +406,10 @@ function TrangDanhSachBo() {
             onClick={moFormThemBo}
             aria-label="Thêm bộ từ"
             title="Thêm bộ từ"
-            className="ui-icon-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+            className="ui-button ui-button--primary px-4 py-2.5 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
           >
             <IconPlus />
+            <span>Thêm bộ từ</span>
           </button>
         </div>
       </div>
@@ -482,7 +492,7 @@ function TrangDanhSachBo() {
                             role="menu"
                             aria-label={`Tùy chọn bộ ${bo.title}`}
                             onClick={(event) => event.stopPropagation()}
-                            className="ui-deck-action-menu absolute left-0 top-11 z-20 w-36 overflow-hidden rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-1 shadow-[var(--bong-modal)]"
+                            className="ui-deck-action-menu absolute right-0 top-11 z-20 w-36 overflow-hidden rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-1 shadow-[var(--bong-modal)]"
                           >
                             <button
                               type="button"
@@ -556,11 +566,12 @@ function TrangDanhSachBo() {
             <form onSubmit={luuBo} className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-                  Name
+                  Tên bộ từ
                 </label>
                 <input
                   id="name"
                   name="name"
+                  maxLength={255}
                   value={formBo.name}
                   onChange={capNhatFormBo}
                   required
@@ -571,7 +582,7 @@ function TrangDanhSachBo() {
 
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5">
-                  Description
+                  Mô tả
                 </label>
                 <textarea
                   id="description"
