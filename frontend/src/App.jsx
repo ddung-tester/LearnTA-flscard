@@ -2,11 +2,6 @@ import { lazy, Suspense, useLayoutEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
-import VideoBackground from "./components/VideoBackground";
-import {
-  BACKGROUND_DEFAULT_VIDEO,
-  BACKGROUND_QUIZ_VIDEO,
-} from "./constants/backgrounds";
 
 import { useAuth } from "./contexts/AuthContext";
 import {
@@ -53,19 +48,6 @@ function AuthReadyGate({ children }) {
  * BoCuc boc cac trang con, tru TrangChu co layout rieng.
  */
 function UngDung() {
-  const viTri = useLocation();
-  const laTrangImmersive =
-    viTri.pathname === "/" ||
-    viTri.pathname === "/login" ||
-    viTri.pathname === "/register";
-
-  // Trang chu/auth → video background co animation (giu nguyen)
-  // Tat ca trang con lai (dashboard, hoc, thong ke...) → nen phang mau loading
-  const backgroundVariant = laTrangImmersive ? "auth" : "flat";
-  const backgroundSrc = laTrangImmersive
-    ? BACKGROUND_DEFAULT_VIDEO
-    : BACKGROUND_QUIZ_VIDEO;
-
   const noiDungRoutes = (
     <Suspense fallback={<SuspenseLoader />}>
       <Routes>
@@ -93,14 +75,9 @@ function UngDung() {
   );
 
   return (
-    <VideoBackground
-      src={backgroundSrc}
-      variant={backgroundVariant}
-      mode={laTrangImmersive ? "immersive" : "app"}
-    >
-      <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
-    </VideoBackground>
+    <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
   );
 }
 
 export default UngDung;
+

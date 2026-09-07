@@ -219,12 +219,12 @@ function RecentSessionList({ sessions = [] }) {
 }
 
 const MASTERY_LEVELS = [
-  { level: 0, label: "Mới",        color: "oklch(72% 0.07 260)" },
-  { level: 1, label: "Lv.1",       color: "oklch(66% 0.13 220)" },
-  { level: 2, label: "Lv.2",       color: "oklch(62% 0.15 180)" },
+  { level: 0, label: "Mới",        color: "oklch(72% 0.07 46)" },
+  { level: 1, label: "Lv.1",       color: "oklch(66% 0.10 60)" },
+  { level: 2, label: "Lv.2",       color: "oklch(62% 0.10 59)" },
   { level: 3, label: "Lv.3",       color: "oklch(58% 0.16 150)" },
-  { level: 4, label: "Lv.4",       color: "oklch(54% 0.16 120)" },
-  { level: 5, label: "Thành thạo", color: "oklch(50% 0.16 164)" },
+  { level: 4, label: "Lv.4",       color: "oklch(54% 0.16 85)" },
+  { level: 5, label: "Thành thạo", color: "oklch(50% 0.10 52)" },
 ];
 
 function TrangThongKe() {

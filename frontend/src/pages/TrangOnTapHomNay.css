@@ -249,15 +249,15 @@
 }
 
 .review-badge--ok {
-  border-color: oklch(76% 0.13 72 / 0.38);
+  border-color: oklch(76% 0.13 72/ 0.38);
   background: oklch(96% 0.035 72);
   color: oklch(43% 0.09 72);
 }
 
 .review-badge--good,
 .review-badge--mastered {
-  border-color: oklch(55% 0.105 164 / 0.3);
-  background: oklch(96% 0.025 164);
+  border-color: oklch(55% 0.080 52/ 0.3);
+  background: oklch(96% 0.015 52);
   color: var(--mau-chinh);
 }
 
@@ -287,7 +287,7 @@
 }
 
 .review-card__remove:hover {
-  background: oklch(64% 0.16 24 / 0.1);
+  background: oklch(64% 0.16 24/ 0.1);
   color: var(--mau-loi);
 }
 
@@ -413,21 +413,21 @@
 }
 
 .review-btn--again:hover {
-  border-color: oklch(64% 0.16 24 / 0.55);
+  border-color: oklch(64% 0.16 24/ 0.55);
   background: oklch(96% 0.025 24);
   color: oklch(43% 0.12 24);
 }
 
 .review-btn--hard:hover {
-  border-color: oklch(76% 0.13 72 / 0.55);
+  border-color: oklch(76% 0.13 72/ 0.55);
   background: oklch(96% 0.035 72);
   color: oklch(43% 0.09 72);
 }
 
 .review-btn--good:hover,
 .review-btn--easy:hover {
-  border-color: oklch(55% 0.105 164 / 0.45);
-  background: oklch(96% 0.025 164);
+  border-color: oklch(55% 0.080 52/ 0.45);
+  background: oklch(96% 0.015 52);
   color: var(--mau-chinh);
 }
 

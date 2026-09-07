@@ -39,33 +39,33 @@
   background:
     linear-gradient(
       180deg,
-      oklch(20% 0.035 220 / 0.2),
-      oklch(96% 0.02 96 / 0.14) 44%,
-      oklch(20% 0.035 220 / 0.18)
+      oklch(20% 0.035 60/ 0.2),
+      oklch(96% 0.01 76/ 0.14) 44%,
+      oklch(20% 0.035 60/ 0.18)
     ),
-    radial-gradient(circle at 50% 35%, oklch(82% 0.08 172 / 0.14), transparent 34rem);
+    radial-gradient(circle at 50% 35%, oklch(82% 0.08 56/ 0.14), transparent 34rem);
 }
 
 .video-bg__overlay--auth {
   background:
     linear-gradient(
       180deg,
-      oklch(18% 0.035 220 / 0.48),
-      oklch(21% 0.032 210 / 0.2) 42%,
-      oklch(18% 0.035 220 / 0.5)
+      oklch(18% 0.035 60/ 0.48),
+      oklch(21% 0.032 55/ 0.2) 42%,
+      oklch(18% 0.035 60/ 0.5)
     ),
-    radial-gradient(circle at 50% 42%, oklch(83% 0.09 174 / 0.12), transparent 32rem);
+    radial-gradient(circle at 50% 42%, oklch(83% 0.09 56/ 0.12), transparent 32rem);
 }
 
 .video-bg__overlay--study {
   background:
     linear-gradient(
       180deg,
-      oklch(17% 0.035 220 / 0.28),
-      oklch(96% 0.02 96 / 0.1) 48%,
-      oklch(17% 0.035 220 / 0.22)
+      oklch(17% 0.035 60/ 0.28),
+      oklch(96% 0.01 76/ 0.1) 48%,
+      oklch(17% 0.035 60/ 0.22)
     ),
-    radial-gradient(circle at 72% 26%, oklch(72% 0.1 162 / 0.16), transparent 28rem);
+    radial-gradient(circle at 72% 26%, oklch(72% 0.1 52/ 0.16), transparent 28rem);
 }
 
 /* Dashboard overlay — directional wash: readable top, open bottom */
@@ -73,12 +73,12 @@
   background:
     linear-gradient(
       175deg,
-      oklch(97% 0.022 88 / 0.62) 0%,
-      oklch(96% 0.025 100 / 0.46) 45%,
-      oklch(95% 0.028 110 / 0.28) 100%
+      oklch(97% 0.015 76/ 0.62) 0%,
+      oklch(96% 0.015 78/ 0.46) 45%,
+      oklch(95% 0.015 81/ 0.28) 100%
     ),
-    radial-gradient(ellipse at 70% 20%, oklch(88% 0.06 172 / 0.10), transparent 38rem),
-    radial-gradient(ellipse at 20% 80%, oklch(90% 0.05 82 / 0.06), transparent 30rem);
+    radial-gradient(ellipse at 70% 20%, oklch(88% 0.04 56/ 0.10), transparent 38rem),
+    radial-gradient(ellipse at 20% 80%, oklch(90% 0.05 82/ 0.06), transparent 30rem);
 }
 
 .video-bg-content {
@@ -128,7 +128,7 @@
     hue-rotate(-16deg)
     brightness(1.08)
     contrast(0.93)
-    drop-shadow(0 0.45rem 0.38rem oklch(17% 0.035 220 / 0.08));
+    drop-shadow(0 0.45rem 0.38rem oklch(17% 0.035 60/ 0.08));
 }
 
 .login-mascot__canvas {
@@ -141,13 +141,13 @@
 .video-auth-card {
   position: relative;
   z-index: 2;
-  background: oklch(97.2% 0.022 94 / 0.94);
-  border: 1px solid oklch(56% 0.07 168 / 0.3);
+  background: oklch(98.5% 0.006 80 / 0.96);
+  border: 1px solid oklch(75% 0.015 65 / 0.25);
   border-radius: 1.35rem;
   box-shadow:
-    0 24px 60px oklch(17% 0.035 220 / 0.28),
-    inset 0 12px 18px -18px oklch(17% 0.035 220 / 0.2),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.74);
+    0 24px 60px oklch(23% 0.01 60 / 0.18),
+    inset 0 12px 18px -18px oklch(23% 0.01 60 / 0.12),
+    inset 0 1px 0 oklch(99% 0.004 82 / 0.74);
   width: 100%;
   max-width: 25rem;
   padding: clamp(1.35rem, 3vw, 1.7rem);
@@ -182,7 +182,7 @@ body.has-video-background {
 }
 
 body.has-video-background--immersive {
-  background: oklch(21% 0.035 220) !important;
+  background: oklch(21% 0.035 60) !important;
   overflow: hidden !important;
 }
 
@@ -193,15 +193,15 @@ body.has-video-background--app {
 /* ── flat variant: — background đậm hơn hẳn để card/button float rõ ── */
 body.has-video-background-variant--flat {
   background:
-    radial-gradient(circle at 8% 12%,  oklch(72% 0.14 158 / 0.82), transparent 40rem),
-    radial-gradient(circle at 90% 85%, oklch(75% 0.16 84  / 0.80), transparent 36rem),
-    radial-gradient(circle at 82% 10%, oklch(74% 0.12 108 / 0.65), transparent 28rem),
-    radial-gradient(circle at 50% 50%, oklch(72% 0.10 145 / 0.35), transparent 42rem),
+    radial-gradient(circle at 8% 12%,  oklch(72% 0.10 50/ 0.82), transparent 40rem),
+    radial-gradient(circle at 90% 85%, oklch(75% 0.16 84/ 0.80), transparent 36rem),
+    radial-gradient(circle at 82% 10%, oklch(74% 0.12 81/ 0.65), transparent 28rem),
+    radial-gradient(circle at 50% 50%, oklch(72% 0.10 145/ 0.35), transparent 42rem),
     linear-gradient(165deg,
-      oklch(88% 0.048 94)  0%,
-      oklch(86% 0.065 108) 36%,
+      oklch(88% 0.048 76)  0%,
+      oklch(86% 0.065 81) 36%,
       oklch(84% 0.075 155) 70%,
-      oklch(88% 0.050 90)  100%
+      oklch(88% 0.050 77)  100%
     ) !important;
 }
 
@@ -223,7 +223,7 @@ body.has-video-background .app-shell-header {
   position: relative;
   z-index: 5;
   background:
-    linear-gradient(180deg, oklch(17% 0.035 220 / 0.58), oklch(17% 0.035 220 / 0));
+    linear-gradient(180deg, oklch(17% 0.035 60/ 0.58), oklch(17% 0.035 60/ 0));
 }
 
 body.has-video-background--immersive .app-shell-header {
@@ -234,49 +234,49 @@ body.has-video-background--immersive .app-shell-header {
 }
 
 body.has-video-background .app-shell-header__inner > .ui-link {
-  color: oklch(97.5% 0.018 96 / 0.97) !important;
-  text-shadow: 0 1px 5px oklch(17% 0.035 220 / 0.56);
+  color: oklch(97.5% 0.015 76/ 0.97) !important;
+  text-shadow: 0 1px 5px oklch(17% 0.035 60/ 0.56);
 }
 
 body.has-video-background .app-shell-header nav > .ui-button--ghost,
 body.has-video-background .app-shell-header nav > .relative > .ui-button--ghost {
-  background: oklch(97.5% 0.018 96 / 0.14) !important;
-  border-color: oklch(96% 0.018 96 / 0.3) !important;
-  color: oklch(97.5% 0.018 96 / 0.97) !important;
-  box-shadow: 0 8px 22px oklch(17% 0.035 220 / 0.18);
+  background: oklch(97.5% 0.015 76/ 0.14) !important;
+  border-color: oklch(96% 0.015 76/ 0.3) !important;
+  color: oklch(97.5% 0.015 76/ 0.97) !important;
+  box-shadow: 0 8px 22px oklch(17% 0.035 60/ 0.18);
 }
 
 body.has-video-background .app-shell-header nav > .ui-button--primary {
-  background: oklch(70% 0.12 164) !important;
-  border: 1px solid oklch(86% 0.07 152 / 0.58);
-  color: oklch(20% 0.035 214) !important;
+  background: oklch(70% 0.08 52) !important;
+  border: 1px solid oklch(86% 0.07 152/ 0.58);
+  color: oklch(20% 0.035 57) !important;
   box-shadow:
-    0 12px 28px oklch(17% 0.035 220 / 0.24),
-    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+    0 12px 28px oklch(17% 0.035 60/ 0.24),
+    inset 0 1px 0 oklch(96% 0.015 80/ 0.42);
 }
 
 body.has-video-background .app-shell-header nav > .ui-button--ghost:hover,
 body.has-video-background .app-shell-header nav > .relative > .ui-button--ghost:hover {
-  background: oklch(97.5% 0.018 96 / 0.22) !important;
-  border-color: oklch(90% 0.05 152 / 0.46) !important;
-  color: oklch(99% 0.012 96 / 0.98) !important;
+  background: oklch(97.5% 0.015 76/ 0.22) !important;
+  border-color: oklch(90% 0.05 152/ 0.46) !important;
+  color: oklch(99% 0.012 76/ 0.98) !important;
 }
 
 body.has-video-background--app .app-shell-header nav > .ui-button--ghost,
 body.has-video-background--app .app-shell-header nav > .relative > .ui-button--ghost {
-  background: oklch(96.8% 0.021 92 / 0.88) !important;
-  border-color: oklch(96% 0.018 96 / 0.56) !important;
-  color: oklch(23% 0.03 220 / 0.94) !important;
+  background: oklch(96.8% 0.015 75/ 0.88) !important;
+  border-color: oklch(96% 0.015 76/ 0.56) !important;
+  color: oklch(23% 0.03 60/ 0.94) !important;
   box-shadow:
-    0 10px 24px oklch(17% 0.035 220 / 0.2),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+    0 10px 24px oklch(17% 0.035 60/ 0.2),
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.72);
 }
 
 body.has-video-background--app .app-shell-header nav > .ui-button--ghost:hover,
 body.has-video-background--app .app-shell-header nav > .relative > .ui-button--ghost:hover {
-  background: oklch(98% 0.018 95 / 0.96) !important;
-  border-color: oklch(66% 0.105 164 / 0.56) !important;
-  color: oklch(32% 0.095 174) !important;
+  background: oklch(98% 0.015 76/ 0.96) !important;
+  border-color: oklch(66% 0.080 52/ 0.56) !important;
+  color: oklch(32% 0.095 56) !important;
 }
 
 body.has-video-background--app .app-shell-main {
@@ -296,8 +296,8 @@ body.has-video-background-variant--dashboard .app-shell-header__inner > .ui-link
 
 /* ── flat variant header: đồng bộ màu loading overlay ── */
 body.has-video-background-variant--flat .app-shell-header {
-  background: oklch(96% 0.035 155 / 0.88) !important;
-  border-bottom: 1px solid oklch(82% 0.055 158 / 0.45) !important;
+  background: oklch(96% 0.035 155/ 0.88) !important;
+  border-bottom: 1px solid oklch(82% 0.055 50/ 0.45) !important;
   backdrop-filter: blur(14px) saturate(1.08) !important;
   -webkit-backdrop-filter: blur(14px) saturate(1.08) !important;
 }
@@ -309,16 +309,16 @@ body.has-video-background-variant--flat .app-shell-header__inner > .ui-link {
 
 body.has-video-background-variant--flat .app-shell-header nav > .ui-button--ghost,
 body.has-video-background-variant--flat .app-shell-header nav > .relative > .ui-button--ghost {
-  background: oklch(97% 0.025 96 / 0.82) !important;
-  border-color: oklch(70% 0.06 162 / 0.55) !important;
+  background: oklch(97% 0.015 76/ 0.82) !important;
+  border-color: oklch(70% 0.06 52/ 0.55) !important;
   color: var(--mau-chu) !important;
-  box-shadow: 0 2px 8px oklch(23% 0.03 220 / 0.08) !important;
+  box-shadow: 0 2px 8px oklch(23% 0.03 60/ 0.08) !important;
 }
 
 body.has-video-background-variant--flat .app-shell-header nav > .ui-button--ghost:hover,
 body.has-video-background-variant--flat .app-shell-header nav > .relative > .ui-button--ghost:hover {
-  background: oklch(99% 0.018 96 / 0.96) !important;
-  border-color: oklch(50% 0.11 164 / 0.6) !important;
+  background: oklch(99% 0.015 76/ 0.96) !important;
+  border-color: oklch(50% 0.08 52/ 0.6) !important;
   color: var(--mau-chinh) !important;
 }
 
@@ -327,40 +327,40 @@ body.has-video-background-variant--flat .app-shell-header nav > .relative > .ui-
    Buttons/ghost-buttons get solid white so they don't pick up gradient color. */
 body.has-video-background-variant--flat {
   --mau-mat: oklch(100% 0 0);
-  --mau-mat-2: oklch(97% 0.022 92);
+  --mau-mat-2: oklch(97% 0.015 75);
   --mau-input: oklch(100% 0 0);
-  --mau-vien: oklch(40% 0.22 168 / 0.55);
-  --mau-vien-manh: oklch(32% 0.22 170 / 0.80);
-  --bong-card: 0 3px 14px oklch(30% 0.10 170 / 0.22);
+  --mau-vien: oklch(40% 0.10 54/ 0.55);
+  --mau-vien-manh: oklch(32% 0.10 55/ 0.80);
+  --bong-card: 0 3px 14px oklch(30% 0.10 55/ 0.22);
 }
 
 /* Ghost / secondary buttons — solid white on flat variant so they read clearly */
 body.has-video-background-variant--flat .ui-button--ghost,
 body.has-video-background-variant--flat .ui-button--secondary {
-  background: oklch(100% 0 0 / 0.96) !important;
-  border-color: oklch(40% 0.22 168 / 0.55) !important;
+  background: oklch(100% 0 0/ 0.96) !important;
+  border-color: oklch(40% 0.10 54/ 0.55) !important;
   color: var(--mau-chu) !important;
-  box-shadow: 0 2px 8px oklch(30% 0.10 170 / 0.16) !important;
+  box-shadow: 0 2px 8px oklch(30% 0.10 55/ 0.16) !important;
 }
 
 body.has-video-background-variant--flat .ui-button--ghost:hover,
 body.has-video-background-variant--flat .ui-button--secondary:hover {
-  background: oklch(97% 0.022 92 / 1) !important;
-  border-color: oklch(36% 0.22 168 / 0.72) !important;
-  box-shadow: 0 4px 14px oklch(30% 0.10 170 / 0.22) !important;
+  background: oklch(97% 0.015 75/ 1) !important;
+  border-color: oklch(36% 0.10 54/ 0.72) !important;
+  box-shadow: 0 4px 14px oklch(30% 0.10 55/ 0.22) !important;
 }
 
 /* Action cards (“Học Flashcard” etc.) — teal surface so clearly interactive */
 body.has-video-background-variant--flat .ui-action-card {
-  background: oklch(96% 0.055 162 / 0.96) !important;
-  border-color: oklch(40% 0.22 168 / 0.45) !important;
-  box-shadow: 0 2px 8px oklch(30% 0.10 170 / 0.18) !important;
+  background: oklch(96% 0.015 52/ 0.96) !important;
+  border-color: oklch(40% 0.10 54/ 0.45) !important;
+  box-shadow: 0 2px 8px oklch(30% 0.10 55/ 0.18) !important;
 }
 
 body.has-video-background-variant--flat .ui-action-card:hover {
-  background: oklch(93% 0.080 162 / 1) !important;
-  border-color: oklch(36% 0.22 168 / 0.62) !important;
-  box-shadow: 0 4px 14px oklch(30% 0.10 170 / 0.24) !important;
+  background: oklch(93% 0.015 52/ 1) !important;
+  border-color: oklch(36% 0.10 54/ 0.62) !important;
+  box-shadow: 0 4px 14px oklch(30% 0.10 55/ 0.24) !important;
 }
 
 body.has-video-background--immersive .video-auth-card {
@@ -369,72 +369,72 @@ body.has-video-background--immersive .video-auth-card {
 
 body.has-video-background--immersive .video-auth-card h2,
 body.has-video-background--immersive .video-auth-card label {
-  color: oklch(21% 0.035 220) !important;
+  color: oklch(21% 0.035 60) !important;
 }
 
 body.has-video-background--immersive .video-auth-card p {
-  color: oklch(40% 0.038 216) !important;
+  color: oklch(40% 0.038 58) !important;
 }
 
 body.has-video-background--immersive .video-auth-card input {
-  background: oklch(98% 0.018 95 / 0.94) !important;
-  border-color: oklch(51% 0.07 168 / 0.28) !important;
-  color: oklch(21% 0.035 220) !important;
-  box-shadow: inset 0 1px 0 oklch(99% 0.012 94 / 0.7);
+  background: oklch(98% 0.015 76/ 0.94) !important;
+  border-color: oklch(51% 0.07 54/ 0.28) !important;
+  color: oklch(21% 0.035 60) !important;
+  box-shadow: inset 0 1px 0 oklch(99% 0.012 76/ 0.7);
 }
 
 body.has-video-background--immersive .video-auth-card input::placeholder {
-  color: oklch(55% 0.028 218 / 0.72) !important;
+  color: oklch(55% 0.028 59/ 0.72) !important;
 }
 
 body.has-video-background--immersive .video-auth-card input:focus,
 body.has-video-background--immersive .video-auth-card input:focus-visible {
-  border-color: oklch(58% 0.12 164 / 0.88) !important;
+  border-color: oklch(58% 0.08 52/ 0.88) !important;
   box-shadow:
-    0 0 0 3px oklch(58% 0.12 164 / 0.18),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.76);
+    0 0 0 3px oklch(58% 0.08 52/ 0.18),
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.76);
 }
 
 body.has-video-background--immersive .video-auth-card .ui-button--primary,
 body.has-video-background--immersive .video-bg-page .ui-button--primary {
-  background: oklch(62% 0.13 164) !important;
-  border: 1px solid oklch(79% 0.09 152 / 0.56);
-  color: oklch(18% 0.035 220) !important;
+  background: oklch(62% 0.10 52) !important;
+  border: 1px solid oklch(79% 0.09 152/ 0.56);
+  color: oklch(18% 0.035 60) !important;
   box-shadow:
-    0 18px 42px oklch(17% 0.035 220 / 0.28),
-    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+    0 18px 42px oklch(17% 0.035 60/ 0.28),
+    inset 0 1px 0 oklch(96% 0.015 80/ 0.42);
 }
 
 body.has-video-background--immersive .video-auth-card .ui-button--primary:hover,
 body.has-video-background--immersive .video-bg-page .ui-button--primary:hover {
-  background: oklch(67% 0.13 164) !important;
+  background: oklch(67% 0.10 52) !important;
 }
 
 body.has-video-background--immersive .video-auth-card .ui-link {
-  color: oklch(43% 0.115 174) !important;
+  color: oklch(43% 0.080 56) !important;
 }
 
 body.has-video-background--immersive .video-auth-card [role="alert"] {
-  background: oklch(94% 0.045 24 / 0.82) !important;
-  border-color: oklch(62% 0.15 24 / 0.36) !important;
+  background: oklch(94% 0.045 24/ 0.82) !important;
+  border-color: oklch(62% 0.15 24/ 0.36) !important;
   color: oklch(44% 0.14 24) !important;
 }
 
 body.has-video-background--app .ui-page-header h2,
 body.has-video-background--app .ui-section-header > h3,
 body.has-video-background--app .ui-study-session > h2 {
-  color: oklch(97.5% 0.018 96 / 0.97) !important;
+  color: oklch(97.5% 0.015 76/ 0.97) !important;
   text-shadow:
-    0 1px 2px oklch(17% 0.035 220 / 0.78),
-    0 7px 24px oklch(17% 0.035 220 / 0.58);
+    0 1px 2px oklch(17% 0.035 60/ 0.78),
+    0 7px 24px oklch(17% 0.035 60/ 0.58);
 }
 
 body.has-video-background--app .ui-page-header__title > p,
 body.has-video-background--app .ui-study-session > p {
-  color: oklch(93% 0.022 96 / 0.9) !important;
+  color: oklch(93% 0.015 76/ 0.9) !important;
   text-shadow:
-    0 1px 2px oklch(17% 0.035 220 / 0.72),
-    0 5px 18px oklch(17% 0.035 220 / 0.46);
+    0 1px 2px oklch(17% 0.035 60/ 0.72),
+    0 5px 18px oklch(17% 0.035 60/ 0.46);
 }
 
 body.has-video-background--app .ui-empty-panel,
@@ -445,12 +445,12 @@ body.has-video-background--app .ui-reading-card,
 body.has-video-background--app .ui-card-interactive,
 body.has-video-background--app .ui-action-card,
 body.has-video-background--app .ui-quiz-question-card {
-  background: oklch(97.5% 0.018 96 / 0.95) !important;
-  border-color: oklch(74% 0.055 162 / 0.38) !important;
+  background: oklch(97.5% 0.015 76/ 0.95) !important;
+  border-color: oklch(74% 0.055 52/ 0.38) !important;
   color: var(--mau-chu) !important;
   box-shadow:
-    0 6px 22px oklch(17% 0.035 220 / 0.12),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.80);
+    0 6px 22px oklch(17% 0.035 60/ 0.12),
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.80);
 }
 
 body.has-video-background--app .ui-empty-panel p,
@@ -460,7 +460,7 @@ body.has-video-background--app .ui-card-interactive p,
 body.has-video-background--app .ui-stat-label,
 body.has-video-background--app .ui-label,
 body.has-video-background--app .ui-settings-popover__hint {
-  color: oklch(39% 0.035 218) !important;
+  color: oklch(39% 0.035 59) !important;
 }
 
 body.has-video-background--app .ui-empty-panel h2,
@@ -470,25 +470,25 @@ body.has-video-background--app .ui-reading-card h2,
 body.has-video-background--app .ui-card-interactive h3,
 body.has-video-background--app .ui-quiz-question-card h2,
 body.has-video-background--app .ui-settings-popover__label {
-  color: oklch(23% 0.03 220) !important;
+  color: oklch(23% 0.03 60) !important;
 }
 
 body.has-video-background--app .ui-reading-card:hover,
 body.has-video-background--app .ui-card-interactive:hover,
 body.has-video-background--app .ui-action-card:hover {
-  background: oklch(95.5% 0.034 112 / 0.96) !important;
-  border-color: oklch(66% 0.105 164 / 0.54) !important;
+  background: oklch(95.5% 0.015 82/ 0.96) !important;
+  border-color: oklch(66% 0.080 52/ 0.54) !important;
 }
 
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-wrong {
-  background: oklch(55% 0.22 25 / 0.92) !important;
+  background: oklch(55% 0.22 25/ 0.92) !important;
   border-color: oklch(50% 0.22 25) !important;
   color: var(--mau-chu-tren-chinh) !important;
 }
 
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct,
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct-reveal {
-  background: oklch(76% 0.13 155 / 0.5) !important;
+  background: oklch(76% 0.13 155/ 0.5) !important;
   border-color: oklch(48% 0.16 155) !important;
   color: var(--mau-chu-tren-chinh) !important;
 }
@@ -500,19 +500,19 @@ body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-c
 }
 
 body.has-video-background--app .ui-button--primary {
-  background: oklch(62% 0.13 164) !important;
-  border: 1px solid oklch(79% 0.09 152 / 0.58);
-  color: oklch(18% 0.035 220) !important;
+  background: oklch(62% 0.10 52) !important;
+  border: 1px solid oklch(79% 0.09 152/ 0.58);
+  color: oklch(18% 0.035 60) !important;
   box-shadow:
-    0 14px 32px oklch(17% 0.035 220 / 0.26),
-    inset 0 1px 0 oklch(96% 0.026 106 / 0.42);
+    0 14px 32px oklch(17% 0.035 60/ 0.26),
+    inset 0 1px 0 oklch(96% 0.015 80/ 0.42);
 }
 
 body.has-video-background--app .ui-button--primary:hover {
-  background: oklch(67% 0.13 164) !important;
+  background: oklch(67% 0.10 52) !important;
   box-shadow:
-    0 18px 40px oklch(17% 0.035 220 / 0.3),
-    inset 0 1px 0 oklch(96% 0.026 106 / 0.5);
+    0 18px 40px oklch(17% 0.035 60/ 0.3),
+    inset 0 1px 0 oklch(96% 0.015 80/ 0.5);
 }
 
 body.has-video-background--app .ui-button--ghost,
@@ -523,12 +523,12 @@ body.has-video-background--app .ui-icon-action,
 body.has-video-background--app .ui-filter-tabs,
 body.has-video-background--app .ui-mode-switch,
 body.has-video-background--app .ui-mode-rotate-button {
-  background: oklch(96.8% 0.021 92 / 0.88) !important;
-  border-color: oklch(96% 0.018 96 / 0.56) !important;
-  color: oklch(23% 0.03 220 / 0.94) !important;
+  background: oklch(96.8% 0.015 75/ 0.88) !important;
+  border-color: oklch(96% 0.015 76/ 0.56) !important;
+  color: oklch(23% 0.03 60/ 0.94) !important;
   box-shadow:
-    0 10px 24px oklch(17% 0.035 220 / 0.2),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+    0 10px 24px oklch(17% 0.035 60/ 0.2),
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.72);
 }
 
 body.has-video-background--app .ui-back-link:hover,
@@ -537,16 +537,16 @@ body.has-video-background--app .ui-back-btn:hover,
 body.has-video-background--app .ui-button--ghost:hover,
 body.has-video-background--app .ui-icon-action:hover,
 body.has-video-background--app .ui-mode-rotate-button:hover {
-  background: oklch(98% 0.018 95 / 0.96) !important;
-  border-color: oklch(66% 0.105 164 / 0.56) !important;
-  color: oklch(32% 0.095 174) !important;
+  background: oklch(98% 0.015 76/ 0.96) !important;
+  border-color: oklch(66% 0.080 52/ 0.56) !important;
+  color: oklch(32% 0.095 56) !important;
 }
 
 body.has-video-background--app .ui-icon-action--active,
 body.has-video-background--app .ui-word-move-handle {
-  background: oklch(93% 0.035 112 / 0.9) !important;
-  border-color: oklch(66% 0.105 164 / 0.5) !important;
-  color: oklch(32% 0.095 174) !important;
+  background: oklch(93% 0.015 82/ 0.9) !important;
+  border-color: oklch(66% 0.080 52/ 0.5) !important;
+  color: oklch(32% 0.095 56) !important;
 }
 
 body.has-video-background--app .ui-favorite-button--active {
@@ -557,24 +557,24 @@ body.has-video-background--app .ui-favorite-button--active {
 }
 
 body.has-video-background--app .ui-word-drag-preview {
-  background: oklch(96.8% 0.021 92 / 0.96) !important;
-  border-color: oklch(66% 0.105 164 / 0.6) !important;
-  color: oklch(23% 0.03 220 / 0.96) !important;
+  background: oklch(96.8% 0.015 75/ 0.96) !important;
+  border-color: oklch(66% 0.080 52/ 0.6) !important;
+  color: oklch(23% 0.03 60/ 0.96) !important;
 }
 
 body.has-video-background--app .ui-filter-tab[aria-pressed="true"],
 body.has-video-background--app .ui-mode-switch__thumb {
-  background: oklch(98.5% 0.015 95 / 0.98) !important;
-  border-color: oklch(52% 0.09 164 / 0.34) !important;
-  color: oklch(37% 0.105 174) !important;
+  background: oklch(98.5% 0.015 76/ 0.98) !important;
+  border-color: oklch(52% 0.09 52/ 0.34) !important;
+  color: oklch(37% 0.080 56) !important;
 }
 
 body.has-video-background--app input,
 body.has-video-background--app textarea,
 body.has-video-background--app select {
-  background-color: oklch(98% 0.018 95 / 0.94) !important;
-  border-color: oklch(23% 0.03 220 / 0.24) !important;
-  color: oklch(23% 0.03 220) !important;
+  background-color: oklch(98% 0.015 76/ 0.94) !important;
+  border-color: oklch(23% 0.03 60/ 0.24) !important;
+  color: oklch(23% 0.03 60) !important;
 }
 
 body.has-video-background--app input:focus,
@@ -583,14 +583,14 @@ body.has-video-background--app textarea:focus,
 body.has-video-background--app textarea:focus-visible,
 body.has-video-background--app select:focus,
 body.has-video-background--app select:focus-visible {
-  border-color: oklch(58% 0.12 164 / 0.84) !important;
-  box-shadow: 0 0 0 3px oklch(58% 0.12 164 / 0.24);
+  border-color: oklch(58% 0.08 52/ 0.84) !important;
+  box-shadow: 0 0 0 3px oklch(58% 0.08 52/ 0.24);
 }
 
 body.has-video-background--app .ui-written-answer-input--answer-review {
   background:
-    linear-gradient(180deg, oklch(98% 0.018 95 / 0.88), oklch(94% 0.034 112 / 0.72)) !important;
-  border-color: oklch(64% 0.16 24 / 0.66) !important;
+    linear-gradient(180deg, oklch(98% 0.015 76/ 0.88), oklch(94% 0.015 82/ 0.72)) !important;
+  border-color: oklch(64% 0.16 24/ 0.66) !important;
   color: var(--mau-chu-phu) !important;
 }
 
@@ -600,7 +600,7 @@ body.has-video-background--app .ui-written-answer-input--answer-review::placehol
 }
 
 body.has-video-background--app .ui-written-answer-input--correct {
-  background-color: oklch(58% 0.13 164 / 0.14) !important;
+  background-color: oklch(58% 0.10 52/ 0.14) !important;
   border-color: var(--mau-thanh-cong) !important;
 }
 
@@ -627,7 +627,7 @@ body.has-video-background--app .ui-written-answer-input--answer-review.ui-writte
 }
 
 body.has-video-background--app .ui-written-answer-input--warning {
-  background-color: oklch(76% 0.13 72 / 0.16) !important;
+  background-color: oklch(76% 0.13 72/ 0.16) !important;
   border-color: var(--mau-canh-bao) !important;
 }
 
@@ -644,46 +644,46 @@ body.has-video-background--app .ui-written-answer-input--wrong:hover {
 }
 
 body.has-video-background--app .ui-settings-popover__panel {
-  background: oklch(96.8% 0.021 92 / 0.96) !important;
-  border-color: oklch(96% 0.018 96 / 0.58) !important;
+  background: oklch(96.8% 0.015 75/ 0.96) !important;
+  border-color: oklch(96% 0.015 76/ 0.58) !important;
   box-shadow:
-    0 24px 56px oklch(17% 0.035 220 / 0.32),
-    inset 0 1px 0 oklch(99% 0.012 94 / 0.72);
+    0 24px 56px oklch(17% 0.035 60/ 0.32),
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.72);
 }
 
 body.has-video-background--app .ui-chip {
-  background: oklch(98% 0.018 95 / 0.76) !important;
-  border-color: oklch(47% 0.06 174 / 0.22) !important;
-  color: oklch(39% 0.035 218) !important;
+  background: oklch(98% 0.015 76/ 0.76) !important;
+  border-color: oklch(47% 0.06 56/ 0.22) !important;
+  color: oklch(39% 0.035 59) !important;
 }
 
 body.has-video-background--app .ui-chip--primary,
 body.has-video-background--app .ui-chip--success {
-  background: oklch(92.5% 0.05 158 / 0.76) !important;
-  border-color: oklch(62% 0.1 158 / 0.42) !important;
-  color: oklch(34% 0.105 164) !important;
+  background: oklch(92.5% 0.01 50/ 0.76) !important;
+  border-color: oklch(62% 0.1 50/ 0.42) !important;
+  color: oklch(34% 0.080 52) !important;
 }
 
 body.has-video-background--app .ui-chip--warning {
-  background: oklch(94% 0.055 72 / 0.78) !important;
-  border-color: oklch(73% 0.11 72 / 0.46) !important;
+  background: oklch(94% 0.055 72/ 0.78) !important;
+  border-color: oklch(73% 0.11 72/ 0.46) !important;
   color: oklch(40% 0.09 70) !important;
 }
 
 body.has-video-background--app .ui-chip--danger {
-  background: oklch(94% 0.04 24 / 0.78) !important;
-  border-color: oklch(64% 0.14 24 / 0.42) !important;
+  background: oklch(94% 0.04 24/ 0.78) !important;
+  border-color: oklch(64% 0.14 24/ 0.42) !important;
   color: oklch(43% 0.13 24) !important;
 }
 
 body.has-video-background--app .ui-action-card {
-  border-color: oklch(62% 0.1 164 / 0.42) !important;
-  background: oklch(95.5% 0.034 112 / 0.9) !important;
+  border-color: oklch(62% 0.1 52/ 0.42) !important;
+  background: oklch(95.5% 0.015 82/ 0.9) !important;
 }
 
 body.has-video-background--app .ui-action-card span,
 body.has-video-background--app .ui-link {
-  color: oklch(38% 0.11 174) !important;
+  color: oklch(38% 0.08 56) !important;
 }
 
 @media (max-width: 720px) {
@@ -739,21 +739,21 @@ body.has-video-background--app .ui-link {
 }
 
 .video-bg-home-text {
-  color: oklch(98% 0.018 96 / 0.98) !important;
+  color: oklch(98% 0.015 76/ 0.98) !important;
   text-shadow:
-    0 2px 8px oklch(17% 0.035 220 / 0.58),
-    0 14px 42px oklch(17% 0.035 220 / 0.44);
+    0 2px 8px oklch(17% 0.035 60/ 0.58),
+    0 14px 42px oklch(17% 0.035 60/ 0.44);
 }
 
 .video-bg-home-kicker {
-  color: oklch(91% 0.032 98 / 0.9) !important;
-  text-shadow: 0 2px 12px oklch(17% 0.035 220 / 0.54);
+  color: oklch(91% 0.015 77/ 0.9) !important;
+  text-shadow: 0 2px 12px oklch(17% 0.035 60/ 0.54);
 }
 
 .video-home-typing .typing-effect__text,
 .video-home-typing .typing-effect__cursor {
-  color: oklch(88% 0.09 164 / 0.96);
-  filter: drop-shadow(0 2px 16px oklch(17% 0.035 220 / 0.48));
+  color: oklch(88% 0.04 52/ 0.96);
+  filter: drop-shadow(0 2px 16px oklch(17% 0.035 60/ 0.48));
 }
 
 @media (prefers-reduced-motion: reduce) {

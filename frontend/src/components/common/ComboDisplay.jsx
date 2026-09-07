@@ -34,10 +34,10 @@ function ComboDisplay({ combo, phase, progressPercent = 0 }) {
         "saturate(1) brightness(1)",
       ],
       boxShadow: [
-        "0 2px 8px oklch(23% 0.03 220 / 0.09), inset 0 1px 0 oklch(99% 0.012 94 / 0.72)",
-        "0 0 1rem rgb(125 211 252 / 0.44), 0 0 1.35rem rgb(109 40 217 / 0.24), 0 8px 18px oklch(23% 0.03 220 / 0.14), inset 0 1px 0 oklch(99% 0.012 94 / 0.86)",
-        "0 0 0.5rem rgb(125 211 252 / 0.2), 0 2px 8px oklch(23% 0.03 220 / 0.1), inset 0 1px 0 oklch(99% 0.012 94 / 0.78)",
-        "0 2px 8px oklch(23% 0.03 220 / 0.09), inset 0 1px 0 oklch(99% 0.012 94 / 0.72)",
+        "0 2px 8px oklch(23% 0.03 60/ 0.09), inset 0 1px 0 oklch(99% 0.012 76/ 0.72)",
+        "0 0 1rem rgb(125 211 252 / 0.44), 0 0 1.35rem rgb(109 40 217 / 0.24), 0 8px 18px oklch(23% 0.03 60/ 0.14), inset 0 1px 0 oklch(99% 0.012 76/ 0.86)",
+        "0 0 0.5rem rgb(125 211 252 / 0.2), 0 2px 8px oklch(23% 0.03 60/ 0.1), inset 0 1px 0 oklch(99% 0.012 76/ 0.78)",
+        "0 2px 8px oklch(23% 0.03 60/ 0.09), inset 0 1px 0 oklch(99% 0.012 76/ 0.72)",
       ],
       transition: {
         duration: 0.46,

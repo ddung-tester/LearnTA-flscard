@@ -42,10 +42,10 @@ function RewardProgressBar({
         scale: [1, 1.035, 0.992, 1],
         y: [0, -1, 0.5, 0],
         boxShadow: [
-          "inset 0 1px 0 oklch(99% 0.012 94 / 0.78), inset 0 -1px 0 rgb(76 29 149 / 0.1), 0 2px 8px oklch(23% 0.03 220 / 0.07)",
-          "inset 0 1px 0 oklch(99% 0.012 94 / 0.86), inset 0 -1px 0 rgb(76 29 149 / 0.16), 0 0 1rem rgb(125 211 252 / 0.26), 0 8px 18px oklch(23% 0.03 220 / 0.12)",
-          "inset 0 1px 0 oklch(99% 0.012 94 / 0.8), inset 0 -1px 0 rgb(76 29 149 / 0.12), 0 0 0.42rem rgb(125 211 252 / 0.12), 0 2px 8px oklch(23% 0.03 220 / 0.08)",
-          "inset 0 1px 0 oklch(99% 0.012 94 / 0.78), inset 0 -1px 0 rgb(76 29 149 / 0.1), 0 2px 8px oklch(23% 0.03 220 / 0.07)",
+          "inset 0 1px 0 oklch(99% 0.012 76/ 0.78), inset 0 -1px 0 rgb(76 29 149 / 0.1), 0 2px 8px oklch(23% 0.03 60/ 0.07)",
+          "inset 0 1px 0 oklch(99% 0.012 76/ 0.86), inset 0 -1px 0 rgb(76 29 149 / 0.16), 0 0 1rem rgb(125 211 252 / 0.26), 0 8px 18px oklch(23% 0.03 60/ 0.12)",
+          "inset 0 1px 0 oklch(99% 0.012 76/ 0.8), inset 0 -1px 0 rgb(76 29 149 / 0.12), 0 0 0.42rem rgb(125 211 252 / 0.12), 0 2px 8px oklch(23% 0.03 60/ 0.08)",
+          "inset 0 1px 0 oklch(99% 0.012 76/ 0.78), inset 0 -1px 0 rgb(76 29 149 / 0.1), 0 2px 8px oklch(23% 0.03 60/ 0.07)",
         ],
         transition: {
           duration: 0.42,
@@ -63,10 +63,10 @@ function RewardProgressBar({
           "saturate(1) brightness(1)",
         ],
         boxShadow: [
-          "0 0 0 rgb(125 211 252 / 0), inset 0 1px 0 oklch(99% 0.012 94 / 0.4)",
-          "0 0 1.1rem rgb(125 211 252 / 0.62), 0 0 1.55rem rgb(109 40 217 / 0.32), inset 0 1px 0 oklch(99% 0.012 94 / 0.62)",
-          "0 0 0.68rem rgb(125 211 252 / 0.38), 0 0 0.9rem rgb(109 40 217 / 0.18), inset 0 1px 0 oklch(99% 0.012 94 / 0.5)",
-          "0 0 0 rgb(125 211 252 / 0), inset 0 1px 0 oklch(99% 0.012 94 / 0.4)",
+          "0 0 0 rgb(125 211 252 / 0), inset 0 1px 0 oklch(99% 0.012 76/ 0.4)",
+          "0 0 1.1rem rgb(125 211 252 / 0.62), 0 0 1.55rem rgb(109 40 217 / 0.32), inset 0 1px 0 oklch(99% 0.012 76/ 0.62)",
+          "0 0 0.68rem rgb(125 211 252 / 0.38), 0 0 0.9rem rgb(109 40 217 / 0.18), inset 0 1px 0 oklch(99% 0.012 76/ 0.5)",
+          "0 0 0 rgb(125 211 252 / 0), inset 0 1px 0 oklch(99% 0.012 76/ 0.4)",
         ],
         transition: {
           duration: 0.46,
