@@ -130,7 +130,6 @@ function TrangTuLuan() {
   const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
-  const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [cauTraLoi, setCauTraLoi] = useState("");
   const [daKiemTra, setDaKiemTra] = useState(false);
@@ -273,37 +272,44 @@ function TrangTuLuan() {
     const ds = batRandom
       ? tronMangOnDinh(
           danhSachLocTuLuan,
-          `written-${boId}-${lanTronTuLuan}`,
+          `written-${boId}-${lanTronTuLuan}-${lanLam}`,
           (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
         )
       : [...danhSachLocTuLuan];
     return taoDanhSachTheTheoTienTrinh(ds);
-  }, [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan]);
+  }, [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan, lanLam]);
 
   const tongSoCauMucTieu = danhSachTheGoc.length;
   const danhSachTienTrinh = useMemo(() => {
     return taoDanhSachTienTrinh(danhSachTheGoc.length);
   }, [danhSachTheGoc]);
-  // Luôn dùng findIndex để tìm segment đầu tiên chưa hoàn thành.
-  // Không dùng __segmentIndex của câu hiện tại vì chiSo tăng kể cả khi trả lời sai.
-  const chiSoTienTrinhDangHoatDong = (() => {
-    const idx = soCauDungTheoTienTrinh.findIndex(
-      (soCauDungTrongTienTrinh, index) =>
-        soCauDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
-    );
-    return idx === -1 ? Math.max(0, danhSachTienTrinh.length - 1) : idx;
-  })();
-  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
-    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
-    const totalValue = tienTrinh.totalValue || 1;
 
-    return {
-      index,
-      currentValue,
-      totalValue,
-      progressPercent: (currentValue / totalValue) * 100,
-    };
-  });
+  // Thanh tiến trình lấp đầy tuyến tính từ soCauDung, không bị hổng/nhảy cóc
+  const cacThanhTienTrinh = useMemo(() => {
+    let daTichLuy = 0;
+    return danhSachTienTrinh.map((tienTrinh) => {
+      const totalValue = tienTrinh.totalValue || 1;
+      const currentValue = Math.min(
+        totalValue,
+        Math.max(0, soCauDung - daTichLuy)
+      );
+      daTichLuy += totalValue;
+      return {
+        index: tienTrinh.index,
+        currentValue,
+        totalValue,
+        progressPercent: (currentValue / totalValue) * 100,
+      };
+    });
+  }, [danhSachTienTrinh, soCauDung]);
+
+  const chiSoTienTrinhDangHoatDong = (() => {
+    const idx = cacThanhTienTrinh.findIndex(
+      (tienTrinh) => tienTrinh.currentValue < tienTrinh.totalValue
+    );
+    return idx === -1 ? Math.max(0, cacThanhTienTrinh.length - 1) : idx;
+  })();
+
   const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
     (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
   ).length;
@@ -320,7 +326,6 @@ function TrangTuLuan() {
     setDanhSachThe(danhSachTheGoc);
     setChiSo(0);
     setSoCauDung(0);
-    setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setCauTraLoi("");
     setDaKiemTra(false);
     setKetQuaDung(false);
@@ -638,26 +643,20 @@ function TrangTuLuan() {
     ttsSpeak(layCauHoi(danhSachThe[chiSo]), layNgonNguCauHoi());
   }
 
-  function docDapAnDungHienTai() {
-    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
+  function datLaiProgressReward() {
+    xoaTimerProgressReward();
+    setDangChoReward(false);
+    setRewardProgressPhase("idle");
+    setRewardProgressValue(0);
   }
 
-  function tangTienTrinhChoThe(theHienTai) {
-    if (!theHienTai) return;
-
+  function tangTienTrinhChoThe() {
     setSoCauDung((hienTai) => {
       const diemMoi = hienTai + 1;
       const tienDoMoi = ((diemMoi - 1) % soCauDungNhanThuong) + 1;
       const coReward = batReward && diemMoi % soCauDungNhanThuong === 0;
       batDauTienTrinhReward(tienDoMoi, coReward);
       return diemMoi;
-    });
-
-    setSoCauDungTheoTienTrinh((hienTai) => {
-      const danhSachMoi = [...hienTai];
-      const chiSoTienTrinh = theHienTai.__segmentIndex ?? 0;
-      danhSachMoi[chiSoTienTrinh] = (danhSachMoi[chiSoTienTrinh] ?? 0) + 1;
-      return danhSachMoi;
     });
   }
 
@@ -1076,6 +1075,7 @@ function TrangTuLuan() {
 
   function lamLai() {
     xoaTatCaTimerTuLuan();
+    datLaiProgressReward();
     setDanhSachHocLai(null);
     setLanLam((g) => g + 1);
     setChiSo(0);
@@ -1086,6 +1086,7 @@ function TrangTuLuan() {
     setDaBoQua(false);
     setDangChoNhanEnterSauSai(false);
     setSoCauDung(0);
+    setDanhSachThe(danhSachTheGoc);
     setDaHoanThanh(false);
     setDanhSachKetQua([]);
     setLanReward(0);
@@ -1238,6 +1239,7 @@ function TrangTuLuan() {
     function hocLaiTuSai() {
       if (danhSachCardSai.length === 0) return;
       xoaTatCaTimerTuLuan();
+      datLaiProgressReward();
       // Set trước, sau đó tăng lanLam để useEffect pick up đúng danhSachHocLai
       setDanhSachHocLai(danhSachCardSai);
       setLanLam((g) => g + 1);
@@ -1249,6 +1251,7 @@ function TrangTuLuan() {
       setDaBoQua(false);
       setDangChoNhanEnterSauSai(false);
       setSoCauDung(0);
+      setDanhSachThe([]);
       setDaHoanThanh(false);
       setDanhSachKetQua([]);
       setLanReward(0);

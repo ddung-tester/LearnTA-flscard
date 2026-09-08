@@ -277,7 +277,6 @@ function TrangQuiz() {
 
   const danhSachLocQuiz = useMemo(
     () => {
-      // Nếu đang học lại từ sai thì dùng thẳng danhSachHocLai, bỏ qua filter yêu thích
       if (danhSachHocLai !== null) return danhSachHocLai;
 
       let ds = danhSachGoc;
@@ -325,7 +324,6 @@ function TrangQuiz() {
   }, [batRandom, boId, lanTronQuiz, danhSachLocQuiz]);
 
   const danhSachCauHoi = useMemo(
-    // Khi học lại từ sai: dùng toàn bộ danhSachGoc làm pool nhiễu để luôn đủ 3 đáp án sai dù chỉ có 1 từ sai
     () => taoDanhSachCauHoi(
       danhSachThe,
       cheDo,
@@ -336,7 +334,6 @@ function TrangQuiz() {
   );
 
   const tongSoCauMucTieu = danhSachCauHoi.length;
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const danhSachTienTrinh = useMemo(() => {
     return taoDanhSachTienTrinh(danhSachCauHoi.length);
   }, [danhSachCauHoi]);
@@ -349,7 +346,6 @@ function TrangQuiz() {
     setDapAnSaiDaChon([]);
     setDaTungSaiOnCard(false);
     setSoCauDung(0);
-    setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDanhSachCauHoiRuntime(taoDanhSachTheoTienTrinh(danhSachCauHoi));
     setDaHoanThanh(false);
     setHienReward(false);
@@ -362,28 +358,30 @@ function TrangQuiz() {
     setTapCardSai(new Set());
   }
 
-  // Luôn dùng findIndex để tìm segment đầu tiên chưa hoàn thành.
-  // Không dùng __segmentIndex của câu hiện tại vì chiSo tăng kể cả khi trả lời sai,
-  // dẫn đến activeSegmentIndex nhảy sai segment trong khi câu sai chưa được tính tiến trình.
-  const chiSoTienTrinhDangHoatDong = (() => {
-    const idx = soCauDungTheoTienTrinh.findIndex(
-      (soDungTrongTienTrinh, index) =>
-        soDungTrongTienTrinh < (danhSachTienTrinh[index]?.totalValue ?? 0)
-    );
-    // Nếu tất cả segment đã đầy (hoàn thành), giữ ở segment cuối
-    return idx === -1 ? Math.max(0, danhSachTienTrinh.length - 1) : idx;
-  })();
-  const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
-    const currentValue = soCauDungTheoTienTrinh[index] ?? 0;
-    const totalValue = tienTrinh.totalValue || 1;
+  const cacThanhTienTrinh = useMemo(() => {
+    let daTichLuy = 0;
+    return danhSachTienTrinh.map((tienTrinh) => {
+      const totalValue = tienTrinh.totalValue || 1;
+      const currentValue = Math.min(
+        totalValue,
+        Math.max(0, soCauDung - daTichLuy)
+      );
+      daTichLuy += totalValue;
+      return {
+        index: tienTrinh.index,
+        currentValue,
+        totalValue,
+        progressPercent: (currentValue / totalValue) * 100,
+      };
+    });
+  }, [danhSachTienTrinh, soCauDung]);
 
-    return {
-      index,
-      currentValue,
-      totalValue,
-      progressPercent: (currentValue / totalValue) * 100,
-    };
-  });
+  const chiSoTienTrinhDangHoatDong = (() => {
+    const idx = cacThanhTienTrinh.findIndex(
+      (tienTrinh) => tienTrinh.currentValue < tienTrinh.totalValue
+    );
+    return idx === -1 ? Math.max(0, cacThanhTienTrinh.length - 1) : idx;
+  })();
   const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
     (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
   ).length;
@@ -549,9 +547,7 @@ function TrangQuiz() {
     setTapCardSai(new Set());
   }
 
-  function tangTienTrinhChoCau(cauDangTraLoi) {
-    if (!cauDangTraLoi) return;
-
+  function tangTienTrinhChoCau() {
     setSoCauDung((diemHienTai) => {
       const diemMoi = diemHienTai + 1;
       const tienDoMoi = ((diemMoi - 1) % soCauDungNhanThuong) + 1;
@@ -561,15 +557,7 @@ function TrangQuiz() {
 
       return diemMoi;
     });
-
-    setSoCauDungTheoTienTrinh((hienTai) => {
-      const danhSachMoi = [...hienTai];
-      const chiSoTienTrinh = cauDangTraLoi.__segmentIndex ?? 0;
-      danhSachMoi[chiSoTienTrinh] = (danhSachMoi[chiSoTienTrinh] ?? 0) + 1;
-      return danhSachMoi;
-    });
   }
-
 
   function lamLai() {
     xoaTimerChuyenCau();
@@ -582,7 +570,6 @@ function TrangQuiz() {
     setDapAnSaiDaChon([]);
     setDaTungSaiOnCard(false);
     setSoCauDung(0);
-    setSoCauDungTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDanhSachCauHoiRuntime(taoDanhSachTheoTienTrinh(danhSachCauHoi));
     setDaHoanThanh(false);
     setHienReward(false);
@@ -692,104 +679,36 @@ function TrangQuiz() {
     datLaiTapCardSai();
   }
 
-  // Chèn câu hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi trả lời sai rồi mới chọn đúng.
-  // Đảm bảo câu retry KHÔNG vượt qua ranh giới sang segment khác —
-  // nếu vị trí chiSo+5 đã thuộc segment khác thì chèn vào cuối segment hiện tại.
-  function chenTheHoiLai() {
-    setDanhSachCauHoiRuntime((prev) => {
-      if (!prev[chiSo]) return prev;
-      const moi = [...prev];
-      const [cau] = moi.splice(chiSo, 1);
-      const cauRetry = { ...cau, __saiBuoc: true };
-      const segmentHienTai = cau.__segmentIndex ?? 0;
-
-      // Tìm vị trí muốn chèn (chiSo + 5 sau khi đã splice)
-      const viTriMong = Math.min(chiSo + 5, moi.length);
-
-      // Tìm ranh giới cuối segment hiện tại: vị trí cuối cùng (exclusive) của
-      // câu có cùng __segmentIndex tính từ chiSo trở đi.
-      let viTriCuoiSegment = chiSo; // ít nhất chèn ngay sau vị trí hiện tại
-      for (let i = chiSo; i < moi.length; i += 1) {
-        if ((moi[i]?.__segmentIndex ?? -1) === segmentHienTai) {
-          viTriCuoiSegment = i + 1;
-        } else {
-          break;
-        }
-      }
-
-      // Chèn vào min(chiSo+5, cuối segment) để không tràn sang segment khác
-      const viTriChen = Math.min(viTriMong, viTriCuoiSegment);
-      moi.splice(viTriChen, 0, cauRetry);
-      return moi;
-    });
-  }
-
-  function chuyenCauSauNhapLaiDung() {
-    xoaTimerChuyenCau();
-    setDangChuyenCau(true);
-    questionTransitionTimerRef.current = setTimeout(() => {
-      chenTheHoiLai();
-      setDapAnDaChon(null);
-      setDapAnSaiDaChon([]);
-      setDaTungSaiOnCard(false);
-      setDangChuyenCau(false);
-      questionTransitionTimerRef.current = null;
-    }, 760);
-  }
-
   function chonDapAn(dapAn) {
     if (dapAnDaChon !== null || dangChuyenCau || hienReward || dangChoReward) return;
-    if (dapAnSaiDaChon.includes(dapAn)) return;
 
     const cauDangTraLoi = danhSachCauHoiRuntime[chiSo];
+    if (!cauDangTraLoi) return;
     const traLoiDungMoi = dapAn === cauDangTraLoi.dapAnDung;
 
-    if (traLoiDungMoi) {
-      setDapAnDaChon(dapAn);
-      phatAmThanhDung();
+    setDapAnDaChon(dapAn);
 
-      if (daTungSaiOnCard || dapAnSaiDaChon.length > 0) {
-        // Chọn đúng sau khi đã bấm sai trên thẻ này: chèn lại 5 câu sau, CHƯA ghi nhận tiến trình
-        setDanhSachKetQua((hienTai) => [
-          ...hienTai,
-          {
-            card_id: cauDangTraLoi.id,
-            question_text: cauDangTraLoi.cauHoi,
-            correct_answer: cauDangTraLoi.dapAnDung,
-            user_answer: dapAn,
-            is_correct: true,
-            answer_meta: {
-              segment_index: cauDangTraLoi.__segmentIndex ?? 0,
-              counts_toward_progress: false,
-            },
+    if (traLoiDungMoi) {
+      phatAmThanhDung();
+      tangTienTrinhChoCau();
+      incrementCombo();
+      setDanhSachKetQua((hienTai) => [
+        ...hienTai,
+        {
+          card_id: cauDangTraLoi.id,
+          question_text: cauDangTraLoi.cauHoi,
+          correct_answer: cauDangTraLoi.dapAnDung,
+          user_answer: dapAn,
+          is_correct: true,
+          answer_meta: {
+            segment_index: cauDangTraLoi.__segmentIndex ?? 0,
+            counts_toward_progress: true,
           },
-        ]);
-        chuyenCauSauNhapLaiDung();
-      } else {
-        // Chọn đúng ngay lần đầu (hoặc đúng thẻ retry 5 câu sau)
-        tangTienTrinhChoCau(cauDangTraLoi);
-        incrementCombo();
-        setDanhSachKetQua((hienTai) => [
-          ...hienTai,
-          {
-            card_id: cauDangTraLoi.id,
-            question_text: cauDangTraLoi.cauHoi,
-            correct_answer: cauDangTraLoi.dapAnDung,
-            user_answer: dapAn,
-            is_correct: true,
-            answer_meta: {
-              segment_index: cauDangTraLoi.__segmentIndex ?? 0,
-              counts_toward_progress: true,
-            },
-          },
-        ]);
-      }
+        },
+      ]);
     } else {
-      // Chọn sai: tô đỏ đáp án sai, giữ nguyên giao diện cho chọn tiếp
-      setDapAnSaiDaChon((prev) => [...prev, dapAn]);
-      setDaTungSaiOnCard(true);
+      // Chọn sai: không tăng tiến trình, ghi nhận sai và tự động chuyển câu tiếp theo sau phản hồi
       resetCombo();
-      // Ghi nhận card này đã bị sai (dùng cho tổng kết)
       setTapCardSai((prev) => {
         const next = new Set(prev);
         next.add(cauDangTraLoi.id);
@@ -809,11 +728,22 @@ function TrangQuiz() {
           },
         },
       ]);
+      // Chèn câu hỏi lại vào sau 5 câu (hoặc cuối danh sách) để hỏi lại
+      setDanhSachCauHoiRuntime((prev) => {
+        const moi = [...prev];
+        const viTriChen = Math.min(chiSo + 5, moi.length);
+        moi.splice(viTriChen, 0, {
+          ...cauDangTraLoi,
+          __sessionKey: `${cauDangTraLoi.id}-retry-${Date.now()}`,
+          __saiBuoc: true,
+        });
+        return moi;
+      });
     }
   }
 
   function sangCauTiepTheo() {
-    if (chiSo + 1 >= danhSachCauHoiRuntime.length) {
+    if (soCauDung >= tongSoCauMucTieu || chiSo + 1 >= danhSachCauHoiRuntime.length) {
       setDaHoanThanh(true);
       return;
     }
@@ -841,9 +771,13 @@ function TrangQuiz() {
       return undefined;
     }
 
+    const cauDangTraLoi = danhSachCauHoiRuntime[chiSo];
+    const traLoiDung = dapAnDaChon === cauDangTraLoi?.dapAnDung;
+    const thoiGianCho = traLoiDung ? 760 : 1200;
+
     const timer = setTimeout(() => {
       chuyenCauMem();
-    }, 760);
+    }, thoiGianCho);
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1083,7 +1017,6 @@ function TrangQuiz() {
       setDapAnSaiDaChon([]);
       setDaTungSaiOnCard(false);
       setSoCauDung(0);
-      setSoCauDungTheoTienTrinh([]);
       setDanhSachCauHoiRuntime([]);
       setDaHoanThanh(false);
       setHienReward(false);
@@ -1333,16 +1266,20 @@ function TrangQuiz() {
           className={`ui-question-flow ui-quiz-answer-list space-y-3 mb-6 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
           {cauHienTai.danhSachDapAn.map((dapAn, index) => {
-            const laDapAnDungChon = dapAn === dapAnDaChon;
-            const laDapAnSaiChon = dapAnSaiDaChon.includes(dapAn);
+            const laDapAnDaChon = dapAn === dapAnDaChon;
+            const laDapAnDung = dapAn === cauHienTai.dapAnDung;
 
             let lopTrangThai =
               "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
 
-            if (laDapAnDungChon) {
-              lopTrangThai = "ui-answer-correct text-[var(--mau-chu)]";
-            } else if (laDapAnSaiChon) {
-              lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)] opacity-75 cursor-not-allowed";
+            if (daTraLoi) {
+              if (laDapAnDung) {
+                lopTrangThai = "ui-answer-correct text-[var(--mau-chu)]";
+              } else if (laDapAnDaChon) {
+                lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)]";
+              } else {
+                lopTrangThai = "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu-phu)] opacity-50";
+              }
             }
 
             return (
@@ -1350,7 +1287,7 @@ function TrangQuiz() {
                 key={`${cauHienTai.id}-${index}-${dapAn}`}
                 type="button"
                 onClick={() => chonDapAn(dapAn)}
-                disabled={laDapAnSaiChon || dapAnDaChon !== null}
+                disabled={daTraLoi}
                 className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
               >
                 <span className="text-xs font-mono text-[var(--mau-chu-phu)] mr-3">
@@ -1362,10 +1299,16 @@ function TrangQuiz() {
           })}
         </div>
 
-        {daTraLoi && traLoiDung && (
+        {daTraLoi && (
           <div className="ui-feedback-pop ui-quiz-feedback text-center">
-            <p className="text-sm font-medium mb-4 text-[var(--mau-thanh-cong)]">
-              Chính xác. Câu tiếp theo nhé...
+            <p
+              className={`text-sm font-medium mb-4 ${
+                traLoiDung ? "text-[var(--mau-thanh-cong)]" : "text-[var(--mau-loi)]"
+              }`}
+            >
+              {traLoiDung
+                ? "Chính xác. Câu tiếp theo nhé..."
+                : `Chưa đúng. Đáp án đúng là: ${cauHienTai.dapAnDung}`}
             </p>
           </div>
         )}
