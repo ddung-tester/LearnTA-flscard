@@ -29,6 +29,13 @@ function VideoLayer({ src, active }) {
     const video = videoRef.current;
     if (!video) return undefined;
 
+    // Đảm bảo tuyệt đối tuân thủ Autoplay Policy của mọi trình duyệt & iOS Low Power Mode
+    video.defaultMuted = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+
     function applyMotionPref() {
       if (mq.matches || !active) {
         video?.pause();
@@ -49,7 +56,16 @@ function VideoLayer({ src, active }) {
 
   return (
     <video
-      ref={videoRef}
+      ref={(el) => {
+        videoRef.current = el;
+        if (el) {
+          el.defaultMuted = true;
+          el.muted = true;
+          el.playsInline = true;
+          el.setAttribute("playsinline", "");
+          el.setAttribute("webkit-playsinline", "");
+        }
+      }}
       className={`video-bg__video ${active ? "video-bg__video--active" : ""}`}
       src={src}
       autoPlay={active}

@@ -10,7 +10,7 @@ export const CAU_HINH_REWARD_QUIZ = { // eslint-disable-line react-refresh/only-
   videoDuration: 8000,
   fadeOutMs: 1000,
   volume: 0.80,
-  manifestSrc: "/rewards/videos.json",
+  manifestSrc: "/media/milestones/videos.json",
 };
 
 const VIDEO_READY_STATE_CAN_DRAW = 2;
@@ -44,6 +44,7 @@ function RewardTikTokEffect({
   const [dangRenderReward, setDangRenderReward] = useState(false);
   const [dangFadeOut, setDangFadeOut] = useState(false);
   const [choPhepPhatVideo, setChoPhepPhatVideo] = useState(false);
+  const [daTatTieng, setDaTatTieng] = useState(false);
   const [originRect, setOriginRect] = useState(null);
   const lanTimelineRewardRef = useRef(0);
   const cleanupFadeOutRef = useRef(null);
@@ -146,6 +147,7 @@ function RewardTikTokEffect({
     setDangFadeOut(false);
     setChoPhepPhatVideo(false);
     setLoiVideo(false);
+    setDaTatTieng(false);
     lanTimelineRewardRef.current = 0;
     onHideComplete?.();
   }, [onHideComplete]);
@@ -191,17 +193,28 @@ function RewardTikTokEffect({
 
     async function napDanhSachVideo() {
       try {
-        const response = await fetch(config.manifestSrc, { cache: "no-cache" });
-        if (!response.ok) throw new Error("Khong doc duoc reward manifest");
+        let response;
+        try {
+          response = await fetch(config.manifestSrc, { cache: "no-cache" });
+          if (!response.ok) throw new Error("Chua tai duoc manifest chinh");
+        } catch {
+          // Fallback sang thu muc cu phong truong hop trinh duyet con cache
+          response = await fetch("/rewards/videos.json", { cache: "no-cache" });
+        }
+
+        if (!response.ok) throw new Error("Khong doc duoc celebration manifest");
 
         const data = await response.json();
-        if (!Array.isArray(data)) throw new Error("Reward manifest khong hop le");
+        if (!Array.isArray(data)) throw new Error("Celebration manifest khong hop le");
+
+        const isOldRewardsPath = config.manifestSrc?.includes("/rewards/");
+        const basePath = isOldRewardsPath ? "/rewards" : "/media/milestones";
 
         const danhSachHopLe = data
           .filter((tenFile) => typeof tenFile === "string" && tenFile.trim())
           .map((tenFile) => tenFile.trim())
           .map((tenFile) =>
-            tenFile.startsWith("/") ? tenFile : `/rewards/${tenFile}`
+            tenFile.startsWith("/") ? tenFile : `${basePath}/${tenFile}`
           );
 
         if (daHuy) return;
@@ -213,8 +226,11 @@ function RewardTikTokEffect({
 
           const video = document.createElement("video");
           video.preload = "auto";
+          video.defaultMuted = true;
           video.muted = true;
           video.playsInline = true;
+          video.setAttribute("playsinline", "");
+          video.setAttribute("webkit-playsinline", "");
           video.loop = false;
           video.src = src;
           video.load();
@@ -460,11 +476,17 @@ function RewardTikTokEffect({
 
     video
       .play()
+      .then(() => {
+        setDaTatTieng(false);
+      })
       .catch(() => {
+        // Autoplay policy: Trình duyệt chặn âm thanh -> Tự động chuyển sang chế độ tắt tiếng
         video.muted = true;
+        setDaTatTieng(true);
         return video.play();
       })
       .catch(() => {
+        // Chặn hoàn toàn video (tiết kiệm pin hoặc block triệt để) -> Kích hoạt fallback đồ họa
         setLoiVideo(true);
       });
 
@@ -485,6 +507,32 @@ function RewardTikTokEffect({
     videoSanSang,
     config.volume,
   ]);
+
+  const toggleAmThanh = useCallback(
+    (e) => {
+      e?.stopPropagation();
+      const video = videoRef.current;
+      if (!video) return;
+
+      if (video.muted) {
+        video.muted = false;
+        const volume = config.volume ?? CAU_HINH_REWARD_QUIZ.volume;
+        video.volume = volume;
+        video
+          .play()
+          .then(() => {
+            setDaTatTieng(false);
+          })
+          .catch(() => {
+            // Nếu trình duyệt vẫn chặn thì duy trì trạng thái
+          });
+      } else {
+        video.muted = true;
+        setDaTatTieng(true);
+      }
+    },
+    [config.volume]
+  );
 
   useEffect(() => {
     if (!active || !dangRenderReward) return undefined;
@@ -546,8 +594,8 @@ function RewardTikTokEffect({
 
   const rewardLayer = (
     <div
-      className={`reward-tiktok-effect ${loiVideo ? "reward-tiktok-effect--fallback" : ""} ${
-        dangFadeOut ? "reward-tiktok-effect--fade-out" : ""
+      className={`streak-celebration-effect ${loiVideo ? "streak-celebration-effect--fallback" : ""} ${
+        dangFadeOut ? "streak-celebration-effect--fade-out" : ""
       }`}
       aria-hidden="true"
       style={style}
@@ -555,8 +603,16 @@ function RewardTikTokEffect({
       {!loiVideo && videoSrc && (
         <video
           key={videoSrc}
-          ref={videoRef}
-          className="reward-tiktok-effect__source-video"
+          ref={(el) => {
+            videoRef.current = el;
+            if (el) {
+              el.defaultMuted = true;
+              el.playsInline = true;
+              el.setAttribute("playsinline", "");
+              el.setAttribute("webkit-playsinline", "");
+            }
+          }}
+          className="streak-celebration-effect__source-video"
           src={videoSrc}
           preload="auto"
           muted
@@ -594,6 +650,35 @@ function RewardTikTokEffect({
           compact={!coTheHienThi}
           combo={combo}
         />
+      )}
+      {/* Nút bật/tắt âm thanh tinh tế khi video đang phát */}
+      {!loiVideo && videoSrc && choPhepPhatVideo && (
+        <button
+          type="button"
+          className="streak-celebration-effect__sound-btn"
+          onClick={toggleAmThanh}
+          title={daTatTieng ? "Bấm để bật âm thanh" : "Bấm để tắt âm thanh"}
+          aria-label={daTatTieng ? "Bấm để bật âm thanh" : "Bấm để tắt âm thanh"}
+        >
+          {daTatTieng ? (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+              <span>Bật tiếng</span>
+            </>
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+              <span>Tắt tiếng</span>
+            </>
+          )}
+        </button>
       )}
     </div>
   );

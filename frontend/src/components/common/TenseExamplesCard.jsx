@@ -92,7 +92,7 @@ export default function TenseExamplesCard({
           return (
             <div
               key={`${item.tense}-${idx}`}
-              className="rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-nen)]/60 p-3 sm:p-3.5 transition-colors hover:border-[var(--mau-chinh)]/30 hover:bg-[var(--mau-mat-hover)]"
+              className="rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] p-3 sm:p-3.5 transition-colors hover:border-[var(--mau-chinh)]/30 hover:bg-[var(--mau-mat-hover)]"
             >
               {/* Tên thì & Cấu trúc */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
