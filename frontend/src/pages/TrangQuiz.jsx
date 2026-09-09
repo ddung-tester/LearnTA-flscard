@@ -6,6 +6,7 @@ import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProg
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
+import TenseExamplesCard from "../components/common/TenseExamplesCard";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -14,7 +15,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -128,6 +129,7 @@ function taoDanhSachCauHoi(danhSachThe, cheDo = CHE_DO_MAC_DINH_QUIZ, seed = "qu
       id: the.id,
       cauHoi,
       dapAnDung,
+      the,
       danhSachDapAn: tronMangOnDinh(
         [dapAnDung, ...dapAnNhieu],
         `${seed}-answers-${the.id}`,
@@ -241,9 +243,16 @@ function TrangQuiz() {
       }
     } catch (error) {
       if (requestId === dataRequestRef.current) {
-        setBo(null);
-        setDanhSachGoc([]);
-        setLoiTaiDuLieu(error.message);
+        const mockDeck = layBoTheoId(boId);
+        const mockCards = layTheoBoId(boId);
+        if (mockDeck && mockCards && mockCards.length > 0) {
+          setBo(mockDeck);
+          setDanhSachGoc(mockCards);
+        } else {
+          setBo(null);
+          setDanhSachGoc([]);
+          setLoiTaiDuLieu(error.message);
+        }
       }
     } finally {
       if (requestId === dataRequestRef.current) {
@@ -773,8 +782,14 @@ function TrangQuiz() {
 
     const cauDangTraLoi = danhSachCauHoiRuntime[chiSo];
     const traLoiDung = dapAnDaChon === cauDangTraLoi?.dapAnDung;
-    const thoiGianCho = traLoiDung ? 760 : 1200;
 
+    // Khi trả lời đúng: hiển thị card ví dụ 3 thì kèm cấu trúc ngữ pháp để người học đọc kỹ.
+    // Người học chủ động nhấn nút "Tiếp tục" hoặc bấm Enter để chuyển câu.
+    if (traLoiDung) {
+      return undefined;
+    }
+
+    const thoiGianCho = 2000;
     const timer = setTimeout(() => {
       chuyenCauMem();
     }, thoiGianCho);
@@ -782,6 +797,24 @@ function TrangQuiz() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dapAnDaChon, daHoanThanh, hienReward, dangChoReward, dangChuyenCau]);
+
+  // Hỗ trợ phím tắt Enter để chuyển câu khi đã trả lời
+  useEffect(() => {
+    if (dapAnDaChon === null || dangChuyenCau || hienReward || dangChoReward) {
+      return undefined;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === "Enter" && !e.repeat) {
+        e.preventDefault();
+        chuyenCauMem();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dapAnDaChon, dangChuyenCau, hienReward, dangChoReward]);
 
   useEffect(
     () => () => {
@@ -1299,17 +1332,35 @@ function TrangQuiz() {
           })}
         </div>
 
-        {daTraLoi && (
-          <div className="ui-feedback-pop ui-quiz-feedback text-center">
-            <p
-              className={`text-sm font-medium mb-4 ${
-                traLoiDung ? "text-[var(--mau-thanh-cong)]" : "text-[var(--mau-loi)]"
-              }`}
-            >
-              {traLoiDung
-                ? "Chính xác. Câu tiếp theo nhé..."
-                : `Chưa đúng. Đáp án đúng là: ${cauHienTai.dapAnDung}`}
+        {daTraLoi && traLoiDung && (
+          <div className="mt-5 mb-8">
+            <div className="mb-3 text-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] text-sm font-bold">
+                ✓ Chính xác!
+              </span>
+            </div>
+            <TenseExamplesCard
+              card={cauHienTai.the}
+              termEn={cauHienTai.the?.term_en || (cheDo === "en-vi" ? cauHienTai.cauHoi : cauHienTai.dapAnDung)}
+              meaningVi={cauHienTai.the?.meaning_vi || (cheDo === "vi-en" ? cauHienTai.cauHoi : cauHienTai.dapAnDung)}
+              onTiepTuc={() => chuyenCauMem()}
+              showContinueButton={true}
+            />
+          </div>
+        )}
+
+        {daTraLoi && !traLoiDung && (
+          <div className="ui-feedback-pop ui-quiz-feedback text-center mt-4 mb-6">
+            <p className="text-sm font-medium text-[var(--mau-loi)] mb-3">
+              Chưa đúng. Đáp án đúng là: <span className="font-bold">{cauHienTai.dapAnDung}</span>
             </p>
+            <button
+              type="button"
+              onClick={() => chuyenCauMem()}
+              className="ui-button ui-button--primary px-5 py-2 text-xs font-bold rounded-xl shadow-sm"
+            >
+              Tiếp tục (Enter ↵)
+            </button>
           </div>
         )}
       </div>

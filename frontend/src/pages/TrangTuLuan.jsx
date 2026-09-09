@@ -6,11 +6,12 @@ import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTi
 import ComboDisplay from "../components/common/ComboDisplay";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
+import TenseExamplesCard from "../components/common/TenseExamplesCard";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
@@ -197,9 +198,16 @@ function TrangTuLuan() {
       }
     } catch (error) {
       if (requestId === dataRequestRef.current) {
-        setBo(null);
-        setDanhSachGoc([]);
-        setLoiTaiDuLieu(error.message);
+        const mockDeck = layBoTheoId(boId);
+        const mockCards = layTheoBoId(boId);
+        if (mockDeck && mockCards && mockCards.length > 0) {
+          setBo(mockDeck);
+          setDanhSachGoc(mockCards);
+        } else {
+          setBo(null);
+          setDanhSachGoc([]);
+          setLoiTaiDuLieu(error.message);
+        }
       }
     } finally {
       if (requestId === dataRequestRef.current) {
@@ -534,15 +542,32 @@ function TrangTuLuan() {
   }, [chiSo, daHoanThanh, daKiemTra, ketQuaDung]);
 
   useEffect(() => {
-    // Không auto-advance nếu đang trong chuyển câu do nhập lại gợi ý đúng
+    // Khi trả lời đúng: hiển thị câu mẫu 3 thì kèm cấu trúc ngữ pháp để người học đọc kỹ.
+    // Người học nhấn "Tiếp tục" hoặc bấm Enter để chuyển câu.
     if (!daKiemTra || daHoanThanh || hienReward || dangChoReward || !ketQuaDung || dangChuyenCau) {
       return undefined;
     }
 
-    const timer = window.setTimeout(() => chuyenCauMem(), lanReward > 0 ? 1000 : 2000);
-    return () => clearTimeout(timer);
+    return undefined;
+  }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, dangChuyenCau]);
+
+  // Hỗ trợ phím tắt Enter khi đã trả lời đúng để tiếp tục sang câu mới
+  useEffect(() => {
+    if (!daKiemTra || !ketQuaDung || dangChuyenCau || hienReward || dangChoReward) {
+      return undefined;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === "Enter" && !e.repeat) {
+        e.preventDefault();
+        chuyenCauMem();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, lanReward, dangChuyenCau]);
+  }, [daKiemTra, ketQuaDung, dangChuyenCau, hienReward, dangChoReward]);
 
   // Tự động đọc đáp án đúng qua TTS khi trả lời chính xác
   useEffect(() => {
@@ -777,7 +802,13 @@ function TrangTuLuan() {
   }
 
   function kiemTraDapAn(event) {
-    event.preventDefault();
+    event?.preventDefault?.();
+
+    // Nếu đã trả lời đúng và đang xem card 3 thì, Enter sẽ chuyển sang câu tiếp theo
+    if (daKiemTra && ketQuaDung) {
+      chuyenCauMem();
+      return;
+    }
 
     if (
       daKiemTra ||
@@ -1309,6 +1340,8 @@ function TrangTuLuan() {
     );
   }
 
+  const theHienTai = danhSachThe[chiSo];
+
   return (
     <>
       <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
@@ -1709,10 +1742,21 @@ function TrangTuLuan() {
 
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
 
-          {/* Đúng rồi: hiện thông báo */}
+          {/* Đúng rồi: hiện thông báo và câu mẫu 3 thì kèm cấu trúc */}
           {daKiemTra && ketQuaDung && (
-            <div className="py-2 text-center">
-              <span className="text-[var(--mau-thanh-cong)] font-bold text-lg">Chính xác!</span>
+            <div className="pt-2 pb-4 text-center">
+              <div className="mb-3">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] font-bold text-base">
+                  ✓ Chính xác!
+                </span>
+              </div>
+              <TenseExamplesCard
+                card={theHienTai}
+                termEn={theHienTai?.term_en}
+                meaningVi={theHienTai?.meaning_vi}
+                onTiepTuc={() => chuyenCauMem()}
+                showContinueButton={true}
+              />
             </div>
           )}
         </form>

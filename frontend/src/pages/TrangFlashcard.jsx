@@ -4,12 +4,13 @@ import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
+import TenseExamplesCard from "../components/common/TenseExamplesCard";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useTTS from "../hooks/useTTS";
-import { laTuMoiThem, laTuYeuThich } from "../data/duLieuMau";
+import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { ketThucStudySession, taoStudySession } from "../services/studyApi";
@@ -161,9 +162,16 @@ function TrangFlashcard() {
       }
     } catch (error) {
       if (requestId === dataRequestRef.current) {
-        setBo(null);
-        setDanhSachGoc([]);
-        setLoiTaiDuLieu(error.message);
+        const mockDeck = layBoTheoId(boId);
+        const mockCards = layTheoBoId(boId);
+        if (mockDeck && mockCards && mockCards.length > 0) {
+          setBo(mockDeck);
+          setDanhSachGoc(mockCards);
+        } else {
+          setBo(null);
+          setDanhSachGoc([]);
+          setLoiTaiDuLieu(error.message);
+        }
       }
     } finally {
       if (requestId === dataRequestRef.current) {
@@ -860,6 +868,18 @@ function TrangFlashcard() {
             <span className="fc-rate-btn__icon">✓</span>
             <span>Đã nhớ</span>
           </button>
+        </div>
+      )}
+
+      {daLat && (
+        <div className="mt-5 pb-6">
+          <TenseExamplesCard
+            card={theHienTai}
+            termEn={theHienTai?.term_en}
+            meaningVi={theHienTai?.meaning_vi}
+            showContinueButton={false}
+            compact={true}
+          />
         </div>
       )}
       </div>
