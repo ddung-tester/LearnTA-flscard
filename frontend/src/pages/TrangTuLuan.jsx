@@ -184,6 +184,10 @@ function TrangTuLuan() {
   // true khi đang chờ user nhấn Enter/Tiếp tục sau khi đúng ở chế độ nhập lại (hint/retry/revealAnswer)
   // — thay vì auto-chuyển sau 600ms, ta giữ TenseExamplesCard để user đọc câu mẫu
   const pendingRetryCardRef = useRef(false);
+  // Lưu vị trí scroll trước khi check đáp án — không dể browser cuộn xuống TenseExamplesCard
+  const scrollBeforeCheckRef = useRef(0);
+  // Ngăn gọi chuyenCauMem() 2 lần trong cùng một sự kiện (window keydown + button click)
+  const chuyenCauMemLockRef = useRef(false);
   async function taiDuLieuTuLuan() {
     const requestId = ++dataRequestRef.current;
     setDangTaiDuLieu(true);
@@ -462,6 +466,13 @@ function TrangTuLuan() {
     daLuuKetQuaRef.current = false;
   }, [danhSachTheGoc]);
 
+  // Khôi phục scroll khi TenseExamplesCard hiện ra — tránh browser tự cuộn xuống nút Tiếp tục
+  useLayoutEffect(() => {
+    if (daKiemTra && ketQuaDung) {
+      window.scrollTo({ top: scrollBeforeCheckRef.current, behavior: "instant" });
+    }
+  }, [daKiemTra, ketQuaDung]);
+
   useEffect(
     () => () => {
       [
@@ -709,6 +720,7 @@ function TrangTuLuan() {
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
     pendingRetryCardRef.current = false;
+    chuyenCauMemLockRef.current = false;
   }
 
   // Chèn thẻ hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi nhập đúng ở chế độ nhập lại
@@ -803,6 +815,7 @@ function TrangTuLuan() {
 
   function kiemTraDapAn(event) {
     event?.preventDefault?.();
+    scrollBeforeCheckRef.current = window.scrollY; // Lưu scroll trước khi re-render
 
     // Nếu đã trả lời đúng và đang xem card 3 thì, Enter sẽ chuyển sang câu tiếp theo
     if (daKiemTra && ketQuaDung) {
@@ -1013,6 +1026,7 @@ function TrangTuLuan() {
   }
 
   function tiepTucSauXemDapAn() {
+    scrollBeforeCheckRef.current = window.scrollY; // Lưu scroll trước khi re-render
     if (dangChuyenCau || hienReward || dangChoReward) return;
     if (dangCooldownSaiRef.current) return; // block trong cooldown flash đỏ
 
@@ -1094,15 +1108,21 @@ function TrangTuLuan() {
   }
 
   function chuyenCauMem({ boQuaKhoaReward = false, boQuaCau = false } = {}) {
+    // Ngăn gọi 2 lần liên tiếp (window keydown + button click trong cùng một sự kiện)
+    if (chuyenCauMemLockRef.current) return;
     if (!boQuaKhoaReward && (hienReward || dangChoReward)) return;
+
+    chuyenCauMemLockRef.current = true;
+    const isRetry = pendingRetryCardRef.current;
+    pendingRetryCardRef.current = false;
 
     xoaTimerChuyenCau();
     setDangChuyenCau(true);
 
-    if (pendingRetryCardRef.current) {
+    if (isRetry) {
       // Đúng ở chế độ nhập lại (hint/retry/revealAnswer): chèn thẻ hỏi lại 5 câu sau rồi reset
-      pendingRetryCardRef.current = false;
       questionTransitionTimerRef.current = window.setTimeout(() => {
+        chuyenCauMemLockRef.current = false;
         chenTheHoiLai();
         datLaiTrangThaiCauTraLoi();
         focusInputTre();
@@ -1110,6 +1130,7 @@ function TrangTuLuan() {
       }, 220);
     } else {
       questionTransitionTimerRef.current = window.setTimeout(() => {
+        chuyenCauMemLockRef.current = false;
         sangCauTiepTheo({ boQuaCau });
         questionTransitionTimerRef.current = null;
       }, 220);
@@ -1120,6 +1141,7 @@ function TrangTuLuan() {
     xoaTatCaTimerTuLuan();
     datLaiProgressReward();
     pendingRetryCardRef.current = false;
+    chuyenCauMemLockRef.current = false;
     setDanhSachHocLai(null);
     setLanLam((g) => g + 1);
     setChiSo(0);
@@ -1755,25 +1777,25 @@ function TrangTuLuan() {
           )}
 
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
-
-          {/* Đúng rồi: hiện thông báo và câu mẫu 3 thì kèm cấu trúc */}
-          {daKiemTra && ketQuaDung && (
-            <div className="pt-2 pb-4 text-center">
-              <div className="mb-3">
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] font-bold text-base">
-                  ✓ Chính xác!
-                </span>
-              </div>
-              <TenseExamplesCard
-                card={theHienTai}
-                termEn={theHienTai?.term_en}
-                meaningVi={theHienTai?.meaning_vi}
-                onTiepTuc={() => chuyenCauMem()}
-                showContinueButton={true}
-              />
-            </div>
-          )}
         </form>
+
+        {/* Đúng rồi: hiện thông báo và câu mẫu 3 thì — nằm NGOÀI form để tránh browser tự focus và scroll */}
+        {daKiemTra && ketQuaDung && (
+          <div className="pt-2 pb-4 text-center">
+            <div className="mb-3">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] font-bold text-base">
+                ✓ Chính xác!
+              </span>
+            </div>
+            <TenseExamplesCard
+              card={theHienTai}
+              termEn={theHienTai?.term_en}
+              meaningVi={theHienTai?.meaning_vi}
+              onTiepTuc={() => chuyenCauMem()}
+              showContinueButton={true}
+            />
+          </div>
+        )}
       </div>
     </>
   );
