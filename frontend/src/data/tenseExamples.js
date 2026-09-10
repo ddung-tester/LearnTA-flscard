@@ -1,9 +1,7 @@
 /**
  * tenseExamples.js
- * Cung cấp câu mẫu cho 3 thì tiếng Anh cơ bản kèm cấu trúc ngữ pháp (formula):
- * 1. Hiện tại đơn (Present Simple)
- * 2. Hiện tại tiếp diễn (Present Continuous)
- * 3. Quá khứ đơn (Past Simple)
+ * Câu mẫu 3 thì cơ bản: Hiện tại đơn, Hiện tại tiếp diễn, Quá khứ đơn.
+ * Nguyên tắc: câu đơn giản, ngắn gọn, luôn chứa chính từ đang học.
  */
 
 export const TENSE_META = {
@@ -27,471 +25,370 @@ export const TENSE_META = {
   },
 };
 
-export const TENSE_EXAMPLES_MAP = {
-  // Deck 1: Từ vựng cơ bản
-  apple: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "I eat a fresh apple every morning.",
-      highlight: "eat a fresh apple",
-      translation: "Tôi ăn một quả táo tươi mỗi sáng.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + O",
-      sentence: "She is eating a sweet red apple right now.",
-      highlight: "is eating a sweet red apple",
-      translation: "Cô ấy đang ăn một quả táo đỏ ngọt ngay bây giờ.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "We bought some delicious apples yesterday.",
-      highlight: "bought some delicious apples",
-      translation: "Chúng tôi đã mua vài quả táo rất ngon ngày hôm qua.",
-    },
-  ],
-  book: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "He reads an English book before going to sleep.",
-      highlight: "reads an English book",
-      translation: "Anh ấy đọc một quyển sách tiếng Anh trước khi đi ngủ.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + O",
-      sentence: "I am reading an interesting book about history.",
-      highlight: "am reading an interesting book",
-      translation: "Tôi đang đọc một quyển sách thú vị về lịch sử.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "She borrowed this book from the library last week.",
-      highlight: "borrowed this book",
-      translation: "Cô ấy đã mượn quyển sách này từ thư viện tuần trước.",
-    },
-  ],
-  cat: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + ...",
-      sentence: "My cat sleeps on the sofa all afternoon.",
-      highlight: "My cat sleeps",
-      translation: "Con mèo của tôi ngủ trên ghế sofa cả buổi chiều.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + ...",
-      sentence: "Look, the little cat is playing with a ball.",
-      highlight: "is playing",
-      translation: "Nhìn kìa, chú mèo con đang chơi với quả bóng.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + was/were + adj/N",
-      sentence: "The cat was very friendly when I visited them.",
-      highlight: "was very friendly",
-      translation: "Chú mèo đã rất thân thiện khi tôi ghé thăm họ.",
-    },
-  ],
-  dog: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "My dog barks loudly when strangers arrive.",
-      highlight: "My dog barks",
-      translation: "Chú chó của tôi sủa to khi có người lạ đến.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + ...",
-      sentence: "The dog is running happily in the garden right now.",
-      highlight: "is running happily",
-      translation: "Chú chó đang chạy nhảy vui vẻ ngoài vườn lúc này.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "We walked our dog in the central park yesterday.",
-      highlight: "walked our dog",
-      translation: "Chúng tôi đã dắt chó đi dạo ở công viên trung tâm hôm qua.",
-    },
-  ],
-  elephant: [
-    {
-      tense: "present_simple",
-      formula: "S + am/is/are + N / adj",
-      sentence: "Elephants are the largest living land animals.",
-      highlight: "Elephants are the largest",
-      translation: "Voi là loài động vật trên cạn to lớn nhất còn sống.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + ...",
-      sentence: "The big elephant is drinking water at the river.",
-      highlight: "is drinking water",
-      translation: "Chú voi to lớn đang uống nước bên bờ sông.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "We saw a family of wild elephants during the safari.",
-      highlight: "saw a family of wild elephants",
-      translation: "Chúng tôi đã nhìn thấy một đàn voi hoang dã trong chuyến dã ngoại.",
-    },
-  ],
-  flower: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + ...",
-      sentence: "These flowers bloom beautifully every spring.",
-      highlight: "flowers bloom beautifully",
-      translation: "Những bông hoa này nở rộ tuyệt đẹp vào mỗi mùa xuân.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + O",
-      sentence: "My sister is watering the flowers on the balcony.",
-      highlight: "is watering the flowers",
-      translation: "Chị gái tôi đang tưới hoa ngoài ban công.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "He gave me a gorgeous bunch of flowers on my birthday.",
-      highlight: "gave me a gorgeous bunch of flowers",
-      translation: "Anh ấy đã tặng tôi một bó hoa rực rỡ vào ngày sinh nhật.",
-    },
-  ],
-
-  // Deck 2: IELTS Speaking
-  describe: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "This article clearly describes the benefits of daily exercise.",
-      highlight: "clearly describes the benefits",
-      translation: "Bài viết này miêu tả rõ ràng những lợi ích của việc tập thể dục hàng ngày.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + O",
-      sentence: "The speaker is describing his memorable trip to Vietnam.",
-      highlight: "is describing his memorable trip",
-      translation: "Diễn giả đang miêu tả chuyến đi đáng nhớ của ông ấy tới Việt Nam.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "Yesterday, the candidate described her hometown in IELTS Part 2.",
-      highlight: "described her hometown",
-      translation: "Hôm qua, thí sinh đã miêu tả quê hương của mình trong phần thi IELTS Part 2.",
-    },
-  ],
-  prefer: [
-    {
-      tense: "present_simple",
-      formula: "S + prefer + N + to + N",
-      sentence: "I prefer hot tea to iced coffee in the winter.",
-      highlight: "prefer hot tea to iced coffee",
-      translation: "Tôi thích trà nóng hơn cà phê đá vào mùa đông.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + starting to prefer...",
-      sentence: "More and more commuters are preferring public transport nowadays.",
-      highlight: "are preferring public transport",
-      translation: "Ngày càng nhiều người đi làm đang dần ưa chuộng phương tiện công cộng hơn hiện nay.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + preferred + N / V-ing",
-      sentence: "When she was young, she always preferred drawing to singing.",
-      highlight: "always preferred drawing",
-      translation: "Khi còn nhỏ, cô ấy luôn thích vẽ hơn ca hát.",
-    },
-  ],
-  opinion: [
-    {
-      tense: "present_simple",
-      formula: "In my opinion, S + V...",
-      sentence: "In my opinion, regular practice leads to fluency.",
-      highlight: "In my opinion",
-      translation: "Theo ý kiến của tôi, việc luyện tập đều đặn sẽ mang lại sự lưu loát.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + expressing one's opinion",
-      sentence: "The students are expressing their opinions on online learning.",
-      highlight: "are expressing their opinions",
-      translation: "Các bạn học sinh đang bày tỏ ý kiến của mình về việc học trực tuyến.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + shared/asked for + opinion",
-      sentence: "He asked for my opinion before making the final decision.",
-      highlight: "asked for my opinion",
-      translation: "Anh ấy đã hỏi ý kiến của tôi trước khi đưa ra quyết định cuối cùng.",
-    },
-  ],
-  convenient: [
-    {
-      tense: "present_simple",
-      formula: "S + is/are + convenient + for/to...",
-      sentence: "Online shopping is very convenient for busy workers.",
-      highlight: "is very convenient",
-      translation: "Mua sắm trực tuyến rất thuận tiện cho người đi làm bận rộn.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + is/are + becoming + more convenient",
-      sentence: "Modern technology is making our daily lives more convenient.",
-      highlight: "is making our daily lives more convenient",
-      translation: "Công nghệ hiện đại đang làm cho cuộc sống hàng ngày của chúng ta ngày càng thuận tiện hơn.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + was/were + convenient",
-      sentence: "The location of that hotel was extremely convenient for our trip.",
-      highlight: "was extremely convenient",
-      translation: "Vị trí của khách sạn đó đã vô cùng thuận tiện cho chuyến đi của chúng tôi.",
-    },
-  ],
-  beneficial: [
-    {
-      tense: "present_simple",
-      formula: "S + is/are + beneficial + to/for...",
-      sentence: "Daily reading is beneficial for expanding your vocabulary.",
-      highlight: "is beneficial for expanding",
-      translation: "Đọc sách mỗi ngày rất có lợi cho việc mở rộng vốn từ vựng của bạn.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + is/are + proving + beneficial",
-      sentence: "The new study method is proving beneficial to all students.",
-      highlight: "is proving beneficial",
-      translation: "Phương pháp học mới này đang chứng minh là rất có lợi cho tất cả học sinh.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + was/were + beneficial",
-      sentence: "The internship was very beneficial to his future career.",
-      highlight: "was very beneficial",
-      translation: "Kỳ thực tập đó đã rất có lợi đối với sự nghiệp tương lai của anh ấy.",
-    },
-  ],
-
-  // Deck 3: CNTT
-  algorithm: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "This search algorithm processes millions of queries every second.",
-      highlight: "algorithm processes millions of queries",
-      translation: "Thuật toán tìm kiếm này xử lý hàng triệu truy vấn mỗi giây.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + O",
-      sentence: "The AI team is optimizing the recommendation algorithm right now.",
-      highlight: "is optimizing the recommendation algorithm",
-      translation: "Đội ngũ AI đang tối ưu hóa thuật toán gợi ý ngay lúc này.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "He designed a new sorting algorithm for his graduation project.",
-      highlight: "designed a new sorting algorithm",
-      translation: "Anh ấy đã thiết kế một thuật toán sắp xếp mới cho đồ án tốt nghiệp của mình.",
-    },
-  ],
-  database: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O + in + database",
-      sentence: "The backend server stores user accounts in a secure database.",
-      highlight: "stores user accounts in a secure database",
-      translation: "Máy chủ backend lưu trữ tài khoản người dùng trong một cơ sở dữ liệu bảo mật.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + database",
-      sentence: "The engineer is migrating the database to the cloud server.",
-      highlight: "is migrating the database",
-      translation: "Kỹ sư đang di chuyển cơ sở dữ liệu lên máy chủ đám mây.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "They backed up the entire customer database at midnight.",
-      highlight: "backed up the entire customer database",
-      translation: "Họ đã sao lưu toàn bộ cơ sở dữ liệu khách hàng lúc nửa đêm.",
-    },
-  ],
-  variable: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "A constant variable prevents unexpected value changes in JavaScript.",
-      highlight: "variable prevents unexpected value changes",
-      translation: "Biến hằng số ngăn chặn những thay đổi giá trị ngoài ý muốn trong JavaScript.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + variable",
-      sentence: "I am renaming this variable to make the code easier to understand.",
-      highlight: "am renaming this variable",
-      translation: "Tôi đang đổi tên biến này để code dễ hiểu hơn.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "She declared a local variable inside the loop yesterday.",
-      highlight: "declared a local variable",
-      translation: "Cô ấy đã khai báo một biến cục bộ bên trong vòng lặp ngày hôm qua.",
-    },
-  ],
-  function: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "This utility function calculates the distance between two points.",
-      highlight: "function calculates the distance",
-      translation: "Hàm tiện ích này tính toán khoảng cách giữa hai điểm.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + function",
-      sentence: "The developer is writing a recursive function to traverse the tree.",
-      highlight: "is writing a recursive function",
-      translation: "Lập trình viên đang viết một hàm đệ quy để duyệt cây.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "We refactored that slow function to improve application speed.",
-      highlight: "refactored that slow function",
-      translation: "Chúng tôi đã cấu trúc lại hàm chạy chậm đó để tăng tốc ứng dụng.",
-    },
-  ],
-  component: [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es) + O",
-      sentence: "React components manage their own state and render UI dynamically.",
-      highlight: "components manage their own state",
-      translation: "Các thành phần React tự quản lý trạng thái của mình và hiển thị giao diện linh hoạt.",
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + component",
-      sentence: "He is building a reusable modal component for the design system.",
-      highlight: "is building a reusable modal component",
-      translation: "Anh ấy đang xây dựng một thành phần modal tái sử dụng cho hệ thống thiết kế.",
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/ed + O",
-      sentence: "We created a clean navigation component in the last sprint.",
-      highlight: "created a clean navigation component",
-      translation: "Chúng tôi đã tạo một thành phần điều hướng gọn gàng trong đợt phát triển vừa qua.",
-    },
-  ],
+// ---------------------------------------------------------------------------
+// Bảng chia động từ bất quy tắc
+// ---------------------------------------------------------------------------
+const IRREGULAR_PAST = {
+  run: "ran", go: "went", eat: "ate", drink: "drank", buy: "bought",
+  sell: "sold", give: "gave", take: "took", find: "found", know: "knew",
+  think: "thought", see: "saw", come: "came", get: "got", feel: "felt",
+  become: "became", keep: "kept", put: "put", read: "read",
+  write: "wrote", speak: "spoke", build: "built", make: "made",
+  sit: "sat", stand: "stood", leave: "left", sleep: "slept",
+  bring: "brought", tell: "told", teach: "taught", sing: "sang",
+  swim: "swam", fly: "flew", draw: "drew", win: "won", meet: "met",
+  hear: "heard", pay: "paid", say: "said", send: "sent", show: "showed",
+  understand: "understood", begin: "began", break: "broke", choose: "chose",
+  cut: "cut", hit: "hit", let: "let", set: "set", fall: "fell", hold: "held",
+  lose: "lost", ride: "rode", rise: "rose", spend: "spent", wear: "wore",
+  catch: "caught", fight: "fought", teach: "taught", throw: "threw",
+  drive: "drove", forget: "forgot", grow: "grew", hide: "hid",
 };
 
-/**
- * Fallback generator nếu từ chưa có trong TENSE_EXAMPLES_MAP
- * Tạo 3 câu ngữ pháp chuẩn cho Hiện tại đơn, Hiện tại tiếp diễn, Quá khứ đơn
- */
+// Động từ thông dụng
+const COMMON_VERBS = new Set([
+  "learn", "read", "write", "study", "speak", "cook", "walk", "play",
+  "make", "work", "build", "run", "go", "eat", "drink", "buy", "sell",
+  "give", "take", "find", "know", "think", "see", "look", "come", "get",
+  "try", "use", "ask", "need", "feel", "become", "show", "want", "help",
+  "keep", "stay", "love", "like", "start", "stop", "open", "close",
+  "put", "move", "live", "call", "meet", "tell", "send", "sit", "stand",
+  "leave", "sleep", "bring", "teach", "sing", "swim", "fly", "draw",
+  "win", "hear", "pay", "say", "understand", "begin", "break", "choose",
+  "cut", "hit", "let", "set", "fall", "hold", "lose", "ride", "spend",
+  "wear", "catch", "drive", "forget", "grow", "hide", "throw", "fight",
+  "push", "pull", "jump", "climb", "ride", "turn", "wait", "visit",
+  "watch", "listen", "practice", "exercise", "travel", "enjoy", "create",
+  "design", "plan", "check", "fix", "save", "delete", "copy", "share",
+  "download", "upload", "install", "update", "login", "search", "click",
+  "type", "print", "scan", "test", "review", "manage", "control",
+  "improve", "increase", "reduce", "change", "add", "remove", "connect",
+  "complete", "finish", "continue", "stop", "repeat", "remember", "forget",
+]);
+
+// ---------------------------------------------------------------------------
+// Hàm chia động từ
+// ---------------------------------------------------------------------------
+function getThirdPerson(verb) {
+  const v = verb.toLowerCase();
+  if (["go", "do"].includes(v)) return `${v}es`;
+  if (v.endsWith("s") || v.endsWith("sh") || v.endsWith("ch") || v.endsWith("x") || v.endsWith("z")) {
+    return `${v}es`;
+  }
+  if (v.endsWith("y") && !/[aeiou]y$/i.test(v)) {
+    return `${v.slice(0, -1)}ies`;
+  }
+  return `${v}s`;
+}
+
+function getIngForm(verb) {
+  const v = verb.toLowerCase();
+  if (v.endsWith("ie")) return `${v.slice(0, -2)}ying`;
+  if (v === "be") return "being";
+  if (v.endsWith("e") && !v.endsWith("ee") && !v.endsWith("oe") && v !== "age") {
+    return `${v.slice(0, -1)}ing`;
+  }
+  // Nhân đôi phụ âm cuối (1 âm tiết, nguyên âm + phụ âm)
+  if (
+    v.length <= 6 &&
+    /[aeiou][bcdfghjklmnpqrstvwxyz]$/.test(v) &&
+    !/[wxy]$/.test(v)
+  ) {
+    return `${v}${v.slice(-1)}ing`;
+  }
+  return `${v}ing`;
+}
+
+function getPastForm(verb) {
+  const v = verb.toLowerCase();
+  if (IRREGULAR_PAST[v]) return IRREGULAR_PAST[v];
+  if (v.endsWith("e")) return `${v}d`;
+  if (v.endsWith("y") && !/[aeiou]y$/i.test(v)) return `${v.slice(0, -1)}ied`;
+  // Nhân đôi phụ âm cuối
+  if (
+    v.length <= 5 &&
+    /[aeiou][bcdfghjklmnpqrstvwxyz]$/.test(v) &&
+    !/[wxy]$/.test(v)
+  ) {
+    return `${v}${v.slice(-1)}ed`;
+  }
+  return `${v}ed`;
+}
+
+// ---------------------------------------------------------------------------
+// Nhận diện loại từ
+// ---------------------------------------------------------------------------
+function detectPOS(lower) {
+  if (lower.startsWith("to ")) return "verb";
+
+  const verbBase = lower;
+  if (COMMON_VERBS.has(verbBase)) return "verb";
+  if (
+    lower.endsWith("ize") || lower.endsWith("ise") ||
+    lower.endsWith("ate") || lower.endsWith("ify") ||
+    lower.endsWith("fy")
+  ) return "verb";
+
+  if (
+    lower.endsWith("ful") || lower.endsWith("less") ||
+    lower.endsWith("ous") || lower.endsWith("ive") ||
+    lower.endsWith("ible") || lower.endsWith("able") ||
+    lower.endsWith("ic") || lower.endsWith("ical") ||
+    lower.endsWith("ent") || lower.endsWith("ant") ||
+    lower.endsWith("ish") || lower.endsWith("al") ||
+    [
+      "happy", "sad", "big", "small", "good", "bad", "fast", "slow",
+      "old", "new", "hot", "cold", "easy", "hard", "smart", "kind",
+      "brave", "free", "safe", "clean", "dirty", "heavy", "light",
+      "tall", "short", "long", "young", "rich", "poor", "busy",
+    ].includes(lower)
+  ) return "adjective";
+
+  return "noun";
+}
+
+// ---------------------------------------------------------------------------
+// Sinh câu mẫu dự phòng — đơn giản, luôn chứa từ đang học
+// ---------------------------------------------------------------------------
 function generateFallbackExamples(termEn, meaningVi) {
   const term = String(termEn || "").trim();
-  const meaning = String(meaningVi || "").trim();
+  if (!term) return [];
+
   const lower = term.toLowerCase();
+  const meaning = String(meaningVi || "").trim();
+  const pos = detectPOS(lower);
 
-  // Kiểm tra nếu là động từ thông thường
-  const isVerb =
-    lower.startsWith("to ") ||
-    lower.endsWith("ize") ||
-    lower.endsWith("ate") ||
-    ["learn", "read", "write", "study", "speak", "cook", "walk", "play", "make", "work", "build"].includes(lower);
-
-  if (isVerb) {
-    const verbBase = lower.startsWith("to ") ? lower.slice(3) : lower;
-    const verbThird = verbBase.endsWith("s") || verbBase.endsWith("sh") || verbBase.endsWith("ch")
-      ? `${verbBase}es`
-      : `${verbBase}s`;
-    const verbIng = verbBase.endsWith("e") && !verbBase.endsWith("ee")
-      ? `${verbBase.slice(0, -1)}ing`
-      : `${verbBase}ing`;
-    const verbEd = verbBase.endsWith("e")
-      ? `${verbBase}d`
-      : `${verbBase}ed`;
+  // --- ĐỘNG TỪ ---
+  if (pos === "verb") {
+    const base = lower.startsWith("to ") ? lower.slice(3) : lower;
+    const third = getThirdPerson(base);
+    const ing = getIngForm(base);
+    const past = getPastForm(base);
+    const meanLabel = meaning || base;
 
     return [
       {
         tense: "present_simple",
-        formula: "S + V(s/es) + O",
-        sentence: `He always ${verbThird} with great enthusiasm every day.`,
-        highlight: verbThird,
-        translation: `Anh ấy luôn ${meaning || term} với sự hào hứng lớn mỗi ngày.`,
+        formula: "S + V(s/es)",
+        sentence: `I ${base} every day.`,
+        highlight: base,
+        translation: `Tôi ${meanLabel} mỗi ngày.`,
       },
       {
         tense: "present_continuous",
-        formula: "S + am/is/are + V-ing + O",
-        sentence: `She is ${verbIng} very diligently right now.`,
-        highlight: `is ${verbIng}`,
-        translation: `Cô ấy đang ${meaning || term} rất chăm chỉ vào lúc này.`,
+        formula: "S + am/is/are + V-ing",
+        sentence: `She is ${ing} right now.`,
+        highlight: `is ${ing}`,
+        translation: `Cô ấy đang ${meanLabel} lúc này.`,
       },
       {
         tense: "past_simple",
-        formula: "S + V2/ed + O",
-        sentence: `They ${verbEd} together during the project yesterday.`,
-        highlight: verbEd,
-        translation: `Họ đã ${meaning || term} cùng nhau trong dự án ngày hôm qua.`,
+        formula: "S + V2/V-ed",
+        sentence: `He ${past} yesterday.`,
+        highlight: past,
+        translation: `Anh ấy đã ${meanLabel} hôm qua.`,
       },
     ];
   }
 
-  // Mặc định xem như danh từ / tính từ / khái niệm
+  // --- TÍNH TỪ ---
+  if (pos === "adjective") {
+    const meanLabel = meaning || lower;
+    return [
+      {
+        tense: "present_simple",
+        formula: "S + is/are + adj",
+        sentence: `She is very ${lower} today.`,
+        highlight: lower,
+        translation: `Cô ấy rất ${meanLabel} hôm nay.`,
+      },
+      {
+        tense: "present_continuous",
+        formula: "S + is/are + becoming + adj",
+        sentence: `The weather is becoming ${lower} now.`,
+        highlight: lower,
+        translation: `Thời tiết đang trở nên ${meanLabel} bây giờ.`,
+      },
+      {
+        tense: "past_simple",
+        formula: "S + was/were + adj",
+        sentence: `He was very ${lower} yesterday.`,
+        highlight: lower,
+        translation: `Anh ấy đã rất ${meanLabel} hôm qua.`,
+      },
+    ];
+  }
+
+  // --- DANH TỪ / KHÁI NIỆM ---
+  const article = /^[aeiou]/i.test(lower) ? "an" : "a";
+  const meanLabel = meaning || lower;
   return [
     {
       tense: "present_simple",
-      formula: "S + V(s/es) + [từ vựng] + ...",
-      sentence: `I encounter this "${term}" frequently in my daily studies.`,
-      highlight: term,
-      translation: `Tôi gặp "${meaning || term}" này thường xuyên trong quá trình học hàng ngày.`,
+      formula: "S + have/see + [danh từ]",
+      sentence: `I have ${article} ${lower} at home.`,
+      highlight: lower,
+      translation: `Tôi có ${meanLabel} ở nhà.`,
     },
     {
       tense: "present_continuous",
-      formula: "S + am/is/are + V-ing + [từ vựng]...",
-      sentence: `We are learning how to apply "${term}" in modern contexts right now.`,
-      highlight: term,
-      translation: `Chúng tôi đang học cách ứng dụng "${meaning || term}" trong bối cảnh hiện đại ngay bây giờ.`,
+      formula: "S + am/is/are + using + [danh từ]",
+      sentence: `She is using the ${lower} right now.`,
+      highlight: lower,
+      translation: `Cô ấy đang dùng ${meanLabel} lúc này.`,
     },
     {
       tense: "past_simple",
-      formula: "S + V2/ed + [từ vựng] + yesterday/last week",
-      sentence: `The teacher explained "${term}" thoroughly during yesterday's lesson.`,
-      highlight: term,
-      translation: `Giáo viên đã giải thích "${meaning || term}" rất cặn kẽ trong buổi học ngày hôm qua.`,
+      formula: "S + bought/used + [danh từ]",
+      sentence: `He bought ${article} ${lower} yesterday.`,
+      highlight: lower,
+      translation: `Anh ấy đã mua ${meanLabel} hôm qua.`,
     },
   ];
 }
 
+// ---------------------------------------------------------------------------
+// Bảng câu mẫu cố định — đơn giản, luôn chứa từ đang học
+// ---------------------------------------------------------------------------
+export const TENSE_EXAMPLES_MAP = {
+  // ── Từ vựng cơ bản ────────────────────────────────────────────────────────
+  apple: [
+    { tense: "present_simple",    formula: "S + eat(s) + O",           sentence: "I eat an apple every morning.",          highlight: "apple", translation: "Tôi ăn một quả táo mỗi sáng." },
+    { tense: "present_continuous", formula: "S + is/are + eating + O",  sentence: "She is eating an apple right now.",      highlight: "apple", translation: "Cô ấy đang ăn một quả táo lúc này." },
+    { tense: "past_simple",       formula: "S + ate + O",              sentence: "He ate an apple yesterday.",             highlight: "apple", translation: "Anh ấy đã ăn một quả táo hôm qua." },
+  ],
+  book: [
+    { tense: "present_simple",    formula: "S + read(s) + O",          sentence: "I read a book every night.",             highlight: "book", translation: "Tôi đọc một quyển sách mỗi tối." },
+    { tense: "present_continuous", formula: "S + is/are + reading + O", sentence: "She is reading a book now.",            highlight: "book", translation: "Cô ấy đang đọc sách lúc này." },
+    { tense: "past_simple",       formula: "S + read + O",             sentence: "He read a book last night.",            highlight: "book", translation: "Anh ấy đã đọc sách tối qua." },
+  ],
+  cat: [
+    { tense: "present_simple",    formula: "S + have(has) + O",        sentence: "I have a cat at home.",                 highlight: "cat", translation: "Tôi có một con mèo ở nhà." },
+    { tense: "present_continuous", formula: "S + is/are + playing",     sentence: "My cat is playing right now.",         highlight: "cat", translation: "Con mèo của tôi đang chơi lúc này." },
+    { tense: "past_simple",       formula: "S + was/were + adj",       sentence: "The cat was very cute.",                highlight: "cat", translation: "Con mèo đó rất dễ thương." },
+  ],
+  dog: [
+    { tense: "present_simple",    formula: "S + have(has) + O",        sentence: "I have a dog named Max.",               highlight: "dog", translation: "Tôi có một con chó tên Max." },
+    { tense: "present_continuous", formula: "S + is/are + running",     sentence: "My dog is running in the garden.",     highlight: "dog", translation: "Con chó của tôi đang chạy ngoài vườn." },
+    { tense: "past_simple",       formula: "S + walked + O",           sentence: "She walked her dog this morning.",     highlight: "dog", translation: "Cô ấy đã dắt chó đi dạo sáng nay." },
+  ],
+  elephant: [
+    { tense: "present_simple",    formula: "S + is/are + adj/N",       sentence: "An elephant is a very big animal.",    highlight: "elephant", translation: "Con voi là một loài động vật rất lớn." },
+    { tense: "present_continuous", formula: "S + is/are + V-ing",       sentence: "The elephant is drinking water.",      highlight: "elephant", translation: "Con voi đang uống nước." },
+    { tense: "past_simple",       formula: "S + saw + O",              sentence: "We saw an elephant at the zoo.",       highlight: "elephant", translation: "Chúng tôi đã thấy một con voi ở sở thú." },
+  ],
+  flower: [
+    { tense: "present_simple",    formula: "S + like(s) + O",          sentence: "I like this flower very much.",        highlight: "flower", translation: "Tôi rất thích bông hoa này." },
+    { tense: "present_continuous", formula: "S + is/are + watering + O",sentence: "She is watering the flowers.",        highlight: "flowers", translation: "Cô ấy đang tưới hoa." },
+    { tense: "past_simple",       formula: "S + gave + O + O",         sentence: "He gave me a flower yesterday.",       highlight: "flower", translation: "Anh ấy đã tặng tôi một bông hoa hôm qua." },
+  ],
+  water: [
+    { tense: "present_simple",    formula: "S + drink(s) + O",         sentence: "I drink water every day.",             highlight: "water", translation: "Tôi uống nước mỗi ngày." },
+    { tense: "present_continuous", formula: "S + is/are + drinking + O",sentence: "She is drinking water now.",          highlight: "water", translation: "Cô ấy đang uống nước lúc này." },
+    { tense: "past_simple",       formula: "S + drank + O",            sentence: "He drank a lot of water yesterday.",  highlight: "water", translation: "Anh ấy đã uống nhiều nước hôm qua." },
+  ],
+  food: [
+    { tense: "present_simple",    formula: "S + eat(s) + O",           sentence: "I eat healthy food every day.",        highlight: "food", translation: "Tôi ăn thức ăn lành mạnh mỗi ngày." },
+    { tense: "present_continuous", formula: "S + is/are + cooking + O", sentence: "She is cooking food in the kitchen.", highlight: "food", translation: "Cô ấy đang nấu thức ăn trong bếp." },
+    { tense: "past_simple",       formula: "S + bought + O",           sentence: "He bought food at the market.",        highlight: "food", translation: "Anh ấy đã mua thức ăn ở chợ." },
+  ],
+  house: [
+    { tense: "present_simple",    formula: "S + live(s) + in + O",     sentence: "I live in a small house.",             highlight: "house", translation: "Tôi sống trong một ngôi nhà nhỏ." },
+    { tense: "present_continuous", formula: "S + is/are + cleaning",    sentence: "She is cleaning the house now.",      highlight: "house", translation: "Cô ấy đang dọn nhà lúc này." },
+    { tense: "past_simple",       formula: "S + built + O",            sentence: "They built this house last year.",     highlight: "house", translation: "Họ đã xây ngôi nhà này năm ngoái." },
+  ],
+  school: [
+    { tense: "present_simple",    formula: "S + go(es) + to + O",      sentence: "I go to school every day.",            highlight: "school", translation: "Tôi đi học mỗi ngày." },
+    { tense: "present_continuous", formula: "S + is/are + studying",    sentence: "She is studying at school now.",      highlight: "school", translation: "Cô ấy đang học ở trường lúc này." },
+    { tense: "past_simple",       formula: "S + went + to + O",        sentence: "He went to school by bike yesterday.", highlight: "school", translation: "Anh ấy đã đạp xe đến trường hôm qua." },
+  ],
+
+  // ── IELTS / Từ học thuật ──────────────────────────────────────────────────
+  describe: [
+    { tense: "present_simple",    formula: "S + describe(s) + O",      sentence: "She describes the picture clearly.",   highlight: "describes", translation: "Cô ấy mô tả bức tranh rõ ràng." },
+    { tense: "present_continuous", formula: "S + is/are + describing",  sentence: "He is describing his hometown.",      highlight: "describing", translation: "Anh ấy đang mô tả quê hương của mình." },
+    { tense: "past_simple",       formula: "S + described + O",        sentence: "She described the photo yesterday.",   highlight: "described", translation: "Cô ấy đã mô tả bức ảnh hôm qua." },
+  ],
+  prefer: [
+    { tense: "present_simple",    formula: "S + prefer(s) + A + to + B", sentence: "I prefer tea to coffee.",           highlight: "prefer", translation: "Tôi thích trà hơn cà phê." },
+    { tense: "present_continuous", formula: "S + is/are + preferring",  sentence: "She is preferring to stay home now.",highlight: "preferring", translation: "Cô ấy đang muốn ở nhà hơn lúc này." },
+    { tense: "past_simple",       formula: "S + preferred + O",        sentence: "He preferred coffee before.",          highlight: "preferred", translation: "Anh ấy đã thích cà phê hơn trước đây." },
+  ],
+  opinion: [
+    { tense: "present_simple",    formula: "In my opinion, S + V",      sentence: "In my opinion, this is a good idea.", highlight: "opinion", translation: "Theo ý kiến của tôi, đây là một ý tưởng hay." },
+    { tense: "present_continuous", formula: "S + is/are + sharing + opinion", sentence: "She is sharing her opinion now.", highlight: "opinion", translation: "Cô ấy đang chia sẻ ý kiến của mình lúc này." },
+    { tense: "past_simple",       formula: "S + asked for + opinion",   sentence: "He asked for my opinion yesterday.",  highlight: "opinion", translation: "Anh ấy đã hỏi ý kiến của tôi hôm qua." },
+  ],
+  convenient: [
+    { tense: "present_simple",    formula: "S + is/are + convenient",   sentence: "Online shopping is very convenient.", highlight: "convenient", translation: "Mua sắm online rất tiện lợi." },
+    { tense: "present_continuous", formula: "S + is/are + getting + adj", sentence: "This app is getting more convenient.", highlight: "convenient", translation: "Ứng dụng này đang trở nên tiện lợi hơn." },
+    { tense: "past_simple",       formula: "S + was/were + convenient", sentence: "The location was very convenient.",    highlight: "convenient", translation: "Vị trí đó đã rất tiện lợi." },
+  ],
+  beneficial: [
+    { tense: "present_simple",    formula: "S + is/are + beneficial",   sentence: "Exercise is beneficial for health.",  highlight: "beneficial", translation: "Tập thể dục rất có lợi cho sức khỏe." },
+    { tense: "present_continuous", formula: "S + is/are + proving + beneficial", sentence: "This habit is proving beneficial.", highlight: "beneficial", translation: "Thói quen này đang chứng minh là có lợi." },
+    { tense: "past_simple",       formula: "S + was/were + beneficial", sentence: "The training was very beneficial.",    highlight: "beneficial", translation: "Buổi đào tạo đó đã rất có lợi." },
+  ],
+  advantage: [
+    { tense: "present_simple",    formula: "S + have(has) + advantage", sentence: "This method has many advantages.",    highlight: "advantages", translation: "Phương pháp này có nhiều lợi thế." },
+    { tense: "present_continuous", formula: "S + is/are + taking + advantage", sentence: "She is taking advantage of this opportunity.", highlight: "advantage", translation: "Cô ấy đang tận dụng cơ hội này." },
+    { tense: "past_simple",       formula: "S + had + advantage",      sentence: "They had an advantage in the game.",    highlight: "advantage", translation: "Họ đã có lợi thế trong trò chơi đó." },
+  ],
+  environment: [
+    { tense: "present_simple",    formula: "S + protect(s) + O",        sentence: "We must protect the environment.",    highlight: "environment", translation: "Chúng ta phải bảo vệ môi trường." },
+    { tense: "present_continuous", formula: "S + is/are + harming + O", sentence: "Pollution is harming the environment.", highlight: "environment", translation: "Ô nhiễm đang gây hại cho môi trường." },
+    { tense: "past_simple",       formula: "S + damaged + O",          sentence: "They damaged the environment badly.",   highlight: "environment", translation: "Họ đã phá hoại môi trường nghiêm trọng." },
+  ],
+  technology: [
+    { tense: "present_simple",    formula: "S + use(s) + O",            sentence: "We use technology every day.",        highlight: "technology", translation: "Chúng ta dùng công nghệ mỗi ngày." },
+    { tense: "present_continuous", formula: "S + is/are + changing",    sentence: "Technology is changing very fast.",   highlight: "technology", translation: "Công nghệ đang thay đổi rất nhanh." },
+    { tense: "past_simple",       formula: "S + developed + O",        sentence: "They developed new technology.",       highlight: "technology", translation: "Họ đã phát triển công nghệ mới." },
+  ],
+
+  // ── CNTT / Lập trình ────────────────────────────────────────────────────
+  algorithm: [
+    { tense: "present_simple",    formula: "S + use(s) + O",            sentence: "We use an algorithm to sort data.",   highlight: "algorithm", translation: "Chúng ta dùng thuật toán để sắp xếp dữ liệu." },
+    { tense: "present_continuous", formula: "S + is/are + writing + O", sentence: "She is writing an algorithm now.",    highlight: "algorithm", translation: "Cô ấy đang viết thuật toán lúc này." },
+    { tense: "past_simple",       formula: "S + wrote + O",            sentence: "He wrote a simple algorithm yesterday.", highlight: "algorithm", translation: "Anh ấy đã viết một thuật toán đơn giản hôm qua." },
+  ],
+  database: [
+    { tense: "present_simple",    formula: "S + store(s) + O + in + O", sentence: "We store user data in a database.",  highlight: "database", translation: "Chúng ta lưu dữ liệu người dùng trong cơ sở dữ liệu." },
+    { tense: "present_continuous", formula: "S + is/are + updating + O", sentence: "She is updating the database now.", highlight: "database", translation: "Cô ấy đang cập nhật cơ sở dữ liệu lúc này." },
+    { tense: "past_simple",       formula: "S + backed up + O",        sentence: "He backed up the database yesterday.", highlight: "database", translation: "Anh ấy đã sao lưu cơ sở dữ liệu hôm qua." },
+  ],
+  variable: [
+    { tense: "present_simple",    formula: "S + use(s) + O",            sentence: "I use a variable to store the value.", highlight: "variable", translation: "Tôi dùng biến để lưu giá trị." },
+    { tense: "present_continuous", formula: "S + is/are + declaring + O", sentence: "She is declaring a new variable.", highlight: "variable", translation: "Cô ấy đang khai báo một biến mới." },
+    { tense: "past_simple",       formula: "S + defined + O",          sentence: "He defined the variable yesterday.",    highlight: "variable", translation: "Anh ấy đã định nghĩa biến đó hôm qua." },
+  ],
+  function: [
+    { tense: "present_simple",    formula: "S + create(s) + O",         sentence: "I create a function to add numbers.", highlight: "function", translation: "Tôi tạo một hàm để cộng các số." },
+    { tense: "present_continuous", formula: "S + is/are + writing + O", sentence: "She is writing a new function now.",   highlight: "function", translation: "Cô ấy đang viết một hàm mới lúc này." },
+    { tense: "past_simple",       formula: "S + wrote + O",            sentence: "He wrote that function last week.",     highlight: "function", translation: "Anh ấy đã viết hàm đó tuần trước." },
+  ],
+  component: [
+    { tense: "present_simple",    formula: "S + build(s) + O",          sentence: "I build a button component for the app.", highlight: "component", translation: "Tôi xây dựng một component nút bấm cho ứng dụng." },
+    { tense: "present_continuous", formula: "S + is/are + building + O", sentence: "She is building a new component.",  highlight: "component", translation: "Cô ấy đang xây dựng một component mới." },
+    { tense: "past_simple",       formula: "S + created + O",          sentence: "He created a simple component yesterday.", highlight: "component", translation: "Anh ấy đã tạo một component đơn giản hôm qua." },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// API chính: lấy danh sách 3 câu mẫu cho một thẻ hoặc từ
+// ---------------------------------------------------------------------------
 /**
- * Lấy danh sách 3 câu theo 3 thì cho một từ / thẻ
- * @param {object|string} cardOrTerm - Thẻ hoặc chuỗi term_en
- * @returns {Array<{ tense: string, formula: string, sentence: string, highlight?: string, translation: string }>}
+ * @param {object|string} cardOrTerm - Thẻ học hoặc chuỗi term_en
+ * @returns {Array<{ tense, formula, sentence, highlight?, translation }>}
  */
 export function getTenseExamples(cardOrTerm) {
   if (!cardOrTerm) return [];
 
-  // Nếu truyền object thẻ và đã có sẵn mảng examples chuẩn
-  if (typeof cardOrTerm === "object" && Array.isArray(cardOrTerm.examples) && cardOrTerm.examples.length >= 3) {
+  // Thẻ đã có sẵn mảng examples chuẩn (3 phần tử)
+  if (
+    typeof cardOrTerm === "object" &&
+    Array.isArray(cardOrTerm.examples) &&
+    cardOrTerm.examples.length >= 3
+  ) {
     return cardOrTerm.examples;
   }
 
@@ -499,17 +396,16 @@ export function getTenseExamples(cardOrTerm) {
   const meaningVi = typeof cardOrTerm === "object" ? cardOrTerm.meaning_vi : "";
   const cleanKey = termEn.trim().toLowerCase();
 
-  if (TENSE_EXAMPLES_MAP[cleanKey]) {
-    return TENSE_EXAMPLES_MAP[cleanKey];
-  }
+  // Tra bảng cố định (exact match)
+  if (TENSE_EXAMPLES_MAP[cleanKey]) return TENSE_EXAMPLES_MAP[cleanKey];
 
-  // Tra cứu thử nếu term có chứa từ khóa
+  // Tra bảng cố định (partial match)
   for (const [key, examples] of Object.entries(TENSE_EXAMPLES_MAP)) {
-    if (cleanKey === key || cleanKey.startsWith(`${key} `) || cleanKey.endsWith(` ${key}`)) {
+    if (cleanKey.startsWith(`${key} `) || cleanKey.endsWith(` ${key}`)) {
       return examples;
     }
   }
 
-  // Sinh câu dự phòng nếu từ chưa có trong danh mục mẫu
+  // Sinh câu dự phòng thông minh
   return generateFallbackExamples(termEn, meaningVi);
 }

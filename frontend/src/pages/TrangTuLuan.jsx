@@ -181,6 +181,9 @@ function TrangTuLuan() {
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
   const daLuuKetQuaRef = useRef(false);
   const dataRequestRef = useRef(0);
+  // true khi đang chờ user nhấn Enter/Tiếp tục sau khi đúng ở chế độ nhập lại (hint/retry/revealAnswer)
+  // — thay vì auto-chuyển sau 600ms, ta giữ TenseExamplesCard để user đọc câu mẫu
+  const pendingRetryCardRef = useRef(false);
   async function taiDuLieuTuLuan() {
     const requestId = ++dataRequestRef.current;
     setDangTaiDuLieu(true);
@@ -345,6 +348,7 @@ function TrangTuLuan() {
     setCheDoNhapLai({ active: false, dapAnDung: "" });
     setDanhSachKetQua([]);
     daLuuKetQuaRef.current = false;
+    pendingRetryCardRef.current = false;
     resetAll();
   }
 
@@ -704,6 +708,7 @@ function TrangTuLuan() {
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
+    pendingRetryCardRef.current = false;
   }
 
   // Chèn thẻ hiện tại vào 5 vị trí sau (có đánh dấu __saiBuoc) sau khi nhập đúng ở chế độ nhập lại
@@ -720,15 +725,10 @@ function TrangTuLuan() {
   }
 
   // Chuyển sang câu kế tiếp sau khi nhập đúng ở chế độ nhập lại gợi ý (không ghi nhận tiến trình)
+  // Không auto-chuyển — đặt cờ pendingRetry để hiện TenseExamplesCard, chờ user nhấn Enter hoặc Tiếp tục
   function chuyenCauSauNhapLaiDung() {
-    xoaTimerChuyenCau();
-    setDangChuyenCau(true);
-    questionTransitionTimerRef.current = window.setTimeout(() => {
-      chenTheHoiLai();
-      datLaiTrangThaiCauTraLoi();
-      focusInputTre();
-      questionTransitionTimerRef.current = null;
-    }, 600);
+    pendingRetryCardRef.current = true;
+    // daKiemTra=true, ketQuaDung=true đã được caller set, TenseExamplesCard sẽ hiện
   }
 
 
@@ -1098,15 +1098,28 @@ function TrangTuLuan() {
 
     xoaTimerChuyenCau();
     setDangChuyenCau(true);
-    questionTransitionTimerRef.current = window.setTimeout(() => {
-      sangCauTiepTheo({ boQuaCau });
-      questionTransitionTimerRef.current = null;
-    }, 220);
+
+    if (pendingRetryCardRef.current) {
+      // Đúng ở chế độ nhập lại (hint/retry/revealAnswer): chèn thẻ hỏi lại 5 câu sau rồi reset
+      pendingRetryCardRef.current = false;
+      questionTransitionTimerRef.current = window.setTimeout(() => {
+        chenTheHoiLai();
+        datLaiTrangThaiCauTraLoi();
+        focusInputTre();
+        questionTransitionTimerRef.current = null;
+      }, 220);
+    } else {
+      questionTransitionTimerRef.current = window.setTimeout(() => {
+        sangCauTiepTheo({ boQuaCau });
+        questionTransitionTimerRef.current = null;
+      }, 220);
+    }
   }
 
   function lamLai() {
     xoaTatCaTimerTuLuan();
     datLaiProgressReward();
+    pendingRetryCardRef.current = false;
     setDanhSachHocLai(null);
     setLanLam((g) => g + 1);
     setChiSo(0);
@@ -1175,6 +1188,7 @@ function TrangTuLuan() {
 
   function doiChiHocTuYeuThich() {
     xoaTatCaTimerTuLuan();
+    pendingRetryCardRef.current = false;
     setChiHocTuYeuThich((p) => {
       const moi = !p;
       luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });

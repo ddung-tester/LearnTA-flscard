@@ -16,7 +16,7 @@ export default function TenseExamplesCard({
   meaningVi,
   onTiepTuc,
   showContinueButton = true,
-  autoFocusContinue = true,
+  autoFocusContinue = false,
   compact = false,
 }) {
   const { speak, isPlaying } = useTTS();
