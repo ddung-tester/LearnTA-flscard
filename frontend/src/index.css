@@ -7251,3 +7251,18 @@ body.is-page-loading .page-transition-root {
   height: auto;
   min-height: auto;
 }
+
+/* Hover / click state khi không ở edit mode */
+.ui-word-row--clickable {
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+
+.ui-word-row--clickable:hover {
+  border-color: var(--mau-chinh) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mau-chinh) 12%, transparent);
+  transform: translateY(-1px);
+}
+
+.ui-word-row--clickable:active {
+  transform: translateY(0) scale(0.99);
+}

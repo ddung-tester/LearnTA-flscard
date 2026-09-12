@@ -34,14 +34,19 @@ const FILTER_TU = [
   { key: "tat-ca", label: "Tất cả" },
   { key: "yeu-thich", label: "Yêu thích" },
   { key: "moi-them", label: "Mới thêm" },
+  { key: "chua-hoc-filter", label: "Chưa học" },
+  { key: "da-hoc", label: "Đã học" },
 ];
 
 const SORT_TU = [
   { key: "mac-dinh", label: "Mặc định" },
-  { key: "ten", label: "Theo tên" },
-  { key: "ngay-them", label: "Ngày thêm" },
-  { key: "so-cau-sai", label: "Số câu sai" },
-  { key: "chua-hoc", label: "Chưa học" },
+  { key: "ten", label: "A → Z" },
+  { key: "ten-desc", label: "Z → A" },
+  { key: "ngay-them", label: "Cũ nhất trước" },
+  { key: "ngay-them-desc", label: "Mới nhất trước" },
+  { key: "so-cau-sai", label: "Sai nhiều nhất" },
+  { key: "chua-hoc", label: "Chưa học trước" },
+  { key: "da-hoc", label: "Đã học trước" },
 ];
 
 function IconPlus() {
@@ -173,6 +178,7 @@ function TrangChiTietBo() {
   const toast = useToast();
   const [filterTu, setFilterTu] = useState("tat-ca");
   const [sortTu, setSortTu] = useState("mac-dinh");
+  const [chiTietTu, setChiTietTu] = useState(null); // từ đang xem chi tiết
   const [theDangKeoId, setTheDangKeoId] = useState(null);
   const [dangLuuThuTu, setDangLuuThuTu] = useState(false);
   const [banSaoKeoTu, setBanSaoKeoTu] = useState(null);
@@ -545,6 +551,14 @@ function TrangChiTietBo() {
       return danhSachCanLoc.filter(laTuMoiThem);
     }
 
+    if (filterTu === "chua-hoc-filter") {
+      return danhSachCanLoc.filter((t) => (t.correct_count || 0) < 5);
+    }
+
+    if (filterTu === "da-hoc") {
+      return danhSachCanLoc.filter((t) => (t.correct_count || 0) >= 5);
+    }
+
     return danhSachCanLoc;
   }
 
@@ -557,20 +571,37 @@ function TrangChiTietBo() {
       copy.sort((a, b) =>
         a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
       );
+    } else if (sortTu === "ten-desc") {
+      copy.sort((a, b) =>
+        b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
+      );
     } else if (sortTu === "ngay-them") {
       copy.sort((a, b) => {
         const da = new Date(a.created_at || 0).getTime();
         const db = new Date(b.created_at || 0).getTime();
         return da - db; // cũ nhất lên đầu
       });
+    } else if (sortTu === "ngay-them-desc") {
+      copy.sort((a, b) => {
+        const da = new Date(a.created_at || 0).getTime();
+        const db = new Date(b.created_at || 0).getTime();
+        return db - da; // mới nhất lên đầu
+      });
     } else if (sortTu === "so-cau-sai") {
       copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
     } else if (sortTu === "chua-hoc") {
-      // Từ chưa học (correct_count < 5) lên trên, sau đó theo sort_order
+      // Từ chưa học (correct_count < 5) lên trên
       copy.sort((a, b) => {
         const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
         const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
         return aNew - bNew;
+      });
+    } else if (sortTu === "da-hoc") {
+      // Từ đã học (correct_count >= 5) lên trên
+      copy.sort((a, b) => {
+        const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
+        const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
+        return aLearned - bLearned;
       });
     }
 
@@ -1095,7 +1126,6 @@ function TrangChiTietBo() {
               {SORT_TU.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
-                  {s.key === "chua-hoc" ? ` (${soTuChuaHoc})` : ""}
                 </option>
               ))}
             </select>
@@ -1125,12 +1155,15 @@ function TrangChiTietBo() {
                 <li
                   key={the.id}
                   data-card-id={the.id}
-                  className={`ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5 ${dangBatChinhSua ? "ui-word-row--editing" : ""} ${dangChoMoveTu ? "ui-word-row--move" : ""} ${theDangKeoId === the.id ? "ui-word-row--dragging" : ""}`}
+                  className={`ui-reading-card ui-word-row border border-[var(--mau-vien)] rounded-xl bg-[var(--mau-mat)] px-4 py-3.5 ${dangBatChinhSua ? "ui-word-row--editing" : ""} ${dangChoMoveTu ? "ui-word-row--move" : ""} ${theDangKeoId === the.id ? "ui-word-row--dragging" : ""}${!dangBatChinhSua ? " ui-word-row--clickable" : ""}`}
                   onClick={dangBatChinhSua ? (e) => {
                     if (e.target.closest("button")) return;
                     moFormSuaTu(the);
-                  } : undefined}
-                  style={dangBatChinhSua ? { cursor: "pointer" } : undefined}
+                  } : (e) => {
+                    if (e.target.closest("button")) return;
+                    setChiTietTu(the);
+                  }}
+                  style={{ cursor: "pointer" }}
                 >
                   {dangChoMoveTu && (
                     <button
@@ -1521,6 +1554,194 @@ function TrangChiTietBo() {
           </svg>
           <span className="font-bold text-sm tracking-tight">{successInfo.message}</span>
         </div>
+      </AnimatedModal>
+
+      {/* Modal chi tiết từ */}
+      <AnimatedModal
+        open={!!chiTietTu}
+        onClose={() => setChiTietTu(null)}
+        className="ui-form-panel max-w-md shadow-[var(--bong-modal)] p-0 overflow-hidden"
+      >
+        {chiTietTu && (
+          <div className="flex flex-col">
+            {/* Header gradient */}
+            <div style={{
+              background: "linear-gradient(135deg, var(--mau-chinh) 0%, color-mix(in srgb, var(--mau-chinh) 70%, #7c3aed) 100%)",
+              padding: "1.25rem 1.5rem 1rem",
+              position: "relative",
+            }}>
+              {/* Số thứ tự */}
+              <span style={{
+                position: "absolute",
+                top: "0.75rem",
+                left: "1rem",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "rgba(255,255,255,0.55)",
+              }}>
+                Từ vựng
+              </span>
+              {/* Nút sửa góc trên phải */}
+              {coTheQuanLy && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tuCanSua = chiTietTu;
+                    setChiTietTu(null);
+                    setTimeout(() => {
+                      if (!dangChinhSua) setDangChinhSua(true);
+                      setTimeout(() => moFormSuaTu(tuCanSua), 80);
+                    }, 180);
+                  }}
+                  aria-label={`Sửa từ ${chiTietTu.term_en}`}
+                  title="Sửa từ này"
+                  style={{
+                    position: "absolute",
+                    top: "0.6rem",
+                    right: "0.6rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "2rem",
+                    height: "2rem",
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1.5px solid rgba(255,255,255,0.35)",
+                    color: "#fff",
+                    cursor: "pointer",
+                    backdropFilter: "blur(4px)",
+                    transition: "background 0.15s, transform 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.32)"; e.currentTarget.style.transform = "scale(1.1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  <IconEdit />
+                </button>
+              )}
+              {/* Từ chính */}
+              <div style={{ marginTop: "1.2rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <span style={{
+                    fontSize: "1.7rem",
+                    fontWeight: 800,
+                    color: "#fff",
+                    lineHeight: 1.15,
+                    letterSpacing: "-0.02em",
+                    wordBreak: "break-word",
+                  }}>
+                    {chiTietTu.term_en}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => ttsSpeak(chiTietTu.term_en, "en-US")}
+                    aria-label={`Đọc ${chiTietTu.term_en}`}
+                    title="Nghe phát âm"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "2rem",
+                      height: "2rem",
+                      borderRadius: "50%",
+                      background: "rgba(255,255,255,0.2)",
+                      border: "none",
+                      color: "#fff",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                      transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.35)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ width: "1rem", height: "1rem" }} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                  </button>
+                </div>
+                <p style={{
+                  fontSize: "1.05rem",
+                  color: "rgba(255,255,255,0.85)",
+                  marginTop: "0.35rem",
+                  fontWeight: 500,
+                }}>
+                  {chiTietTu.meaning_vi}
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* Câu ví dụ */}
+              {chiTietTu.example_sentence && (
+                <div style={{
+                  background: "var(--mau-input)",
+                  borderRadius: "0.75rem",
+                  padding: "0.85rem 1rem",
+                  borderLeft: "3px solid var(--mau-chinh)",
+                }}>
+                  <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mau-chinh)", marginBottom: "0.4rem" }}>Ví dụ</p>
+                  <p style={{ fontSize: "0.92rem", color: "var(--mau-chu)", lineHeight: 1.6, fontStyle: "italic" }} lang="en">{chiTietTu.example_sentence}</p>
+                </div>
+              )}
+
+              {/* Trạng thái học */}
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--mau-chu-phu)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Tiến độ:</span>
+                {(chiTietTu.correct_count || 0) === 0 && (
+                  <span className="ui-card-badge ui-card-badge--new">Chưa học</span>
+                )}
+                {(chiTietTu.correct_count || 0) > 0 && (chiTietTu.correct_count || 0) < 5 && (
+                  <span className="ui-card-badge ui-card-badge--progress">
+                    Đang học · {chiTietTu.correct_count}/5
+                  </span>
+                )}
+                {(chiTietTu.correct_count || 0) >= 5 && (
+                  <span className="ui-card-badge ui-card-badge--learned">✓ Đã học</span>
+                )}
+                {(chiTietTu.wrong_count || 0) > 0 && (
+                  <span className="ui-card-badge ui-card-badge--wrong">{chiTietTu.wrong_count} lần sai</span>
+                )}
+                {laTuYeuThich(chiTietTu) && (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: "0.25rem",
+                    fontSize: "0.72rem", fontWeight: 600, color: "oklch(51% 0.15 24)",
+                    background: "oklch(51% 0.15 24 / 0.1)", borderRadius: "9999px",
+                    padding: "0.15rem 0.6rem",
+                  }}>
+                    ♥ Yêu thích
+                  </span>
+                )}
+              </div>
+
+              {/* Nút đóng */}
+              <button
+                type="button"
+                onClick={() => setChiTietTu(null)}
+                style={{
+                  marginTop: "0.25rem",
+                  width: "100%",
+                  padding: "0.65rem",
+                  borderRadius: "0.65rem",
+                  border: "1.5px solid var(--mau-vien)",
+                  background: "var(--mau-mat)",
+                  color: "var(--mau-chu-phu)",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "var(--mau-mat-hover)"; e.currentTarget.style.color = "var(--mau-chu)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--mau-mat)"; e.currentTarget.style.color = "var(--mau-chu-phu)"; }}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
       </AnimatedModal>
 
 

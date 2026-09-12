@@ -56,6 +56,11 @@ export async function luuStudyAnswers(sessionId, answers) {
 }
 
 export async function luuQuizResult(payload) {
-  const response = await api.post("/quiz-results", payload);
-  return response.data;
+  try {
+    const response = await api.post("/quiz-results", payload);
+    return response.data;
+  } catch {
+    // Silent fallback — không crash app khi API lỗi tạm thời
+    return null;
+  }
 }

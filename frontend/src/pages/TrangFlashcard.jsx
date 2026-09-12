@@ -212,19 +212,35 @@ function TrangFlashcard() {
         copy.sort((a, b) =>
           a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
         );
+      } else if (sortParam === "ten-desc") {
+        copy.sort((a, b) =>
+          b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
+        );
       } else if (sortParam === "ngay-them") {
         copy.sort((a, b) => {
           const da = new Date(a.created_at || 0).getTime();
           const db = new Date(b.created_at || 0).getTime();
           return da - db;
         });
+      } else if (sortParam === "ngay-them-desc") {
+        copy.sort((a, b) => {
+          const da = new Date(a.created_at || 0).getTime();
+          const db = new Date(b.created_at || 0).getTime();
+          return db - da;
+        });
       } else if (sortParam === "so-cau-sai") {
         copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
-      } else if (sortParam === "chua-hoc") {
+      } else if (sortParam === "chua-hoc" || sortParam === "chua-hoc-filter") {
         copy.sort((a, b) => {
           const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
           const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
           return aNew - bNew;
+        });
+      } else if (sortParam === "da-hoc") {
+        copy.sort((a, b) => {
+          const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
+          const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
+          return aLearned - bLearned;
         });
       }
       return copy;
