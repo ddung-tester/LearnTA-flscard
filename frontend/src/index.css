@@ -1227,9 +1227,13 @@ body.is-page-loading .page-transition-root {
 
 .ui-page-header {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.8rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--mau-vien);
+  margin-bottom: 0.5rem;
 }
 
 .ui-page-header__title {
@@ -1250,7 +1254,6 @@ body.is-page-loading .page-transition-root {
 
 .ui-page-header__actions {
   display: flex;
-  width: 100%;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.7rem;
@@ -2439,13 +2442,11 @@ body.is-page-loading .page-transition-root {
 @media (min-width: 640px) {
 
   .ui-page-header {
-    flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
   }
 
   .ui-page-header__actions {
-    width: auto;
     justify-content: flex-end;
   }
 
@@ -4618,7 +4619,7 @@ body.is-page-loading .page-transition-root {
   justify-content: center;
   text-align: center;
   padding: 3rem 1.5rem;
-  border: 1.5px dashed var(--mau-vien);
+  border: 1.5px solid var(--mau-vien);
   border-radius: 1rem;
   background: oklch(97% 0.012 59/ 0.4);
   animation: ui-content-enter var(--content-duration) var(--tuong-tac-ease-soft) both;
@@ -4626,11 +4627,11 @@ body.is-page-loading .page-transition-root {
 
 .ui-empty-state__illustration {
   margin-bottom: 1rem;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .ui-empty-state__title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--mau-chu);
   margin-bottom: 0.35rem;
@@ -4640,7 +4641,7 @@ body.is-page-loading .page-transition-root {
 .ui-empty-state__description {
   font-size: 0.875rem;
   color: var(--mau-chu-phu);
-  max-width: 28ch;
+  max-width: 32ch;
   line-height: 1.55;
 }
 

@@ -384,7 +384,7 @@ function TrangDanhSachBo() {
     moChiTietBo(boId);
   }
 
-  const tieuDeTrang = "Bộ từ vựng của bạn";
+  const tieuDeTrang = isAuthenticated ? "Bộ từ vựng của bạn" : "Bộ từ vựng";
   const tieuDeRong = isAuthenticated
     ? "Bạn chưa có bộ từ nào"
     : "Bạn cần đăng nhập để xem bộ từ";
@@ -400,18 +400,20 @@ function TrangDanhSachBo() {
             {tieuDeTrang}
           </h2>
         </div>
-        <div className="ui-page-header__actions">
-          <button
-            type="button"
-            onClick={moFormThemBo}
-            aria-label="Thêm bộ từ"
-            title="Thêm bộ từ"
-            className="ui-button ui-button--primary px-4 py-2.5 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-          >
-            <IconPlus />
-            <span>Thêm bộ từ</span>
-          </button>
-        </div>
+        {isAuthenticated && (
+          <div className="ui-page-header__actions">
+            <button
+              type="button"
+              onClick={moFormThemBo}
+              aria-label="Thêm bộ từ"
+              title="Thêm bộ từ"
+              className="ui-button ui-button--primary px-4 py-2.5 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
+            >
+              <IconPlus />
+              <span>Thêm bộ từ</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoadingDecks ? (

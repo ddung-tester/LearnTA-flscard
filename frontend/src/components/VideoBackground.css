@@ -50,11 +50,11 @@
   background:
     linear-gradient(
       180deg,
-      oklch(18% 0.035 60/ 0.48),
-      oklch(21% 0.032 55/ 0.2) 42%,
-      oklch(18% 0.035 60/ 0.5)
+      oklch(18% 0.035 60/ 0.72),
+      oklch(21% 0.032 55/ 0.52) 42%,
+      oklch(18% 0.035 60/ 0.74)
     ),
-    radial-gradient(circle at 50% 42%, oklch(83% 0.09 56/ 0.12), transparent 32rem);
+    radial-gradient(circle at 50% 42%, oklch(83% 0.09 56/ 0.06), transparent 32rem);
 }
 
 .video-bg__overlay--study {
@@ -741,13 +741,14 @@ body.has-video-background--app .ui-link {
 .video-bg-home-text {
   color: oklch(98% 0.015 76/ 0.98) !important;
   text-shadow:
-    0 2px 8px oklch(17% 0.035 60/ 0.58),
-    0 14px 42px oklch(17% 0.035 60/ 0.44);
+    0 2px 6px oklch(17% 0.035 60/ 0.72),
+    0 8px 28px oklch(17% 0.035 60/ 0.58),
+    0 20px 60px oklch(17% 0.035 60/ 0.36);
 }
 
 .video-bg-home-kicker {
-  color: oklch(91% 0.015 77/ 0.9) !important;
-  text-shadow: 0 2px 12px oklch(17% 0.035 60/ 0.54);
+  color: oklch(93% 0.015 77/ 0.95) !important;
+  text-shadow: 0 1px 8px oklch(17% 0.035 60/ 0.68), 0 4px 20px oklch(17% 0.035 60/ 0.44);
 }
 
 .video-home-typing .typing-effect__text,
