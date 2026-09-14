@@ -26,6 +26,7 @@ function RewardTikTokEffect({
   onRequestClose,
   onHideComplete,
   combo = 0,
+  tenseExamples = null,
 }) {
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
@@ -649,6 +650,7 @@ function RewardTikTokEffect({
           onPortalOpen={giamChuyenDong ? undefined : batDauPhatVideo}
           compact={!coTheHienThi}
           combo={combo}
+          tenseExamples={tenseExamples}
         />
       )}
       {/* Nút bật/tắt âm thanh tinh tế khi video đang phát */}

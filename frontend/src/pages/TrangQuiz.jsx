@@ -7,6 +7,7 @@ import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
 import TenseExamplesCard from "../components/common/TenseExamplesCard";
+import { getTenseExamples } from "../data/tenseExamples";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -185,11 +186,11 @@ function TrangQuiz() {
   );
   const [lanTronQuiz, setLanTronQuiz] = useState(0);
   const [lanLam, setLanLam] = useState(0);
-  const [soCauDungTheoTienTrinh, setSoCauDungTheoTienTrinh] = useState([]);
+  const [, setSoCauDungTheoTienTrinh] = useState([]);
   const [chiSo, setChiSo] = useState(0);
   const [dapAnDaChon, setDapAnDaChon] = useState(null);
-  const [dapAnSaiDaChon, setDapAnSaiDaChon] = useState([]);
-  const [daTungSaiOnCard, setDaTungSaiOnCard] = useState(false);
+  const [, setDapAnSaiDaChon] = useState([]);
+  const [, setDaTungSaiOnCard] = useState(false);
   const [soCauDung, setSoCauDung] = useState(0);
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [hienReward, setHienReward] = useState(false);
@@ -1094,6 +1095,7 @@ function TrangQuiz() {
           onRequestClose={() => setHienReward(false)}
           onHideComplete={xuLyRewardDongXong}
           combo={combo}
+          tenseExamples={getTenseExamples(cauHienTai?.the)}
         />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <StudyResult
@@ -1147,6 +1149,7 @@ function TrangQuiz() {
         onRequestClose={() => setHienReward(false)}
         onHideComplete={xuLyRewardDongXong}
         combo={combo}
+        tenseExamples={getTenseExamples(cauHienTai?.the)}
       />
       <div className="ui-study-session ui-quiz-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">

@@ -5,6 +5,7 @@ import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import TenseExamplesCard from "../components/common/TenseExamplesCard";
+import { getTenseExamples } from "../data/tenseExamples";
 import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
@@ -680,6 +681,7 @@ function TrangFlashcard() {
         onRequestClose={() => setHienReward(false)}
         onHideComplete={() => setHienReward(false)}
         combo={diemReward}
+        tenseExamples={getTenseExamples(theHienTai)}
       />
       <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
       <div className="ui-study-toolbar">

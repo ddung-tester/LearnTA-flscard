@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import "./RewardMagicOverlay.css";
@@ -6,6 +6,12 @@ import "./RewardMagicOverlay.css";
 gsap.registerPlugin(useGSAP);
 
 const SO_SPARKLE = 10;
+
+const TENSE_LABEL = {
+  present_simple: "Hiện tại đơn",
+  present_continuous: "Hiện tại tiếp diễn",
+  past_simple: "Quá khứ đơn",
+};
 
 function layDiemNguon(originRect) {
   if (typeof window === "undefined") return { x: 0, y: 0 };
@@ -128,11 +134,19 @@ function RewardMagicOverlay({
   onComplete,
   compact = false,
   combo = 0,
+  tenseExamples = null,
 }) {
   const rootRef = useRef(null);
   const portalRefs = useRef({});
   const lanChoVideoRef = useRef(null);
   const lanDaChayIntroRef = useRef(null);
+  const [portalDaMo, setPortalDaMo] = useState(false);
+  const [prevSeqKey, setPrevSeqKey] = useState(sequenceKey);
+
+  if (sequenceKey !== prevSeqKey) {
+    setPrevSeqKey(sequenceKey);
+    setPortalDaMo(false);
+  }
 
   const comboScale = Math.min(1 + combo * 0.08, 1.8);
   const sparkScale = Math.min(1 + combo * 0.12, 2.2);
@@ -262,7 +276,7 @@ function RewardMagicOverlay({
             0
           )
           .to(media, { autoAlpha: 1, scale: 1, duration: 0.2 }, 0.08)
-          .call(() => onPortalOpen?.(), null, 0.2);
+          .call(() => { onPortalOpen?.(); setPortalDaMo(true); }, null, 0.2);
 
         return () => quickTimeline.kill();
       }
@@ -327,7 +341,7 @@ function RewardMagicOverlay({
           3.38
         )
         .to(sourceGlow, { autoAlpha: 0.2, scale: 1.28 * comboScale, duration: 0.48 }, 3.42)
-        .call(() => onPortalOpen?.(), null, 3.5)
+        .call(() => { onPortalOpen?.(); setPortalDaMo(true); }, null, 3.5)
         .to(media, { autoAlpha: 1, scale: 1, duration: 0.4 }, 3.62);
 
       return () => timeline.kill();
@@ -497,6 +511,8 @@ function RewardMagicOverlay({
     { scope: rootRef, dependencies: [fadeOut, onComplete, originRect, combo, compact] }
   );
 
+
+
   if (!active) return null;
 
   return (
@@ -584,25 +600,49 @@ function RewardMagicOverlay({
         />
       </svg>
 
-      {(compact ? ["center"] : ["left", "right"]).map((viTri) => (
-        <div
-          className={`reward-magic__portal reward-magic__portal--${viTri}`}
-          key={viTri}
-          ref={(node) => luuPortal(viTri, node)}
-        >
-          <div className="reward-magic__portal-ring" />
-          <div className="reward-magic__media">
-            {hasError || !videoSrc ? (
-              <div className="reward-magic__fallback" />
-            ) : (
-              <canvas
-                ref={(node) => luuCanvas(viTri, node)}
-                className="reward-magic__canvas"
-              />
+      {(compact ? ["center"] : ["left", "right"]).map((viTri) => {
+        // Phân chia câu gợi ý: trái nhận [0], phải nhận [1, 2]
+        const cauTrongPortal = !compact && tenseExamples && tenseExamples.length > 0
+          ? (viTri === "left" ? [tenseExamples[0]] : [tenseExamples[1], tenseExamples[2]].filter(Boolean))
+          : [];
+
+        return (
+          <div
+            className={`reward-magic__portal reward-magic__portal--${viTri}`}
+            key={viTri}
+            ref={(node) => luuPortal(viTri, node)}
+          >
+            <div className="reward-magic__portal-ring" />
+            <div className="reward-magic__media">
+              {hasError || !videoSrc ? (
+                <div className="reward-magic__fallback" />
+              ) : (
+                <canvas
+                  ref={(node) => luuCanvas(viTri, node)}
+                  className="reward-magic__canvas"
+                />
+              )}
+            </div>
+            {/* Câu gợi ý hiện sau khi video bắt đầu phát */}
+            {portalDaMo && cauTrongPortal.length > 0 && (
+              <div className="reward-magic__tense-panel">
+                {cauTrongPortal.map((item, i) => (
+                  <div key={`${item.tense}-${i}`} className="reward-magic__tense-item" style={{ animationDelay: `${i * 0.18}s` }}>
+                    <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
+                    {item.formula && (
+                      <span className="reward-magic__tense-formula">{item.formula}</span>
+                    )}
+                    <p className="reward-magic__tense-sentence">{item.sentence}</p>
+                    {item.translation && (
+                      <p className="reward-magic__tense-translation">{item.translation}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

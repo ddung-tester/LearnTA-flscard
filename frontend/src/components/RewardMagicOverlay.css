@@ -264,6 +264,94 @@
   }
 }
 
+/* ── Câu gợi ý 3 thì trong portal ──────────────────────────────── */
+.reward-magic__tense-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem 1rem;
+  background:
+    linear-gradient(
+      to top,
+      rgba(5, 15, 28, 0.92) 0%,
+      rgba(5, 15, 28, 0.82) 42%,
+      rgba(5, 15, 28, 0.48) 72%,
+      transparent 100%
+    );
+  pointer-events: auto;
+}
+
+.reward-magic__tense-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+  animation: rewardTenseSlideUp 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.reward-magic__tense-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgba(105, 223, 240, 0.18);
+  color: #7dd8f0;
+  width: fit-content;
+}
+
+.reward-magic__tense-formula {
+  font-size: 0.6rem;
+  font-family: "SF Mono", "Cascadia Mono", "Consolas", monospace;
+  color: rgba(200, 220, 255, 0.7);
+  margin-top: 0.1rem;
+}
+
+.reward-magic__tense-sentence {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.94);
+  line-height: 1.35;
+  margin: 0.15rem 0 0;
+}
+
+.reward-magic__tense-translation {
+  font-size: 0.65rem;
+  font-style: italic;
+  color: rgba(200, 215, 235, 0.6);
+  line-height: 1.3;
+  margin: 0;
+}
+
+@keyframes rewardTenseSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Portal phải: câu gợi ý không bị mirror */
+.reward-magic__portal--right .reward-magic__tense-panel {
+  transform: scaleX(1);
+  direction: ltr;
+}
+
+
 @media (max-width: 1279px) {
   .reward-magic::before {
     background:
@@ -304,5 +392,9 @@
   .reward-magic__paths,
   .reward-magic__source-glow {
     display: none;
+  }
+
+  .reward-magic__tense-item {
+    animation: none;
   }
 }

@@ -7,6 +7,7 @@ import ComboDisplay from "../components/common/ComboDisplay";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
 import TenseExamplesCard from "../components/common/TenseExamplesCard";
+import { getTenseExamples } from "../data/tenseExamples";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
@@ -694,6 +695,10 @@ function TrangTuLuan() {
     ttsSpeak(layCauHoi(danhSachThe[chiSo]), layNgonNguCauHoi());
   }
 
+  function docDapAnDungHienTai() {
+    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
+  }
+
   function datLaiProgressReward() {
     xoaTimerProgressReward();
     setDangChoReward(false);
@@ -1354,7 +1359,7 @@ function TrangTuLuan() {
             onClose={() => setStreakCelebration(null)}
           />
         )}
-        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} tenseExamples={null} />
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <StudyResult
             deckTitle={bo.title}
@@ -1395,7 +1400,7 @@ function TrangTuLuan() {
 
   return (
     <>
-      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} />
+      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} tenseExamples={getTenseExamples(theHienTai)} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
           <Link to={`/decks/${boId}`} className="ui-back-btn">
