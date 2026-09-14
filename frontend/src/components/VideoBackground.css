@@ -36,14 +36,7 @@
 }
 
 .video-bg__overlay--default {
-  background:
-    linear-gradient(
-      180deg,
-      oklch(20% 0.035 60/ 0.2),
-      oklch(96% 0.01 76/ 0.14) 44%,
-      oklch(20% 0.035 60/ 0.18)
-    ),
-    radial-gradient(circle at 50% 35%, oklch(82% 0.08 56/ 0.14), transparent 34rem);
+  background: none;
 }
 
 .video-bg__overlay--auth {
