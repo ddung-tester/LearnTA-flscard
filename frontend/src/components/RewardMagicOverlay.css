@@ -264,39 +264,47 @@
   }
 }
 
-/* ── Câu gợi ý 3 thì trong portal ──────────────────────────────── */
+/* ── Câu gợi ý 3 thì — panel cố định 2 bên màn hình ────────────────── */
 .reward-magic__tense-panel {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 6;
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 8;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem 0.875rem 1rem;
-  background:
-    linear-gradient(
-      to top,
-      rgba(5, 15, 28, 0.92) 0%,
-      rgba(5, 15, 28, 0.82) 42%,
-      rgba(5, 15, 28, 0.48) 72%,
-      transparent 100%
-    );
-  pointer-events: auto;
+  gap: 0.6rem;
+  width: calc(100dvh * 9 / 16 - 1rem);
+  max-width: min(22vw, 18rem);
+  padding: 0;
+  pointer-events: none;
+}
+
+.reward-magic__tense-panel--left {
+  left: 0.5rem;
+  align-items: flex-start;
+}
+
+.reward-magic__tense-panel--right {
+  right: 0.5rem;
+  align-items: flex-start;
 }
 
 .reward-magic__tense-item {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.5rem 0.625rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(6px);
-  animation: rewardTenseSlideUp 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  gap: 0.22rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(5, 15, 28, 0.78);
+  border: 1px solid rgba(105, 223, 240, 0.22);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  width: 100%;
+  will-change: transform, opacity;
 }
+
 
 .reward-magic__tense-badge {
   display: inline-block;
@@ -334,22 +342,7 @@
   margin: 0;
 }
 
-@keyframes rewardTenseSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-/* Portal phải: câu gợi ý không bị mirror */
-.reward-magic__portal--right .reward-magic__tense-panel {
-  transform: scaleX(1);
-  direction: ltr;
-}
 
 
 @media (max-width: 1279px) {
@@ -372,6 +365,11 @@
   .reward-magic__path--aura {
     stroke-width: 12;
   }
+
+  /* Ẩn panel câu ví dụ khi không còn đủ chỗ 2 bên */
+  .reward-magic__tense-panel {
+    display: none;
+  }
 }
 
 @media (max-width: 520px) {
@@ -392,9 +390,4 @@
   .reward-magic__paths,
   .reward-magic__source-glow {
     display: none;
-  }
-
-  .reward-magic__tense-item {
-    animation: none;
-  }
 }

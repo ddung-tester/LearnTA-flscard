@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import "./RewardMagicOverlay.css";
@@ -600,46 +601,63 @@ function RewardMagicOverlay({
         />
       </svg>
 
-      {(compact ? ["center"] : ["left", "right"]).map((viTri) => {
-        // Phân chia câu gợi ý: trái nhận [0], phải nhận [1, 2]
-        const cauTrongPortal = !compact && tenseExamples && tenseExamples.length > 0
-          ? (viTri === "left" ? [tenseExamples[0]] : [tenseExamples[1], tenseExamples[2]].filter(Boolean))
-          : [];
+      {(compact ? ["center"] : ["left", "right"]).map((viTri) => (
+        <div
+          className={`reward-magic__portal reward-magic__portal--${viTri}`}
+          key={viTri}
+          ref={(node) => luuPortal(viTri, node)}
+        >
+          <div className="reward-magic__portal-ring" />
+          <div className="reward-magic__media">
+            {hasError || !videoSrc ? (
+              <div className="reward-magic__fallback" />
+            ) : (
+              <canvas
+                ref={(node) => luuCanvas(viTri, node)}
+                className="reward-magic__canvas"
+              />
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Câu gợi ý 3 thì — nằm ngoài portal, trượt từ 2 rìa màn hình vào */}
+      {!compact && ["left", "right"].map((viTri) => {
+        const cauList = viTri === "left"
+          ? [tenseExamples?.[0]].filter(Boolean)
+          : [tenseExamples?.[1], tenseExamples?.[2]].filter(Boolean);
+        const hienThi = !!(portalDaMo && tenseExamples && tenseExamples.length > 0 && cauList.length > 0);
+        const xFrom = viTri === "left" ? "-110%" : "110%";
 
         return (
-          <div
-            className={`reward-magic__portal reward-magic__portal--${viTri}`}
-            key={viTri}
-            ref={(node) => luuPortal(viTri, node)}
-          >
-            <div className="reward-magic__portal-ring" />
-            <div className="reward-magic__media">
-              {hasError || !videoSrc ? (
-                <div className="reward-magic__fallback" />
-              ) : (
-                <canvas
-                  ref={(node) => luuCanvas(viTri, node)}
-                  className="reward-magic__canvas"
-                />
-              )}
-            </div>
-            {/* Câu gợi ý hiện sau khi video bắt đầu phát */}
-            {portalDaMo && cauTrongPortal.length > 0 && (
-              <div className="reward-magic__tense-panel">
-                {cauTrongPortal.map((item, i) => (
-                  <div key={`${item.tense}-${i}`} className="reward-magic__tense-item" style={{ animationDelay: `${i * 0.18}s` }}>
-                    <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
-                    {item.formula && (
-                      <span className="reward-magic__tense-formula">{item.formula}</span>
-                    )}
-                    <p className="reward-magic__tense-sentence">{item.sentence}</p>
-                    {item.translation && (
-                      <p className="reward-magic__tense-translation">{item.translation}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div key={viTri} className={`reward-magic__tense-panel reward-magic__tense-panel--${viTri}`}>
+            <AnimatePresence>
+              {hienThi && cauList.map((item, i) => (
+                <motion.div
+                  key={`${item.tense}-${viTri}`}
+                  className="reward-magic__tense-item"
+                  initial={{ opacity: 0, x: xFrom }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: xFrom }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 22,
+                    mass: 0.8,
+                    delay: i * 0.12,
+                  }}
+                >
+                  <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
+                  {item.formula && (
+                    <span className="reward-magic__tense-formula">{item.formula}</span>
+                  )}
+                  <p className="reward-magic__tense-sentence">{item.sentence}</p>
+                  {item.translation && (
+                    <p className="reward-magic__tense-translation">{item.translation}</p>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         );
       })}

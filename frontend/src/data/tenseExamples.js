@@ -222,24 +222,112 @@ function generateFallbackExamples(termEn, meaningVi) {
   // --- DANH TỪ / KHÁI NIỆM ---
   const article = /^[aeiou]/i.test(lower) ? "an" : "a";
   const meanLabel = meaning || lower;
+
+  // Phân nhóm danh từ để sinh câu tự nhiên hơn
+  const DIRECTION_WORDS = new Set(["north", "south", "east", "west", "left", "right", "center", "middle"]);
+  const ABSTRACT_WORDS = new Set(["time", "life", "love", "peace", "freedom", "truth", "success", "health", "wealth", "luck", "hope", "fear", "joy", "anger", "pride", "shame", "faith", "beauty", "power", "energy"]);
+  const PLACE_SUFFIXES = ["tion", "land", "side", "town", "city", "park", "road", "street", "way", "room", "ward", "yard", "field", "ground", "area"];
+  const isDirection = DIRECTION_WORDS.has(lower);
+  const isAbstract = ABSTRACT_WORDS.has(lower);
+  const isPlace = PLACE_SUFFIXES.some(s => lower.endsWith(s));
+
+  if (isDirection) {
+    return [
+      {
+        tense: "present_simple",
+        formula: "S + V(s/es)",
+        sentence: `The sun rises in the ${lower} every morning.`,
+        highlight: lower,
+        translation: `Mặt trời mọc ở phía ${meanLabel} mỗi sáng.`,
+      },
+      {
+        tense: "present_continuous",
+        formula: "S + am/is/are + V-ing",
+        sentence: `We are heading ${lower} right now.`,
+        highlight: lower,
+        translation: `Chúng tôi đang đi về phía ${meanLabel} lúc này.`,
+      },
+      {
+        tense: "past_simple",
+        formula: "S + V2/V-ed",
+        sentence: `They traveled ${lower} last summer.`,
+        highlight: lower,
+        translation: `Họ đã du lịch về phía ${meanLabel} mùa hè năm ngoái.`,
+      },
+    ];
+  }
+
+  if (isAbstract) {
+    return [
+      {
+        tense: "present_simple",
+        formula: "S + V(s/es)",
+        sentence: `Everyone values ${lower} in life.`,
+        highlight: lower,
+        translation: `Mọi người đều trân trọng ${meanLabel} trong cuộc sống.`,
+      },
+      {
+        tense: "present_continuous",
+        formula: "S + am/is/are + V-ing",
+        sentence: `She is finding ${lower} in small things.`,
+        highlight: lower,
+        translation: `Cô ấy đang tìm thấy ${meanLabel} trong những điều nhỏ bé.`,
+      },
+      {
+        tense: "past_simple",
+        formula: "S + V2/V-ed",
+        sentence: `He learned the value of ${lower} last year.`,
+        highlight: lower,
+        translation: `Anh ấy đã nhận ra giá trị của ${meanLabel} năm ngoái.`,
+      },
+    ];
+  }
+
+  if (isPlace) {
+    return [
+      {
+        tense: "present_simple",
+        formula: "S + V(s/es)",
+        sentence: `I visit the ${lower} every weekend.`,
+        highlight: lower,
+        translation: `Tôi đến ${meanLabel} mỗi cuối tuần.`,
+      },
+      {
+        tense: "present_continuous",
+        formula: "S + am/is/are + V-ing",
+        sentence: `She is walking around the ${lower} right now.`,
+        highlight: lower,
+        translation: `Cô ấy đang đi dạo quanh ${meanLabel} lúc này.`,
+      },
+      {
+        tense: "past_simple",
+        formula: "S + V2/V-ed",
+        sentence: `He visited the ${lower} last week.`,
+        highlight: lower,
+        translation: `Anh ấy đã đến ${meanLabel} tuần trước.`,
+      },
+    ];
+  }
+
+  // Danh từ vật thể thông thường
   return [
     {
       tense: "present_simple",
-      formula: "S + have/see + [danh từ]",
-      sentence: `I have ${article} ${lower} at home.`,
+      formula: "S + V(s/es)",
+      sentence: `I use ${article} ${lower} every day.`,
       highlight: lower,
-      translation: `Tôi có ${meanLabel} ở nhà.`,
+      translation: `Tôi dùng ${meanLabel} mỗi ngày.`,
     },
     {
       tense: "present_continuous",
-      formula: "S + am/is/are + using + [danh từ]",
-      sentence: `She is using the ${lower} right now.`,
+      formula: "S + am/is/are + V-ing",
+      sentence: `She is looking at the ${lower} right now.`,
       highlight: lower,
-      translation: `Cô ấy đang dùng ${meanLabel} lúc này.`,
+      translation: `Cô ấy đang nhìn vào ${meanLabel} lúc này.`,
     },
     {
       tense: "past_simple",
-      formula: "S + bought/used + [danh từ]",
+      formula: "S + V2/V-ed",
       sentence: `He bought ${article} ${lower} yesterday.`,
       highlight: lower,
       translation: `Anh ấy đã mua ${meanLabel} hôm qua.`,
