@@ -1,6 +1,6 @@
 /**
  * tenseExamples.js
- * Câu mẫu 3 thì cơ bản: Hiện tại đơn, Hiện tại tiếp diễn, Quá khứ đơn.
+ * Câu mẫu 6 thì: HT đơn, HT tiếp diễn, QK đơn, QK tiếp diễn, HT hoàn thành, TL đơn.
  * Nguyên tắc: câu đơn giản, ngắn gọn, luôn chứa chính từ đang học.
  */
 
@@ -23,7 +23,26 @@ export const TENSE_META = {
     nameEn: "Past Simple",
     badgeColor: "#b45309",
   },
+  past_continuous: {
+    key: "past_continuous",
+    nameVi: "Quá khứ tiếp diễn",
+    nameEn: "Past Continuous",
+    badgeColor: "#7c3aed",
+  },
+  present_perfect: {
+    key: "present_perfect",
+    nameVi: "Hiện tại hoàn thành",
+    nameEn: "Present Perfect",
+    badgeColor: "#0f766e",
+  },
+  future_simple: {
+    key: "future_simple",
+    nameVi: "Tương lai đơn",
+    nameEn: "Future Simple",
+    badgeColor: "#be185d",
+  },
 };
+
 
 // ---------------------------------------------------------------------------
 // Bảng chia động từ bất quy tắc
@@ -115,6 +134,32 @@ function getPastForm(verb) {
   return `${v}ed`;
 }
 
+// V3 (past participle) — dùng cho Present Perfect
+function getV3Form(verb) {
+  // Bất quy tắc: dùng bảng IRREGULAR_PAST (V2 = V3 với hầu hết động từ bất quy tắc thông dụng)
+  const IRREGULAR_V3 = {
+    run: "run", go: "gone", eat: "eaten", drink: "drunk", buy: "bought",
+    sell: "sold", give: "given", take: "taken", find: "found", know: "known",
+    think: "thought", see: "seen", come: "come", get: "gotten", feel: "felt",
+    become: "become", keep: "kept", put: "put", read: "read",
+    write: "written", speak: "spoken", build: "built", make: "made",
+    sit: "sat", stand: "stood", leave: "left", sleep: "slept",
+    bring: "brought", tell: "told", teach: "taught", sing: "sung",
+    swim: "swum", fly: "flown", draw: "drawn", win: "won", meet: "met",
+    hear: "heard", pay: "paid", say: "said", send: "sent", show: "shown",
+    understand: "understood", begin: "begun", break: "broken", choose: "chosen",
+    cut: "cut", hit: "hit", let: "let", set: "set", fall: "fallen", hold: "held",
+    lose: "lost", ride: "ridden", rise: "risen", spend: "spent", wear: "worn",
+    catch: "caught", fight: "fought", throw: "thrown",
+    drive: "driven", forget: "forgotten", grow: "grown", hide: "hidden",
+    be: "been", do: "done", have: "had",
+  };
+  const v = verb.toLowerCase();
+  if (IRREGULAR_V3[v]) return IRREGULAR_V3[v];
+  return getPastForm(v); // quy tắc: V3 = V-ed
+}
+
+
 // ---------------------------------------------------------------------------
 // Nhận diện loại từ
 // ---------------------------------------------------------------------------
@@ -161,9 +206,9 @@ function generateFallbackExamples(termEn, meaningVi) {
   // --- ĐỘNG TỪ ---
   if (pos === "verb") {
     const base = lower.startsWith("to ") ? lower.slice(3) : lower;
-    const third = getThirdPerson(base);
     const ing = getIngForm(base);
     const past = getPastForm(base);
+    const v3 = getV3Form(base);
     const meanLabel = meaning || base;
 
     return [
@@ -187,6 +232,27 @@ function generateFallbackExamples(termEn, meaningVi) {
         sentence: `He ${past} yesterday.`,
         highlight: past,
         translation: `Anh ấy đã ${meanLabel} hôm qua.`,
+      },
+      {
+        tense: "past_continuous",
+        formula: "S + was/were + V-ing",
+        sentence: `She was ${ing} when I arrived.`,
+        highlight: `was ${ing}`,
+        translation: `Cô ấy đang ${meanLabel} khi tôi đến.`,
+      },
+      {
+        tense: "present_perfect",
+        formula: "S + have/has + V3",
+        sentence: `I have already ${v3} it.`,
+        highlight: `have ${v3}`,
+        translation: `Tôi đã ${meanLabel} rồi.`,
+      },
+      {
+        tense: "future_simple",
+        formula: "S + will + V",
+        sentence: `They will ${base} tomorrow.`,
+        highlight: `will ${base}`,
+        translation: `Họ sẽ ${meanLabel} vào ngày mai.`,
       },
     ];
   }
@@ -216,8 +282,30 @@ function generateFallbackExamples(termEn, meaningVi) {
         highlight: lower,
         translation: `Anh ấy đã rất ${meanLabel} hôm qua.`,
       },
+      {
+        tense: "past_continuous",
+        formula: "S + was/were + getting + adj",
+        sentence: `She was getting ${lower} during the meeting.`,
+        highlight: lower,
+        translation: `Cô ấy đang trở nên ${meanLabel} trong cuộc họn.`,
+      },
+      {
+        tense: "present_perfect",
+        formula: "S + have/has + been + adj",
+        sentence: `They have been ${lower} all week.`,
+        highlight: lower,
+        translation: `Họ đã ${meanLabel} cả tuần nay.`,
+      },
+      {
+        tense: "future_simple",
+        formula: "S + will + be + adj",
+        sentence: `It will be ${lower} tomorrow.`,
+        highlight: lower,
+        translation: `Ngày mai sẽ ${meanLabel}.`,
+      },
     ];
   }
+
 
   // --- DANH TỪ / KHÁI NIỆM ---
   const article = /^[aeiou]/i.test(lower) ? "an" : "a";
@@ -233,105 +321,45 @@ function generateFallbackExamples(termEn, meaningVi) {
 
   if (isDirection) {
     return [
-      {
-        tense: "present_simple",
-        formula: "S + V(s/es)",
-        sentence: `The sun rises in the ${lower} every morning.`,
-        highlight: lower,
-        translation: `Mặt trời mọc ở phía ${meanLabel} mỗi sáng.`,
-      },
-      {
-        tense: "present_continuous",
-        formula: "S + am/is/are + V-ing",
-        sentence: `We are heading ${lower} right now.`,
-        highlight: lower,
-        translation: `Chúng tôi đang đi về phía ${meanLabel} lúc này.`,
-      },
-      {
-        tense: "past_simple",
-        formula: "S + V2/V-ed",
-        sentence: `They traveled ${lower} last summer.`,
-        highlight: lower,
-        translation: `Họ đã du lịch về phía ${meanLabel} mùa hè năm ngoái.`,
-      },
+      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `The sun rises in the ${lower} every morning.`, highlight: lower, translation: `Mặt trời mọc ở phía ${meanLabel} mỗi sáng.` },
+      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `We are heading ${lower} right now.`,             highlight: lower, translation: `Chúng tôi đang đi về phía ${meanLabel} lúc này.` },
+      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `They traveled ${lower} last summer.`,             highlight: lower, translation: `Họ đã du lịch về phía ${meanLabel} mùa hè năm ngoái.` },
+      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `We were driving ${lower} when it rained.`,       highlight: lower, translation: `Chúng tôi đang lái xe hướng ${meanLabel} khi trời mưa.` },
+      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have been ${lower} of here before.`,           highlight: lower, translation: `Tôi đã từng đi về phía ${meanLabel} trước.` },
+      { tense: "future_simple",      formula: "S + will + V",            sentence: `They will travel ${lower} next month.`,          highlight: lower, translation: `Họ sẽ đi về phía ${meanLabel} tháng sau.` },
     ];
   }
 
   if (isAbstract) {
     return [
-      {
-        tense: "present_simple",
-        formula: "S + V(s/es)",
-        sentence: `Everyone values ${lower} in life.`,
-        highlight: lower,
-        translation: `Mọi người đều trân trọng ${meanLabel} trong cuộc sống.`,
-      },
-      {
-        tense: "present_continuous",
-        formula: "S + am/is/are + V-ing",
-        sentence: `She is finding ${lower} in small things.`,
-        highlight: lower,
-        translation: `Cô ấy đang tìm thấy ${meanLabel} trong những điều nhỏ bé.`,
-      },
-      {
-        tense: "past_simple",
-        formula: "S + V2/V-ed",
-        sentence: `He learned the value of ${lower} last year.`,
-        highlight: lower,
-        translation: `Anh ấy đã nhận ra giá trị của ${meanLabel} năm ngoái.`,
-      },
+      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `Everyone values ${lower} in life.`,              highlight: lower, translation: `Mọi người đều trân trọng ${meanLabel} trong cuộc sống.` },
+      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is finding ${lower} in small things.`,        highlight: lower, translation: `Cô ấy đang tìm thấy ${meanLabel} trong những điều nhỏ bé.` },
+      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He learned the value of ${lower} last year.`,    highlight: lower, translation: `Anh ấy đã nhận ra giá trị của ${meanLabel} năm ngoái.` },
+      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `She was searching for ${lower} all along.`,      highlight: lower, translation: `Cô ấy đã đang tìm kiếm ${meanLabel} suốt thời gian qua.` },
+      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `They have found ${lower} in this journey.`,      highlight: lower, translation: `Họ đã tìm thấy ${meanLabel} trong cuộc hành trình này.` },
+      { tense: "future_simple",      formula: "S + will + V",            sentence: `We will achieve ${lower} together.`,            highlight: lower, translation: `Chúng ta sẽ đạt được ${meanLabel} cùng nhau.` },
     ];
   }
 
   if (isPlace) {
     return [
-      {
-        tense: "present_simple",
-        formula: "S + V(s/es)",
-        sentence: `I visit the ${lower} every weekend.`,
-        highlight: lower,
-        translation: `Tôi đến ${meanLabel} mỗi cuối tuần.`,
-      },
-      {
-        tense: "present_continuous",
-        formula: "S + am/is/are + V-ing",
-        sentence: `She is walking around the ${lower} right now.`,
-        highlight: lower,
-        translation: `Cô ấy đang đi dạo quanh ${meanLabel} lúc này.`,
-      },
-      {
-        tense: "past_simple",
-        formula: "S + V2/V-ed",
-        sentence: `He visited the ${lower} last week.`,
-        highlight: lower,
-        translation: `Anh ấy đã đến ${meanLabel} tuần trước.`,
-      },
+      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `I visit the ${lower} every weekend.`,            highlight: lower, translation: `Tôi đến ${meanLabel} mỗi cuối tuần.` },
+      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is walking around the ${lower} right now.`,  highlight: lower, translation: `Cô ấy đang đi dạo quanh ${meanLabel} lúc này.` },
+      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He visited the ${lower} last week.`,             highlight: lower, translation: `Anh ấy đã đến ${meanLabel} tuần trước.` },
+      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `They were exploring the ${lower} yesterday.`,    highlight: lower, translation: `Họ đã đang khám phá ${meanLabel} hôm qua.` },
+      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have been to the ${lower} many times.`,       highlight: lower, translation: `Tôi đã đến ${meanLabel} nhiều lần rồi.` },
+      { tense: "future_simple",      formula: "S + will + V",            sentence: `We will go to the ${lower} next week.`,         highlight: lower, translation: `Chúng tôi sẽ đến ${meanLabel} tuần tới.` },
     ];
   }
 
   // Danh từ vật thể thông thường
   return [
-    {
-      tense: "present_simple",
-      formula: "S + V(s/es)",
-      sentence: `I use ${article} ${lower} every day.`,
-      highlight: lower,
-      translation: `Tôi dùng ${meanLabel} mỗi ngày.`,
-    },
-    {
-      tense: "present_continuous",
-      formula: "S + am/is/are + V-ing",
-      sentence: `She is looking at the ${lower} right now.`,
-      highlight: lower,
-      translation: `Cô ấy đang nhìn vào ${meanLabel} lúc này.`,
-    },
-    {
-      tense: "past_simple",
-      formula: "S + V2/V-ed",
-      sentence: `He bought ${article} ${lower} yesterday.`,
-      highlight: lower,
-      translation: `Anh ấy đã mua ${meanLabel} hôm qua.`,
-    },
+    { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `I use ${article} ${lower} every day.`,           highlight: lower, translation: `Tôi dùng ${meanLabel} mỗi ngày.` },
+    { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is looking at the ${lower} right now.`,      highlight: lower, translation: `Cô ấy đang nhìn vào ${meanLabel} lúc này.` },
+    { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He bought ${article} ${lower} yesterday.`,      highlight: lower, translation: `Anh ấy đã mua ${meanLabel} hôm qua.` },
+    { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `She was using the ${lower} when I called.`,     highlight: lower, translation: `Cô ấy đang dùng ${meanLabel} khi tôi gọi.` },
+    { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have never seen such ${article} ${lower}.`,   highlight: lower, translation: `Tôi chưa bao giờ thấy ${meanLabel} như vậy.` },
+    { tense: "future_simple",      formula: "S + will + V",            sentence: `They will buy ${article} ${lower} tomorrow.`,   highlight: lower, translation: `Họ sẽ mua ${meanLabel} vào ngày mai.` },
   ];
 }
 
@@ -466,34 +494,46 @@ export const TENSE_EXAMPLES_MAP = {
 // ---------------------------------------------------------------------------
 /**
  * @param {object|string} cardOrTerm - Thẻ học hoặc chuỗi term_en
- * @returns {Array<{ tense, formula, sentence, highlight?, translation }>}
+ * @returns {Array<{ tense, formula, sentence, highlight?, translation }>} — 6 phần tử
  */
 export function getTenseExamples(cardOrTerm) {
   if (!cardOrTerm) return [];
-
-  // Thẻ đã có sẵn mảng examples chuẩn (3 phần tử)
-  if (
-    typeof cardOrTerm === "object" &&
-    Array.isArray(cardOrTerm.examples) &&
-    cardOrTerm.examples.length >= 3
-  ) {
-    return cardOrTerm.examples;
-  }
 
   const termEn = typeof cardOrTerm === "string" ? cardOrTerm : cardOrTerm.term_en || "";
   const meaningVi = typeof cardOrTerm === "object" ? cardOrTerm.meaning_vi : "";
   const cleanKey = termEn.trim().toLowerCase();
 
-  // Tra bảng cố định (exact match)
-  if (TENSE_EXAMPLES_MAP[cleanKey]) return TENSE_EXAMPLES_MAP[cleanKey];
+  // Thẻ đã có sẵn mảng examples đầy đủ (>= 6)
+  if (
+    typeof cardOrTerm === "object" &&
+    Array.isArray(cardOrTerm.examples) &&
+    cardOrTerm.examples.length >= 6
+  ) {
+    return cardOrTerm.examples;
+  }
 
-  // Tra bảng cố định (partial match)
-  for (const [key, examples] of Object.entries(TENSE_EXAMPLES_MAP)) {
-    if (cleanKey.startsWith(`${key} `) || cleanKey.endsWith(` ${key}`)) {
-      return examples;
+  // Lấy base (3 hoặc 6 examples) từ bảng cố định
+  let base = null;
+  if (typeof cardOrTerm === "object" && Array.isArray(cardOrTerm.examples) && cardOrTerm.examples.length >= 3) {
+    base = cardOrTerm.examples;
+  } else if (TENSE_EXAMPLES_MAP[cleanKey]) {
+    base = TENSE_EXAMPLES_MAP[cleanKey];
+  } else {
+    for (const [key, exs] of Object.entries(TENSE_EXAMPLES_MAP)) {
+      if (cleanKey.startsWith(`${key} `) || cleanKey.endsWith(` ${key}`)) {
+        base = exs;
+        break;
+      }
     }
   }
 
-  // Sinh câu dự phòng thông minh
-  return generateFallbackExamples(termEn, meaningVi);
+  // Sinh fallback (luôn trả về 6)
+  const generated = generateFallbackExamples(termEn, meaningVi);
+
+  if (!base) return generated;
+
+  // Pad: nếu base chỉ có 3, ghép thêm 3 câu generated
+  if (base.length >= 6) return base;
+  return [...base, ...generated.slice(base.length)];
 }
+

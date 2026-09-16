@@ -1,0 +1,228 @@
+/* ── TenseExamplesCard — panel 2 bên màn hình ──────────────────────── */
+
+/* Panel cố định 2 bên */
+.tec-panel {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: min(22vw, 22rem);
+  max-height: 80dvh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+.tec-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.tec-panel--left {
+  left: 1rem;
+}
+
+.tec-panel--right {
+  right: 1rem;
+}
+
+/* Nhãn từ đang học (chỉ bên trái) */
+.tec-panel__word-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.tec-panel__word {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--mau-chinh);
+  background: color-mix(in srgb, var(--mau-chinh) 12%, transparent);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.tec-panel__meaning {
+  font-size: 0.7rem;
+  color: var(--mau-chu-phu);
+  font-style: italic;
+}
+
+/* Từng card thì */
+.tec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.875rem;
+  border-radius: 0.875rem;
+  background: var(--mau-mat);
+  border: 1px solid var(--mau-vien);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.04);
+  will-change: transform, opacity;
+}
+
+.tec-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.tec-item__badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tec-item__tense-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+}
+
+.tec-item__tense-en {
+  font-size: 0.65rem;
+  color: var(--mau-chu-phu);
+  font-weight: 500;
+}
+
+.tec-item__formula {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+  background: var(--mau-mat-2, var(--mau-nen));
+  border: 1px solid var(--mau-vien);
+  font-size: 0.6rem;
+  font-family: "SF Mono", "Cascadia Mono", "Consolas", monospace;
+}
+
+.tec-item__formula-label {
+  color: var(--mau-chu-phu);
+  font-weight: 600;
+}
+
+.tec-item__formula-value {
+  color: var(--mau-chinh);
+  font-weight: 700;
+}
+
+.tec-item__sentence-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tec-item__sentence {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.tec-item__speak-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--mau-vien);
+  background: var(--mau-mat);
+  color: var(--mau-chu-phu);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.tec-item__speak-btn svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.tec-item__speak-btn:hover {
+  color: var(--mau-chinh);
+  border-color: color-mix(in srgb, var(--mau-chinh) 40%, transparent);
+}
+
+.tec-item__speak-btn--active {
+  color: var(--mau-chinh);
+  border-color: var(--mau-chinh);
+  transform: scale(1.05);
+}
+
+.tec-item__translation {
+  font-size: 0.7rem;
+  font-style: italic;
+  color: var(--mau-chu-phu);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Nút Tiếp tục — cố định dưới giữa */
+.tec-continue-bar {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 201;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.625rem 1rem 0.625rem 1.25rem;
+  border-radius: 9999px;
+  background: var(--mau-mat);
+  border: 1px solid var(--mau-vien);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  pointer-events: auto;
+}
+
+.tec-continue-hint {
+  font-size: 0.75rem;
+  color: var(--mau-chu-phu);
+  white-space: nowrap;
+}
+
+.tec-continue-kbd {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  border: 1px solid var(--mau-vien);
+  background: var(--mau-nen);
+  font-family: monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.tec-continue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.tec-arrow-icon {
+  width: 1rem;
+  height: 1rem;
+}
