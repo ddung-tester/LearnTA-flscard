@@ -38,3 +38,13 @@ export async function xoaCard(cardId) {
   const response = await api.delete(`/cards/${cardId}`);
   return response.data;
 }
+
+/**
+ * Gọi AI sinh 6 câu mẫu theo 6 thì cho một từ vựng.
+ * @param {{ term_en: string, meaning_vi: string, part_of_speech?: string }} payload
+ * @returns {Promise<Array>} Mảng 6 objects { tense, formula, sentence, highlight, translation }
+ */
+export async function sinhCauMauAI(payload) {
+  const response = await api.post("/cards/generate-examples", payload);
+  return response.data.examples;
+}

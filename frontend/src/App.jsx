@@ -9,6 +9,7 @@ import {
 } from "./constants/backgrounds";
 
 import { useAuth } from "./contexts/AuthContext";
+import ChatbotWidget from "./components/ChatbotWidget";
 import {
   SuspenseLoader,
   usePageTransition,
@@ -101,6 +102,7 @@ function UngDung() {
       mode={laTrangImmersive ? "immersive" : "app"}
     >
       <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
+      {!laTrangImmersive && <ChatbotWidget />}
     </VideoBackground>
   );
 }

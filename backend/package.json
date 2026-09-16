@@ -9,11 +9,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:examples": "node seed-examples.js"
+    "seed:examples": "node seed-examples.js",
+    "seed:ai-examples": "node seed-ai-examples.js",
+    "migrate:tense-examples": "node add_tense_examples_column.js"
   },
   "keywords": [],
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

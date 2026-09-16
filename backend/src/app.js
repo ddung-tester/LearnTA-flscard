@@ -11,6 +11,7 @@ const mistakeRoutes = require("./routes/mistakeRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const userRoutes = require("./routes/userRoutes");
 const cronRoutes = require("./routes/cronRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 const app = express();
 const allowedCorsOrigins = new Set(corsOrigins);
@@ -75,6 +76,7 @@ app.use("/api", mistakeRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/cron", cronRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

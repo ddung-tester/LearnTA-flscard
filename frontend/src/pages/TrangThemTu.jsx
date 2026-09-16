@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { layDeckTheoId } from "../services/deckApi";
-import { taoCard } from "../services/cardApi";
+import { taoCard, sinhCauMauAI } from "../services/cardApi";
 import { getTenseExamples, TENSE_META, getWordType } from "../data/tenseExamples";
 
 /**
@@ -31,6 +31,12 @@ function TrangThemTu() {
     example_sentence: "",
     note: "",
   });
+
+  // Câu mẫu AI (đã sinh, sẽ lưu kèm vào DB khi submit)
+  const [aiExamples, setAiExamples] = useState(null);
+  const [dangSinhAI, setDangSinhAI] = useState(false);
+  const [loiAI, setLoiAI] = useState("");
+
   const [termDebounced, setTermDebounced] = useState("");
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -39,17 +45,44 @@ function TrangThemTu() {
     return () => clearTimeout(timer);
   }, [tuMoi.term_en]);
 
-  // Sinh preview câu ví dụ theo thì
+  // Reset câu AI khi từ hoặc nghĩa thay đổi
+  useEffect(() => {
+    setAiExamples(null);
+    setLoiAI("");
+  }, [tuMoi.term_en, tuMoi.meaning_vi]);
+
+  // Sinh preview câu ví dụ tĩnh (fallback) theo thì
   const previewExamples = useMemo(() => {
+    if (aiExamples) return aiExamples;
     if (!termDebounced) return [];
     const fakeCard = { term_en: termDebounced, meaning_vi: tuMoi.meaning_vi.trim() };
     return getTenseExamples(fakeCard);
-  }, [termDebounced, tuMoi.meaning_vi]);
+  }, [termDebounced, tuMoi.meaning_vi, aiExamples]);
 
   const wordType = useMemo(() => getWordType(termDebounced), [termDebounced]);
 
   const [danhSachDaLuu, setDanhSachDaLuu] = useState([]);
   const toast = useToast();
+
+  async function xuLySinhAI() {
+    const term = tuMoi.term_en.trim();
+    const meaning = tuMoi.meaning_vi.trim();
+    if (!term || !meaning) {
+      setLoiAI("Vui lòng nhập từ tiếng Anh và nghĩa tiếng Việt trước.");
+      return;
+    }
+    setDangSinhAI(true);
+    setLoiAI("");
+    setAiExamples(null);
+    try {
+      const examples = await sinhCauMauAI({ term_en: term, meaning_vi: meaning });
+      setAiExamples(examples);
+    } catch (err) {
+      setLoiAI(err?.response?.data?.message || err.message || "Không thể sinh câu AI. Vui lòng thử lại.");
+    } finally {
+      setDangSinhAI(false);
+    }
+  }
 
   if (dangTai) return <p role="status">Đang tải bộ từ...</p>;
 
@@ -77,9 +110,12 @@ function TrangThemTu() {
     if (dangLuu || !tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()) return;
     setDangLuu(true);
     try {
-      const card = await taoCard(boId, tuMoi);
+      const payload = { ...tuMoi };
+      if (aiExamples) payload.tense_examples = aiExamples;
+      const card = await taoCard(boId, payload);
       setDanhSachDaLuu((truoc) => [...truoc, card]);
       setTuMoi({ term_en: "", meaning_vi: "", example_sentence: "", note: "" });
+      setAiExamples(null);
       toast.success("Đã lưu từ và câu ví dụ");
     } catch (error) {
       toast.error(error.message);
@@ -168,6 +204,31 @@ function TrangThemTu() {
           />
         </div>
 
+        {/* Nút sinh câu AI */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={xuLySinhAI}
+            disabled={dangSinhAI || !tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--mau-chinh)] text-[var(--mau-chinh)] text-sm font-medium hover:bg-[var(--mau-chinh)]/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {dangSinhAI ? (
+              <>
+                <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-[var(--mau-chinh)] border-t-transparent rounded-full" />
+                Đang sinh câu AI...
+              </>
+            ) : (
+              <>✨ Sinh câu ví dụ AI</>
+            )}
+          </button>
+          {aiExamples && (
+            <span className="text-xs text-emerald-500 font-medium">✓ Đã sinh {aiExamples.length} câu mẫu — sẽ lưu kèm khi thêm từ</span>
+          )}
+          {loiAI && (
+            <span className="text-xs text-red-500">{loiAI}</span>
+          )}
+        </div>
+
         <div className="ui-form-actions">
           <button
             type="submit"
@@ -184,9 +245,14 @@ function TrangThemTu() {
         <div className="rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2,var(--mau-nen))] p-3 space-y-2 max-w-lg">
           <div className="flex items-center gap-2 mb-1">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mau-chu-phu)]">
-              ✦ Câu ví dụ tự động theo 6 thì
+              {aiExamples ? "✦ Câu ví dụ AI theo 6 thì" : "✦ Câu ví dụ tự động theo 6 thì"}
             </p>
-            {wordType && (
+            {aiExamples && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
+                AI ✓
+              </span>
+            )}
+            {!aiExamples && wordType && (
               <span
                 className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                 style={{ background: `color-mix(in srgb, ${wordType.color} 14%, transparent)`, color: wordType.color }}
@@ -222,6 +288,9 @@ function TrangThemTu() {
                 <span className="mx-2 text-[var(--mau-vien)]">—</span>
                 <span className="break-words">{tu.meaning_vi}</span>
                 {tu.example_sentence && <p lang="en" className="w-full text-sm text-[var(--mau-chu-phu)]">{tu.example_sentence}</p>}
+                {tu.tense_examples && (
+                  <p className="w-full text-[10px] text-emerald-500 font-medium mt-0.5">✓ Có câu mẫu AI</p>
+                )}
               </li>
             ))}
           </ul>

@@ -416,13 +416,16 @@ function generateFallbackExamples(termEn, meaningVi) {
   const isPlace = PLACE_SUFFIXES.some(s => lower.endsWith(s));
 
   if (isDirection) {
+    // Dùng meanLabel làm nhãn dịch thuần tiếng Việt (VD: "đông", "tây").
+    // Tránh ghép "phía phía" hay "hướng phía" bằng cách dùng "về hướng" + lower tiếng Anh
+    // và dịch tiếng Việt ngắn gọn chỉ với meanLabel.
     return [
-      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `The sun rises in the ${lower} every morning.`, highlight: lower, translation: `Mặt trời mọc ở phía ${meanLabel} mỗi sáng.` },
-      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `We are heading ${lower} right now.`,             highlight: lower, translation: `Chúng tôi đang đi về phía ${meanLabel} lúc này.` },
-      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `They traveled ${lower} last summer.`,             highlight: lower, translation: `Họ đã du lịch về phía ${meanLabel} mùa hè năm ngoái.` },
-      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `We were driving ${lower} when it rained.`,       highlight: lower, translation: `Chúng tôi đang lái xe hướng ${meanLabel} khi trời mưa.` },
-      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have been ${lower} of here before.`,           highlight: lower, translation: `Tôi đã từng đi về phía ${meanLabel} trước.` },
-      { tense: "future_simple",      formula: "S + will + V",            sentence: `They will travel ${lower} next month.`,          highlight: lower, translation: `Họ sẽ đi về phía ${meanLabel} tháng sau.` },
+      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `The sun rises in the ${lower} every morning.`,      highlight: lower, translation: `Mặt trời mọc ở ${meanLabel} mỗi sáng.` },
+      { tense: "present_continuous", formula: "S + am/is/are + V-ing",  sentence: `We are heading ${lower} right now.`,                highlight: lower, translation: `Chúng tôi đang đi về ${meanLabel} lúc này.` },
+      { tense: "past_simple",        formula: "S + V2/V-ed",            sentence: `They traveled ${lower} last summer.`,                highlight: lower, translation: `Họ đã đi về ${meanLabel} mùa hè năm ngoái.` },
+      { tense: "past_continuous",    formula: "S + was/were + V-ing",   sentence: `We were driving ${lower} when it rained.`,           highlight: lower, translation: `Chúng tôi đang lái xe hướng ${meanLabel} khi trời mưa.` },
+      { tense: "present_perfect",    formula: "S + have/has + V3",      sentence: `I have traveled ${lower} many times before.`,       highlight: lower, translation: `Tôi đã đi về ${meanLabel} nhiều lần rồi.` },
+      { tense: "future_simple",      formula: "S + will + V",           sentence: `They will travel ${lower} next month.`,             highlight: lower, translation: `Họ sẽ đi về ${meanLabel} tháng sau.` },
     ];
   }
 
@@ -599,16 +602,13 @@ export function getTenseExamples(cardOrTerm) {
   const meaningVi = typeof cardOrTerm === "object" ? cardOrTerm.meaning_vi : "";
   const cleanKey = termEn.trim().toLowerCase();
 
-  // Thẻ đã có sẵn mảng examples đầy đủ (>= 6)
-  if (
-    typeof cardOrTerm === "object" &&
-    Array.isArray(cardOrTerm.examples) &&
-    cardOrTerm.examples.length >= 6
-  ) {
-    return cardOrTerm.examples;
+  // 1. Ưu tiên cao nhất: dùng câu mẫu AI/chuẩn đã lưu trong DB
+  if (typeof cardOrTerm === "object") {
+    const saved = cardOrTerm.tense_examples || cardOrTerm.examples;
+    if (Array.isArray(saved) && saved.length >= 6) return saved;
   }
 
-  // Lấy base (3 hoặc 6 examples) từ bảng cố định
+  // 2. Lấy base từ bảng cố định
   let base = null;
   if (typeof cardOrTerm === "object" && Array.isArray(cardOrTerm.examples) && cardOrTerm.examples.length >= 3) {
     base = cardOrTerm.examples;
@@ -623,7 +623,7 @@ export function getTenseExamples(cardOrTerm) {
     }
   }
 
-  // Sinh fallback (luôn trả về 6)
+  // 3. Sinh fallback (luôn trả về 6)
   const generated = generateFallbackExamples(termEn, meaningVi);
 
   if (!base) return generated;

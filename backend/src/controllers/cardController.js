@@ -14,6 +14,25 @@ const {
   parseBoolean,
   parsePositiveInt,
 } = require("../utils/http");
+const { generateTenseExamples } = require("../services/aiService");
+
+/**
+ * Gọi AI sinh câu mẫu và lưu vào DB — chạy background sau khi response đã gửi.
+ * Bỏ qua nếu card đã có tense_examples hoặc thiếu GEMINI_API_KEY.
+ */
+async function fillTenseExamplesBackground(cardId, termEn, meaningVi, partOfSpeech) {
+  if (!process.env.GEMINI_API_KEY) return;
+  if (!termEn || !meaningVi) return;
+  try {
+    const examples = await generateTenseExamples(termEn, meaningVi, partOfSpeech || "");
+    await pool.execute(
+      "UPDATE cards SET tense_examples = ? WHERE id = ? AND tense_examples IS NULL",
+      [JSON.stringify(examples), cardId]
+    );
+  } catch (err) {
+    console.warn(`[AI] fillTenseExamples failed for card ${cardId} ("${termEn}"):`, err.message);
+  }
+}
 
 function normalizeCard(row) {
   if (!row) return null;
@@ -53,7 +72,15 @@ function normalizeCard(row) {
     isNew: correctCount < 5,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    tense_examples: parseTenseExamples(row.tense_examples),
+    examples: parseTenseExamples(row.tense_examples),
   };
+}
+
+function parseTenseExamples(raw) {
+  if (!raw) return null;
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
 async function ensureDeckExists(deckId) {
@@ -155,6 +182,15 @@ function readCardPayload(body, { requireTerms = true } = {}) {
     throw createHttpError(400, "meaning_vi la bat buoc");
   }
 
+  // Chấp nhận tense_examples là array hoặc JSON string
+  let tenseExamples = null;
+  const rawTe = body.tense_examples;
+  if (Array.isArray(rawTe) && rawTe.length === 6) {
+    tenseExamples = JSON.stringify(rawTe);
+  } else if (typeof rawTe === "string" && rawTe.trim().startsWith("[")) {
+    tenseExamples = rawTe;
+  }
+
   return {
     term_en: termEn,
     meaning_vi: meaningVi,
@@ -163,6 +199,7 @@ function readCardPayload(body, { requireTerms = true } = {}) {
     pronunciation: cleanNullableTextWithLimit(body.pronunciation, 255, "pronunciation"),
     part_of_speech: cleanNullableTextWithLimit(body.part_of_speech, 50, "part_of_speech"),
     is_favorite: parseBoolean(body.is_favorite ?? body.isFavorite, false),
+    tense_examples: tenseExamples,
   };
 }
 
@@ -226,8 +263,8 @@ async function createCard(req, res) {
 
     const [result] = await connection.execute(
       `INSERT INTO cards
-        (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, tense_examples)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         deckId,
         payload.term_en,
@@ -238,6 +275,7 @@ async function createCard(req, res) {
         payload.part_of_speech,
         payload.is_favorite,
         0,
+        payload.tense_examples ?? null,
       ]
     );
 
@@ -245,6 +283,11 @@ async function createCard(req, res) {
 
     const card = await findCardById(result.insertId);
     res.status(201).json(card);
+
+    // Sinh câu mẫu AI ngầm (background) nếu chưa có
+    if (!card.tense_examples) {
+      fillTenseExamplesBackground(card.id, card.term_en, card.meaning_vi, card.part_of_speech);
+    }
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -316,10 +359,18 @@ async function importCards(req, res) {
 
     await connection.commit();
 
+    const normalizedCards = rows.map(normalizeCard);
     res.status(201).json({
-      inserted_count: rows.length,
-      cards: rows.map(normalizeCard),
+      inserted_count: normalizedCards.length,
+      cards: normalizedCards,
     });
+
+    // Sinh câu mẫu AI ngầm cho từng card mới chưa có tense_examples
+    for (const c of normalizedCards) {
+      if (!c.tense_examples) {
+        fillTenseExamplesBackground(c.id, c.term_en, c.meaning_vi, c.part_of_speech);
+      }
+    }
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -398,7 +449,8 @@ async function updateCard(req, res) {
   await pool.execute(
     `UPDATE cards
      SET term_en = ?, meaning_vi = ?, example_sentence = ?, note = ?,
-         pronunciation = ?, part_of_speech = ?
+         pronunciation = ?, part_of_speech = ?,
+         tense_examples = COALESCE(?, tense_examples)
      WHERE id = ?`,
     [
       payload.term_en,
@@ -407,6 +459,7 @@ async function updateCard(req, res) {
       payload.note,
       payload.pronunciation,
       payload.part_of_speech,
+      payload.tense_examples ?? null,
       cardId,
     ]
   );
@@ -445,6 +498,23 @@ async function deleteCard(req, res) {
   res.json({ success: true });
 }
 
+/**
+ * POST /cards/generate-examples
+ * Body: { term_en, meaning_vi, part_of_speech? }
+ * Trả về 6 câu mẫu do AI sinh.
+ */
+async function generateCardExamples(req, res) {
+  const termEn = cleanTextWithLimit(req.body.term_en, 255, "term_en");
+  const meaningVi = cleanTextWithLimit(req.body.meaning_vi, 255, "meaning_vi");
+  const partOfSpeech = cleanNullableTextWithLimit(req.body.part_of_speech, 50, "part_of_speech");
+
+  if (!termEn) throw createHttpError(400, "term_en là bắt buộc");
+  if (!meaningVi) throw createHttpError(400, "meaning_vi là bắt buộc");
+
+  const examples = await generateTenseExamples(termEn, meaningVi, partOfSpeech || "");
+  res.json({ examples });
+}
+
 module.exports = {
   listCardsByDeck,
   createCard,
@@ -456,4 +526,5 @@ module.exports = {
   findCardById,
   normalizeCard,
   ensureDeckExists,
+  generateCardExamples,
 };

@@ -36,5 +36,10 @@ router.delete(
   requireAuth,
   asyncHandler(cardController.deleteCard)
 );
+router.post(
+  "/cards/generate-examples",
+  requireAuth,
+  asyncHandler(cardController.generateCardExamples)
+);
 
 module.exports = router;
