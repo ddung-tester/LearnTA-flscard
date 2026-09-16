@@ -64,26 +64,93 @@ const IRREGULAR_PAST = {
   drive: "drove", forget: "forgot", grow: "grew", hide: "hid",
 };
 
-// Động từ thông dụng
+// Động từ thông dụng — được kiểm tra trước suffix
 const COMMON_VERBS = new Set([
-  "learn", "read", "write", "study", "speak", "cook", "walk", "play",
-  "make", "work", "build", "run", "go", "eat", "drink", "buy", "sell",
-  "give", "take", "find", "know", "think", "see", "look", "come", "get",
-  "try", "use", "ask", "need", "feel", "become", "show", "want", "help",
-  "keep", "stay", "love", "like", "start", "stop", "open", "close",
-  "put", "move", "live", "call", "meet", "tell", "send", "sit", "stand",
-  "leave", "sleep", "bring", "teach", "sing", "swim", "fly", "draw",
-  "win", "hear", "pay", "say", "understand", "begin", "break", "choose",
-  "cut", "hit", "let", "set", "fall", "hold", "lose", "ride", "spend",
-  "wear", "catch", "drive", "forget", "grow", "hide", "throw", "fight",
-  "push", "pull", "jump", "climb", "ride", "turn", "wait", "visit",
-  "watch", "listen", "practice", "exercise", "travel", "enjoy", "create",
-  "design", "plan", "check", "fix", "save", "delete", "copy", "share",
-  "download", "upload", "install", "update", "login", "search", "click",
-  "type", "print", "scan", "test", "review", "manage", "control",
-  "improve", "increase", "reduce", "change", "add", "remove", "connect",
-  "complete", "finish", "continue", "stop", "repeat", "remember", "forget",
+  // Động từ bất quy tắc cơ bản
+  "be", "do", "have", "go", "get", "make", "take", "come", "see", "know",
+  "think", "look", "want", "give", "use", "find", "tell", "ask", "seem",
+  "feel", "try", "leave", "call", "keep", "let", "begin", "show", "hear",
+  "play", "run", "move", "live", "say", "put", "bring", "mean", "pay",
+  "meet", "sit", "stand", "lose", "set", "read", "lead", "hold", "cut",
+  "hit", "win", "ride", "fall", "send", "build", "spend", "grow", "buy",
+  "wear", "catch", "drive", "break", "fly", "teach", "speak", "write",
+  "choose", "sleep", "eat", "drink", "sell", "sing", "swim", "draw",
+  "throw", "fight", "hide", "forget", "rise", "understand",
+  // Động từ thường gặp trong học tiếng Anh
+  "learn", "study", "speak", "cook", "walk", "work", "help", "need",
+  "love", "like", "start", "stop", "open", "close", "visit", "watch",
+  "listen", "practice", "exercise", "travel", "enjoy", "create", "design",
+  "plan", "check", "fix", "save", "share", "search", "type", "test",
+  "review", "manage", "improve", "increase", "reduce", "change", "add",
+  "remove", "connect", "finish", "continue", "repeat", "remember",
+  "push", "pull", "jump", "climb", "turn", "wait", "print",
+  "copy", "delete", "download", "upload", "install", "update", "click",
+  // Dễ nhầm với danh từ / tính từ — cần liệt kê rõ
+  "believe", "achieve", "receive", "perceive", "conceive", "deceive",
+  "relieve", "retrieve", "grieve", "behave", "observe", "preserve",
+  "deserve", "serve", "reserve", "solve", "resolve", "involve", "evolve",
+  "approve", "improve", "prove", "move", "remove", "grove",
+  "decide", "provide", "divide", "guide", "ride", "slide", "hide",
+  "describe", "subscribe", "inscribe", "prescribe",
+  "produce", "reduce", "introduce", "reproduce",
+  "complete", "compete", "delete", "create", "relate", "translate",
+  "generate", "operate", "celebrate", "communicate", "participate",
+  "indicate", "educate", "motivate", "investigate", "demonstrate",
+  "allow", "follow", "borrow", "throw", "grow", "show", "know",
+  "respond", "correspond", "depend", "extend", "attend", "pretend",
+  "intend", "spend", "blend", "defend", "recommend", "understand",
+  "consider", "wonder", "cover", "discover", "recover", "deliver",
+  "remember", "prefer", "refer", "differ", "offer", "suffer", "transfer",
+  "appear", "disappear", "fear", "hear", "clear", "cheer",
+  "support", "report", "export", "import", "transport", "sort",
+  "accept", "expect", "respect", "protect", "correct", "connect", "collect",
+  "select", "detect", "affect", "reflect", "reject", "object", "project",
+  "suggest", "request", "protest", "invest", "rest", "test", "arrest",
+  "express", "impress", "stress", "access", "process", "progress",
+  "discuss", "miss", "pass", "class", "address",
+  "explain", "remain", "obtain", "contain", "maintain", "complain",
+  "entertain", "sustain", "train", "gain", "obtain",
+  "confirm", "perform", "reform", "inform", "transform",
+  "climb", "combine", "define", "design", "imagine", "examine",
+  "challenge", "encourage", "engage", "manage", "arrange", "change",
+  "exchange", "range", "damage", "judge", "acknowledge",
+  "admit", "commit", "permit", "submit", "transmit", "emit", "omit",
+  "control", "enroll", "scroll", "patrol",
+  "dream", "scream", "stream", "team", "seem",
+  "enjoy", "deploy", "destroy", "employ", "annoy",
+  "carry", "hurry", "worry", "marry", "bury", "copy", "reply", "supply",
+  "apply", "comply", "imply", "multiply", "satisfy", "classify",
+  "identify", "justify", "notify", "qualify", "verify",
 ]);
+
+// Tính từ thông dụng
+const COMMON_ADJECTIVES = new Set([
+  // Cơ bản
+  "good", "bad", "big", "small", "large", "little", "long", "short",
+  "high", "low", "old", "young", "new", "fast", "slow", "hot", "cold",
+  "warm", "cool", "hard", "soft", "easy", "difficult", "heavy", "light",
+  "dark", "bright", "clean", "dirty", "rich", "poor", "busy", "free",
+  "happy", "sad", "angry", "tired", "sick", "safe", "smart", "kind",
+  "brave", "tall", "wide", "deep", "flat", "round", "sharp", "thin",
+  "thick", "rough", "smooth", "sweet", "sour", "bitter", "spicy",
+  "loud", "quiet", "early", "late", "far", "near", "true", "false",
+  "right", "wrong", "real", "fake", "full", "empty", "open", "closed",
+  // Nâng cao
+  "beautiful", "ugly", "wonderful", "terrible", "horrible", "amazing",
+  "fantastic", "excellent", "perfect", "terrible", "awful", "great",
+  "important", "famous", "popular", "common", "special", "normal",
+  "natural", "local", "global", "digital", "physical", "mental", "social",
+  "economic", "political", "cultural", "historical", "traditional",
+  "modern", "ancient", "recent", "current", "future", "previous",
+  "first", "last", "next", "main", "major", "minor", "basic", "simple",
+  "complex", "strange", "unusual", "interesting", "boring", "exciting",
+  "creative", "innovative", "effective", "efficient", "successful",
+  "healthy", "wealthy", "powerful", "peaceful", "dangerous", "serious",
+  "funny", "silly", "clever", "wise", "polite", "rude", "friendly",
+  "lonely", "lovely", "lively", "lovely", "ugly", "tiny", "mighty",
+  "worthy", "costly", "messy", "noisy", "lucky", "tricky", "cozy",
+]);
+
 
 // ---------------------------------------------------------------------------
 // Hàm chia động từ
@@ -161,35 +228,64 @@ function getV3Form(verb) {
 
 
 // ---------------------------------------------------------------------------
-// Nhận diện loại từ
+// Nhận diện loại từ (POS) — thứ tự ưu tiên: to+verb > COMMON_VERBS > COMMON_ADJECTIVES > suffix verb > suffix adj > noun
 // ---------------------------------------------------------------------------
 function detectPOS(lower) {
+  // "to run", "to believe" — rõ ràng là động từ
   if (lower.startsWith("to ")) return "verb";
 
-  const verbBase = lower;
-  if (COMMON_VERBS.has(verbBase)) return "verb";
+  // Kiểm tra danh sách tường minh trước (chính xác nhất)
+  if (COMMON_VERBS.has(lower)) return "verb";
+  if (COMMON_ADJECTIVES.has(lower)) return "adjective";
+
+  // Suffix động từ — kiểm tra trước suffix tính từ
   if (
     lower.endsWith("ize") || lower.endsWith("ise") ||
     lower.endsWith("ate") || lower.endsWith("ify") ||
-    lower.endsWith("fy")
+    lower.endsWith("fy")  || lower.endsWith("efy") ||
+    lower.endsWith("en")  ||                              // brighten, widen, happen
+    lower.endsWith("eer") || lower.endsWith("ure") ||    // volunteer, ensure
+    lower.endsWith("ieve") || lower.endsWith("eive") ||  // believe, receive
+    lower.endsWith("cede") || lower.endsWith("ceed") ||  // proceed, exceed
+    lower.endsWith("form") || lower.endsWith("duct") ||  // perform, conduct
+    lower.endsWith("pose") || lower.endsWith("pose") ||  // compose, propose
+    lower.endsWith("duce") || lower.endsWith("scribe") || // produce, describe
+    lower.endsWith("fend") || lower.endsWith("tend") ||  // defend, attend
+    lower.endsWith("spond") || lower.endsWith("nect")    // respond, connect
   ) return "verb";
 
+  // Suffix tính từ
   if (
-    lower.endsWith("ful") || lower.endsWith("less") ||
-    lower.endsWith("ous") || lower.endsWith("ive") ||
+    lower.endsWith("ful")  || lower.endsWith("less") ||
+    lower.endsWith("ous")  || lower.endsWith("ive")  ||
     lower.endsWith("ible") || lower.endsWith("able") ||
-    lower.endsWith("ic") || lower.endsWith("ical") ||
-    lower.endsWith("ent") || lower.endsWith("ant") ||
-    lower.endsWith("ish") || lower.endsWith("al") ||
-    [
-      "happy", "sad", "big", "small", "good", "bad", "fast", "slow",
-      "old", "new", "hot", "cold", "easy", "hard", "smart", "kind",
-      "brave", "free", "safe", "clean", "dirty", "heavy", "light",
-      "tall", "short", "long", "young", "rich", "poor", "busy",
-    ].includes(lower)
+    lower.endsWith("ic")   || lower.endsWith("ical") ||
+    lower.endsWith("ent")  || lower.endsWith("ant")  ||
+    lower.endsWith("ish")  || lower.endsWith("some") ||
+    lower.endsWith("ward") || lower.endsWith("wise") ||
+    lower.endsWith("most") || lower.endsWith("like") ||
+    // tính từ kết thúc "-al" nhưng tránh nhầm với noun (signal, animal)
+    (lower.endsWith("al") && lower.length > 5 && !/signal|animal|metal|final|canal|oval|rival|total|equal|focal|legal|moral|rural|tonal|viral|banal|naval|papal|penal|regal|tidal|vegal|zonal/.test(lower))
   ) return "adjective";
 
   return "noun";
+}
+
+/** Metadata cho từng loại từ — dùng để hiển thị badge */
+export const POS_META = {
+  verb:      { nameVi: "Động từ", nameEn: "verb",      abbr: "v.",   color: "#0284c7" },
+  adjective: { nameVi: "Tính từ", nameEn: "adjective", abbr: "adj.", color: "#0f766e" },
+  noun:      { nameVi: "Danh từ", nameEn: "noun",      abbr: "n.",   color: "#b45309" },
+};
+
+/** API public: nhận diện loại từ cho một từ tiếng Anh */
+export function getWordType(termEn) {
+  if (!termEn) return null;
+  const lower = String(termEn).trim().toLowerCase();
+  // Trường hợp "to + verb"
+  const base = lower.startsWith("to ") ? lower.slice(3) : lower;
+  const pos = detectPOS(base);
+  return { pos, ...POS_META[pos] };
 }
 
 // ---------------------------------------------------------------------------

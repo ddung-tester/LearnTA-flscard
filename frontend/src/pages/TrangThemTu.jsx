@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { layDeckTheoId } from "../services/deckApi";
 import { taoCard } from "../services/cardApi";
+import { getTenseExamples, TENSE_META, getWordType } from "../data/tenseExamples";
 
 /**
  * TrangThemTu — Form them tu vung vao bo.
@@ -30,6 +31,23 @@ function TrangThemTu() {
     example_sentence: "",
     note: "",
   });
+  const [termDebounced, setTermDebounced] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTermDebounced(tuMoi.term_en.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tuMoi.term_en]);
+
+  // Sinh preview câu ví dụ theo thì
+  const previewExamples = useMemo(() => {
+    if (!termDebounced) return [];
+    const fakeCard = { term_en: termDebounced, meaning_vi: tuMoi.meaning_vi.trim() };
+    return getTenseExamples(fakeCard);
+  }, [termDebounced, tuMoi.meaning_vi]);
+
+  const wordType = useMemo(() => getWordType(termDebounced), [termDebounced]);
+
   const [danhSachDaLuu, setDanhSachDaLuu] = useState([]);
   const toast = useToast();
 
@@ -160,6 +178,33 @@ function TrangThemTu() {
           </button>
         </div>
       </form>
+
+      {/* Preview câu ví dụ theo thì */}
+      {previewExamples.length > 0 && (
+        <div className="rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat-2,var(--mau-nen))] p-3 space-y-2 max-w-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--mau-chu-phu)]">
+              ✦ Câu ví dụ tự động theo 6 thì
+            </p>
+            {wordType && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ background: `color-mix(in srgb, ${wordType.color} 14%, transparent)`, color: wordType.color }}
+              >
+                {wordType.abbr} {wordType.nameVi}
+              </span>
+            )}
+          </div>
+          <ul className="space-y-1.5">
+            {previewExamples.map((item) => (
+              <li key={item.tense} className="text-xs flex items-start gap-2">
+                <span className="font-semibold text-[var(--mau-chinh)] min-w-[70px]">{TENSE_META[item.tense]?.labelVi || item.tense}:</span>
+                <span className="text-[var(--mau-chu)] italic">"{item.sentence}"</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Danh sach tu vua luu */}
       {danhSachDaLuu.length > 0 && (

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import "./TenseExamplesCard.css";
-import { getTenseExamples, TENSE_META } from "../../data/tenseExamples";
+import { getTenseExamples, TENSE_META, getWordType } from "../../data/tenseExamples";
 import useTTS from "../../hooks/useTTS";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 24, mass: 0.85 };
@@ -98,6 +98,7 @@ export default function TenseExamplesCard({
   const effectiveTermEn = termEn || card?.term_en || "";
   const effectiveMeaningVi = meaningVi || card?.meaning_vi || "";
   const examples = getTenseExamples(card || effectiveTermEn);
+  const wordType = getWordType(effectiveTermEn);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1100px)");
@@ -164,6 +165,14 @@ export default function TenseExamplesCard({
         <div className="tec-panel tec-panel--left">
           <div className="tec-panel__word-label">
             <span className="tec-panel__word">{effectiveTermEn}</span>
+            {wordType && (
+              <span
+                className="tec-panel__pos-badge"
+                style={{ background: `color-mix(in srgb, ${wordType.color} 16%, transparent)`, color: wordType.color }}
+              >
+                {wordType.abbr} {wordType.nameVi}
+              </span>
+            )}
             {effectiveMeaningVi && (
               <span className="tec-panel__meaning">• {effectiveMeaningVi}</span>
             )}
@@ -218,10 +227,18 @@ export default function TenseExamplesCard({
             Aa
           </span>
           <h3 className="text-sm font-bold text-[var(--mau-chu)] flex items-center gap-2">
-            <span>Ví dụ 3 thì cơ bản</span>
+            <span>Ví dụ 6 thì cơ bản</span>
             {effectiveTermEn && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--mau-chinh)]/10 text-[var(--mau-chinh)]">
                 {effectiveTermEn}{effectiveMeaningVi ? ` • ${effectiveMeaningVi}` : ""}
+              </span>
+            )}
+            {wordType && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ background: `color-mix(in srgb, ${wordType.color} 14%, transparent)`, color: wordType.color }}
+              >
+                {wordType.abbr} {wordType.nameVi}
               </span>
             )}
           </h3>
