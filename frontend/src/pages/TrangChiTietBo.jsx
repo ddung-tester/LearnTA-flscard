@@ -1024,72 +1024,73 @@ function TrangChiTietBo() {
       </div>
 
       <div className="ui-section-stack">
-        <div className="ui-section-header">
-          <h3 className="text-sm font-semibold text-[var(--mau-chu)]">
-            Từ vựng ({danhSachDaLoc.length}/{soTu})
+        {/* ---- Toolbar row 1: tiêu đề + actions ---- */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h3 className="text-sm font-semibold text-[var(--mau-chu)] shrink-0">
+            Từ vựng
+            <span className="ml-1.5 text-[var(--mau-chu-phu)] font-normal">
+              ({danhSachDaLoc.length}/{soTu})
+            </span>
           </h3>
-          {coTheQuanLy && (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              {dangBatChinhSua ? (
-                <>
-                  <div className="ui-control-cluster">
-                    <NutIconQuanLyTu label="Thêm từ" onClick={moFormThemTu}>
-                      <IconPlus />
-                    </NutIconQuanLyTu>
-                    <NutIconQuanLyTu label="Import từ" onClick={moFormImport}>
-                      <IconUpload />
-                    </NutIconQuanLyTu>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={tatCheDoChinhSua}
-                    aria-label="Thoát chế độ sửa"
-                    title="Thoát chế độ sửa"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "2rem",
-                      height: "2rem",
-                      borderRadius: "50%",
-                      border: "1.5px solid var(--mau-vien)",
-                      background: "var(--mau-mat)",
-                      color: "var(--mau-chu-phu)",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                      transition: "background 0.15s, color 0.15s, border-color 0.15s",
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "color-mix(in srgb, var(--mau-nguy-hiem, #ef4444) 12%, var(--mau-mat))";
-                      e.currentTarget.style.color = "var(--mau-nguy-hiem, #ef4444)";
-                      e.currentTarget.style.borderColor = "var(--mau-nguy-hiem, #ef4444)";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "var(--mau-mat)";
-                      e.currentTarget.style.color = "var(--mau-chu-phu)";
-                      e.currentTarget.style.borderColor = "var(--mau-vien)";
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" style={{ width: "1rem", height: "1rem" }} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </>
+
+          <div className="flex items-center gap-2">
+            {coTheQuanLy && dangBatChinhSua && (
+              <>
+                <button
+                  type="button"
+                  onClick={moFormThemTu}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/8 px-3 py-1.5 text-xs font-semibold text-[var(--mau-chinh)] transition-colors hover:bg-[var(--mau-chinh)]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)]"
+                >
+                  <IconPlus />
+                  Thêm từ
+                </button>
+                <button
+                  type="button"
+                  onClick={moFormImport}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-3 py-1.5 text-xs font-semibold text-[var(--mau-chu-phu)] transition-colors hover:border-[var(--mau-chinh)] hover:text-[var(--mau-chinh)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)]"
+                >
+                  <IconUpload />
+                  Import
+                </button>
+              </>
+            )}
+
+            {coTheQuanLy && (
+              dangBatChinhSua ? (
+                <button
+                  type="button"
+                  onClick={tatCheDoChinhSua}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mau-nguy-hiem,#ef4444)]/40 bg-[var(--mau-nguy-hiem,#ef4444)]/8 px-3 py-1.5 text-xs font-semibold text-[var(--mau-nguy-hiem,#ef4444)] transition-colors hover:bg-[var(--mau-nguy-hiem,#ef4444)]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-nguy-hiem,#ef4444)]"
+                  aria-label="Thoát chế độ sửa"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                  Thoát sửa
+                </button>
               ) : (
-                <NutIconQuanLyTu
-                  label="Sửa"
+                <button
+                  type="button"
                   onClick={batTatCheDoChinhSua}
-                  active={false}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-3 py-1.5 text-xs font-semibold text-[var(--mau-chu-phu)] transition-colors hover:border-[var(--mau-chinh)] hover:text-[var(--mau-chinh)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)]"
+                  aria-label="Bật chế độ sửa"
                 >
                   <IconEdit />
-                </NutIconQuanLyTu>
-              )}
-            </div>
-          )}
+                  Sửa
+                </button>
+              )
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="ui-filter-tabs" aria-label="Lọc từ vựng">
+        {/* ---- Toolbar row 2: filter tabs + sort ---- */}
+        <div className="flex items-center gap-2">
+          {/* Filter tabs cuộn ngang trên mobile */}
+          <div
+            className="ui-filter-tabs flex-1 min-w-0"
+            style={{ flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }}
+            aria-label="Lọc từ vựng"
+          >
             {FILTER_TU.map((filter) => {
               const soLuong =
                 filter.key === "yeu-thich"
@@ -1106,6 +1107,7 @@ function TrangChiTietBo() {
                   disabled={dangBatChinhSua}
                   aria-pressed={filterTu === filter.key}
                   className="ui-filter-tab"
+                  style={{ flex: "0 0 auto" }}
                 >
                   <span>{filter.label}</span>
                   <span className="ui-filter-tab__count">{soLuong}</span>
@@ -1114,22 +1116,20 @@ function TrangChiTietBo() {
             })}
           </div>
 
-          <div className="flex items-center gap-1.5 ml-auto shrink-0">
-            <span className="text-xs text-[var(--mau-chu-phu)] font-medium hidden sm:inline">Sắp xếp:</span>
-            <select
-              value={sortTu}
-              onChange={(e) => setSortTu(e.target.value)}
-              disabled={dangBatChinhSua}
-              aria-label="Sắp xếp từ vựng"
-              className="rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
-            >
-              {SORT_TU.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Sort — pinned to the right, never wraps */}
+          <select
+            value={sortTu}
+            onChange={(e) => setSortTu(e.target.value)}
+            disabled={dangBatChinhSua}
+            aria-label="Sắp xếp từ vựng"
+            className="shrink-0 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
+          >
+            {SORT_TU.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {danhSach.length === 0 ? (
