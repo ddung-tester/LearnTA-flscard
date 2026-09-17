@@ -60,32 +60,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--bg-body, #fff);
+  border: 2px solid #fff;
 }
 
-/* --- Panel --- */
-.chatbot-panel {
+/* --- Panel wrapper (always in DOM, toggled via opacity/transform) --- */
+.chatbot-panel-wrapper {
   position: fixed;
   bottom: 96px;
   right: 28px;
   z-index: 9001;
-  width: 360px;
-  max-height: 540px;
+  pointer-events: none;
+  transform-origin: bottom right;
+  /* closed state */
+  opacity: 0;
+  transform: scale(0.85) translateY(12px);
+  transition:
+    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.22s cubic-bezier(0.34, 1.46, 0.64, 1);
+}
+.chatbot-panel-wrapper.is-open {
+  pointer-events: auto;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* --- Panel card --- */
+.chatbot-panel {
+  width: 420px;
+  height: 620px;
   border-radius: 20px;
-  background: rgba(18, 18, 28, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow:
+    0 8px 32px rgba(99, 102, 241, 0.14),
+    0 2px 8px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transform-origin: bottom right;
-  animation: chatbot-open 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes chatbot-open {
-  from { opacity: 0; transform: scale(0.7); }
-  to   { opacity: 1; transform: scale(1); }
 }
 
 /* --- Header --- */
@@ -119,7 +130,7 @@
 }
 .chatbot-header-status {
   font-size: 11px;
-  color: rgba(255,255,255,0.75);
+  color: rgba(255,255,255,0.85);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -159,11 +170,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255,255,255,0.8);
   transition: color 0.15s;
   font-size: 14px;
   margin-right: 4px;
-  title: "Xoá lịch sử";
 }
 .chatbot-clear-btn:hover { color: #fff; }
 
@@ -176,10 +186,11 @@
   flex-direction: column;
   gap: 10px;
   scroll-behavior: smooth;
+  background: #f8f8ff;
 }
 .chatbot-messages::-webkit-scrollbar { width: 4px; }
 .chatbot-messages::-webkit-scrollbar-track { background: transparent; }
-.chatbot-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+.chatbot-messages::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.2); border-radius: 4px; }
 
 /* Message bubble */
 .chatbot-msg {
@@ -199,27 +210,31 @@
   padding: 10px 14px;
   border-radius: 16px;
   font-size: 13.5px;
-  line-height: 1.55;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
 }
-.chatbot-msg.user  .chatbot-bubble-text {
+.chatbot-msg.user .chatbot-bubble-text {
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 .chatbot-msg.model .chatbot-bubble-text {
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.92);
+  background: #ffffff;
+  color: #1e1b4b;
   border-bottom-left-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  box-shadow: 0 1px 4px rgba(99,102,241,0.07);
 }
 
 /* Simple markdown rendering */
 .chatbot-bubble-text strong { font-weight: 700; }
 .chatbot-bubble-text em     { font-style: italic; }
 .chatbot-bubble-text code {
-  background: rgba(99,102,241,0.25);
+  background: rgba(99,102,241,0.12);
+  color: #4338ca;
   border-radius: 4px;
   padding: 1px 5px;
   font-family: "Fira Mono", monospace;
@@ -232,16 +247,17 @@
   align-items: center;
   gap: 5px;
   padding: 10px 14px;
-  background: rgba(255,255,255,0.08);
+  background: #ffffff;
   border-radius: 16px;
   border-bottom-left-radius: 4px;
   align-self: flex-start;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid rgba(99,102,241,0.15);
+  box-shadow: 0 1px 4px rgba(99,102,241,0.07);
 }
 .chatbot-typing span {
   width: 7px;
   height: 7px;
-  background: rgba(255,255,255,0.5);
+  background: #a5b4fc;
   border-radius: 50%;
   animation: typing-dot 1.2s infinite;
 }
@@ -257,22 +273,23 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 14px 4px;
+  padding: 4px 14px 8px;
+  background: #f8f8ff;
 }
 .chatbot-suggestion-btn {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 20px;
   padding: 5px 11px;
   font-size: 12px;
-  color: #a5b4fc;
+  color: #4f46e5;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
 .chatbot-suggestion-btn:hover {
-  background: rgba(99, 102, 241, 0.3);
-  color: #fff;
+  background: rgba(99, 102, 241, 0.18);
+  color: #3730a3;
 }
 
 /* --- Input area --- */
@@ -281,17 +298,18 @@
   align-items: flex-end;
   gap: 8px;
   padding: 12px 14px;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(99, 102, 241, 0.12);
+  background: #ffffff;
   flex-shrink: 0;
 }
 .chatbot-textarea {
   flex: 1;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: #f3f4ff;
+  border: 1px solid rgba(99, 102, 241, 0.25);
   border-radius: 12px;
   padding: 9px 12px;
   font-size: 13.5px;
-  color: rgba(255,255,255,0.92);
+  color: #1e1b4b;
   resize: none;
   max-height: 96px;
   min-height: 38px;
@@ -300,8 +318,8 @@
   line-height: 1.45;
   transition: border-color 0.15s;
 }
-.chatbot-textarea::placeholder { color: rgba(255,255,255,0.35); }
-.chatbot-textarea:focus { border-color: rgba(99, 102, 241, 0.6); }
+.chatbot-textarea::placeholder { color: #9ca3af; }
+.chatbot-textarea:focus { border-color: rgba(99, 102, 241, 0.6); background: #eef0ff; }
 
 .chatbot-send-btn {
   width: 38px;
@@ -323,11 +341,13 @@
 
 /* --- Responsive --- */
 @media (max-width: 480px) {
+  .chatbot-panel-wrapper {
+    right: 8px;
+    bottom: 82px;
+  }
   .chatbot-panel {
-    right: 12px;
-    bottom: 84px;
-    width: calc(100vw - 24px);
-    max-height: 70vh;
+    width: calc(100vw - 16px);
+    height: 75vh;
   }
   .chatbot-bubble { bottom: 18px; right: 18px; }
 }

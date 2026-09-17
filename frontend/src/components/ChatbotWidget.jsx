@@ -136,9 +136,15 @@ export default function ChatbotWidget() {
         {hasUnread && !open && <span className="chatbot-badge">1</span>}
       </button>
 
-      {/* Chat panel */}
-      {open && (
-        <div className="chatbot-panel" role="dialog" aria-label="Chatbot tiếng Anh">
+      {/* Chat panel — always mounted, shown/hidden via CSS transition to avoid jank */}
+      <div
+        className={`chatbot-panel-wrapper${open ? " is-open" : ""}`}
+        role="dialog"
+        aria-label="Chatbot tiếng Anh"
+        aria-hidden={!open}
+        inert={!open ? "" : undefined}
+      >
+        <div className="chatbot-panel">
           {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-header-avatar">🤖</div>
@@ -237,7 +243,7 @@ export default function ChatbotWidget() {
             </button>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
