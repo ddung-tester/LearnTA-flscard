@@ -1252,18 +1252,24 @@ function TrangChiTietBo() {
                         </button>
                         {dangBatChinhSua && (
                           <>
-                            <NutIconQuanLyTu
-                              label={`Sửa từ ${the.term_en}`}
+                            <button
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); moFormSuaTu(the); }}
+                              title="Sửa từ"
+                              aria-label={`Sửa từ ${the.term_en}`}
+                              className="ui-card-action-btn"
                             >
                               <IconEdit />
-                            </NutIconQuanLyTu>
-                            <NutIconQuanLyTu
-                              label={`Xóa từ ${the.term_en}`}
+                            </button>
+                            <button
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); xoaTu(the.id); }}
+                              title="Xóa từ"
+                              aria-label={`Xóa từ ${the.term_en}`}
+                              className="ui-card-action-btn ui-card-action-btn--danger"
                             >
                               <IconTrash />
-                            </NutIconQuanLyTu>
+                            </button>
                           </>
                         )}
                       </div>

@@ -2154,7 +2154,6 @@ body.is-page-loading .page-transition-root {
 .ui-word-row,
 .ui-word-row:hover {
   position: relative;
-  overflow: hidden;
   padding: 0.75rem 0.9rem;
   background:
     linear-gradient(180deg, oklch(98% 0.015 76/ 0.72), oklch(96% 0.015 80/ 0.66));
@@ -2271,16 +2270,45 @@ body.is-page-loading .page-transition-root {
 }
 
 .ui-word-actions--editing {
-  grid-template-columns: repeat(2, 2rem);
+  grid-template-columns: repeat(3, 2rem);
   width: auto;
   transform: translateX(0);
   gap: 0.2rem;
-  margin-right: 1.5rem;
 }
 
 .ui-word-actions .ui-icon-action,
 .ui-word-actions .ui-favorite-button {
   justify-self: center;
+}
+
+/* Compact icon button dùng trong mỗi thẻ từ (không dùng floating tooltip) */
+.ui-card-action-btn {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--mau-chu-phu);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ui-card-action-btn svg {
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+}
+.ui-card-action-btn:hover {
+  background: var(--mau-mat-hover);
+  border-color: var(--mau-vien);
+  color: var(--mau-chinh);
+}
+.ui-card-action-btn--danger:hover {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  border-color: color-mix(in srgb, #ef4444 30%, transparent);
+  color: #ef4444;
 }
 
 @media (max-width: 639px) {
