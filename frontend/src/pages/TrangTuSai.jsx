@@ -239,7 +239,7 @@ function MistakeCard({ entry, onMarkReviewed, onRemove }) {
 
 function TrangTuSai() {
   const toast = useToast();
-  const { setPageDataLoading } = usePageTransition();
+  const { setPageDataLoading, navigateWithLoading } = usePageTransition();
   const [searchParams] = useSearchParams();
   const initialDeck = searchParams.get("deckId") ?? "";
 
@@ -360,11 +360,11 @@ function TrangTuSai() {
       {/* Empty state */}
       {allEntries.length === 0 ? (
         <EmptyState
-          type="study"
+          icon="search"
           title="Sổ từ sai trống"
-          message="Chưa có từ nào được ghi nhận là sai. Hoàn thành một bài Quiz hoặc Tự luận để bắt đầu."
-          actionLabel="Xem bộ từ"
-          actionHref="/decks"
+          description="Chưa có từ nào được ghi nhận là sai. Hoàn thành một bài Quiz hoặc Tự luận để bắt đầu."
+          action="Xem bộ từ"
+          onAction={() => navigateWithLoading("/decks")}
         />
       ) : filtered.length === 0 ? (
         <div className="tu-sai-empty-filter">

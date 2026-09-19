@@ -307,7 +307,7 @@ function CompletionScreen({ total }) {
 
 function TrangOnTapHomNay() {
   const toast = useToast();
-  const { setPageDataLoading } = usePageTransition();
+  const { setPageDataLoading, navigateWithLoading } = usePageTransition();
 
   const [allCards, setAllCards] = useState(() => layTatCaSRS());
   // The remote queue always syncs on mount. Starting at true lets the global
@@ -586,11 +586,11 @@ function TrangOnTapHomNay() {
       {/* Content */}
       {nothingDue ? (
         <EmptyState
-          type="study"
+          icon="search"
           title="Hôm nay chưa có từ cần ôn"
-          message="Hoàn thành một bài Quiz hoặc Tự luận để bắt đầu xây dựng hàng ôn tập của bạn."
-          actionLabel="Xem bộ từ"
-          actionHref="/decks"
+          description="Hoàn thành một bài Quiz hoặc Tự luận để bắt đầu xây dựng hàng ôn tập của bạn."
+          action="Xem bộ từ"
+          onAction={() => navigateWithLoading("/decks")}
         />
       ) : isComplete ? (
         <CompletionScreen total={effectiveDone} />

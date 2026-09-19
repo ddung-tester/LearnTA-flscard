@@ -521,7 +521,8 @@ body.has-video-background--app .ui-mode-rotate-button {
   color: oklch(23% 0.03 60/ 0.94) !important;
   box-shadow:
     0 10px 24px oklch(17% 0.035 60/ 0.2),
-    inset 0 1px 0 oklch(99% 0.012 76/ 0.72);
+    inset 0 1px 0 oklch(99% 0.012 76/ 0.72),
+    var(--filter-cuon-fade, 0 0 #0000);
 }
 
 body.has-video-background--app .ui-back-link:hover,

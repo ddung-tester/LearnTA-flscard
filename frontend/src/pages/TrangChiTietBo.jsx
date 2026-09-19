@@ -125,22 +125,6 @@ function IconHeart({ filled = false }) {
   );
 }
 
-function NutIconQuanLyTu({ label, onClick, active = false, disabled = false, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      aria-pressed={active}
-      title={label}
-      className={`ui-icon-action ${active ? "ui-icon-action--active" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]`}
-    >
-      {children}
-      <span className="ui-action-tooltip">{label}</span>
-    </button>
-  );
-}
 
 function parseDongImport(dong) {
   const noiDung = dong.trim();
@@ -201,6 +185,25 @@ function TrangChiTietBo() {
   // streak bị vỡ: đã từng có streak nhưng bỏ học >= 2 ngày liên tiếp
   const [streakBroken, setStreakBroken] = useState(false);
   const dataRequestRef = useRef(0);
+  const filterTabsRef = useRef(null);
+  const [filterConTheCuonPhai, setFilterConTheCuonPhai] = useState(false);
+
+  useEffect(() => {
+    const el = filterTabsRef.current;
+    if (!el) return undefined;
+
+    function capNhatTrangThaiCuonFilter() {
+      setFilterConTheCuonPhai(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+    }
+
+    capNhatTrangThaiCuonFilter();
+    el.addEventListener("scroll", capNhatTrangThaiCuonFilter, { passive: true });
+    window.addEventListener("resize", capNhatTrangThaiCuonFilter);
+    return () => {
+      el.removeEventListener("scroll", capNhatTrangThaiCuonFilter);
+      window.removeEventListener("resize", capNhatTrangThaiCuonFilter);
+    };
+  }, [danhSach.length, dangTaiDuLieu]);
 
   async function taiDuLieuBo() {
     const requestId = ++dataRequestRef.current;
@@ -943,6 +946,7 @@ function TrangChiTietBo() {
   const soTuYeuThich = danhSach.filter(laTuYeuThich).length;
   const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
   const soTuChuaHoc = danhSach.filter((t) => (t.correct_count || 0) < 5).length;
+  const soTuDaHoc = danhSach.filter((t) => (t.correct_count || 0) >= 5).length;
   const streak = userStreak;
   const coTheQuiz = soTu >= 4;
   const coTheQuanLy = coQuyenQuanLyBo();
@@ -1087,7 +1091,8 @@ function TrangChiTietBo() {
         <div className="flex items-center gap-2">
           {/* Filter tabs cuộn ngang trên mobile */}
           <div
-            className="ui-filter-tabs flex-1 min-w-0"
+            ref={filterTabsRef}
+            className={`ui-filter-tabs flex-1 min-w-0${filterConTheCuonPhai ? " ui-filter-tabs--co-the-cuon-phai" : ""}`}
             style={{ flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }}
             aria-label="Lọc từ vựng"
           >
@@ -1097,7 +1102,11 @@ function TrangChiTietBo() {
                   ? soTuYeuThich
                   : filter.key === "moi-them"
                     ? soTuMoiThem
-                    : soTu;
+                    : filter.key === "chua-hoc-filter"
+                      ? soTuChuaHoc
+                      : filter.key === "da-hoc"
+                        ? soTuDaHoc
+                        : soTu;
 
               return (
                 <button
@@ -1117,19 +1126,22 @@ function TrangChiTietBo() {
           </div>
 
           {/* Sort — pinned to the right, never wraps */}
-          <select
-            value={sortTu}
-            onChange={(e) => setSortTu(e.target.value)}
-            disabled={dangBatChinhSua}
-            aria-label="Sắp xếp từ vựng"
-            className="shrink-0 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
-          >
-            {SORT_TU.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-xs text-[var(--mau-chu-phu)] font-medium hidden sm:inline">Sắp xếp:</span>
+            <select
+              value={sortTu}
+              onChange={(e) => setSortTu(e.target.value)}
+              disabled={dangBatChinhSua}
+              aria-label="Sắp xếp từ vựng"
+              className="shrink-0 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
+            >
+              {SORT_TU.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {danhSach.length === 0 ? (
@@ -1165,24 +1177,24 @@ function TrangChiTietBo() {
                   }}
                   style={{ cursor: "pointer" }}
                 >
-                  {dangChoMoveTu && (
-                    <button
-                      type="button"
-                      disabled={dangLuuThuTu}
-                      onPointerDown={(event) => batDauKeoTu(event, the)}
-                      onKeyDown={(event) => {
-                        if (event.key === "ArrowUp") diChuyenTuBangPhim(event, the, -1);
-                        if (event.key === "ArrowDown") diChuyenTuBangPhim(event, the, 1);
-                      }}
-                      aria-label={`Di chuyển ${the.term_en}`}
-                      title={dangLuuThuTu ? "Đang lưu thứ tự" : "Giữ và kéo để đổi thứ tự"}
-                      className="ui-word-move-handle"
-                    >
-                      <IconGrip />
-                    </button>
-                  )}
                   <div className="ui-word-row__inner">
                     <div className="ui-word-main">
+                      {dangChoMoveTu && (
+                        <button
+                          type="button"
+                          disabled={dangLuuThuTu}
+                          onPointerDown={(event) => batDauKeoTu(event, the)}
+                          onKeyDown={(event) => {
+                            if (event.key === "ArrowUp") diChuyenTuBangPhim(event, the, -1);
+                            if (event.key === "ArrowDown") diChuyenTuBangPhim(event, the, 1);
+                          }}
+                          aria-label={`Di chuyển ${the.term_en}`}
+                          title={dangLuuThuTu ? "Đang lưu thứ tự" : "Giữ và kéo để đổi thứ tự"}
+                          className="ui-word-move-handle"
+                        >
+                          <IconGrip />
+                        </button>
+                      )}
                       <span className="ui-word-index">
                         {i + 1}
                       </span>
