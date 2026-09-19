@@ -110,7 +110,7 @@ function DeckMiniCard({ deck }) {
 
 function TrangDashboard() {
   const { user } = useAuth();
-  const { setPageDataLoading } = usePageTransition();
+  const { setPageDataLoading, navigateWithLoading } = usePageTransition();
   const [decks, setDecks] = useState(null);
   const [stats, setStats] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -211,12 +211,20 @@ function TrangDashboard() {
           {/* CTAs */}
           <div className="dash-welcome__actions">
             {deckDeNghi ? (
-              <Link
-                to={`/decks/${deckDeNghi.id}`}
-                className="ui-button ui-button--primary dash-cta-primary"
-              >
-                Tiếp tục học
-              </Link>
+              <>
+                <Link
+                  to={`/decks/${deckDeNghi.id}`}
+                  className="ui-button ui-button--primary dash-cta-primary"
+                >
+                  Tiếp tục học
+                </Link>
+                <Link
+                  to="/decks"
+                  className="ui-button ui-button--ghost dash-cta-secondary"
+                >
+                  Xem bộ từ
+                </Link>
+              </>
             ) : (
               <Link
                 to="/decks"
@@ -225,12 +233,6 @@ function TrangDashboard() {
                 Xem bộ từ
               </Link>
             )}
-            <Link
-              to="/decks"
-              className="ui-button ui-button--ghost dash-cta-secondary"
-            >
-              Xem bộ từ
-            </Link>
           </div>
         </div>
 
@@ -340,11 +342,11 @@ function TrangDashboard() {
               </div>
             ) : khongCoBo ? (
               <EmptyState
-                type="deck"
+                icon="deck"
                 title="Chưa có bộ từ nào"
-                message="Tạo bộ từ đầu tiên để bắt đầu học."
-                actionLabel="Tạo bộ từ"
-                actionHref="/decks?create=1"
+                description="Tạo bộ từ đầu tiên để bắt đầu học."
+                action="Tạo bộ từ"
+                onAction={() => navigateWithLoading("/decks?create=1")}
               />
             ) : (
               <div className="dash-deck-grid">
