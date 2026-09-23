@@ -7,6 +7,7 @@
  * POST /api/cron/praise          — 18:00 VN — khen user ĐÃ học
  */
 
+const crypto = require("crypto");
 const express = require("express");
 const { sendDailyReminders, sendPraiseEmails } = require("../services/reminderService");
 
@@ -18,8 +19,9 @@ function verifyCronSecret(req, res, next) {
     console.error("[cronRoutes] CRON_SECRET chưa cấu hình; từ chối cron HTTP.");
     return res.status(503).json({ error: "Cron endpoint is not configured" });
   }
-  const provided = req.headers["x-cron-secret"];
-  if (!provided || provided !== secret) {
+  const provided = Buffer.from(String(req.headers["x-cron-secret"] || ""));
+  const expected = Buffer.from(secret);
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
     console.warn("[cronRoutes] Unauthorized cron request — sai secret.");
     return res.status(401).json({ error: "Unauthorized" });
   }

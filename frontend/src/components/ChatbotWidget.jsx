@@ -69,9 +69,9 @@ export default function ChatbotWidget() {
       setLoading(true);
 
       try {
-        // Gửi toàn bộ history (bao gồm message mới vừa thêm)
+        // Gửi 20 tin gần nhất (bao gồm message mới vừa thêm) — server giới hạn history
         const { data } = await api.post("/chat", {
-          messages: updatedMessages,
+          messages: updatedMessages.slice(-20),
         });
 
         setMessages((prev) => [

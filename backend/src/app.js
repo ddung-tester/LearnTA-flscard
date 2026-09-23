@@ -14,6 +14,8 @@ const cronRoutes = require("./routes/cronRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 
 const app = express();
+// Cloud Run đứng sau 1 proxy — cần để rate limit đọc đúng IP client
+app.set("trust proxy", 1);
 const allowedCorsOrigins = new Set(corsOrigins);
 
 app.use(
