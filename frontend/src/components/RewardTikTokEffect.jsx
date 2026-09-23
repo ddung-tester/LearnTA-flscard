@@ -194,22 +194,14 @@ function RewardTikTokEffect({
 
     async function napDanhSachVideo() {
       try {
-        let response;
-        try {
-          response = await fetch(config.manifestSrc, { cache: "no-cache" });
-          if (!response.ok) throw new Error("Chua tai duoc manifest chinh");
-        } catch {
-          // Fallback sang thu muc cu phong truong hop trinh duyet con cache
-          response = await fetch("/rewards/videos.json", { cache: "no-cache" });
-        }
-
+        const response = await fetch(config.manifestSrc, { cache: "no-cache" });
         if (!response.ok) throw new Error("Khong doc duoc celebration manifest");
 
         const data = await response.json();
         if (!Array.isArray(data)) throw new Error("Celebration manifest khong hop le");
 
-        const isOldRewardsPath = config.manifestSrc?.includes("/rewards/");
-        const basePath = isOldRewardsPath ? "/rewards" : "/media/milestones";
+        // Video nam cung thu muc voi manifest
+        const basePath = config.manifestSrc.slice(0, config.manifestSrc.lastIndexOf("/"));
 
         const danhSachHopLe = data
           .filter((tenFile) => typeof tenFile === "string" && tenFile.trim())
