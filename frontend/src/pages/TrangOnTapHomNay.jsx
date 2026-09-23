@@ -18,6 +18,7 @@ import {
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
 import "./TrangOnTapHomNay.css";
 import {
@@ -534,6 +535,7 @@ function TrangOnTapHomNay() {
 
   return (
     <div className="review-page ui-content-enter">
+      <ChatbotTheDangHoc the={currentEntry} />
       {/* Header */}
       <div className="review-header">
         <div>

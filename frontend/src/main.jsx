@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import UngDung from "./App.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
+import { ChatbotProvider } from "./contexts/ChatbotContext.jsx";
 import { PageTransitionProvider } from "./contexts/PageTransitionContext.jsx";
 import { ToastProvider } from "./contexts/ToastContext.jsx";
 import "./index.css";
@@ -13,7 +14,9 @@ createRoot(document.getElementById("root")).render(
       <PageTransitionProvider>
         <ToastProvider>
           <AuthProvider>
-            <UngDung />
+            <ChatbotProvider>
+              <UngDung />
+            </ChatbotProvider>
           </AuthProvider>
         </ToastProvider>
       </PageTransitionProvider>

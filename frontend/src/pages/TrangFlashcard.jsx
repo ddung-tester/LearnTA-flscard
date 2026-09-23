@@ -10,6 +10,7 @@ import RewardTikTokEffect, {
   CAU_HINH_REWARD_QUIZ,
 } from "../components/RewardTikTokEffect";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useTTS from "../hooks/useTTS";
 import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
@@ -673,6 +674,7 @@ function TrangFlashcard() {
 
   return (
     <>
+      <ChatbotTheDangHoc the={theHienTai} />
       <RewardTikTokEffect
         active={batReward && hienReward}
         lanKichHoat={lanReward}

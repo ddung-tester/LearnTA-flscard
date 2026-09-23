@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { matchPath, useLocation } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useTheDangHoc } from "../contexts/ChatbotContext";
 import "./ChatbotWidget.css";
 
 // ---- Markdown renderer cơ bản (không cần thư viện ngoài) ----
 function renderMarkdown(text) {
   return text
+    // escape HTML trước — nội dung từ AI/user không được chèn thẻ thật
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
     // **bold**
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     // *italic*
@@ -24,6 +32,17 @@ const SUGGESTIONS = [
   "Giải thích phrasal verb: 'give up'",
 ];
 
+function taoGoiY({ tuDangHoc, coDeck, daDangNhap }) {
+  const goiY = [];
+  if (tuDangHoc) {
+    goiY.push(`Giải thích từ "${tuDangHoc}"`, `Đặt 3 câu với "${tuDangHoc}"`, `Mẹo nhớ từ "${tuDangHoc}"`);
+  } else if (coDeck) {
+    goiY.push("Tóm tắt các từ trong bộ này", "Viết đoạn văn ngắn dùng các từ trong bộ");
+  }
+  if (daDangNhap) goiY.push("Giúp mình ôn các từ hay sai");
+  return goiY.length > 0 ? goiY : SUGGESTIONS;
+}
+
 const WELCOME = {
   role: "model",
   parts: [
@@ -42,6 +61,19 @@ export default function ChatbotWidget() {
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+
+  // Ngữ cảnh học: server tự đọc nội dung từ DB theo id và kiểm tra quyền
+  const { pathname } = useLocation();
+  const { isAuthenticated } = useAuth();
+  const theDangHoc = useTheDangHoc();
+  const deckId = Number(matchPath("/decks/:deckId/*", pathname)?.params.deckId) || null;
+  const cardId = theDangHoc?.id ?? null;
+  const nhanNguCanh = theDangHoc?.tu
+    ? `📌 Đang học: ${theDangHoc.tu}`
+    : deckId
+      ? "📘 Theo bộ từ hiện tại"
+      : "Hỏi đáp tiếng Anh miễn phí";
+  const goiY = taoGoiY({ tuDangHoc: theDangHoc?.tu, coDeck: Boolean(deckId), daDangNhap: isAuthenticated });
 
   // Auto-scroll khi có tin mới
   useEffect(() => {
@@ -72,6 +104,7 @@ export default function ChatbotWidget() {
         // Gửi 20 tin gần nhất (bao gồm message mới vừa thêm) — server giới hạn history
         const { data } = await api.post("/chat", {
           messages: updatedMessages.slice(-20),
+          context: { deckId, cardId },
         });
 
         setMessages((prev) => [
@@ -97,7 +130,7 @@ export default function ChatbotWidget() {
         setLoading(false);
       }
     },
-    [messages, loading, open]
+    [messages, loading, open, deckId, cardId]
   );
 
   const handleKeyDown = (e) => {
@@ -152,7 +185,7 @@ export default function ChatbotWidget() {
               <div className="chatbot-header-name">LearnBot</div>
               <div className="chatbot-header-status">
                 <span className="chatbot-status-dot" />
-                Hỏi đáp tiếng Anh miễn phí
+                {nhanNguCanh}
               </div>
             </div>
             <button
@@ -198,7 +231,7 @@ export default function ChatbotWidget() {
           {/* Suggested questions (chỉ hiện khi chỉ có tin welcome) */}
           {messages.length === 1 && (
             <div className="chatbot-suggestions">
-              {SUGGESTIONS.map((s) => (
+              {goiY.map((s) => (
                 <button
                   key={s}
                   className="chatbot-suggestion-btn"

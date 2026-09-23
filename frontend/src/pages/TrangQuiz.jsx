@@ -13,6 +13,7 @@ import RewardTikTokEffect, {
 } from "../components/RewardTikTokEffect";
 import ComboDisplay from "../components/common/ComboDisplay";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
@@ -1140,6 +1141,7 @@ function TrangQuiz() {
 
   return (
     <>
+      <ChatbotTheDangHoc the={cauHienTai?.the} />
       <RewardTikTokEffect
         active={batReward && hienReward}
         lanKichHoat={lanReward}
