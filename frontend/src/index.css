@@ -5548,7 +5548,9 @@ body.is-page-loading .page-transition-root {
 .dash-continue-card__progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--mau-chinh);
+  background: var(--progress-holo-gradient);
+  background-size: 240% 100%;
+  animation: progress-fill-spectrum 16s ease-in-out infinite alternate;
   transition: width 600ms var(--tuong-tac-ease-soft);
 }
 
@@ -5697,7 +5699,9 @@ body.is-page-loading .page-transition-root {
 .dash-deck-mini__progress-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--mau-chinh);
+  background: var(--progress-holo-gradient);
+  background-size: 240% 100%;
+  animation: progress-fill-spectrum 16s ease-in-out infinite alternate;
   transition: width 500ms var(--tuong-tac-ease-soft);
 }
 
@@ -6771,6 +6775,10 @@ body.is-page-loading .page-transition-root {
 
 .tk-mastery-bar-fill {
   height: 100%;
+  /* Mặc định dùng holo gradient cho biểu đồ hoạt động; các nơi hiển thị mức độ thành thạo (màu theo level) ghi đè bằng inline style */
+  background: var(--progress-holo-gradient);
+  background-size: 240% 100%;
+  animation: progress-fill-spectrum 16s ease-in-out infinite alternate;
   border-radius: 2rem;
   transition: width 0.5s ease;
   min-width: 0.25rem;
@@ -7045,7 +7053,9 @@ body.is-page-loading .page-transition-root {
 
 .tk-deck-row__bar-fill {
   height: 100%;
-  background: var(--mau-chinh);
+  background: var(--progress-holo-gradient);
+  background-size: 240% 100%;
+  animation: progress-fill-spectrum 16s ease-in-out infinite alternate;
   border-radius: 2rem;
   transition: width 0.4s ease;
 }
