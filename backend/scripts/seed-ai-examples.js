@@ -3,15 +3,15 @@
  * Quét toàn bộ cards trong DB và gọi Gemini AI để sinh tense_examples
  * cho các card chưa có (tense_examples IS NULL).
  *
- * Xem trước (dry-run): node seed-ai-examples.js
- * Áp dụng:             node seed-ai-examples.js --apply
- * Giới hạn số card:    node seed-ai-examples.js --apply --limit=50
+ * Xem trước (dry-run): node scripts/seed-ai-examples.js
+ * Áp dụng:             node scripts/seed-ai-examples.js --apply
+ * Giới hạn số card:    node scripts/seed-ai-examples.js --apply --limit=50
  *
  * Free tier: 20 RPM → delay 3.5s/request = ~17 req/min (an toàn).
  */
 require("dotenv/config");
-const pool = require("./src/config/db");
-const { generateTenseExamples } = require("./src/services/aiService");
+const pool = require("../src/config/db");
+const { generateTenseExamples } = require("../src/services/aiService");
 
 const APPLY = process.argv.includes("--apply");
 const limitArg = process.argv.find((a) => a.startsWith("--limit="));

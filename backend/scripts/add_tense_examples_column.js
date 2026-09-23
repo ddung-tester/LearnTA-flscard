@@ -1,7 +1,7 @@
 /**
  * add_tense_examples_column.js
  * Migration: thêm cột tense_examples JSON vào bảng cards.
- * Chạy: node add_tense_examples_column.js (từ thư mục backend)
+ * Chạy: node scripts/add_tense_examples_column.js (từ thư mục backend)
  */
 require("dotenv/config");
 const mysql = require("mysql2/promise");
