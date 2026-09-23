@@ -1,6 +1,6 @@
 /**
  * run-migration.js — Chạy migration SQL thêm cột email_reminders.
- * Chạy: node run-migration.js (từ thư mục backend)
+ * Chạy: node scripts/run-migration.js (từ thư mục backend)
  */
 require("dotenv/config");
 const mysql = require("mysql2/promise");

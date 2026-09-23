@@ -2,10 +2,10 @@
 require("dotenv/config");
 const fs = require("node:fs");
 const path = require("node:path");
-const pool = require("./src/config/db");
+const pool = require("../src/config/db");
 
 async function main() {
-  const entries = fs.readFileSync(path.join(__dirname, "database/examples.tsv"), "utf8")
+  const entries = fs.readFileSync(path.join(__dirname, "../database/examples.tsv"), "utf8")
     .trim().split(/\r?\n/).map((line) => line.split("\t"));
   const examples = new Map(entries);
   if (examples.size !== entries.length || entries.some(([term, sentence]) => !term || !sentence)) {

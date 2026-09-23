@@ -9,9 +9,9 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:examples": "node seed-examples.js",
-    "seed:ai-examples": "node seed-ai-examples.js",
-    "migrate:tense-examples": "node add_tense_examples_column.js"
+    "seed:examples": "node scripts/seed-examples.js",
+    "seed:ai-examples": "node scripts/seed-ai-examples.js",
+    "migrate:tense-examples": "node scripts/add_tense_examples_column.js"
   },
   "keywords": [],
   "license": "ISC",
