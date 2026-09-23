@@ -2,6 +2,9 @@ const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const { z } = require("zod");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const pool = require("../config/db");
+const { optionalAuth } = require("../middleware/authMiddleware");
+const { buildChatContext } = require("../services/chatContextService");
 
 const router = express.Router();
 
@@ -20,8 +23,11 @@ const messageSchema = z.object({
   parts: z.array(z.object({ text: z.string().min(1).max(2000) })).length(1),
 });
 
+const idSchema = z.coerce.number().int().positive().nullish();
+
 const chatBodySchema = z.object({
   messages: z.array(messageSchema).min(1).max(200),
+  context: z.object({ deckId: idSchema, cardId: idSchema }).optional(),
 });
 
 /**
@@ -45,17 +51,18 @@ Your role:
 
 /**
  * POST /api/chat
- * Body: { messages: [{ role: "user"|"model", parts: [{ text }] }] }
+ * Body: { messages: [{ role: "user"|"model", parts: [{ text }] }], context?: { deckId?, cardId? } }
  * Không yêu cầu auth — open endpoint, giới hạn bằng chatLimiter.
+ * Có token → thêm các từ hay sai của user vào ngữ cảnh.
  */
-router.post("/", chatLimiter, async (req, res, next) => {
+router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
   try {
     const parsed = chatBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: "messages không hợp lệ" });
     }
 
-    const { messages: allMessages } = parsed.data;
+    const { messages: allMessages, context = {} } = parsed.data;
     if (allMessages[allMessages.length - 1].role !== "user") {
       return res.status(400).json({ message: "Tin nhắn cuối phải là của user" });
     }
@@ -66,10 +73,16 @@ router.post("/", chatLimiter, async (req, res, next) => {
       return res.status(503).json({ message: "AI service chưa được cấu hình" });
     }
 
+    const learnerContext = await buildChatContext(pool, {
+      userId: req.user?.id ?? null,
+      deckId: context.deckId,
+      cardId: context.cardId,
+    });
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-3.6-flash",
-      systemInstruction: SYSTEM_INSTRUCTION,
+      systemInstruction: SYSTEM_INSTRUCTION + learnerContext,
     });
 
     // Tách tin nhắn cuối (user) và lịch sử trước đó
