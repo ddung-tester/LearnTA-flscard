@@ -11,7 +11,8 @@
     "dev": "nodemon src/server.js",
     "seed:examples": "node seed-examples.js",
     "seed:ai-examples": "node seed-ai-examples.js",
-    "migrate:tense-examples": "node add_tense_examples_column.js"
+    "migrate:tense-examples": "node add_tense_examples_column.js",
+    "test": "node --test"
   },
   "keywords": [],
   "license": "ISC",
