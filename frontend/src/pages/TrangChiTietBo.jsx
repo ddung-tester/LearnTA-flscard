@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import StreakBadge from "../components/common/StreakBadge";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import DeckDetailSkeleton from "../components/common/DeckDetailSkeleton";
 import EmptyState from "../components/common/EmptyState";
@@ -8,10 +8,14 @@ import { useToast } from "../contexts/ToastContext";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import useTTS from "../hooks/useTTS";
+import { laTuYeuThich } from "../data/duLieuMau";
 import {
-  laTuMoiThem,
-  laTuYeuThich,
-} from "../data/duLieuMau";
+  FILTER_TU,
+  SORT_TU,
+  apDungBoLoc,
+  demTheoFilter,
+  docBoLocTuUrl,
+} from "../utils/locTuVung";
 import { layDeckTheoId } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
 import {
@@ -29,25 +33,6 @@ const FORM_TU_RONG = {
   meaning: "",
   example: "",
 };
-
-const FILTER_TU = [
-  { key: "tat-ca", label: "Tất cả" },
-  { key: "yeu-thich", label: "Yêu thích" },
-  { key: "moi-them", label: "Mới thêm" },
-  { key: "chua-hoc-filter", label: "Chưa học" },
-  { key: "da-hoc", label: "Đã học" },
-];
-
-const SORT_TU = [
-  { key: "mac-dinh", label: "Mặc định" },
-  { key: "ten", label: "A → Z" },
-  { key: "ten-desc", label: "Z → A" },
-  { key: "ngay-them", label: "Cũ nhất trước" },
-  { key: "ngay-them-desc", label: "Mới nhất trước" },
-  { key: "so-cau-sai", label: "Sai nhiều nhất" },
-  { key: "chua-hoc", label: "Chưa học trước" },
-  { key: "da-hoc", label: "Đã học trước" },
-];
 
 function IconPlus() {
   return (
@@ -160,8 +145,12 @@ function TrangChiTietBo() {
   const [dangMoImport, setDangMoImport] = useState(false);
   const [noiDungImport, setNoiDungImport] = useState("");
   const toast = useToast();
-  const [filterTu, setFilterTu] = useState("tat-ca");
-  const [sortTu, setSortTu] = useState("mac-dinh");
+  // Bộ lọc lưu trên URL → quay lại từ trang học vẫn giữ nguyên, chia sẻ link được
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { filter: filterTu, sort: sortTu, tuKhoa } = docBoLocTuUrl(searchParams);
+  // Ô tìm kiếm giữ state cục bộ để gõ tiếng Việt (IME) mượt; URL cập nhật sau 250ms
+  const [oTimKiem, setOTimKiem] = useState(tuKhoa);
+  const tuKhoaHienTai = oTimKiem.trim();
   const [chiTietTu, setChiTietTu] = useState(null); // từ đang xem chi tiết
   const [theDangKeoId, setTheDangKeoId] = useState(null);
   const [dangLuuThuTu, setDangLuuThuTu] = useState(false);
@@ -185,6 +174,26 @@ function TrangChiTietBo() {
   // streak bị vỡ: đã từng có streak nhưng bỏ học >= 2 ngày liên tiếp
   const [streakBroken, setStreakBroken] = useState(false);
   const dataRequestRef = useRef(0);
+
+  // Đọc từ params mới nhất (không dùng closure) để lần ghi trễ của ô tìm kiếm không đè bộ lọc vừa chọn
+  function capNhatBoLoc(thayDoi) {
+    setSearchParams((hienTai) => {
+      const tiepTheo = { ...docBoLocTuUrl(hienTai), ...thayDoi };
+      const params = new URLSearchParams();
+      if (tiepTheo.filter !== "tat-ca") params.set("filter", tiepTheo.filter);
+      if (tiepTheo.sort !== "mac-dinh") params.set("sort", tiepTheo.sort);
+      if (tiepTheo.tuKhoa) params.set("q", tiepTheo.tuKhoa);
+      return params;
+    }, { replace: true });
+  }
+
+  useEffect(() => {
+    if (oTimKiem.trim() === tuKhoa) return undefined;
+    const timer = setTimeout(() => capNhatBoLoc({ tuKhoa: oTimKiem.trim() }), 250);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ đồng bộ khi ô tìm kiếm đổi
+  }, [oTimKiem]);
+
   const filterTabsRef = useRef(null);
   const [filterConTheCuonPhai, setFilterConTheCuonPhai] = useState(false);
 
@@ -240,8 +249,6 @@ function TrangChiTietBo() {
     setDangChinhSua(false);
     setDangMoImport(false);
     setNoiDungImport("");
-    setFilterTu("tat-ca");
-    setSortTu("mac-dinh");
     setTheDangKeoId(null);
     setDangXacNhanXoa(null);
     taiDuLieuBo();
@@ -356,8 +363,6 @@ function TrangChiTietBo() {
     }
 
     setDangChinhSua(true);
-    setFilterTu("tat-ca");
-    setSortTu("mac-dinh");
   }
 
   function moFormThemTu() {
@@ -543,72 +548,6 @@ function TrangChiTietBo() {
     } catch (error) {
       toast.error(error.message);
     }
-  }
-
-  function locDanhSachTu(danhSachCanLoc) {
-    if (filterTu === "yeu-thich") {
-      return danhSachCanLoc.filter(laTuYeuThich);
-    }
-
-    if (filterTu === "moi-them") {
-      return danhSachCanLoc.filter(laTuMoiThem);
-    }
-
-    if (filterTu === "chua-hoc-filter") {
-      return danhSachCanLoc.filter((t) => (t.correct_count || 0) < 5);
-    }
-
-    if (filterTu === "da-hoc") {
-      return danhSachCanLoc.filter((t) => (t.correct_count || 0) >= 5);
-    }
-
-    return danhSachCanLoc;
-  }
-
-  function sapXepDanhSachTu(danhSachCanSap) {
-    if (sortTu === "mac-dinh") return danhSachCanSap;
-
-    const copy = [...danhSachCanSap];
-
-    if (sortTu === "ten") {
-      copy.sort((a, b) =>
-        a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
-      );
-    } else if (sortTu === "ten-desc") {
-      copy.sort((a, b) =>
-        b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
-      );
-    } else if (sortTu === "ngay-them") {
-      copy.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return da - db; // cũ nhất lên đầu
-      });
-    } else if (sortTu === "ngay-them-desc") {
-      copy.sort((a, b) => {
-        const da = new Date(a.created_at || 0).getTime();
-        const db = new Date(b.created_at || 0).getTime();
-        return db - da; // mới nhất lên đầu
-      });
-    } else if (sortTu === "so-cau-sai") {
-      copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
-    } else if (sortTu === "chua-hoc") {
-      // Từ chưa học (correct_count < 5) lên trên
-      copy.sort((a, b) => {
-        const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
-        const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
-        return aNew - bNew;
-      });
-    } else if (sortTu === "da-hoc") {
-      // Từ đã học (correct_count >= 5) lên trên
-      copy.sort((a, b) => {
-        const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
-        const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
-        return aLearned - bLearned;
-      });
-    }
-
-    return copy;
   }
 
   function sapXepTheoViTri(danhSachCanSap, cardId, viTriMoi) {
@@ -942,49 +881,59 @@ function TrangChiTietBo() {
   }
 
   const soTu = danhSach.length;
-  const danhSachDaLoc = sapXepDanhSachTu(locDanhSachTu(danhSach));
-  const soTuYeuThich = danhSach.filter(laTuYeuThich).length;
-  const soTuMoiThem = danhSach.filter(laTuMoiThem).length;
-  const soTuChuaHoc = danhSach.filter((t) => (t.correct_count || 0) < 5).length;
-  const soTuDaHoc = danhSach.filter((t) => (t.correct_count || 0) >= 5).length;
+  const danhSachDaLoc = apDungBoLoc(danhSach, { filter: filterTu, sort: sortTu, tuKhoa: tuKhoaHienTai });
+  const soTuTheoFilter = demTheoFilter(danhSach);
+  const soTuYeuThich = soTuTheoFilter["yeu-thich"];
+  const soTuChuaHoc = soTuTheoFilter["chua-hoc-filter"];
+  const soTuDaHoc = soTuTheoFilter["da-hoc"];
+  const dangLoc = filterTu !== "tat-ca" || tuKhoaHienTai !== "";
+  const soTuSeHoc = danhSachDaLoc.length;
+  // Luôn gửi filter tường minh để trang học không rơi về cài đặt "chỉ học yêu thích" đã lưu
+  const queryHoc = `?filter=${filterTu}&sort=${sortTu}${tuKhoaHienTai ? `&q=${encodeURIComponent(tuKhoaHienTai)}` : ""}`;
   const streak = userStreak;
-  const coTheQuiz = soTu >= 4;
   const coTheQuanLy = coQuyenQuanLyBo();
   const dangBatChinhSua = dangChinhSua && coTheQuanLy;
   // Chỉ cho kéo thứ tự khi đang ở chế độ sắp xếp mặc định
-  const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh";
+  const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh" && !dangLoc;
 
   return (
     <div className="ui-page-stack ui-page-stack--deck-detail">
       <div className="ui-deck-detail-top">
         <Link
-          to="/dashboard"
+          to={isAuthenticated ? "/dashboard" : "/decks"}
           className="ui-back-link ui-back-link--quiet ui-deck-detail-top__back"
         >
-          ← Dashboard
+          ← {isAuthenticated ? "Dashboard" : "Bộ từ vựng"}
         </Link>
         <h2 className="ui-deck-detail-top__heading">
           {bo.title}
         </h2>
       </div>
 
-      <div className="ui-stat-grid">
+      <div className="ui-stat-grid ui-stat-grid--deck">
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
           <p className="ui-stat-label mb-1">Tổng từ</p>
           <p className="ui-stat-value text-[var(--mau-chu)]">{soTu}</p>
         </div>
-        {/* Thẻ Streak: 3 trạng thái — cháy / đóng băng / vỡ */}
-        <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
-          <StreakBadge
-            streak={streak}
-            size="lg"
-            showZero
-            label="Streak"
-            fullCard
-            frozen={!studiedToday && !streakBroken}
-            broken={streakBroken}
-          />
-        </div>
+        {isAuthenticated ? (
+          /* Thẻ Streak: 3 trạng thái — cháy / đóng băng / vỡ */
+          <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)] !p-0 overflow-hidden">
+            <StreakBadge
+              streak={streak}
+              size="lg"
+              showZero
+              label="Streak"
+              fullCard
+              frozen={!studiedToday && !streakBroken}
+              broken={streakBroken}
+            />
+          </div>
+        ) : (
+          <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
+            <p className="ui-stat-label mb-1">Đã học</p>
+            <p className="ui-stat-value text-[var(--mau-thanh-cong)]">{soTuDaHoc}</p>
+          </div>
+        )}
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
           <p className="ui-stat-label mb-1">Yêu thích</p>
           <p className="ui-stat-value" style={{ color: "oklch(51% 0.15 24)" }}>{soTuYeuThich}</p>
@@ -995,37 +944,35 @@ function TrangChiTietBo() {
         </div>
       </div>
 
-      <div className="ui-action-grid ui-action-grid--3col">
-        <Link
-          to={`/decks/${boId}/flashcard?filter=${filterTu}&sort=${sortTu}`}
-          className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          <span className="font-semibold text-[var(--mau-chinh)]">Học Flashcard</span>
-        </Link>
+      <section className="ui-study-launch" aria-labelledby="study-launch-scope">
+        <p id="study-launch-scope" className="ui-study-launch__scope" aria-live="polite">
+          {soTuSeHoc === 0
+            ? "Không có từ nào để học với bộ lọc này"
+            : dangLoc
+              ? <>Học <strong>{soTuSeHoc}</strong> từ đang lọc</>
+              : <>Học cả <strong>{soTu}</strong> từ trong bộ</>}
+        </p>
+        <div className="ui-action-grid ui-action-grid--3col">
+          {[
+            { key: "flashcard", label: "Flashcard", path: "flashcard", primary: true },
+            { key: "quiz", label: "Trắc nghiệm", path: "quiz", lyDoKhoa: soTu < 4 ? "Cần ít nhất 4 từ trong bộ để làm trắc nghiệm" : "" },
+            { key: "tu-luan", label: "Tự luận", path: "tu-luan" },
+          ].map((cach) => {
+            const lyDoKhoa = soTuSeHoc === 0 ? "Không có từ nào khớp bộ lọc" : cach.lyDoKhoa;
+            const lop = `ui-action-card ui-study-launch__btn${cach.primary ? " ui-study-launch__btn--primary" : ""}`;
 
-        {coTheQuiz ? (
-          <Link
-            to={`/decks/${boId}/quiz?filter=${filterTu}&sort=${sortTu}`}
-            className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-          >
-            <span className="font-semibold text-[var(--mau-chinh)]">Trắc nghiệm</span>
-          </Link>
-        ) : (
-          <div
-            className="flex min-h-14 items-center justify-center rounded-xl border border-dashed border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 cursor-not-allowed opacity-60"
-            title="Cần ít nhất 4 từ để làm trắc nghiệm"
-          >
-            <span className="font-semibold text-[var(--mau-chu-phu)]">Trắc nghiệm</span>
-          </div>
-        )}
-
-        <Link
-          to={`/decks/${boId}/tu-luan?filter=${filterTu}&sort=${sortTu}`}
-          className="ui-action-card flex min-h-14 items-center justify-center border border-[var(--mau-chinh)] bg-[var(--mau-chinh)]/5 rounded-xl px-4 py-4 hover:bg-[var(--mau-chinh)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          <span className="font-semibold text-[var(--mau-chinh)]">Tự luận</span>
-        </Link>
-      </div>
+            return lyDoKhoa ? (
+              <span key={cach.key} className={`${lop} ui-study-launch__btn--disabled`} aria-disabled="true" title={lyDoKhoa}>
+                {cach.label}
+              </span>
+            ) : (
+              <Link key={cach.key} to={`/decks/${boId}/${cach.path}${queryHoc}`} className={lop}>
+                {cach.label}
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="ui-section-stack">
         {/* ---- Toolbar row 1: tiêu đề + actions ---- */}
@@ -1087,53 +1034,70 @@ function TrangChiTietBo() {
           </div>
         </div>
 
-        {/* ---- Toolbar row 2: filter tabs + sort ---- */}
-        <div className="flex items-center gap-2">
-          {/* Filter tabs cuộn ngang trên mobile */}
-          <div
-            ref={filterTabsRef}
-            className={`ui-filter-tabs flex-1 min-w-0${filterConTheCuonPhai ? " ui-filter-tabs--co-the-cuon-phai" : ""}`}
-            style={{ flexWrap: "nowrap", overflowX: "auto", WebkitOverflowScrolling: "touch" }}
-            aria-label="Lọc từ vựng"
-          >
-            {FILTER_TU.map((filter) => {
-              const soLuong =
-                filter.key === "yeu-thich"
-                  ? soTuYeuThich
-                  : filter.key === "moi-them"
-                    ? soTuMoiThem
-                    : filter.key === "chua-hoc-filter"
-                      ? soTuChuaHoc
-                      : filter.key === "da-hoc"
-                        ? soTuDaHoc
-                        : soTu;
+        {/* ---- Toolbar row 2: filter tabs (cuộn ngang trên mobile) ---- */}
+        <div
+          ref={filterTabsRef}
+          className={`ui-filter-tabs ui-filter-tabs--deck${filterConTheCuonPhai ? " ui-filter-tabs--co-the-cuon-phai" : ""}`}
+          role="group"
+          aria-label="Lọc từ vựng"
+        >
+          {FILTER_TU.map((filter) => (
+            <button
+              key={filter.key}
+              type="button"
+              onClick={() => capNhatBoLoc({ filter: filter.key })}
+              aria-pressed={filterTu === filter.key}
+              className="ui-filter-tab"
+            >
+              <span>{filter.label}</span>
+              <span className="ui-filter-tab__count">{soTuTheoFilter[filter.key]}</span>
+            </button>
+          ))}
+        </div>
 
-              return (
-                <button
-                  key={filter.key}
-                  type="button"
-                  onClick={() => setFilterTu(filter.key)}
-                  disabled={dangBatChinhSua}
-                  aria-pressed={filterTu === filter.key}
-                  className="ui-filter-tab"
-                  style={{ flex: "0 0 auto" }}
-                >
-                  <span>{filter.label}</span>
-                  <span className="ui-filter-tab__count">{soLuong}</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* ---- Toolbar row 3: tìm kiếm + sắp xếp ---- */}
+        <div className="ui-word-toolbar">
+          <label className="ui-word-search">
+            <span className="sr-only">Tìm từ vựng</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="ui-word-search__icon" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            <input
+              type="search"
+              value={oTimKiem}
+              onChange={(e) => setOTimKiem(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && oTimKiem) {
+                  e.preventDefault();
+                  setOTimKiem("");
+                }
+              }}
+              placeholder="Tìm từ, nghĩa"
+              className="ui-word-search__input"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {oTimKiem && (
+              <button
+                type="button"
+                onClick={() => setOTimKiem("")}
+                className="ui-word-search__clear"
+                aria-label="Xóa từ khóa"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </label>
 
-          {/* Sort — pinned to the right, never wraps */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-xs text-[var(--mau-chu-phu)] font-medium hidden sm:inline">Sắp xếp:</span>
+          <label className="ui-word-sort">
+            <span className="ui-word-sort__label">Sắp xếp</span>
             <select
               value={sortTu}
-              onChange={(e) => setSortTu(e.target.value)}
-              disabled={dangBatChinhSua}
-              aria-label="Sắp xếp từ vựng"
-              className="shrink-0 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-2.5 py-1.5 text-xs font-medium text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] cursor-pointer"
+              onChange={(e) => capNhatBoLoc({ sort: e.target.value })}
+              className="ui-word-sort__select"
             >
               {SORT_TU.map((s) => (
                 <option key={s.key} value={s.key}>
@@ -1141,8 +1105,14 @@ function TrangChiTietBo() {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
         </div>
+
+        {dangBatChinhSua && (dangLoc || sortTu !== "mac-dinh") && (
+          <p className="ui-word-toolbar__hint">
+            Kéo đổi thứ tự chỉ dùng được khi xem tất cả từ theo thứ tự mặc định.
+          </p>
+        )}
 
         {danhSach.length === 0 ? (
           <EmptyState
@@ -1154,9 +1124,26 @@ function TrangChiTietBo() {
           />
         ) : danhSachDaLoc.length === 0 ? (
           <EmptyState
-            icon={filterTu === "yeu-thich" ? "favorite" : "search"}
-            title={filterTu === "yeu-thich" ? "Chưa có từ yêu thích" : "Không tìm thấy"}
-            description={filterTu === "yeu-thich" ? "Nhấn ♥ để đánh dấu từ yêu thích." : "Chưa có từ phù hợp với bộ lọc này."}
+            icon={filterTu === "yeu-thich" && !tuKhoaHienTai ? "favorite" : "search"}
+            title={
+              tuKhoaHienTai
+                ? `Không có từ nào chứa “${tuKhoaHienTai}”`
+                : filterTu === "yeu-thich"
+                  ? "Chưa có từ yêu thích"
+                  : "Không có từ nào khớp bộ lọc"
+            }
+            description={
+              tuKhoaHienTai
+                ? "Thử từ khóa ngắn hơn. Tìm kiếm không phân biệt dấu."
+                : filterTu === "yeu-thich"
+                  ? "Nhấn ♥ cạnh một từ để thêm vào yêu thích."
+                  : "Chọn bộ lọc khác để xem thêm từ."
+            }
+            action="Xem tất cả từ"
+            onAction={() => {
+              setOTimKiem("");
+              capNhatBoLoc({ filter: "tat-ca", tuKhoa: "" });
+            }}
           />
         ) : (
           <ul ref={listTuRef} className={`ui-card-list ui-card-list--deck-detail${dangBatChinhSua ? " ui-card-list--editing" : ""}`}>

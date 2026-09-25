@@ -17,7 +17,8 @@ import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
@@ -172,14 +173,14 @@ function TrangQuiz() {
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
   const [searchParams] = useSearchParams();
-  const filterParam = searchParams.get("filter") || "tat-ca";
-  const sortParam = searchParams.get("sort") || "mac-dinh";
+  const boLocUrl = useMemo(() => docBoLocTuUrl(searchParams), [searchParams]);
 
   const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("quiz").cheDo ?? CHE_DO_MAC_DINH_QUIZ);
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
     const param = searchParams.get("filter");
     if (param === "yeu-thich") return true;
-    if (param === "moi-them" || param === "tat-ca") return false;
+    // Có bộ lọc khác từ trang bộ từ → ưu tiên bộ lọc đó
+    if (param) return false;
     return docCaiDatHocTap("quiz").chiHocTuYeuThich;
   });
   const [batRandom, setBatRandom] = useState(
@@ -289,57 +290,13 @@ function TrangQuiz() {
   const danhSachLocQuiz = useMemo(
     () => {
       if (danhSachHocLai !== null) return danhSachHocLai;
-
-      let ds = danhSachGoc;
-      if (chiHocTuYeuThich) {
-        ds = ds.filter(laTuYeuThich);
-      } else if (filterParam === "moi-them") {
-        ds = ds.filter(laTuMoiThem);
-      }
-
-      if (sortParam && sortParam !== "mac-dinh") {
-        const copy = [...ds];
-        if (sortParam === "ten") {
-          copy.sort((a, b) =>
-            a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
-          );
-        } else if (sortParam === "ten-desc") {
-          copy.sort((a, b) =>
-            b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
-          );
-        } else if (sortParam === "ngay-them") {
-          copy.sort((a, b) => {
-            const da = new Date(a.created_at || 0).getTime();
-            const db = new Date(b.created_at || 0).getTime();
-            return da - db;
-          });
-        } else if (sortParam === "ngay-them-desc") {
-          copy.sort((a, b) => {
-            const da = new Date(a.created_at || 0).getTime();
-            const db = new Date(b.created_at || 0).getTime();
-            return db - da;
-          });
-        } else if (sortParam === "so-cau-sai") {
-          copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
-        } else if (sortParam === "chua-hoc" || sortParam === "chua-hoc-filter") {
-          copy.sort((a, b) => {
-            const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
-            const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
-            return aNew - bNew;
-          });
-        } else if (sortParam === "da-hoc") {
-          copy.sort((a, b) => {
-            const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
-            const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
-            return aLearned - bLearned;
-          });
-        }
-        return copy;
-      }
-
-      return ds;
+      return apDungBoLoc(danhSachGoc, {
+        filter: chiHocTuYeuThich ? "yeu-thich" : boLocUrl.filter === "yeu-thich" ? "tat-ca" : boLocUrl.filter,
+        sort: boLocUrl.sort,
+        tuKhoa: boLocUrl.tuKhoa,
+      });
     },
-    [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, filterParam, sortParam]
+    [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, boLocUrl]
   );
   const danhSachThe = useMemo(() => {
     if (!batRandom) return danhSachLocQuiz;
@@ -355,9 +312,10 @@ function TrangQuiz() {
       danhSachThe,
       cheDo,
       `quiz-${boId}-${cheDo}-${lanLam}`,
-      danhSachHocLai !== null ? danhSachGoc : null
+      // Đáp án nhiễu lấy từ cả bộ → học được cả khi bộ lọc chỉ còn 1–3 từ
+      danhSachGoc
     ),
-    [boId, danhSachThe, danhSachGoc, danhSachHocLai, cheDo, lanLam]
+    [boId, danhSachThe, danhSachGoc, cheDo, lanLam]
   );
 
   const tongSoCauMucTieu = danhSachCauHoi.length;
@@ -978,34 +936,30 @@ function TrangQuiz() {
     );
   }
 
-  if (danhSachThe.length < 4) {
-    // Chế độ học lại từ sai: dùng toàn bộ danhSachGoc làm pool nhiễu
-    // → cho phép học kể cả khi chỉ có 1-3 từ sai, miễn là danhSachGoc đủ 4+ để tạo đáp án nhiễu
+  // Đáp án nhiễu lấy từ toàn bộ danhSachGoc → chỉ cần bộ có 4+ từ và danh sách học không rỗng
+  if (danhSachThe.length === 0 || danhSachGoc.length < 4) {
     if (danhSachHocLai !== null && danhSachGoc.length >= 4) {
-      if (danhSachThe.length === 0) {
-        return (
-          <div className="ui-study-empty-wrap">
-            <section className="ui-study-empty-card">
-              <p className="ui-study-empty-card__eyebrow">Học lại từ sai</p>
-              <h2 className="ui-study-empty-card__title">Không có từ sai nào</h2>
-              <p className="ui-study-empty-card__copy">Bạn đã trả lời chính xác tất cả.</p>
-              <div className="ui-study-empty-card__actions">
-                <button
-                  type="button"
-                  onClick={lamLai}
-                  className="ui-button ui-button--primary ui-study-empty-card__button"
-                >
-                  Làm lại toàn bộ
-                </button>
-              </div>
-            </section>
-          </div>
-        );
-      }
-      // 1–3 từ sai: pool nhiễu lấy từ danhSachGoc, cho phép tiếp tục render bình thường
+      return (
+        <div className="ui-study-empty-wrap">
+          <section className="ui-study-empty-card">
+            <p className="ui-study-empty-card__eyebrow">Học lại từ sai</p>
+            <h2 className="ui-study-empty-card__title">Không có từ sai nào</h2>
+            <p className="ui-study-empty-card__copy">Bạn đã trả lời chính xác tất cả.</p>
+            <div className="ui-study-empty-card__actions">
+              <button
+                type="button"
+                onClick={lamLai}
+                className="ui-button ui-button--primary ui-study-empty-card__button"
+              >
+                Làm lại toàn bộ
+              </button>
+            </div>
+          </section>
+        </div>
+      );
     } else {
-      // Chế độ bình thường hoặc pool nhiễu không đủ: chặn
       const dangLocYeuThich = chiHocTuYeuThich && danhSachGoc.length >= 4;
+      const khongKhopBoLoc = !chiHocTuYeuThich && danhSachGoc.length >= 4;
 
       return (
         <div className="ui-study-empty-wrap">
@@ -1015,13 +969,17 @@ function TrangQuiz() {
             </p>
             <h2 className="ui-study-empty-card__title">
               {dangLocYeuThich
-                ? "Cần ít nhất 4 từ yêu thích"
-                : "Cần ít nhất 4 từ để làm quiz"}
+                ? "Chưa có từ yêu thích"
+                : khongKhopBoLoc
+                  ? "Không có từ nào khớp bộ lọc"
+                  : "Cần ít nhất 4 từ để làm quiz"}
             </h2>
             <p className="ui-study-empty-card__copy">
               {dangLocYeuThich
                 ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ để bắt đầu."
-                : "Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu."}
+                : khongKhopBoLoc
+                  ? "Quay lại bộ từ và chọn bộ lọc khác."
+                  : "Mỗi câu cần 1 đáp án đúng và 3 đáp án nhiễu."}
             </p>
             <div className="ui-study-empty-card__actions">
               {dangLocYeuThich && (
@@ -1034,7 +992,7 @@ function TrangQuiz() {
                 </button>
               )}
               <Link
-                to={`/decks/${boId}`}
+                to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
                 className="ui-button ui-button--primary ui-study-empty-card__button"
               >
                 Quay lại bộ từ
@@ -1156,7 +1114,7 @@ function TrangQuiz() {
       <div className="ui-study-session ui-quiz-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">
           <Link
-            to={`/decks/${boId}`}
+            to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về

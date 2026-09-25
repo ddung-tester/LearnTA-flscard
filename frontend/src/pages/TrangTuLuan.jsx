@@ -13,7 +13,8 @@ import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useCombo from "../hooks/useCombo";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import ModeSwitch from "../components/common/ModeSwitch";
@@ -112,13 +113,13 @@ function TrangTuLuan() {
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
 
   const [searchParams] = useSearchParams();
-  const filterParam = searchParams.get("filter") || "tat-ca";
-  const sortParam = searchParams.get("sort") || "mac-dinh";
+  const boLocUrl = useMemo(() => docBoLocTuUrl(searchParams), [searchParams]);
 
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
     const param = searchParams.get("filter");
     if (param === "yeu-thich") return true;
-    if (param === "moi-them" || param === "tat-ca") return false;
+    // Có bộ lọc khác từ trang bộ từ → ưu tiên bộ lọc đó
+    if (param) return false;
     return docCaiDatHocTap("tuluan").chiHocTuYeuThich;
   });
   const [lanLam, setLanLam] = useState(0);
@@ -247,59 +248,14 @@ function TrangTuLuan() {
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   const danhSachLocTuLuan = useMemo(() => {
-    // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc
-    let ds = danhSachHocLai !== null ? danhSachHocLai : danhSachGoc;
-
-    if (danhSachHocLai === null) {
-      if (chiHocTuYeuThich) {
-        ds = ds.filter(laTuYeuThich);
-      } else if (filterParam === "moi-them") {
-        ds = ds.filter(laTuMoiThem);
-      }
-    }
-
-    if (sortParam && sortParam !== "mac-dinh") {
-      const copy = [...ds];
-      if (sortParam === "ten") {
-        copy.sort((a, b) =>
-          a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
-        );
-      } else if (sortParam === "ten-desc") {
-        copy.sort((a, b) =>
-          b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
-        );
-      } else if (sortParam === "ngay-them") {
-        copy.sort((a, b) => {
-          const da = new Date(a.created_at || 0).getTime();
-          const db = new Date(b.created_at || 0).getTime();
-          return da - db;
-        });
-      } else if (sortParam === "ngay-them-desc") {
-        copy.sort((a, b) => {
-          const da = new Date(a.created_at || 0).getTime();
-          const db = new Date(b.created_at || 0).getTime();
-          return db - da;
-        });
-      } else if (sortParam === "so-cau-sai") {
-        copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
-      } else if (sortParam === "chua-hoc" || sortParam === "chua-hoc-filter") {
-        copy.sort((a, b) => {
-          const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
-          const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
-          return aNew - bNew;
-        });
-      } else if (sortParam === "da-hoc") {
-        copy.sort((a, b) => {
-          const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
-          const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
-          return aLearned - bLearned;
-        });
-      }
-      return copy;
-    }
-
-    return ds;
-  }, [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, filterParam, sortParam]);
+    // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc (vẫn giữ thứ tự sắp xếp)
+    if (danhSachHocLai !== null) return sapXepTu(danhSachHocLai, boLocUrl.sort);
+    return apDungBoLoc(danhSachGoc, {
+      filter: chiHocTuYeuThich ? "yeu-thich" : boLocUrl.filter === "yeu-thich" ? "tat-ca" : boLocUrl.filter,
+      sort: boLocUrl.sort,
+      tuKhoa: boLocUrl.tuKhoa,
+    });
+  }, [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, boLocUrl]);
 
   const danhSachTheGoc = useMemo(() => {
     const ds = batRandom
@@ -1283,17 +1239,24 @@ function TrangTuLuan() {
 
   if (danhSachGoc.length === 0 || danhSachThe.length === 0) {
     const dangThieuTuYeuThich = chiHocTuYeuThich && danhSachGoc.length > 0;
+    const khongKhopBoLoc = !chiHocTuYeuThich && danhSachGoc.length > 0;
 
     return (
       <div className="ui-study-empty-wrap">
         <section className="ui-study-empty-card">
           <h2 className="ui-study-empty-card__title">
-            {dangThieuTuYeuThich ? "Chưa có từ yêu thích" : "Bộ từ này chưa có từ nào"}
+            {dangThieuTuYeuThich
+              ? "Chưa có từ yêu thích"
+              : khongKhopBoLoc
+                ? "Không có từ nào khớp bộ lọc"
+                : "Bộ từ này chưa có từ nào"}
           </h2>
           <p className="ui-study-empty-card__copy">
             {dangThieuTuYeuThich
               ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học tự luận."
-              : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
+              : khongKhopBoLoc
+                ? "Quay lại bộ từ và chọn bộ lọc khác."
+                : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
           </p>
           <div className="ui-study-empty-card__actions">
             {dangThieuTuYeuThich && (
@@ -1306,7 +1269,7 @@ function TrangTuLuan() {
               </button>
             )}
             <Link
-              to={`/decks/${boId}`}
+              to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
               className="ui-button ui-button--primary ui-study-empty-card__button"
             >
               Quay lại bộ từ
@@ -1405,7 +1368,7 @@ function TrangTuLuan() {
       <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} tenseExamples={getTenseExamples(theHienTai)} />
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
-          <Link to={`/decks/${boId}`} className="ui-back-btn">
+          <Link to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
           <StudySettingsPopover label="Cài đặt tự luận">

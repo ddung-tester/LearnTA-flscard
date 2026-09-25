@@ -182,10 +182,12 @@ html {
   min-height: 0;
 }
 
+/* Chỉ trang học (flashcard/quiz/tự luận) mới chừa hai bên cho video reward 9:16.
+   Các trang khác giữ 48rem, nếu không danh sách bộ từ bị ép còn ~26rem trên laptop 1280–1440px. */
 @media (min-width: 1280px) and (min-height: 640px) {
 
-  .app-shell-header__inner,
-  .app-shell-main {
+  .app-shell--study .app-shell-header__inner,
+  .app-shell-main--study {
     max-width: min(48rem, max(26rem, calc(100vw - (100dvh * 9 / 8) - 3rem)));
   }
 }
@@ -7305,4 +7307,272 @@ body.is-page-loading .page-transition-root {
 
 .ui-word-row--clickable:active {
   transform: translateY(0) scale(0.99);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Deck detail — khu học + bộ lọc từ (tìm kiếm, lọc, sắp xếp)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Thống kê: 2 cột gọn trên điện thoại, 4 cột từ 480px */
+.ui-stat-grid--deck .ui-stat-card {
+  min-height: 0;
+  padding: 0.7rem 0.85rem;
+}
+
+@media (min-width: 480px) {
+  .ui-stat-grid.ui-stat-grid--deck {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Khu bắt đầu học: một dòng phạm vi + 3 cách học, Flashcard là hành động chính */
+.ui-study-launch {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ui-study-launch__scope {
+  font-size: 0.875rem;
+  color: var(--mau-chu-phu);
+}
+
+.ui-study-launch__scope strong {
+  color: var(--mau-chu);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-study-launch .ui-action-grid--3col {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.ui-study-launch__btn {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(47% 0.09 50 / 0.45);
+  background: oklch(99% 0.01 80 / 0.72);
+  color: var(--mau-chinh);
+  font-weight: 650;
+  text-align: center;
+  line-height: 1.2;
+  padding: 0.75rem 0.5rem;
+}
+
+.ui-study-launch__btn--primary {
+  border-color: var(--mau-chinh);
+  background: var(--mau-chinh);
+  color: var(--mau-chu-tren-chinh);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-study-launch__btn:not(.ui-study-launch__btn--disabled):hover {
+    border-color: var(--mau-chinh);
+    background: var(--mau-mat);
+  }
+
+  .ui-study-launch__btn--primary:not(.ui-study-launch__btn--disabled):hover {
+    background: var(--mau-chinh-hover);
+  }
+}
+
+.ui-study-launch__btn:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.ui-study-launch__btn--disabled {
+  border-style: dashed;
+  border-color: var(--mau-vien-manh);
+  background: oklch(99% 0.01 80 / 0.4);
+  color: var(--mau-chu-mo);
+  cursor: not-allowed;
+}
+
+/* Tab lọc: một hàng cuộn ngang trên điện thoại, dàn đều trên màn rộng */
+.ui-filter-tabs.ui-filter-tabs--deck {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.ui-filter-tabs--deck .ui-filter-tab {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 640px) {
+  .ui-filter-tabs--deck .ui-filter-tab {
+    flex: 1 1 auto;
+  }
+}
+
+.ui-filter-tab:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: -2px;
+}
+
+/* Tìm kiếm + sắp xếp */
+.ui-word-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.ui-word-search {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.ui-word-search__icon {
+  position: absolute;
+  left: 0.8rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--mau-chu-mo);
+  pointer-events: none;
+}
+
+.ui-word-search__input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--mau-vien-manh);
+  border-radius: 0.75rem;
+  background: var(--mau-input);
+  color: var(--mau-chu);
+  padding: 0.55rem 2.6rem 0.55rem 2.4rem;
+  font-size: 1rem; /* ≥16px: iOS không tự zoom khi focus */
+}
+
+.ui-word-search__input::placeholder {
+  color: var(--mau-chu-mo);
+}
+
+.ui-word-search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.ui-word-search__input:focus-visible {
+  outline: none;
+  border-color: var(--mau-chinh);
+  box-shadow: var(--vong-focus);
+}
+
+.ui-word-search__clear {
+  position: absolute;
+  right: 0.3rem;
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  color: var(--mau-chu-phu);
+}
+
+.ui-word-search__clear svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ui-word-search__clear:hover {
+  background: oklch(55% 0.08 52 / 0.1);
+  color: var(--mau-chu);
+}
+
+.ui-word-search__clear:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 0;
+}
+
+.ui-word-sort {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ui-word-sort__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.ui-word-sort__select {
+  min-height: 2.75rem;
+  max-width: 11rem;
+  border: 1px solid var(--mau-vien-manh);
+  border-radius: 0.75rem;
+  background: var(--mau-input);
+  color: var(--mau-chu);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ui-word-sort__select:focus-visible {
+  outline: none;
+  border-color: var(--mau-chinh);
+  box-shadow: var(--vong-focus);
+}
+
+@media (max-width: 479px) {
+  .ui-word-sort__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ui-word-sort__select {
+    max-width: 8.5rem;
+  }
+}
+
+.ui-word-toolbar__hint {
+  font-size: 0.8rem;
+  color: var(--mau-chu-phu);
+}
+
+/* Nền phẳng (pastel sáng) của các trang app: tiêu đề phải là mực tối.
+   Chữ trắng + bóng chỉ hợp nền video tối, trên nền vàng/xanh nhạt chỉ đạt ~1.6:1. */
+body.has-video-background--app.has-video-background-variant--flat .ui-page-header h2,
+body.has-video-background--app.has-video-background-variant--flat .ui-section-header > h3,
+body.has-video-background--app.has-video-background-variant--flat .ui-study-session > h2 {
+  color: var(--mau-chu) !important;
+  text-shadow: 0 1px 0 oklch(99% 0.01 80 / 0.55) !important;
+}
+
+body.has-video-background--app.has-video-background-variant--flat .ui-page-header__title > p,
+body.has-video-background--app.has-video-background-variant--flat .ui-study-session > p {
+  color: var(--mau-chu-phu) !important;
+  text-shadow: none !important;
+}
+
+/* Nút Flashcard (hành động chính) giữ nền đặc dù có override .ui-action-card của nền phẳng */
+body.has-video-background-variant--flat .ui-study-launch__btn--primary {
+  background: var(--mau-chinh) !important;
+  border-color: var(--mau-chinh) !important;
+  color: var(--mau-chu-tren-chinh) !important;
+}
+
+body.has-video-background-variant--flat .ui-study-launch__btn--primary:hover {
+  background: var(--mau-chinh-hover) !important;
+}
+
+body.has-video-background-variant--flat .ui-study-launch__btn--disabled,
+body.has-video-background-variant--flat .ui-study-launch__btn--disabled:hover {
+  background: oklch(99% 0.01 80 / 0.45) !important;
+  border-style: dashed !important;
+  color: var(--mau-chu-mo) !important;
+  box-shadow: none !important;
 }

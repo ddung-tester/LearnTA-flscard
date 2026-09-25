@@ -12,7 +12,8 @@ import RewardTikTokEffect, {
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useTTS from "../hooks/useTTS";
-import { laTuMoiThem, laTuYeuThich, layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
+import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { ketThucStudySession, taoStudySession } from "../services/studyApi";
@@ -103,8 +104,7 @@ function TrangFlashcard() {
   const sessionKeyRef = useRef("");
 
   const [searchParams] = useSearchParams();
-  const filterParam = searchParams.get("filter") || "tat-ca";
-  const sortParam = searchParams.get("sort") || "mac-dinh";
+  const boLocUrl = useMemo(() => docBoLocTuUrl(searchParams), [searchParams]);
 
   const [chiSo, setChiSo] = useState(0);
   const [daLat, setDaLat] = useState(false);
@@ -112,7 +112,8 @@ function TrangFlashcard() {
   const [chiHocTuYeuThich, setChiHocTuYeuThich] = useState(() => {
     const param = searchParams.get("filter");
     if (param === "yeu-thich") return true;
-    if (param === "moi-them" || param === "tat-ca") return false;
+    // Có bộ lọc khác từ trang bộ từ → ưu tiên bộ lọc đó
+    if (param) return false;
     return docCaiDatHocTap("flashcard").chiHocTuYeuThich;
   });
   const [batRandom, setBatRandom] = useState(
@@ -199,57 +200,14 @@ function TrangFlashcard() {
     };
   }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
-  const danhSachLoc = useMemo(() => {
-    let ds = danhSachGoc;
-
-    if (chiHocTuYeuThich) {
-      ds = ds.filter(laTuYeuThich);
-    } else if (filterParam === "moi-them") {
-      ds = ds.filter(laTuMoiThem);
-    }
-
-    if (sortParam && sortParam !== "mac-dinh") {
-      const copy = [...ds];
-      if (sortParam === "ten") {
-        copy.sort((a, b) =>
-          a.term_en.localeCompare(b.term_en, "en", { sensitivity: "base" })
-        );
-      } else if (sortParam === "ten-desc") {
-        copy.sort((a, b) =>
-          b.term_en.localeCompare(a.term_en, "en", { sensitivity: "base" })
-        );
-      } else if (sortParam === "ngay-them") {
-        copy.sort((a, b) => {
-          const da = new Date(a.created_at || 0).getTime();
-          const db = new Date(b.created_at || 0).getTime();
-          return da - db;
-        });
-      } else if (sortParam === "ngay-them-desc") {
-        copy.sort((a, b) => {
-          const da = new Date(a.created_at || 0).getTime();
-          const db = new Date(b.created_at || 0).getTime();
-          return db - da;
-        });
-      } else if (sortParam === "so-cau-sai") {
-        copy.sort((a, b) => (b.wrong_count || 0) - (a.wrong_count || 0));
-      } else if (sortParam === "chua-hoc" || sortParam === "chua-hoc-filter") {
-        copy.sort((a, b) => {
-          const aNew = (a.correct_count || 0) < 5 ? 0 : 1;
-          const bNew = (b.correct_count || 0) < 5 ? 0 : 1;
-          return aNew - bNew;
-        });
-      } else if (sortParam === "da-hoc") {
-        copy.sort((a, b) => {
-          const aLearned = (a.correct_count || 0) >= 5 ? 0 : 1;
-          const bLearned = (b.correct_count || 0) >= 5 ? 0 : 1;
-          return aLearned - bLearned;
-        });
-      }
-      return copy;
-    }
-
-    return ds;
-  }, [danhSachGoc, chiHocTuYeuThich, filterParam, sortParam]);
+  const danhSachLoc = useMemo(
+    () => apDungBoLoc(danhSachGoc, {
+      filter: chiHocTuYeuThich ? "yeu-thich" : boLocUrl.filter === "yeu-thich" ? "tat-ca" : boLocUrl.filter,
+      sort: boLocUrl.sort,
+      tuKhoa: boLocUrl.tuKhoa,
+    }),
+    [danhSachGoc, chiHocTuYeuThich, boLocUrl]
+  );
   // useMemo để chỉ re-shuffle khi lanTron hoặc danh sách nguồn thay đổi
   const danhSach = useMemo(() => {
     if (!batRandom) return danhSachLoc;
@@ -623,7 +581,8 @@ function TrangFlashcard() {
   }
 
   if (danhSachGoc.length === 0 || danhSach.length === 0) {
-    const dangThieuTuYeuThich = danhSachGoc.length > 0 && danhSach.length === 0;
+    const dangThieuTuYeuThich = chiHocTuYeuThich && danhSachGoc.length > 0;
+    const khongKhopBoLoc = !chiHocTuYeuThich && danhSachGoc.length > 0;
 
     return (
       <div className="ui-study-empty-wrap">
@@ -632,12 +591,18 @@ function TrangFlashcard() {
             Flashcard
           </p>
           <h2 className="ui-study-empty-card__title">
-            {dangThieuTuYeuThich ? "Chưa có từ yêu thích" : "Bộ từ này chưa có từ nào"}
+            {dangThieuTuYeuThich
+              ? "Chưa có từ yêu thích"
+              : khongKhopBoLoc
+                ? "Không có từ nào khớp bộ lọc"
+                : "Bộ từ này chưa có từ nào"}
           </h2>
           <p className="ui-study-empty-card__copy">
             {dangThieuTuYeuThich
               ? "Tắt lọc yêu thích hoặc đánh dấu vài từ trước khi học."
-              : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
+              : khongKhopBoLoc
+                ? "Quay lại bộ từ và chọn bộ lọc khác."
+                : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
           </p>
           <div className="ui-study-empty-card__actions">
             {dangThieuTuYeuThich && (
@@ -650,7 +615,7 @@ function TrangFlashcard() {
               </button>
             )}
             <Link
-              to={`/decks/${boId}`}
+              to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
               className="ui-button ui-button--primary ui-study-empty-card__button"
             >
               Quay lại bộ từ
@@ -689,7 +654,7 @@ function TrangFlashcard() {
       <div className="ui-study-toolbar">
         <div>
           <Link
-            to={`/decks/${boId}`}
+            to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về

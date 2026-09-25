@@ -273,17 +273,6 @@ export function laTuYeuThich(the) {
   return Boolean(the?.is_favorite || the?.isFavorite);
 }
 
-export function laTuMoiThem(the) {
-  const soLanDung =
-    the?.correct_count ??
-    the?.correctCount ??
-    the?.progress?.correct_count ??
-    the?.progress?.correctCount ??
-    0;
-
-  return Number(soLanDung) < 5;
-}
-
 export function capNhatTrangThaiYeuThichThe(cardId, isFavorite) {
   const the = danhSachThe.find((item) => item.id === cardId);
   if (the) {
