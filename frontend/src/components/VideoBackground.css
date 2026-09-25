@@ -183,19 +183,13 @@ body.has-video-background--app {
   overflow-x: hidden;
 }
 
-/* ── flat variant: — background đậm hơn hẳn để card/button float rõ ── */
+/* ── flat variant: mặt bàn học màu mật ong + lưới chấm như giấy kẻ ô ── */
 body.has-video-background-variant--flat {
   background:
-    radial-gradient(circle at 8% 12%,  oklch(72% 0.10 50/ 0.82), transparent 40rem),
-    radial-gradient(circle at 90% 85%, oklch(75% 0.16 84/ 0.80), transparent 36rem),
-    radial-gradient(circle at 82% 10%, oklch(74% 0.12 81/ 0.65), transparent 28rem),
-    radial-gradient(circle at 50% 50%, oklch(72% 0.10 145/ 0.35), transparent 42rem),
-    linear-gradient(165deg,
-      oklch(88% 0.048 76)  0%,
-      oklch(86% 0.065 81) 36%,
-      oklch(84% 0.075 155) 70%,
-      oklch(88% 0.050 77)  100%
-    ) !important;
+    radial-gradient(circle, var(--mau-cham-luoi) 1.1px, transparent 1.4px) 0 0 / 22px 22px,
+    radial-gradient(ellipse 90% 60% at 50% 0%, oklch(93% 0.07 82/ 0.9), transparent 70%),
+    var(--mau-nen) !important;
+  background-attachment: fixed !important;
 }
 
 
@@ -287,12 +281,12 @@ body.has-video-background-variant--dashboard .app-shell-header__inner > .ui-link
   text-shadow: none !important;
 }
 
-/* ── flat variant header: đồng bộ màu loading overlay ── */
+/* ── flat variant header: dải giấy mờ trên mặt bàn ── */
 body.has-video-background-variant--flat .app-shell-header {
-  background: oklch(96% 0.035 155/ 0.88) !important;
-  border-bottom: 1px solid oklch(82% 0.055 50/ 0.45) !important;
-  backdrop-filter: blur(14px) saturate(1.08) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(1.08) !important;
+  background: oklch(97% 0.03 82/ 0.78) !important;
+  border-bottom: 1px solid oklch(47% 0.08 56/ 0.16) !important;
+  backdrop-filter: blur(14px) saturate(1.1) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.1) !important;
 }
 
 body.has-video-background-variant--flat .app-shell-header__inner > .ui-link {
@@ -390,17 +384,17 @@ body.has-video-background--immersive .video-auth-card input:focus-visible {
 
 body.has-video-background--immersive .video-auth-card .ui-button--primary,
 body.has-video-background--immersive .video-bg-page .ui-button--primary {
-  background: oklch(62% 0.10 52) !important;
-  border: 1px solid oklch(79% 0.09 152/ 0.56);
-  color: oklch(18% 0.035 60) !important;
+  background: var(--mau-chinh) !important;
+  border: 1px solid oklch(30% 0.09 50);
+  color: var(--mau-chu-tren-chinh) !important;
   box-shadow:
-    0 18px 42px oklch(17% 0.035 60/ 0.28),
-    inset 0 1px 0 oklch(96% 0.015 80/ 0.42);
+    0 3px 0 oklch(30% 0.09 45),
+    0 14px 28px -10px oklch(30% 0.10 50/ 0.55);
 }
 
 body.has-video-background--immersive .video-auth-card .ui-button--primary:hover,
 body.has-video-background--immersive .video-bg-page .ui-button--primary:hover {
-  background: oklch(67% 0.10 52) !important;
+  background: var(--mau-chinh-hover) !important;
 }
 
 body.has-video-background--immersive .video-auth-card .ui-link {
@@ -492,20 +486,28 @@ body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-c
   color: var(--mau-chu-tren-chinh) !important;
 }
 
+/* Nút chính: màu gỉ sắt, chữ trắng, có "gờ" 3px bên dưới để bấm thấy lún xuống */
 body.has-video-background--app .ui-button--primary {
-  background: oklch(62% 0.10 52) !important;
-  border: 1px solid oklch(79% 0.09 152/ 0.58);
-  color: oklch(18% 0.035 60) !important;
+  background: var(--mau-chinh) !important;
+  border: 1px solid oklch(30% 0.09 50);
+  color: var(--mau-chu-tren-chinh) !important;
   box-shadow:
-    0 14px 32px oklch(17% 0.035 60/ 0.26),
-    inset 0 1px 0 oklch(96% 0.015 80/ 0.42);
+    0 3px 0 oklch(30% 0.09 45),
+    0 12px 24px -10px oklch(30% 0.10 50/ 0.5);
 }
 
 body.has-video-background--app .ui-button--primary:hover {
-  background: oklch(67% 0.10 52) !important;
+  background: var(--mau-chinh-hover) !important;
   box-shadow:
-    0 18px 40px oklch(17% 0.035 60/ 0.3),
-    inset 0 1px 0 oklch(96% 0.015 80/ 0.5);
+    0 4px 0 oklch(27% 0.09 45),
+    0 16px 28px -10px oklch(30% 0.10 50/ 0.55);
+}
+
+body.has-video-background--app .ui-button--primary:active,
+body.has-video-background--immersive .video-bg-page .ui-button--primary:active,
+body.has-video-background--immersive .video-auth-card .ui-button--primary:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0 0 oklch(30% 0.09 45) !important;
 }
 
 body.has-video-background--app .ui-button--ghost,
@@ -730,25 +732,6 @@ body.has-video-background--app .ui-link {
     padding: 0.85rem;
   }
 
-}
-
-.video-bg-home-text {
-  color: oklch(98% 0.015 76/ 0.98) !important;
-  text-shadow:
-    0 2px 6px oklch(17% 0.035 60/ 0.72),
-    0 8px 28px oklch(17% 0.035 60/ 0.58),
-    0 20px 60px oklch(17% 0.035 60/ 0.36);
-}
-
-.video-bg-home-kicker {
-  color: oklch(93% 0.015 77/ 0.95) !important;
-  text-shadow: 0 1px 8px oklch(17% 0.035 60/ 0.68), 0 4px 20px oklch(17% 0.035 60/ 0.44);
-}
-
-.video-home-typing .typing-effect__text,
-.video-home-typing .typing-effect__cursor {
-  color: oklch(88% 0.04 52/ 0.96);
-  filter: drop-shadow(0 2px 16px oklch(17% 0.035 60/ 0.48));
 }
 
 @media (prefers-reduced-motion: reduce) {

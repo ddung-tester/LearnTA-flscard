@@ -327,7 +327,7 @@ function TrangDashboard() {
           <section className="dash-section">
             <div className="dash-section__header">
               <h2 className="dash-section__title">Bộ từ của bạn</h2>
-              <Link to="/decks?create=1" className="ui-button ui-button--primary">+ Thêm bộ từ</Link>
+              <Link to="/decks?create=1" className="ui-button ui-button--primary rounded-lg px-3.5 py-1.5 text-sm font-semibold">+ Thêm bộ từ</Link>
             </div>
 
             {dangTai ? (

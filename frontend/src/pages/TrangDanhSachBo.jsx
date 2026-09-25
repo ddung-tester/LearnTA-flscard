@@ -54,7 +54,7 @@ function layIconDeck(icon) {
 }
 
 function layMauDeck(themeColor) {
-  return MAU_MAP[themeColor] || "#3b82f6";
+  return MAU_MAP[themeColor] || "#d6452f";
 }
 
 function IconPlus() {

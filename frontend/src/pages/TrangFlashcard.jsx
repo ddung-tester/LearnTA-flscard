@@ -1,5 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
@@ -37,6 +44,106 @@ const DS_CHE_DO = [
   },
 ];
 const SO_TU_MOI_TIEN_TRINH = 10;
+// Kéo quá ngưỡng này (px) thì chuyển thẻ
+const NGUONG_VUOT_THE = 110;
+
+const BIEN_THE_THE = {
+  // huong > 0: thẻ sau nổi lên từ xấp, thẻ cũ bay qua bên trái (nằm trên cùng).
+  // huong < 0: thẻ trước bay về từ bên trái, thẻ cũ chìm xuống xấp (nằm dưới).
+  vao: ({ huong, giam }) =>
+    giam
+      ? { opacity: 0 }
+      : huong > 0
+        ? { x: 0, y: 18, scale: 0.94, opacity: 1, zIndex: 1 }
+        : { x: -Math.min(window.innerWidth, 720), y: 0, scale: 1, opacity: 1, zIndex: 2 },
+  giua: ({ giam }) => ({
+    x: 0,
+    y: 0,
+    scale: 1,
+    opacity: 1,
+    zIndex: 1,
+    transition: giam
+      ? { duration: 0 }
+      : { type: "spring", stiffness: 420, damping: 34, mass: 0.9 },
+  }),
+  ra: ({ huong, giam }) =>
+    giam
+      ? { opacity: 0, transition: { duration: 0 } }
+      : huong > 0
+        ? {
+            x: -Math.min(window.innerWidth, 720),
+            opacity: 1,
+            zIndex: 3,
+            transition: { duration: 0.34, ease: [0.4, 0, 0.7, 0.2] },
+          }
+        : {
+            x: 0,
+            y: 18,
+            scale: 0.94,
+            opacity: 0,
+            zIndex: 0,
+            transition: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+          },
+};
+
+/**
+ * TheKeoDuoc — một thẻ flashcard có thể kéo ngang.
+ * Kéo trái: thẻ sau. Kéo phải: thẻ trước. Nhả chưa đủ lực thì bật về giữa.
+ * Click sau khi kéo không tính là lật thẻ.
+ */
+function TheKeoDuoc({ ref, huong, giamChuyenDong, coTheTruoc, coTheSau, onVuot, children }) {
+  const x = useMotionValue(0);
+  const nghieng = useTransform(x, [-320, 0, 320], [-11, 0, 11]);
+  const daKeoRef = useRef(false);
+  const thamSo = { huong, giam: giamChuyenDong };
+
+  return (
+    <motion.div
+      ref={ref}
+      className="fc-the-keo"
+      style={{ x, rotate: giamChuyenDong ? 0 : nghieng }}
+      custom={thamSo}
+      variants={BIEN_THE_THE}
+      initial="vao"
+      animate="giua"
+      exit="ra"
+      drag="x"
+      dragMomentum={false}
+      whileDrag={giamChuyenDong ? undefined : { scale: 1.02 }}
+      onPointerDown={() => {
+        daKeoRef.current = false;
+      }}
+      onDragStart={() => {
+        daKeoRef.current = true;
+      }}
+      onDragEnd={(_, info) => {
+        // Vượt ngưỡng khoảng cách, hoặc hất nhanh sau khi đã kéo được một đoạn
+        const { x: doDoi } = info.offset;
+        const { x: vanToc } = info.velocity;
+        const sangTrai = doDoi < -NGUONG_VUOT_THE || (doDoi < -48 && vanToc < -600);
+        const sangPhai = doDoi > NGUONG_VUOT_THE || (doDoi > 48 && vanToc > 600);
+        if (sangTrai && coTheSau) {
+          onVuot(1);
+          return;
+        }
+        if (sangPhai && coTheTruoc) {
+          onVuot(-1);
+          return;
+        }
+        animate(x, 0, { type: "spring", stiffness: 520, damping: 32 });
+      }}
+      onClickCapture={(event) => {
+        if (daKeoRef.current) {
+          event.stopPropagation();
+          event.preventDefault();
+          daKeoRef.current = false;
+        }
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function laVungNhapLieu(element) {
   if (!element) return false;
@@ -129,6 +236,7 @@ function TrangFlashcard() {
     () => docCaiDatHocTap("flashcard").batReward ?? false
   );
   const giamChuyenDong = useReducedMotion();
+  const [huongChuyenThe, setHuongChuyenThe] = useState(1);
   const cacTheDaTinhDiemRef = useRef(new Set());
   const cacTheDaHoanTatRef = useRef(new Set());
   const rewardTimerRef = useRef(null);
@@ -373,6 +481,7 @@ function TrangFlashcard() {
   }
 
   function diChuyen(buoc) {
+    setHuongChuyenThe(buoc);
     setChiSo((chiSoHienTai) => {
       const chiSoMoi = chiSoHienTai + buoc;
       if (chiSoMoi < 0 || chiSoMoi >= danhSach.length) return chiSoHienTai;
@@ -635,7 +744,8 @@ function TrangFlashcard() {
   const ngonNguDangHien = daLat ? ngonNguMatSau : ngonNguMatTruoc;
   const thietLapLatThe = giamChuyenDong
     ? { duration: 0 }
-    : { duration: 0.28, ease: [0.16, 1, 0.3, 1] };
+    : { type: "spring", stiffness: 260, damping: 24, mass: 0.8 };
+  const soTheConLai = danhSach.length - 1 - chiSo;
 
   return (
     <>
@@ -740,77 +850,94 @@ function TrangFlashcard() {
         </div>
       </div>
 
-      <div
-        key={`${cheDo}-${chiSo}`}
-        className="ui-content-enter ui-flashcard-stage [perspective:1200px] flex-1 min-h-0 relative"
-      >
-        <button
-          type="button"
-          className={`tts-speaker-btn tts-speaker-btn--corner z-20${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            ttsSpeak(vanBanDangHien, ngonNguDangHien);
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-label={daLat ? "Đọc mặt sau" : "Đọc mặt trước"}
-          title={daLat ? "Đọc mặt sau" : "Đọc mặt trước"}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-          </svg>
-        </button>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={latThe}
-          onKeyDown={(e) => {
-            if (laVungNhapLieu(e.target)) return;
-
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              latThe();
-            }
-          }}
-          aria-pressed={daLat}
-          className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
-        >
-          <motion.div
-            className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
-            initial={false}
-            animate={{ rotateY: daLat ? 180 : 0 }}
-            transition={thietLapLatThe}
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] hover:bg-[var(--mau-mat-hover)] transition-colors sm:px-8 sm:py-9"
-            >
-              <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
-                {matTruoc}
-              </span>
-              <span className="text-xs text-[var(--mau-chu-phu)] mt-8">
-                Click hoặc nhấn Space để lật thẻ
-              </span>
-            </div>
-
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-[var(--mau-chinh)]/35 bg-[var(--mau-mat-2)] px-5 py-7 shadow-[var(--bong-card)] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9"
-            >
-              <span className="max-w-full break-words text-center text-2xl font-semibold leading-relaxed text-[var(--mau-chu)] sm:text-3xl">
-                {matSau}
-              </span>
-              {theHienTai?.example_sentence && (
-                <p className="mt-6 max-w-md break-words text-center text-sm text-[var(--mau-chu-phu)]" lang="en">
-                  <span className="not-italic font-medium text-[var(--mau-chu)]">Ví dụ: </span>
-                  <span className="italic">{theHienTai.example_sentence}</span>
-                </p>
-              )}
-            </div>
-          </motion.div>
+      <div className="ui-flashcard-stage fc-san-khau flex-1 min-h-0 relative">
+        <div className="fc-chong" aria-hidden="true">
+          {soTheConLai >= 2 && <span className="fc-chong__to fc-chong__to--2" />}
+          {soTheConLai >= 1 && <span className="fc-chong__to fc-chong__to--1" />}
         </div>
+        <AnimatePresence
+          initial={false}
+          mode="popLayout"
+          custom={{ huong: huongChuyenThe, giam: giamChuyenDong }}
+        >
+          <TheKeoDuoc
+            key={`${cheDo}-${chiSo}`}
+            huong={huongChuyenThe}
+            giamChuyenDong={giamChuyenDong}
+            coTheTruoc={chiSo > 0}
+            coTheSau={chiSo < danhSach.length - 1}
+            onVuot={diChuyen}
+          >
+            <button
+              type="button"
+              className={`tts-speaker-btn tts-speaker-btn--corner z-20${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                ttsSpeak(vanBanDangHien, ngonNguDangHien);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label={daLat ? "Đọc mặt sau" : "Đọc mặt trước"}
+              title={daLat ? "Đọc mặt sau" : "Đọc mặt trước"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            </button>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={latThe}
+              onKeyDown={(e) => {
+                if (laVungNhapLieu(e.target)) return;
+
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  latThe();
+                }
+              }}
+              aria-pressed={daLat}
+              className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
+            >
+              <motion.div
+                className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
+                initial={false}
+                animate={{ rotateY: daLat ? 180 : 0 }}
+                transition={thietLapLatThe}
+                style={{ transformStyle: "preserve-3d" }}
+              >
+                <div
+                  className="fc-mat fc-mat--truoc absolute inset-0 flex flex-col items-center justify-center rounded-xl px-5 py-7 [backface-visibility:hidden] sm:px-8 sm:py-9"
+                >
+                  <span className="fc-mat__tu max-w-full break-words text-center">
+                    {matTruoc}
+                  </span>
+                  <span className="fc-mat__goi-y">
+                    Nhấn để lật thẻ<span className="fc-mat__phim"> (phím Space)</span>.
+                    Kéo sang trái để qua thẻ sau.
+                  </span>
+                </div>
+
+                <div
+                  className="fc-mat fc-mat--sau absolute inset-0 flex flex-col items-center justify-center rounded-xl px-5 py-7 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9"
+                >
+                  <span className="fc-mat__tu max-w-full break-words text-center">
+                    {matSau}
+                  </span>
+                  {theHienTai?.example_sentence && (
+                    <p className="mt-6 max-w-md break-words text-center text-sm text-[var(--mau-chu-phu)]" lang="en">
+                      <span className="not-italic font-medium text-[var(--mau-chu)]">Ví dụ: </span>
+                      <span className="italic">{theHienTai.example_sentence}</span>
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </TheKeoDuoc>
+        </AnimatePresence>
       </div>
 
       <div className="ui-flashcard-nav grid grid-cols-2 gap-3 pb-1">

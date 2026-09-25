@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
+
+const DS_TAB_DIEU_HUONG = [
+  { to: "/dashboard", nhan: "Dashboard", laActive: (path) => path === "/dashboard" },
+  { to: "/decks", nhan: "Bộ từ", laActive: (path) => path.startsWith("/decks") },
+];
 
 /**
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
@@ -11,6 +17,7 @@ function BoCuc() {
   const viTri = useLocation();
   const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();
+  const giamChuyenDong = useReducedMotion();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
   const menuTaiKhoanRef = useRef(null);
   const laTrangChu = viTri.pathname === "/";
@@ -65,58 +72,41 @@ function BoCuc() {
 
   return (
     <div className={laPhienHoc ? "app-shell app-shell--study" : "min-h-screen"}>
-      <header className={`app-shell-header${laTrangDashboard ? " app-shell-header--dashboard" : " px-4 py-3 sm:px-6"}`}>
-        <div className={`${laTrangDashboard ? "app-shell-header__inner--dashboard mx-auto px-4 sm:px-6" : "app-shell-header__inner mx-auto px-0"} flex items-center justify-between gap-3`}>
-          {!laTrangAuth && (
-            <Link
-              to={isAuthenticated ? "/dashboard" : "/login"}
-              className={laTrangDashboard ? "dash-nav__brand" : "ui-link flex items-center gap-2 text-lg font-semibold text-[var(--mau-chu)] hover:text-[var(--mau-nhan)] transition-colors"}
-            >
-              Streak Drop
-            </Link>
-          )}
-          <nav className={laTrangDashboard ? "dash-nav__links" : "flex flex-wrap items-center justify-end gap-2"}>
-            {isAuthenticated && !laTrangAuth && !laPhienHoc && (
-              laTrangDashboard ? (
-                <>
+      <header className="app-shell-header app-shell-header--dashboard">
+        <div className="app-shell-header__inner--dashboard mx-auto flex items-center justify-between gap-3 px-4 sm:px-6">
+          <Link
+            to={isAuthenticated ? "/dashboard" : "/"}
+            className="dash-nav__brand"
+          >
+            <span className="dash-nav__brand-mark" aria-hidden="true" />
+            Streak Drop
+          </Link>
+          <nav className="dash-nav__links" aria-label="Điều hướng chính">
+            {isAuthenticated && !laTrangAuth && !laPhienHoc &&
+              DS_TAB_DIEU_HUONG.map((tab) => {
+                const dangActive = tab.laActive(viTri.pathname);
+                return (
                   <Link
-                    to="/dashboard"
-                    className="dash-nav__link dash-nav__link--active"
+                    key={tab.to}
+                    to={tab.to}
+                    aria-current={dangActive ? "page" : undefined}
+                    className={`dash-nav__link${dangActive ? " dash-nav__link--active" : ""}`}
                   >
-                    Dashboard
+                    {tab.nhan}
+                    {dangActive && (
+                      <motion.span
+                        layoutId="dash-nav-gach-chan"
+                        className="dash-nav__indicator"
+                        transition={
+                          giamChuyenDong
+                            ? { duration: 0 }
+                            : { type: "spring", stiffness: 520, damping: 38 }
+                        }
+                      />
+                    )}
                   </Link>
-                  <Link
-                    to="/decks"
-                    className="dash-nav__link"
-                  >
-                    Bộ từ
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/dashboard"
-                    className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                      laTrangDashboard
-                        ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
-                        : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    to="/decks"
-                    className={`ui-button ui-button--ghost rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                      viTri.pathname === "/decks"
-                        ? "border-[var(--mau-chinh)] text-[var(--mau-chinh)]"
-                        : "border-[var(--mau-vien)] text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)]"
-                    }`}
-                  >
-                    Bộ từ
-                  </Link>
-                </>
-              )
-            )}
+                );
+              })}
             {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">
                 <button
@@ -124,8 +114,11 @@ function BoCuc() {
                   onClick={() => setDangMoMenuTaiKhoan((dangMo) => !dangMo)}
                   aria-haspopup="menu"
                   aria-expanded={dangMoMenuTaiKhoan}
-                  className={laTrangDashboard ? "dash-nav__user-btn" : "ui-button ui-button--ghost flex max-w-[12rem] items-center gap-2 rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"}
+                  className="dash-nav__user-btn"
                 >
+                  <span className="dash-nav__avatar" aria-hidden="true">
+                    {(user?.fullname || "?").trim().charAt(0).toUpperCase()}
+                  </span>
                   <span className="truncate">{user?.fullname}</span>
                   <svg
                     aria-hidden="true"
@@ -199,20 +192,17 @@ function BoCuc() {
                 )}
               </div>
             ) : !laTrangAuth ? (
-              <>
-                <Link
-                  to="/login"
-                  className="ui-button ui-button--ghost rounded-full border border-[var(--mau-vien)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-phu)] hover:border-[var(--mau-vien-manh)] hover:text-[var(--mau-chu)] transition-colors"
-                >
+              <div className="flex items-center gap-2">
+                <Link to="/login" className="dash-nav__link">
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="ui-button ui-button--primary rounded-full bg-[var(--mau-chinh)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] transition-colors"
+                  className="ui-button ui-button--primary rounded-lg px-3.5 py-1.5 text-sm font-semibold"
                 >
                   Đăng ký
                 </Link>
-              </>
+              </div>
             ) : (
               null
             )}

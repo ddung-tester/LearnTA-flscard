@@ -95,6 +95,27 @@ function Mastered({ size }) {
   );
 }
 
+function Calendar({ size }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4.5" width="14" height="12" rx="2" />
+      <path d="M3 8.5h14M7 3v3M13 3v3" />
+      <path d="M7 12h2" />
+    </svg>
+  );
+}
+
+function Clock({ size }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 6v4l2.5 2" />
+    </svg>
+  );
+}
+
 const MAP = {
   decks: Decks,
   add: Add,
@@ -105,6 +126,8 @@ const MAP = {
   vocab: Vocab,
   star: Star,
   mastered: Mastered,
+  calendar: Calendar,
+  clock: Clock,
 };
 
 export default function DashIcon({ name, size = 16, className = "" }) {

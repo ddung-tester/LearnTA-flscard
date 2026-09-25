@@ -10,6 +10,7 @@ import { layTatCaTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import EmptyState from "../components/common/EmptyState";
+import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 
 function tinhPhanPhoiMastery(srsList) {
@@ -80,7 +81,7 @@ function modeLabel(mode) {
 function TkStatCard({ icon, label, value, sub, highlight = false }) {
   return (
     <div className={`tk-stat-card ${highlight ? "tk-stat-card--highlight" : ""}`.trim()}>
-      <span className="tk-stat-card__icon" aria-hidden="true">{icon}</span>
+      <span className="tk-stat-card__icon" aria-hidden="true"><DashIcon name={icon} size={20} /></span>
       <div>
         <p className="tk-stat-card__value">{value ?? "—"}</p>
         <p className="tk-stat-card__label">{label}</p>
@@ -124,9 +125,9 @@ function DeckStatRow({ deck, srsList, mistakeList }) {
       </div>
       <div className="tk-deck-row__chips">
         <span className="tk-chip">{total} từ</span>
-        {masteredCount > 0 && <span className="tk-chip tk-chip--master">🏆 {masteredCount}</span>}
-        {dueCount > 0 && <span className="tk-chip tk-chip--due">📅 {dueCount}</span>}
-        {mistakeCount > 0 && <span className="tk-chip tk-chip--mistake">✕ {mistakeCount}</span>}
+        {masteredCount > 0 && <span className="tk-chip tk-chip--master">{masteredCount} thành thạo</span>}
+        {dueCount > 0 && <span className="tk-chip tk-chip--due">{dueCount} đến hạn</span>}
+        {mistakeCount > 0 && <span className="tk-chip tk-chip--mistake">{mistakeCount} từ sai</span>}
         {deckSrs.length === 0 && <span className="tk-chip tk-chip--none">Chưa có SRS</span>}
       </div>
       <div className="tk-deck-row__bar-wrap" aria-label={pct + "% thành thạo"}>
@@ -290,18 +291,18 @@ function TrangThongKe() {
     <div className="tk-page">
       <section className="tk-header">
         <div className="tk-header__text">
-          <h1 className="tk-header__title">📊 Thống kê học tập</h1>
+          <h1 className="tk-header__title">Thống kê học tập</h1>
           <p className="tk-header__sub">Tổng quan tiến độ từ vựng của bạn qua tất cả bộ từ</p>
         </div>
         <div className="tk-header__actions">
           {srsStats.duHomNay > 0 && (
             <Link to="/review" className="tk-cta-btn tk-cta-btn--primary" id="tk-btn-review">
-              📅 Ôn tập ({srsStats.duHomNay})
+              Ôn tập ({srsStats.duHomNay})
             </Link>
           )}
           {mistakeStats.active > 0 && (
             <Link to="/tu-sai" className="tk-cta-btn tk-cta-btn--secondary" id="tk-btn-tusai">
-              📓 Từ sai ({mistakeStats.active})
+              Từ sai ({mistakeStats.active})
             </Link>
           )}
         </div>
@@ -310,23 +311,23 @@ function TrangThongKe() {
       <section className="tk-section">
         <h2 className="tk-section__title">Tổng quan</h2>
         <div className="tk-stat-grid">
-          <TkStatCard icon="📝" label="Tổng từ"    value={dangTai ? "…" : tongTu} />
-          <TkStatCard icon="🏆" label="Thành thạo" value={srsStats.mastered}
+          <TkStatCard icon="vocab" label="Tổng từ"    value={dangTai ? "…" : tongTu} />
+          <TkStatCard icon="mastered" label="Thành thạo" value={srsStats.mastered}
             sub={totalSrsItems > 0 ? "/ " + totalSrsItems + " trong SRS" : "Chưa có"}
             highlight={srsStats.mastered > 0} />
-          <TkStatCard icon="📖" label="Đang học"   value={srsStats.khoHoc} sub="Active trong SRS" />
-          <TkStatCard icon="📅" label="Ôn hôm nay" value={srsStats.duHomNay}
+          <TkStatCard icon="review" label="Đang học"   value={srsStats.khoHoc} sub="Active trong SRS" />
+          <TkStatCard icon="calendar" label="Ôn hôm nay" value={srsStats.duHomNay}
             sub={srsStats.duHomNay > 0 ? "Cần ôn ngay!" : "Không có gì"}
             highlight={srsStats.duHomNay > 0} />
-          <TkStatCard icon="✕"  label="Từ sai"     value={mistakeStats.active}
+          <TkStatCard icon="notebook" label="Từ sai"     value={mistakeStats.active}
             sub={mistakeStats.reviewed > 0 ? mistakeStats.reviewed + " đã ôn" : "Chưa có"} />
-          <TkStatCard icon="🔥" label="Streak"     value={userStats?.current_streak ?? "…"}
+          <TkStatCard icon="flame" label="Streak"     value={userStats?.current_streak ?? "…"}
             sub={userStats?.longest_streak ? "Dài nhất: " + userStats.longest_streak : null} />
-          <TkStatCard icon="⭐" label="Tổng XP"    value={userStats?.total_xp ?? "…"} />
-          <TkStatCard icon="📚" label="Bộ từ"      value={dangTai ? "…" : (decks?.length ?? 0)} />
-          <TkStatCard icon="🎯" label="Phiên học" value={sessionSummary?.total_sessions ?? 0}
+          <TkStatCard icon="star" label="Tổng XP"    value={userStats?.total_xp ?? "…"} />
+          <TkStatCard icon="decks" label="Bộ từ"      value={dangTai ? "…" : (decks?.length ?? 0)} />
+          <TkStatCard icon="stats" label="Phiên học" value={sessionSummary?.total_sessions ?? 0}
             sub={(sessionSummary?.total_cards_studied ?? 0) + " từ đã học"} />
-          <TkStatCard icon="⏱" label="Thời gian" value={formatStudyTime(sessionSummary?.total_duration_seconds)}
+          <TkStatCard icon="clock" label="Thời gian" value={formatStudyTime(sessionSummary?.total_duration_seconds)}
             sub={(sessionSummary?.average_accuracy ?? 0) + "% đúng trung bình"} />
         </div>
       </section>

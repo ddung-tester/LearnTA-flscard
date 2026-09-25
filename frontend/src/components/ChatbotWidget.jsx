@@ -175,7 +175,7 @@ export default function ChatbotWidget() {
         role="dialog"
         aria-label="Chatbot tiếng Anh"
         aria-hidden={!open}
-        inert={!open ? "" : undefined}
+        inert={!open}
       >
         <div className="chatbot-panel">
           {/* Header */}
