@@ -1474,7 +1474,7 @@ function TrangTuLuan() {
           {/* Card câu hỏi */}
         <section
           key={danhSachThe[chiSo]?.id}
-          className={`ui-question-flow relative mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+          className={`ui-question-flow ui-the-cau-hoi relative mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
           {danhSachThe[chiSo]?.__saiBuoc && (
             <span
@@ -1601,7 +1601,7 @@ function TrangTuLuan() {
                 style={{ originY: 0 }}
                 className="overflow-hidden rounded-xl border border-[oklch(75%_0.10_24)] bg-[oklch(98%_0.015_24)] px-5 py-4 text-center shadow-[var(--bong-nut-phu)]"
               >
-                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-widest text-[oklch(45%_0.14_24)]">Đáp án đúng</p>
+                <p className="mb-1 text-xs font-bold text-[oklch(45%_0.14_24)]">Đáp án đúng</p>
                 <button
                   type="button"
                   onClick={docDapAnDungHienTai}
@@ -1629,7 +1629,7 @@ function TrangTuLuan() {
                 style={{ originY: 0 }}
                 className="overflow-hidden rounded-xl border border-[oklch(80%_0.12_55)] bg-[oklch(98%_0.02_55)] px-5 py-4 text-center shadow-[var(--bong-nut-phu)]"
               >
-                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-widest text-[oklch(50%_0.18_55)]">Đáp án đúng — nhập lại</p>
+                <p className="mb-1 text-xs font-bold text-[oklch(50%_0.18_55)]">Đáp án đúng — nhập lại</p>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1706,7 +1706,7 @@ function TrangTuLuan() {
                   xoaTimerTraLoiSai();
                   batDauNhapLaiSauSaiThuong();
                 }}
-                className="ui-button ui-button--danger w-full rounded-xl py-3.5 text-lg font-bold"
+                className="ui-button ui-button--primary w-full rounded-xl py-3.5 text-lg font-bold"
               >
                 Nhập lại đáp án
               </button>
@@ -1768,8 +1768,8 @@ function TrangTuLuan() {
         {daKiemTra && ketQuaDung && (
           <div className="pt-2 pb-4 text-center">
             <div className="mb-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] font-bold text-base">
-                ✓ Chính xác!
+              <span className="ui-dau-cham ui-dau-cham--dung">
+                Chính xác!
               </span>
             </div>
             <TenseExamplesCard

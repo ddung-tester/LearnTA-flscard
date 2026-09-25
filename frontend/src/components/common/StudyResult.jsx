@@ -88,6 +88,7 @@ function ScoreRing({ percent, size = 100, strokeWidth = 8 }) {
         strokeDashoffset={offset}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         className="study-result__ring-progress"
+        style={{ "--vong-tron": circumference }}
       />
       <text
         x="50%"
@@ -97,7 +98,7 @@ function ScoreRing({ percent, size = 100, strokeWidth = 8 }) {
         fill={color}
         fontSize={size * 0.26}
         fontWeight="700"
-        fontFamily="var(--font-sans)"
+        fontFamily="var(--font-display)"
       >
         {Math.round(percent)}%
       </text>
@@ -151,14 +152,16 @@ function StudyResult({
 
   const loiKhen =
     tiLeDung === 100
-      ? "Hoàn hảo! 🎉"
+      ? "Hoàn hảo!"
       : tiLeDung >= 80
-        ? "Tuyệt vời! 🔥"
+        ? "Tuyệt vời!"
         : tiLeDung >= 60
-          ? "Khá tốt! 👍"
+          ? "Khá tốt!"
           : tiLeDung >= 40
-            ? "Cần ôn thêm 💪"
-            : "Hãy thử lại nhé 📖";
+            ? "Cần ôn thêm"
+            : "Hãy thử lại nhé";
+  // Màu con dấu theo kết quả, cùng ngưỡng với vòng điểm
+  const hangDiem = tiLeDung >= 80 ? "tot" : tiLeDung >= 50 ? "kha" : "yeu";
 
   const tenLoai = mode === "quiz" ? "trắc nghiệm" : "tự luận";
 
@@ -173,7 +176,11 @@ function StudyResult({
 
       <section className="study-result__card">
         <p className="study-result__tag">Tổng kết {tenLoai}</p>
-        <h2 className="study-result__title">{loiKhen}</h2>
+        <h2 className="study-result__title">
+          <span className={`ui-dau-cham study-result__dau study-result__dau--${hangDiem}`}>
+            {loiKhen}
+          </span>
+        </h2>
 
         {loiLuu && (
           <p className="study-result__error">
@@ -276,7 +283,7 @@ function StudyResult({
           </ul>
           <div className="study-result__notebook-link">
             <Link to="/tu-sai" className="ui-link text-sm font-medium text-[var(--mau-chinh)] hover:underline">
-              📓 Xem sổ từ sai của bạn →
+              Xem sổ từ sai của bạn →
             </Link>
           </div>
         </section>

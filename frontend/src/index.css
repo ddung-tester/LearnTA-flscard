@@ -4537,12 +4537,6 @@ body.is-page-loading .page-transition-root {
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Tooltip Fade ─────────────────────────────────────────────────────── */
-
-[title]:not(.ui-word-move-handle):not(.tts-speaker-btn):hover {
-  position: relative;
-}
-
 /* ── Focus Ring Pulse (a11y + aesthetics) ─────────────────────────────── */
 
 @keyframes focus-ring-pulse {
@@ -4622,9 +4616,10 @@ body.is-page-loading .page-transition-root {
   justify-content: center;
   text-align: center;
   padding: 3rem 1.5rem;
-  border: 1.5px solid var(--mau-vien);
+  /* Trạng thái trống = một thẻ giấy chưa viết gì, viền nét đứt như ô chờ điền */
+  border: 1.5px dashed oklch(47% 0.08 56/ 0.4);
   border-radius: 1rem;
-  background: oklch(97% 0.012 59/ 0.4);
+  background: oklch(99% 0.015 85/ 0.72);
   animation: ui-content-enter var(--content-duration) var(--tuong-tac-ease-soft) both;
 }
 
@@ -4634,8 +4629,9 @@ body.is-page-loading .page-transition-root {
 }
 
 .ui-empty-state__title {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--mau-chu);
   margin-bottom: 0.35rem;
   line-height: 1.4;
@@ -4690,12 +4686,10 @@ body.is-page-loading .page-transition-root {
 }
 
 .study-result__tag {
-  margin-bottom: 0.5rem;
-  font-size: 0.7rem;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--mau-chinh);
+  margin-bottom: 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
 }
 
 .study-result__title {
@@ -4795,11 +4789,10 @@ body.is-page-loading .page-transition-root {
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0.75rem;
-  font-size: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--mau-loi);
+  color: oklch(45% 0.15 28);
 }
 
 .study-result__wrong-icon {
@@ -4822,16 +4815,14 @@ body.is-page-loading .page-transition-root {
 }
 
 .ui-stat-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .ui-stat-value {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.2;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
 }
 
@@ -7220,8 +7211,8 @@ body.has-video-background--app .app-shell-header {
 .ui-deck-detail-top__heading {
   min-width: 0;
   flex: 1;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: clamp(1.45rem, 3vw, 1.9rem);
+  font-weight: 800;
   color: var(--mau-chu);
   line-height: 1.2;
   white-space: nowrap;
@@ -7688,8 +7679,8 @@ body.has-video-background--app .dash-deck-mini:not(.dash-deck-mini--loading) {
     border-color 180ms var(--tuong-tac-ease) !important;
 }
 
-.ui-deck-card {
-  border-top-width: 3px !important;
+body.has-video-background--app .ui-deck-card.ui-card-interactive {
+  border-top: 3px solid var(--mau-deck, var(--mau-le-do)) !important;
 }
 
 @media (hover: hover) {
@@ -8117,4 +8108,238 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
 
 .ui-flashcard-stage.fc-san-khau {
   padding-bottom: 1.4rem;
+}
+
+/* ========================================================================
+   Quiz + Tự luận — thẻ câu hỏi là xấp thẻ còn lại, đáp án là mảnh giấy,
+   phản hồi "Chính xác!" là con dấu đóng lên giấy.
+   ======================================================================== */
+body.has-video-background--app .ui-the-cau-hoi.ui-question-flow {
+  background: var(--mau-giay) !important;
+  border-color: var(--vien-giay) !important;
+  box-shadow: var(--chong-the) !important;
+  margin-bottom: 1.35rem !important;
+}
+
+.ui-the-cau-hoi h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ui-quiz-answer-list .ui-reading-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.ui-answer-phim {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  padding: 0 0.3rem;
+  border: 1px solid oklch(47% 0.08 56/ 0.28);
+  border-bottom-width: 2.5px;
+  border-radius: 0.4rem;
+  background: oklch(97% 0.02 80);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--mau-chu-phu);
+}
+
+.ui-answer-correct .ui-answer-phim,
+.ui-answer-correct-reveal .ui-answer-phim,
+.ui-answer-wrong .ui-answer-phim {
+  border-color: currentColor;
+  background: transparent;
+  color: inherit;
+}
+
+.ui-answer-dau {
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-left: auto;
+  flex-shrink: 0;
+  animation: ui-dau-hien 260ms var(--tuong-tac-ease) both;
+}
+
+@keyframes ui-dau-hien {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-20deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+/* Con dấu: to, nghiêng, "đập" xuống rồi nằm yên */
+.ui-dau-cham {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.9rem;
+  border: 2.5px solid currentColor;
+  border-radius: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  transform: rotate(-4deg);
+  animation: ui-dau-dap 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.ui-dau-cham--dung {
+  color: oklch(45% 0.13 150);
+  background: oklch(94.5% 0.06 150/ 0.6);
+}
+
+.ui-dau-cham--dung::before {
+  content: "";
+  width: 0.95rem;
+  height: 0.95rem;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@keyframes ui-dau-dap {
+  0% {
+    opacity: 0;
+    transform: scale(1.9) rotate(-14deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(0.93) rotate(-3deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-dau-cham,
+  .ui-answer-dau {
+    animation: none;
+  }
+}
+
+/* Màn hình kết quả: lời nhận xét là con dấu, vòng điểm tự quét khi hiện */
+body.has-video-background--app .study-result__card {
+  background: var(--mau-giay);
+  border-color: var(--vien-giay);
+  box-shadow: var(--bong-giay-nang);
+}
+
+.study-result__title {
+  margin: 0.25rem 0 1.25rem;
+  animation: none;
+}
+
+.study-result__dau {
+  padding: 0.4rem 1.2rem;
+  border-width: 3px;
+  font-size: clamp(1.5rem, 5vw, 1.9rem);
+  animation-delay: 380ms;
+}
+
+.study-result__dau--tot {
+  color: oklch(45% 0.13 150);
+  background: oklch(94.5% 0.06 150/ 0.55);
+}
+
+.study-result__dau--kha {
+  color: var(--mau-chinh);
+  background: oklch(95% 0.04 70/ 0.6);
+}
+
+.study-result__dau--yeu {
+  color: oklch(47% 0.16 28);
+  background: oklch(95.5% 0.035 28/ 0.6);
+}
+
+.study-result__ring-progress {
+  animation: vong-diem-quet 1.1s var(--tuong-tac-ease-soft) both;
+}
+
+@keyframes vong-diem-quet {
+  from {
+    stroke-dashoffset: var(--vong-tron);
+  }
+}
+
+.tec-continue-btn {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-result__ring-progress {
+    animation: none;
+  }
+}
+
+/* Hàng từ vựng ở chế độ xem: mục từ điển trên giấy, không trông như ô nhập.
+   Chế độ sửa (.ui-word-row--editing) giữ nguyên khung. */
+body.has-video-background--app .ui-word-row:not(.ui-word-row--editing) {
+  background: var(--mau-giay) !important;
+  border-color: var(--vien-giay) !important;
+  box-shadow: 0 2px 0 oklch(47% 0.08 56/ 0.14) !important;
+}
+
+.ui-word-row:not(.ui-word-row--editing) .ui-word-card {
+  min-height: 2.2rem;
+  padding-inline: 0.2rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ui-word-row:not(.ui-word-row--editing) .ui-word-card--term {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ui-word-row:not(.ui-word-row--editing) .ui-word-card--meaning {
+  padding-left: 0.9rem;
+  border-left: 1px dashed oklch(47% 0.08 56/ 0.35);
+  border-radius: 0;
+  color: var(--mau-chu-phu);
+  font-weight: 500;
+}
+
+@media (hover: hover) {
+  body.has-video-background--app .ui-word-row--clickable:not(.ui-word-row--editing):hover {
+    border-color: oklch(47% 0.1 50/ 0.45) !important;
+    box-shadow: 0 5px 0 oklch(47% 0.08 56/ 0.16) !important;
+    transform: translateY(-2px);
+  }
+}
+
+.ui-form-panel h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Chế độ xem chỉ có nút tim: giữ cùng hàng với cặp từ trên điện thoại,
+   tránh để trống cả một dòng. Chế độ sửa vẫn xuống dòng cho 3 nút. */
+@media (max-width: 639px) {
+  .ui-word-row:not(.ui-word-row--editing) .ui-word-row__inner {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .ui-word-row:not(.ui-word-row--editing) .ui-word-actions {
+    align-self: center;
+  }
 }

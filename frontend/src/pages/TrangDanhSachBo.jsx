@@ -451,7 +451,7 @@ function TrangDanhSachBo() {
                 onClick={() => moChiTietBo(bo.id)}
                 onKeyDown={(event) => xuLyPhimCard(event, bo.id)}
                 className="ui-card-interactive ui-deck-card group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5"
-                style={{ borderTopColor: mauDeck }}
+                style={{ "--mau-deck": mauDeck }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 min-w-0 pt-0.5">
@@ -548,14 +548,9 @@ function TrangDanhSachBo() {
         className="ui-form-panel max-w-lg shadow-[var(--bong-modal)]"
       >
             <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
-                  Bộ từ
-                </p>
-                <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
-                  {boDangSua ? "Sửa bộ" : "Thêm bộ"}
-                </h3>
-              </div>
+              <h3 className="text-2xl font-bold text-[var(--mau-chu)]">
+                {boDangSua ? "Sửa bộ từ" : "Thêm bộ từ mới"}
+              </h3>
               <button
                 type="button"
                 onClick={dongFormBo}

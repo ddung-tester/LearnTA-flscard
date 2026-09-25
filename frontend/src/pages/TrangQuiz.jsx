@@ -1005,6 +1005,9 @@ function TrangQuiz() {
   }
 
 
+  // Khai báo trước nhánh kết quả: nhánh này cũng đọc cauHienTai
+  const cauHienTai = danhSachCauHoiRuntime[chiSo];
+
   if (daHoanThanh) {
     const soCauSai = tapCardSai.size;
     const soCauDungThucTe = tongSoCauMucTieu - soCauSai;
@@ -1076,8 +1079,6 @@ function TrangQuiz() {
     );
   }
 
-
-  const cauHienTai = danhSachCauHoiRuntime[chiSo];
 
   if (!cauHienTai && !daHoanThanh) {
     return (
@@ -1224,7 +1225,7 @@ function TrangQuiz() {
 
         <section
           key={cauHienTai.id}
-          className={`ui-question-flow ui-quiz-question-card relative text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
+          className={`ui-question-flow ui-quiz-question-card ui-the-cau-hoi relative text-center mb-7 rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-9 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
         >
           {cauHienTai?.__saiBuoc && (
             <span
@@ -1302,10 +1303,25 @@ function TrangQuiz() {
                 disabled={daTraLoi}
                 className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
               >
-                <span className="text-xs font-mono text-[var(--mau-chu-phu)] mr-3">
+                <kbd className="ui-answer-phim" aria-hidden="true">
                   {index + 1}
-                </span>
+                </kbd>
                 <span className="break-words">{dapAn}</span>
+                {daTraLoi && (laDapAnDung || laDapAnDaChon) && (
+                  <svg
+                    className="ui-answer-dau"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    role="img"
+                    aria-label={laDapAnDung ? "Đáp án đúng" : "Đáp án bạn chọn, chưa đúng"}
+                  >
+                    {laDapAnDung ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />}
+                  </svg>
+                )}
               </button>
             );
           })}
@@ -1314,8 +1330,8 @@ function TrangQuiz() {
         {daTraLoi && traLoiDung && (
           <div className="mt-5 mb-8">
             <div className="mb-3 text-center">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--mau-thanh-cong)]/15 text-[var(--mau-thanh-cong)] text-sm font-bold">
-                ✓ Chính xác!
+              <span className="ui-dau-cham ui-dau-cham--dung">
+                Chính xác!
               </span>
             </div>
             <TenseExamplesCard

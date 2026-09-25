@@ -467,23 +467,51 @@ body.has-video-background--app .ui-action-card:hover {
   border-color: oklch(66% 0.080 52/ 0.54) !important;
 }
 
+/* Đáp án trắc nghiệm = mảnh giấy. Đúng/sai dùng nền nhạt + chữ đậm cùng tông
+   (không dùng chữ trắng trên nền nhạt), kèm icon để không chỉ dựa vào màu. */
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card {
+  background: var(--mau-giay) !important;
+  border-color: var(--vien-giay) !important;
+  box-shadow: 0 2px 0 oklch(47% 0.08 56/ 0.2) !important;
+}
+
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card:not(:disabled):hover {
+  border-color: oklch(47% 0.1 50/ 0.5) !important;
+  box-shadow: 0 4px 0 oklch(47% 0.08 56/ 0.24) !important;
+  transform: translateY(-2px);
+}
+
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card:not(:disabled):active {
+  box-shadow: 0 0 0 oklch(47% 0.08 56/ 0.2) !important;
+  transform: translateY(2px) !important;
+}
+
+body.has-video-background--app .ui-quiz-answer-list .ui-reading-card:disabled:not(.ui-answer-correct):not(.ui-answer-wrong) {
+  opacity: 1 !important;
+  background: oklch(96% 0.025 80/ 0.75) !important;
+  box-shadow: none !important;
+  color: var(--mau-chu-mo) !important;
+}
+
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-wrong {
-  background: oklch(55% 0.22 25/ 0.92) !important;
-  border-color: oklch(50% 0.22 25) !important;
-  color: var(--mau-chu-tren-chinh) !important;
+  background: oklch(95.5% 0.035 28) !important;
+  border-color: oklch(55% 0.17 28) !important;
+  box-shadow: 0 2px 0 oklch(55% 0.17 28/ 0.45) !important;
+  color: oklch(40% 0.15 28) !important;
 }
 
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct,
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct-reveal {
-  background: oklch(76% 0.13 155/ 0.5) !important;
-  border-color: oklch(48% 0.16 155) !important;
-  color: var(--mau-chu-tren-chinh) !important;
+  background: oklch(94.5% 0.06 150) !important;
+  border-color: oklch(50% 0.13 150) !important;
+  box-shadow: 0 2px 0 oklch(50% 0.13 150/ 0.5) !important;
+  color: oklch(32% 0.1 150) !important;
 }
 
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-wrong span,
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct span,
 body.has-video-background--app .ui-quiz-answer-list .ui-reading-card.ui-answer-correct-reveal span {
-  color: var(--mau-chu-tren-chinh) !important;
+  color: inherit !important;
 }
 
 /* Nút chính: màu gỉ sắt, chữ trắng, có "gờ" 3px bên dưới để bấm thấy lún xuống */
@@ -596,29 +624,30 @@ body.has-video-background--app .ui-written-answer-input--answer-review::placehol
 }
 
 body.has-video-background--app .ui-written-answer-input--correct {
-  background-color: oklch(58% 0.10 52/ 0.14) !important;
-  border-color: var(--mau-thanh-cong) !important;
+  background-color: oklch(94.5% 0.06 150) !important;
+  border-color: oklch(50% 0.13 150) !important;
+  color: oklch(32% 0.1 150) !important;
 }
 
 body.has-video-background--app .ui-written-answer-input--wrong {
-  background: #fca5a5 !important;
-  border-color: #dc2626 !important;
-  color: #7f1d1d !important;
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.4) !important;
+  background: oklch(95.5% 0.035 28) !important;
+  border-color: oklch(55% 0.17 28) !important;
+  color: oklch(40% 0.15 28) !important;
+  box-shadow: 0 0 0 3px oklch(55% 0.17 28/ 0.18) !important;
   transition: none !important;
 }
 
 body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong {
-  background: #fca5a5 !important;
-  border-color: #dc2626 !important;
-  color: #7f1d1d !important;
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.4) !important;
+  background: oklch(95.5% 0.035 28) !important;
+  border-color: oklch(55% 0.17 28) !important;
+  color: oklch(40% 0.15 28) !important;
+  box-shadow: 0 0 0 3px oklch(55% 0.17 28/ 0.18) !important;
   transition: none !important;
 }
 
 body.has-video-background--app .ui-written-answer-input--wrong::placeholder,
 body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong::placeholder {
-  color: rgba(127, 29, 29, 0.6) !important;
+  color: oklch(40% 0.15 28/ 0.6) !important;
   opacity: 1 !important;
 }
 
@@ -633,10 +662,10 @@ body.has-video-background--app .ui-written-answer-input--wrong:focus,
 body.has-video-background--app .ui-written-answer-input--wrong:focus-visible,
 body.has-video-background--app .ui-written-answer-input--answer-review.ui-written-answer-input--wrong:hover,
 body.has-video-background--app .ui-written-answer-input--wrong:hover {
-  background: #fca5a5 !important;
-  border-color: #dc2626 !important;
-  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5) !important;
-  color: #7f1d1d !important;
+  background: oklch(95.5% 0.035 28) !important;
+  border-color: oklch(55% 0.17 28) !important;
+  box-shadow: 0 0 0 3px oklch(55% 0.17 28/ 0.24) !important;
+  color: oklch(40% 0.15 28) !important;
 }
 
 body.has-video-background--app .ui-settings-popover__panel {
