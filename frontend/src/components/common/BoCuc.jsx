@@ -7,6 +7,8 @@ import { usePageTransition } from "../../contexts/PageTransitionContext";
 const DS_TAB_DIEU_HUONG = [
   { to: "/dashboard", nhan: "Dashboard", laActive: (path) => path === "/dashboard" },
   { to: "/decks", nhan: "Bộ từ", laActive: (path) => path.startsWith("/decks") },
+  { to: "/roadmap", nhan: "Lộ trình", laActive: (path) => path.startsWith("/roadmap") },
+  { to: "/practice", nhan: "Luyện tập", laActive: (path) => path === "/practice" },
 ];
 
 /**
@@ -26,7 +28,7 @@ function BoCuc() {
   const laTrangDashboard = viTri.pathname === "/dashboard";
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
-  const laPhienHoc = /\/(flashcard|quiz|tu-luan)$/.test(viTri.pathname);
+  const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {

@@ -567,6 +567,129 @@
   }
 }
 
+/* ── Ôn theo level: Trắc nghiệm / Gõ từ ─────────────────────────────────── */
+.review-card__prompt {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.review-card__hint {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--mau-chinh);
+}
+
+.review-card__body {
+  padding: 0 1rem 1rem;
+}
+
+.review-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.review-card__submit {
+  padding: 0.55rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+}
+
+.review-card__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.review-card__result .review-card__example {
+  margin: 0;
+}
+
+.review-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--mau-vien-manh);
+  border-radius: 0.75rem;
+  background: var(--mau-input);
+  color: var(--mau-chu);
+  font: inherit;
+  font-size: 1.1rem;
+}
+
+.review-input:focus-visible {
+  outline: none;
+  border-color: var(--mau-chinh);
+  box-shadow: var(--vong-focus);
+}
+
+.review-input--dung {
+  border-color: var(--mau-thanh-cong);
+}
+
+.review-input--sai {
+  border-color: var(--mau-loi);
+}
+
+.review-level-settings {
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.875rem;
+  background: var(--mau-mat);
+}
+
+.review-level-settings__summary {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+  cursor: pointer;
+}
+
+.review-level-settings__summary:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.review-level-settings__body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0 0.9rem 0.9rem;
+}
+
+.review-level-settings__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.review-level-settings__label {
+  min-width: 2.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--mau-chu-phu);
+}
+
+.review-level-settings__note {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mau-chu-phu);
+}
+
+.review-level-settings__body .review-nav-btn {
+  justify-self: start;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .review-stats-bar__fill {
     transition: none;

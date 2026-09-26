@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
+import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import PhanHoiDung from "../components/common/PhanHoiDung";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
@@ -19,12 +20,16 @@ import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import { ganLoaiCauHonHop } from "../utils/cauHoiTracNghiem";
 import {
+  chonTheChoPhien,
+  chuanHoaDapAn,
   ganTienTrinh,
   tachKetQuaPhien,
   taoDanhSachTienTrinh,
+  taoGoiY,
+  taoHatGiong,
   tinhTienTrinh,
-  tronMangOnDinh,
 } from "../utils/phienHoc";
 
 const DS_CHE_DO = [
@@ -32,43 +37,59 @@ const DS_CHE_DO = [
   { key: "en-vi", nhan: "Từ → Nghĩa", shortLabel: "Từ → Nghĩa" },
 ];
 
-function chuanHoa(t) { return t.trim().toLowerCase().replace(/\s+/g, " "); }
+// Tự luận, Nghe viết và Hỗn hợp dùng chung trang này (cùng cách gõ, gợi ý, nhập lại).
+const CAU_HINH_LOAI = {
+  "tu-luan": {
+    khoaCaiDat: "tuluan",
+    mode: "written",
+    questionType: "written",
+    tieuDeCaiDat: "Cài đặt tự luận",
+    tenHienThi: "tự luận",
+    modeKetQua: "tuluan",
+  },
+  "nghe-viet": {
+    khoaCaiDat: "ngheviet",
+    mode: "listening",
+    questionType: "listening",
+    tieuDeCaiDat: "Cài đặt nghe viết",
+    tenHienThi: "nghe viết",
+    modeKetQua: "nghe-viet",
+  },
+  "hon-hop": {
+    khoaCaiDat: "honHop",
+    mode: "mixed",
+    questionType: "mixed",
+    tieuDeCaiDat: "Cài đặt hỗn hợp",
+    tenHienThi: "hỗn hợp",
+    modeKetQua: "hon-hop",
+  },
+};
 
-function taoGoiYDapAn(dapAn) {
-  const text = String(dapAn || "").trim();
-  if (!text) return "";
+const NHAN_LOAI_CAU = {
+  "go-tu": "Gõ từ",
+  "go-nghia": "Gõ nghĩa",
+  nghe: "Nghe viết",
+  chon: "Trắc nghiệm",
+};
 
-  // Tính 30% tổng số ký tự (không đếm khoảng trắng), tối thiểu 1
-  const soKyTuKhongTrang = text.replace(/\s/g, "").length;
-  const soKyTuGoiY = Math.max(1, Math.ceil(soKyTuKhongTrang * 0.4));
-  let soKyTuDaHien = 0;
+const GOI_Y_NHAP = {
+  "go-tu": "Gõ từ tiếng Anh...",
+  "go-nghia": "Gõ nghĩa tiếng Việt...",
+  nghe: "Gõ từ bạn nghe được...",
+};
 
-  let ketQua = "";
-  for (const kyTu of text) {
-    if (/\s/.test(kyTu)) {
-      // Giữ nguyên khoảng trắng
-      ketQua += kyTu;
-    } else if (soKyTuDaHien < soKyTuGoiY) {
-      ketQua += kyTu;
-      soKyTuDaHien += 1;
-    } else {
-      ketQua += "_";
-    }
-  }
 
-  return ketQua;
-}
-
-function TrangTuLuan() {
+function TrangTuLuan({ loai }) {
   const { deckId } = useParams();
   const boId = Number(deckId);
+  const cauHinh = CAU_HINH_LOAI[loai];
   const {
     bo,
     danhSachGoc,
     dangTai: dangTaiDuLieu,
     loi: loiTaiDuLieu,
     taiLai: taiDuLieuTuLuan,
-  } = useBoTuHoc(boId, "tu-luan");
+  } = useBoTuHoc(boId, loai);
 
   const [searchParams] = useSearchParams();
   const boLocUrl = useMemo(() => docBoLocTuUrl(searchParams), [searchParams]);
@@ -78,18 +99,18 @@ function TrangTuLuan() {
     if (param === "yeu-thich") return true;
     // Có bộ lọc khác từ trang bộ từ → ưu tiên bộ lọc đó
     if (param) return false;
-    return docCaiDatHocTap("tuluan").chiHocTuYeuThich;
+    return docCaiDatHocTap(cauHinh.khoaCaiDat).chiHocTuYeuThich;
   });
   const [lanLam, setLanLam] = useState(0);
-  const [cheDo, setCheDo] = useState(() => docCaiDatHocTap("tuluan").cheDo ?? "vi-en");
-  const [batReward, setBatReward] = useState(() => docCaiDatHocTap("tuluan").batReward ?? false);
+  const [cheDo, setCheDo] = useState(() => docCaiDatHocTap(cauHinh.khoaCaiDat).cheDo ?? "vi-en");
+  const [batReward, setBatReward] = useState(() => docCaiDatHocTap(cauHinh.khoaCaiDat).batReward ?? false);
   const [soCauDungNhanThuong, setSoCauDungNhanThuong] = useState(
-    () => docCaiDatHocTap("tuluan").soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
+    () => docCaiDatHocTap(cauHinh.khoaCaiDat).soCauDungNhanThuong ?? CAU_HINH_REWARD_QUIZ.triggerCount
   );
   const [batRandom, setBatRandom] = useState(
-    () => docCaiDatHocTap("tuluan").batRandom
+    () => boLocUrl.ngauNhien ?? docCaiDatHocTap(cauHinh.khoaCaiDat).batRandom
   );
-  const [lanTronTuLuan, setLanTronTuLuan] = useState(0);
+  const [lanTronTuLuan, setLanTronTuLuan] = useState(taoHatGiong);
 
   const [danhSachThe, setDanhSachThe] = useState([]);
   const [chiSo, setChiSo] = useState(0);
@@ -108,6 +129,8 @@ function TrangTuLuan() {
   const [dangChoNhanEnterSauSai, setDangChoNhanEnterSauSai] = useState(false); // đang hiện đáp án sai, chờ Enter
   // cheDoNhapLai: trạng thái sau khi sai khi có gợi ý → hiện đáp án để nhìn vào nhập lại
   const [cheDoNhapLai, setCheDoNhapLai] = useState({ active: false, dapAnDung: "" });
+  // Đáp án đã chọn ở câu trắc nghiệm (chỉ có trong Hỗn hợp)
+  const [luaChon, setLuaChon] = useState(null);
   const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
   const dangTrongCheDoGoiYRef = useRef(false); // đang sai trong khi hienGoiY=true
 
@@ -150,16 +173,25 @@ function TrangTuLuan() {
     });
   }, [danhSachGoc, danhSachHocLai, chiHocTuYeuThich, boLocUrl]);
 
-  const danhSachTheGoc = useMemo(() => {
-    const ds = batRandom
-      ? tronMangOnDinh(
-          danhSachLocTuLuan,
-          `written-${boId}-${lanTronTuLuan}-${lanLam}`,
-          (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
-        )
-      : [...danhSachLocTuLuan];
-    return ganTienTrinh(ds);
-  }, [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan, lanLam]);
+  // Thẻ của phiên (chưa gắn thông tin câu hỏi) — màn kết quả tính đúng/sai trên danh sách này
+  const danhSachThePhien = useMemo(
+    () => chonTheChoPhien(danhSachLocTuLuan, {
+      ngauNhien: batRandom,
+      seed: `written-${boId}-${lanTronTuLuan}-${lanLam}`,
+      // Làm lại câu sai thì giữ đủ các câu sai
+      soLuong: danhSachHocLai !== null ? 0 : boLocUrl.soLuong,
+    }),
+    [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan, lanLam, danhSachHocLai, boLocUrl.soLuong]
+  );
+
+  const danhSachTheGoc = useMemo(
+    () => ganTienTrinh(
+      loai === "hon-hop"
+        ? ganLoaiCauHonHop(danhSachThePhien, `mixed-${boId}-${lanTronTuLuan}-${lanLam}`, danhSachGoc)
+        : danhSachThePhien
+    ),
+    [danhSachThePhien, loai, boId, lanTronTuLuan, lanLam, danhSachGoc]
+  );
 
   const tongSoCauMucTieu = danhSachTheGoc.length;
   // Thanh tiến trình lấp đầy tuyến tính từ soCauDung, không bị hổng/nhảy cóc
@@ -183,6 +215,7 @@ function TrangTuLuan() {
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
+    setLuaChon(null);
     setDanhSachKetQua([]);
     pendingRetryCardRef.current = false;
     resetAll();
@@ -191,9 +224,10 @@ function TrangTuLuan() {
   const { loiLuuKetQua, streakCelebration, dongStreakCelebration } = useLuuKetQuaPhien({
     bo,
     boId,
-    mode: "written",
-    questionType: "written",
-    direction: cheDo,
+    mode: cauHinh.mode,
+    questionType: cauHinh.questionType,
+    // Nghe viết và Hỗn hợp không có một chiều hỏi cố định
+    direction: loai === "tu-luan" ? cheDo : "en-vi",
     onlyFavorite: chiHocTuYeuThich,
     randomOrder: batRandom,
     tongSoCau: tongSoCauMucTieu,
@@ -340,9 +374,12 @@ function TrangTuLuan() {
     return undefined;
   }, [daKiemTra, ketQuaDung, daHoanThanh, hienReward, dangChoReward, dangChuyenCau]);
 
-  // Hỗ trợ phím tắt Enter khi đã trả lời đúng để tiếp tục sang câu mới
+  const theDangHoc = danhSachThe[chiSo];
+  const laCauChon = loaiCauCua(theDangHoc) === "chon";
+
+  // Hỗ trợ phím tắt Enter khi đã trả lời đúng (hoặc đã chọn ở câu trắc nghiệm) để sang câu mới
   useEffect(() => {
-    if (!daKiemTra || !ketQuaDung || dangChuyenCau || hienReward || dangChoReward) {
+    if (!daKiemTra || (!ketQuaDung && !laCauChon) || dangChuyenCau || hienReward || dangChoReward) {
       return undefined;
     }
 
@@ -356,28 +393,50 @@ function TrangTuLuan() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daKiemTra, ketQuaDung, dangChuyenCau, hienReward, dangChoReward]);
+  }, [daKiemTra, ketQuaDung, laCauChon, dangChuyenCau, hienReward, dangChoReward]);
 
   // Tự động đọc đáp án đúng qua TTS khi trả lời chính xác
   useEffect(() => {
     if (!daKiemTra || !ketQuaDung || !danhSachThe[chiSo]) return;
-    const dapAn = cheDo === "vi-en" ? danhSachThe[chiSo].term_en : danhSachThe[chiSo].meaning_vi;
-    const ngonNgu = cheDo === "vi-en" ? "en-US" : "vi-VN";
-    ttsSpeak(dapAn, ngonNgu);
+    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn(danhSachThe[chiSo]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daKiemTra, ketQuaDung, chiSo]);
 
-  function layCauHoi(the) { return the ? (cheDo === "vi-en" ? the.meaning_vi : the.term_en) : ""; }
-  function layDapAnDung(the) { return the ? (cheDo === "vi-en" ? the.term_en : the.meaning_vi) : ""; }
-  function layNgonNguCauHoi() { return cheDo === "vi-en" ? "vi-VN" : "en-US"; }
-  function layNgonNguDapAn() { return cheDo === "vi-en" ? "en-US" : "vi-VN"; }
+  // Nghe viết: tự đọc từ khi sang câu mới
+  const khoaCauNghe =
+    !daHoanThanh && loaiCauCua(theDangHoc) === "nghe" ? theDangHoc?.__sessionKey : null;
+  useEffect(() => {
+    if (!khoaCauNghe) return undefined;
+    const timer = setTimeout(() => docCauHoiHienTai(), 300);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [khoaCauNghe]);
+
+  // Dạng câu của từng thẻ: gõ từ (VI → EN), gõ nghĩa (EN → VI), nghe viết,
+  // trắc nghiệm (chỉ có trong Hỗn hợp, chiều hỏi lưu ở __chieuChon)
+  function loaiCauCua(the) {
+    if (the?.__loaiCau) return the.__loaiCau;
+    if (loai === "nghe-viet") return "nghe";
+    return cheDo === "vi-en" ? "go-tu" : "go-nghia";
+  }
+  function hoiBangTiengViet(the) {
+    const loaiCau = loaiCauCua(the);
+    return loaiCau === "go-tu" || (loaiCau === "chon" && the.__chieuChon === "vi-en");
+  }
+  function dapAnLaTiengAnh(the) {
+    return hoiBangTiengViet(the) || loaiCauCua(the) === "nghe";
+  }
+  function layCauHoi(the) { return the ? (hoiBangTiengViet(the) ? the.meaning_vi : the.term_en) : ""; }
+  function layDapAnDung(the) { return the ? (dapAnLaTiengAnh(the) ? the.term_en : the.meaning_vi) : ""; }
+  function layNgonNguCauHoi(the) { return hoiBangTiengViet(the) ? "vi-VN" : "en-US"; }
+  function layNgonNguDapAn(the) { return dapAnLaTiengAnh(the) ? "en-US" : "vi-VN"; }
 
   function docCauHoiHienTai() {
-    ttsSpeak(layCauHoi(danhSachThe[chiSo]), layNgonNguCauHoi());
+    ttsSpeak(layCauHoi(danhSachThe[chiSo]), layNgonNguCauHoi(danhSachThe[chiSo]));
   }
 
   function docDapAnDungHienTai() {
-    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
+    ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn(danhSachThe[chiSo]));
   }
 
   function tangTienTrinhChoThe() {
@@ -405,6 +464,7 @@ function TrangTuLuan() {
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
+    setLuaChon(null);
     pendingRetryCardRef.current = false;
     chuyenCauMemLockRef.current = false;
   }
@@ -543,7 +603,7 @@ function TrangTuLuan() {
 
       const theHienTai = danhSachThe[chiSo];
       const dapAnNhapLai = cheDoNhapLai.dapAnDung;
-      const dungNhapLai = chuanHoa(cauTraLoi) === chuanHoa(dapAnNhapLai);
+      const dungNhapLai = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnNhapLai);
 
       if (dungNhapLai) {
         // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
@@ -595,7 +655,7 @@ function TrangTuLuan() {
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
-    const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
+    const dung = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnDung);
 
     if (dung) {
       if (hienGoiY) {
@@ -723,7 +783,7 @@ function TrangTuLuan() {
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
-    const dung = chuanHoa(cauTraLoi) === chuanHoa(dapAnDung);
+    const dung = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnDung);
 
     if (dung) {
       // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
@@ -765,6 +825,47 @@ function TrangTuLuan() {
     }
   }
 
+  // Câu trắc nghiệm trong Hỗn hợp: đúng → tính tiến độ như gõ đúng;
+  // sai → ghi nhận sai, Tiếp tục sẽ đưa câu này về hỏi lại sau 5 câu.
+  function chonDapAnLuaChon(dapAn) {
+    if (daKiemTra || hienReward || dangChoReward || dangChuyenCau) return;
+
+    const theHienTai = danhSachThe[chiSo];
+    if (!theHienTai) return;
+    const dapAnDung = layDapAnDung(theHienTai);
+    const dung = dapAn === dapAnDung;
+
+    scrollBeforeCheckRef.current = window.scrollY;
+    setLuaChon(dapAn);
+    setDaKiemTra(true);
+    setKetQuaDung(dung);
+    setDanhSachKetQua((hienTai) => [
+      ...hienTai,
+      {
+        id: theHienTai.id,
+        cauHoi: layCauHoi(theHienTai),
+        dapAnDung,
+        cauTraLoi: dapAn,
+        dung,
+        answerMeta: {
+          mode: dung && theHienTai.__saiBuoc ? "retry-correct" : "choice",
+          segment_index: theHienTai.__segmentIndex ?? 0,
+          counts_toward_progress: dung,
+        },
+      },
+    ]);
+
+    if (dung) {
+      phatAmThanhDung();
+      tangTienTrinhChoThe();
+      incrementCombo();
+    } else {
+      resetCombo();
+      setTapCardSai((prev) => new Set(prev).add(theHienTai.id));
+      pendingRetryCardRef.current = true;
+    }
+  }
+
   function hienThiGoiY() {
     if (dangChuyenCau || hienReward || dangChoReward || ketQuaDung) return;
     setHienGoiY(true);
@@ -793,6 +894,7 @@ function TrangTuLuan() {
     setDaBoQua(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
+    setLuaChon(null);
   }
 
   function chuyenCauMem({ boQuaKhoaReward = false, boQuaCau = false } = {}) {
@@ -842,6 +944,7 @@ function TrangTuLuan() {
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
     setDangChoNhanEnterSauSai(false);
+    setLuaChon(null);
     setSoCauDung(0);
     setDanhSachThe([]);
     setDaHoanThanh(false);
@@ -865,7 +968,7 @@ function TrangTuLuan() {
   function doiCheDoHoc(key) {
     if (key === cheDo) return;
     setCheDo(key);
-    luuCaiDatHocTap("tuluan", { cheDo: key, chiHocTuYeuThich, batRandom, soCauDungNhanThuong });
+    luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo: key, chiHocTuYeuThich, batRandom, soCauDungNhanThuong });
     lamLai();
   }
 
@@ -873,13 +976,13 @@ function TrangTuLuan() {
     const moi = !batReward;
     if (!moi) datLaiPhanThuong();
     setBatReward(moi);
-    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
+    luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
   }
 
   function doiRandom() {
     const moi = !batRandom;
     setBatRandom(moi);
-    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
+    luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
     if (moi) setLanTronTuLuan((lanHienTai) => lanHienTai + 1);
     batDauLai();
   }
@@ -888,13 +991,13 @@ function TrangTuLuan() {
     const v = Math.max(1, Number(e.target.value) || 1);
     datLaiPhanThuong();
     setSoCauDungNhanThuong(v);
-    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: v });
+    luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: v });
   }
 
   function doiChiHocTuYeuThich() {
     const moi = !chiHocTuYeuThich;
     setChiHocTuYeuThich(moi);
-    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
+    luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
     batDauLai();
   }
 
@@ -929,7 +1032,7 @@ function TrangTuLuan() {
         }
         moTa={
           dangThieuTuYeuThich
-            ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học tự luận."
+            ? `Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học ${cauHinh.tenHienThi}.`
             : khongKhopBoLoc
               ? "Quay lại bộ từ và chọn bộ lọc khác."
               : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."
@@ -970,7 +1073,7 @@ function TrangTuLuan() {
   );
 
   if (daHoanThanh) {
-    const { danhSachCardDung, danhSachCardSai } = tachKetQuaPhien(danhSachLocTuLuan, tapCardSai);
+    const { danhSachCardDung, danhSachCardSai } = tachKetQuaPhien(danhSachThePhien, tapCardSai);
 
     return (
       <>
@@ -994,7 +1097,7 @@ function TrangTuLuan() {
             danhSachCardSai={danhSachCardSai}
             danhSachCardDung={danhSachCardDung}
             laLamLai={danhSachHocLai !== null}
-            mode="tuluan"
+            mode={cauHinh.modeKetQua}
           />
         </div>
       </>
@@ -1015,9 +1118,9 @@ function TrangTuLuan() {
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
           <CaiDatPhienHoc
-            label="Cài đặt tự luận"
-            idMocReward="moc-reward-tuluan"
-            dsCheDo={DS_CHE_DO}
+            label={cauHinh.tieuDeCaiDat}
+            idMocReward={`moc-reward-${loai}`}
+            dsCheDo={loai === "tu-luan" ? DS_CHE_DO : undefined}
             cheDo={cheDo}
             onDoiCheDo={doiCheDoHoc}
             chiHocTuYeuThich={chiHocTuYeuThich}
@@ -1033,7 +1136,11 @@ function TrangTuLuan() {
 
         <ThanhTienDoPhien
           className="ui-written-progress mb-4"
-          nhanCheDo={cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"}
+          nhanCheDo={
+            loai === "tu-luan"
+              ? cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"
+              : NHAN_LOAI_CAU[loaiCauCua(theHienTai)]
+          }
           soCauDung={soCauDung}
           tongSoCau={tongSoCauMucTieu}
           tienTrinh={tienTrinh}
@@ -1052,8 +1159,28 @@ function TrangTuLuan() {
           dangRoiDi={dangChuyenCau}
           dangDoc={ttsDangDoc}
           onDoc={docCauHoiHienTai}
+          cheDoNghe={loaiCauCua(theHienTai) === "nghe"}
         />
 
+        {laCauChon ? (
+          <>
+            <DanhSachDapAn
+              key={`answers-${theHienTai.__sessionKey}`}
+              khoa={theHienTai.id}
+              danhSachDapAn={theHienTai.__dapAnLuaChon}
+              dapAnDung={layDapAnDung(theHienTai)}
+              dapAnDaChon={luaChon}
+              onChon={chonDapAnLuaChon}
+              dangRoiDi={dangChuyenCau}
+            />
+            {daKiemTra && !ketQuaDung && (
+              <PhanHoiSaiTracNghiem
+                dapAnDung={layDapAnDung(theHienTai)}
+                onTiepTuc={() => chuyenCauMem()}
+              />
+            )}
+          </>
+        ) : (
         <form onSubmit={kiemTraDapAn} className="space-y-3">
           <div className="relative">
             {hienCanhBaoNhap && (
@@ -1075,7 +1202,7 @@ function TrangTuLuan() {
               onPaste={xuLyDanInput}
               disabled={daKiemTra && ketQuaDung}
               readOnly={dangChoNhanEnterSauSai}
-              placeholder="Nhập đáp án..."
+              placeholder={loai === "tu-luan" ? "Nhập đáp án..." : GOI_Y_NHAP[loaiCauCua(theHienTai)]}
               className={`ui-written-answer-input ${daBoQua || (daKiemTra && !ketQuaDung) ? "ui-written-answer-input--answer-review" : ""} w-full rounded-xl border p-4 text-xl outline-none ${
                 daKiemTra
                   ? (ketQuaDung
@@ -1166,7 +1293,7 @@ function TrangTuLuan() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    ttsSpeak(cheDoNhapLai.dapAnDung, layNgonNguDapAn());
+                    ttsSpeak(cheDoNhapLai.dapAnDung, layNgonNguDapAn(danhSachThe[chiSo]));
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
@@ -1200,7 +1327,7 @@ function TrangTuLuan() {
                   className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-chinh)]"
                   style={{ wordSpacing: "0.35em" }}
                 >
-                  {taoGoiYDapAn(layDapAnDung(danhSachThe[chiSo]))}
+                  {taoGoiY(layDapAnDung(danhSachThe[chiSo]))}
                 </span>
               </motion.div>
             ) : null}
@@ -1294,6 +1421,7 @@ function TrangTuLuan() {
 
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
         </form>
+        )}
 
         {/* Đúng rồi: hiện câu mẫu + ví dụ các thì — nằm NGOÀI form để tránh browser tự focus và scroll */}
         {daKiemTra && ketQuaDung && (
@@ -1310,9 +1438,9 @@ function TrangTuLuan() {
   );
 }
 
-function TrangTuLuanWrapper() {
+function TrangTuLuanWrapper({ loai = "tu-luan" }) {
   const { deckId } = useParams();
-  return <TrangTuLuan key={deckId} />;
+  return <TrangTuLuan key={`${loai}-${deckId}`} loai={loai} />;
 }
 
 export default TrangTuLuanWrapper;

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import StreakBadge from "../components/common/StreakBadge";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
+import NhapNhanhTu from "../components/NhapNhanhTu";
 import DeckDetailSkeleton from "../components/common/DeckDetailSkeleton";
 import EmptyState from "../components/common/EmptyState";
 import { useToast } from "../contexts/ToastContext";
@@ -16,6 +17,7 @@ import {
   demTheoFilter,
   docBoLocTuUrl,
 } from "../utils/locTuVung";
+import { cheTuTrongCau } from "../utils/phienHoc";
 import { layDeckTheoId } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
 import {
@@ -111,21 +113,6 @@ function IconHeart({ filled = false }) {
 }
 
 
-function parseDongImport(dong) {
-  const noiDung = dong.trim();
-  if (!noiDung) return null;
-
-  const match = noiDung.match(/^(.+?)\s*(?:\s-\s|,|\|)\s*(.+)$/);
-  if (!match) return null;
-
-  const word = match[1].trim();
-  const meaning = match[2].trim();
-
-  if (!word || !meaning) return null;
-
-  return { word, meaning };
-}
-
 function TrangChiTietBo() {
   const { deckId } = useParams();
   const { navigateWithLoading, setPageDataLoading } = usePageTransition();
@@ -143,7 +130,6 @@ function TrangChiTietBo() {
   const [formTu, setFormTu] = useState(FORM_TU_RONG);
   const [dangChinhSua, setDangChinhSua] = useState(false);
   const [dangMoImport, setDangMoImport] = useState(false);
-  const [noiDungImport, setNoiDungImport] = useState("");
   const toast = useToast();
   // Bộ lọc lưu trên URL → quay lại từ trang học vẫn giữ nguyên, chia sẻ link được
   const [searchParams, setSearchParams] = useSearchParams();
@@ -248,7 +234,6 @@ function TrangChiTietBo() {
     setFormTu(FORM_TU_RONG);
     setDangChinhSua(false);
     setDangMoImport(false);
-    setNoiDungImport("");
     setTheDangKeoId(null);
     setDangXacNhanXoa(null);
     taiDuLieuBo();
@@ -392,7 +377,6 @@ function TrangChiTietBo() {
   function moFormImport() {
     if (!yeuCauCheDoChinhSua()) return;
 
-    setNoiDungImport("");
     setDangMoImport(true);
   }
 
@@ -480,49 +464,29 @@ function TrangChiTietBo() {
     }
   }
 
-  async function importTu(event) {
-    event.preventDefault();
-
+  // Nhận danh sách từ đã phân tích / AI tạo từ NhapNhanhTu và lưu một lần
+  async function nhapTuNhanh(cards) {
     if (dangLuuTu) return;
     if (!yeuCauCheDoChinhSua()) return;
-
-    const cacDong = noiDungImport.split(/\r?\n/);
-    const danhSachHopLe = [];
-
-    cacDong.forEach((dong) => {
-      if (!dong.trim()) return;
-
-      const ketQua = parseDongImport(dong);
-      if (!ketQua) {
-        return;
-      }
-
-      danhSachHopLe.push(ketQua);
-    });
-
-    if (danhSachHopLe.length === 0) {
-      toast.warning("Không có từ hợp lệ");
-      return;
-    }
 
     setDangLuuTu(true);
 
     try {
       const ketQua = await importCards(
         boId,
-        danhSachHopLe.map((the) => ({
-          term_en: the.word,
-          meaning_vi: the.meaning,
-          example_sentence: "",
-          note: "",
+        cards.map((the) => ({
+          term_en: the.term_en,
+          meaning_vi: the.meaning_vi,
+          example_sentence: the.example_sentence || "",
+          note: the.note || "",
+          pronunciation: the.pronunciation || null,
+          part_of_speech: the.part_of_speech || null,
         }))
       );
 
       setDanhSach((hienTai) => [...hienTai, ...ketQua.cards]);
-
-      setNoiDungImport("");
       setDangMoImport(false);
-      showSuccess(`Đã thêm ${danhSachHopLe.length} từ`);
+      showSuccess(`Đã thêm ${ketQua.inserted_count} từ`);
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -888,6 +852,10 @@ function TrangChiTietBo() {
   const soTuDaHoc = soTuTheoFilter["da-hoc"];
   const dangLoc = filterTu !== "tat-ca" || tuKhoaHienTai !== "";
   const soTuSeHoc = danhSachDaLoc.length;
+  // Chế độ Ngữ cảnh chỉ dùng được từ có câu ví dụ chứa chính từ đó
+  const soTuCoNguCanh = danhSachDaLoc.filter((the) =>
+    cheTuTrongCau(the.example_sentence, the.term_en)
+  ).length;
   // Luôn gửi filter tường minh để trang học không rơi về cài đặt "chỉ học yêu thích" đã lưu
   const queryHoc = `?filter=${filterTu}&sort=${sortTu}${tuKhoaHienTai ? `&q=${encodeURIComponent(tuKhoaHienTai)}` : ""}`;
   const streak = userStreak;
@@ -957,6 +925,19 @@ function TrangChiTietBo() {
             { key: "flashcard", label: "Flashcard", path: "flashcard", primary: true },
             { key: "quiz", label: "Trắc nghiệm", path: "quiz", lyDoKhoa: soTu < 4 ? "Cần ít nhất 4 từ trong bộ để làm trắc nghiệm" : "" },
             { key: "tu-luan", label: "Tự luận", path: "tu-luan" },
+            { key: "nghe-viet", label: "Nghe viết", path: "nghe-viet" },
+            {
+              key: "ngu-canh",
+              label: "Ngữ cảnh",
+              path: "ngu-canh",
+              lyDoKhoa: soTu < 4
+                ? "Cần ít nhất 4 từ trong bộ để làm ngữ cảnh"
+                : soTuCoNguCanh === 0
+                  ? "Cần câu ví dụ có chứa chính từ đang học"
+                  : "",
+            },
+            { key: "noi-tu", label: "Nối từ", path: "noi-tu" },
+            { key: "hon-hop", label: "Hỗn hợp", path: "hon-hop" },
           ].map((cach) => {
             const lyDoKhoa = soTuSeHoc === 0 ? "Không có từ nào khớp bộ lọc" : cach.lyDoKhoa;
             const lop = `ui-action-card ui-study-launch__btn${cach.primary ? " ui-study-launch__btn--primary" : ""}`;
@@ -1001,7 +982,7 @@ function TrangChiTietBo() {
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-3 py-1.5 text-xs font-semibold text-[var(--mau-chu-phu)] transition-colors hover:border-[var(--mau-chinh)] hover:text-[var(--mau-chinh)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)]"
                 >
                   <IconUpload />
-                  Import
+                  Thêm nhanh
                 </button>
               </>
             )}
@@ -1451,15 +1432,15 @@ function TrangChiTietBo() {
       <AnimatedModal
         open={dangMoImport}
         onClose={dongFormImport}
-        className="ui-form-panel max-w-lg shadow-[var(--bong-modal)]"
+        className="ui-form-panel max-w-xl shadow-[var(--bong-modal)]"
       >
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <p className="text-xs font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-1">
-              Import nhanh
+              Thêm nhanh
             </p>
             <h3 className="text-xl font-semibold text-[var(--mau-chu)]">
-              Import từ
+              Thêm nhiều từ
             </h3>
           </div>
           <button
@@ -1471,43 +1452,14 @@ function TrangChiTietBo() {
           </button>
         </div>
 
-        <form onSubmit={importTu} className="space-y-4">
-          <div>
-            <label
-              htmlFor="import-tu"
-              className="block text-sm font-medium text-[var(--mau-chu)] mb-1.5"
-            >
-              Danh sách từ
-            </label>
-            <textarea
-              id="import-tu"
-              value={noiDungImport}
-              onChange={(event) => setNoiDungImport(event.target.value)}
-              rows={9}
-              className="ui-import-zone w-full resize-none rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] px-3 py-2.5 text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-              placeholder={"apple - quả táo\nbook, quyển sách\ncat | con mèo"}
-            />
-            <p className="mt-2 text-xs text-[var(--mau-chu-phu)]">
-              Mỗi dòng một từ. Hỗ trợ: word - meaning, word, meaning, word | meaning.
-            </p>
-          </div>
-
-          <div className="ui-form-actions">
-            <button
-              type="button"
-              onClick={dongFormImport}
-              className="ui-button ui-button--ghost w-full sm:w-auto rounded-lg border border-[var(--mau-vien)] px-5 py-2.5 text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              className="ui-button ui-button--primary w-full sm:w-auto rounded-lg bg-[var(--mau-chinh)] px-5 py-2.5 font-semibold text-[var(--mau-chu-tren-chinh)] hover:bg-[var(--mau-chinh-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-            >
-              Import từ
-            </button>
-          </div>
-        </form>
+        {dangMoImport && (
+          <NhapNhanhTu
+            danhSachHienCo={danhSach}
+            dangLuu={dangLuuTu}
+            onNhap={nhapTuNhanh}
+            onHuy={dongFormImport}
+          />
+        )}
       </AnimatedModal>
       <AnimatedModal
         open={!!dangXacNhanXoa}

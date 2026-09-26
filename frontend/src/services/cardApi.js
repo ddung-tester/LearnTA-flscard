@@ -48,3 +48,16 @@ export async function sinhCauMauAI(payload) {
   const response = await api.post("/cards/generate-examples", payload);
   return response.data.examples;
 }
+
+/**
+ * Gọi AI tạo danh sách từ vựng theo chủ đề hoặc trích từ một đoạn văn (chưa lưu vào bộ từ).
+ * @returns {Promise<Array>} [{ term_en, pronunciation, part_of_speech, meaning_vi, example_sentence, note }]
+ */
+export async function taoTuBangAI({ chuDe = "", doanVan = "", soLuong = 15 }) {
+  const response = await api.post("/cards/generate-words", {
+    chu_de: chuDe,
+    doan_van: doanVan,
+    so_luong: soLuong,
+  });
+  return response.data.words;
+}

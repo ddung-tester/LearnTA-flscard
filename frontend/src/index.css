@@ -7479,6 +7479,295 @@ body.has-video-background--app .app-shell-header {
   cursor: not-allowed;
 }
 
+/* ── Lộ trình (/roadmap) ─────────────────────────────────────────────────── */
+.roadmap-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.roadmap-card {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+  color: var(--mau-chu);
+  box-shadow: var(--bong-card);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .roadmap-card:hover {
+    border-color: var(--mau-chinh);
+    background: var(--mau-mat-hover);
+  }
+}
+
+.roadmap-card:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.roadmap-card__title,
+.roadmap-stage__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.roadmap-card__desc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--mau-chu-phu);
+}
+
+.roadmap-card__meta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.roadmap-progress {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.roadmap-progress__track {
+  position: relative;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--mau-mat-2);
+}
+
+.roadmap-progress__hoc,
+.roadmap-progress__thuoc {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  transition: width var(--tuong-tac-hover) var(--tuong-tac-ease);
+}
+
+.roadmap-progress__hoc {
+  background: color-mix(in srgb, var(--mau-chinh) 35%, transparent);
+}
+
+.roadmap-progress__thuoc {
+  background: var(--mau-chinh);
+}
+
+.roadmap-progress__text {
+  font-size: 0.78rem;
+  color: var(--mau-chu-phu);
+}
+
+.roadmap-progress__text strong {
+  color: var(--mau-chu);
+  font-variant-numeric: tabular-nums;
+}
+
+.roadmap-stages {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+}
+
+.roadmap-stage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+}
+
+.roadmap-stage--next {
+  border-color: var(--mau-chinh);
+}
+
+.roadmap-stage__number {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--mau-mat-2);
+  color: var(--mau-chinh);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.roadmap-stage__body {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.roadmap-stage__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (min-width: 640px) {
+  .roadmap-stage {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .roadmap-stage__actions {
+    grid-column: auto;
+    flex-direction: column;
+  }
+}
+
+.roadmap-stage__btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roadmap-progress__hoc,
+  .roadmap-progress__thuoc {
+    transition: none;
+  }
+}
+
+/* ── Trang Luyện tập (/practice) ─────────────────────────────────────────── */
+.practice-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .practice-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.practice-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+}
+
+.practice-panel__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.practice-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.practice-field__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.practice-select {
+  width: 100%;
+  max-width: none;
+}
+
+.practice-ready {
+  font-size: 0.875rem;
+  color: var(--mau-chu-phu);
+}
+
+.practice-ready strong {
+  color: var(--mau-chu);
+  font-variant-numeric: tabular-nums;
+}
+
+.practice-srs__btn {
+  justify-self: start;
+  padding: 0.6rem 1.1rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+}
+
+.practice-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+@media (min-width: 640px) {
+  .practice-modes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.practice-mode {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 4.5rem;
+  align-content: center;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.875rem;
+  background: var(--mau-mat);
+  color: var(--mau-chu);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .practice-mode:not(.practice-mode--disabled):hover {
+    border-color: var(--mau-chinh);
+    background: var(--mau-mat-hover);
+  }
+}
+
+.practice-mode:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.practice-mode__name {
+  font-weight: 700;
+  color: var(--mau-chinh);
+}
+
+.practice-mode__desc {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--mau-chu-phu);
+}
+
+.practice-mode--disabled {
+  border-style: dashed;
+  border-color: var(--mau-vien-manh);
+  cursor: not-allowed;
+}
+
+.practice-mode--disabled .practice-mode__name {
+  color: var(--mau-chu-mo);
+}
+
 /* Tab lọc: một hàng cuộn ngang trên điện thoại, dàn đều trên màn rộng */
 .ui-filter-tabs.ui-filter-tabs--deck {
   flex-wrap: nowrap;

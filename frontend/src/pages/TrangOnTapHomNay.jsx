@@ -2,7 +2,8 @@
  * TrangOnTapHomNay — Daily Review page (SRS).
  *
  * Hiển thị các từ đến hạn ôn (kể cả Lv5) từ SRS queue.
- * Sau khi lật thẻ, user chọn Quên / Thuộc hoặc tự chọn level Lv0–Lv5:
+ * Mỗi level ôn bằng một chế độ tự chọn (Thẻ / Trắc nghiệm / Gõ từ), giống luyentu.
+ * Thẻ: lật rồi chọn Quên / Thuộc hoặc tự chọn level Lv0–Lv5. Trắc nghiệm, Gõ từ: chấm đúng/sai.
  * 1. Cập nhật SRS local + backend PATCH /reviews/by-card/:cardId/result
  * 2. Từ "Quên" hoặc về Lv0 được đưa xuống cuối hàng để ôn lại trong phiên
  * 3. Show toast + chuyển sang card tiếp theo
@@ -20,6 +21,7 @@ import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
+import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import "./TrangOnTapHomNay.css";
 import {
   layTatCaSRS,
@@ -29,6 +31,13 @@ import {
   taiSRSDongBo,
 } from "../utils/srsReview";
 import { luuStudySessionHoanThanh } from "../services/studySessionApi";
+import {
+  CHE_DO_THEO_LEVEL_MAC_DINH,
+  docCaiDatHocTap,
+  luuCaiDatHocTap,
+} from "../utils/caiDatHocTap";
+import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
+import { chuanHoaDapAn, taoGoiY } from "../utils/phienHoc";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -40,6 +49,15 @@ function levelLabel(level) {
 }
 
 const CAC_LEVEL = [0, 1, 2, 3, 4, 5];
+
+const LUA_CHON_CHE_DO_ON = [
+  { giaTri: "the", nhan: "Thẻ" },
+  { giaTri: "chon", nhan: "Trắc nghiệm" },
+  { giaTri: "go", nhan: "Gõ từ" },
+];
+
+// Từ Lv3 trở lên: không có gợi ý khi gõ (giống luyentu)
+const LEVEL_TAT_GOI_Y = 3;
 
 // Từ phải ôn lại ngay trong phiên: trả lời "Quên" hoặc tự chọn Lv0.
 function laOnLaiNgay(ketQua) {
@@ -177,11 +195,224 @@ function StatsBar({ total, done, remaining }) {
   );
 }
 
-// ── ReviewCard ────────────────────────────────────────────────────────────────
+// ── Chế độ ôn theo level ──────────────────────────────────────────────────────
+
+function CheDoTheoLevel({ giaTri, onDoi, onMacDinh }) {
+  return (
+    <details className="review-level-settings">
+      <summary className="review-level-settings__summary">Chế độ ôn theo level</summary>
+      <div className="review-level-settings__body">
+        {CAC_LEVEL.map((level) => (
+          <div key={level} className="review-level-settings__row">
+            <span className="review-level-settings__label">Lv{level}</span>
+            <div className="ui-chip-row" role="group" aria-label={`Chế độ ôn cho Lv${level}`}>
+              {LUA_CHON_CHE_DO_ON.map((muc) => {
+                const dangChon = giaTri[level] === muc.giaTri;
+                return (
+                  <button
+                    key={muc.giaTri}
+                    type="button"
+                    onClick={() => onDoi(level, muc.giaTri)}
+                    aria-pressed={dangChon}
+                    className={`ui-chip ui-chip--interactive${dangChon ? " ui-chip--primary" : ""}`}
+                  >
+                    {muc.nhan}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        <p className="review-level-settings__note">
+          Từ Lv{LEVEL_TAT_GOI_Y} trở lên không có gợi ý khi gõ. Trắc nghiệm cần ít nhất 4 từ trong hàng ôn,
+          nếu không sẽ dùng Thẻ.
+        </p>
+        <button type="button" onClick={onMacDinh} className="review-nav-btn">
+          Khôi phục mặc định
+        </button>
+      </div>
+    </details>
+  );
+}
+
+// ── Thẻ ôn tập ────────────────────────────────────────────────────────────────
+
+function ReviewCardHeader({ entry, onRemove, isLoading }) {
+  const badge = levelLabel(entry.level ?? 0);
+
+  return (
+    <div className="review-card__header">
+      <span className={`review-badge ${badge.cls}`}>{badge.text} · Lv{entry.level ?? 0}</span>
+      <span className="review-card__deck">{entry.deckTitle || `Bộ ${entry.deckId}`}</span>
+      <button
+        type="button"
+        onClick={() => onRemove(entry.id)}
+        disabled={isLoading}
+        className="review-card__remove"
+        aria-label="Xoá khỏi hàng ôn"
+        title="Xoá khỏi hàng ôn"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+// Enter để sang từ tiếp theo sau khi đã trả lời
+function useEnterDeTiepTuc(daTraLoi, onTiepTuc) {
+  useEffect(() => {
+    if (!daTraLoi) return undefined;
+
+    function xuLy(event) {
+      if (event.key === "Enter" && !event.repeat) {
+        event.preventDefault();
+        onTiepTuc();
+      }
+    }
+
+    window.addEventListener("keydown", xuLy);
+    return () => window.removeEventListener("keydown", xuLy);
+  }, [daTraLoi, onTiepTuc]);
+}
+
+function KetQuaDungOnTap({ entry, onTiepTuc }) {
+  return (
+    <div className="review-card__result ui-feedback-pop">
+      <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
+      {entry.example && <p className="review-card__example">{entry.example}</p>}
+      <button
+        type="button"
+        onClick={onTiepTuc}
+        className="ui-button ui-button--primary px-5 py-2 text-xs font-bold rounded-xl shadow-sm"
+      >
+        Tiếp tục (Enter ↵)
+      </button>
+    </div>
+  );
+}
+
+function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) {
+  const [daChon, setDaChon] = useState(null);
+  const dung = daChon === entry.meaning;
+
+  function tiepTuc() {
+    if (daChon === null || isLoading) return;
+    onRate(entry.id, dung ? "correct" : "wrong");
+  }
+
+  useEnterDeTiepTuc(daChon !== null, tiepTuc);
+
+  return (
+    <div className="review-card ui-content-enter">
+      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+      <div className="review-card__word-section">
+        <p className="review-card__term" lang="en">{entry.word}</p>
+        <p className="review-card__prompt">Chọn nghĩa đúng</p>
+      </div>
+      <div className="review-card__body">
+        <DanhSachDapAn
+          khoa={entry.id}
+          danhSachDapAn={dapAnLuaChon}
+          dapAnDung={entry.meaning}
+          dapAnDaChon={daChon}
+          onChon={setDaChon}
+        />
+        {daChon !== null &&
+          (dung ? (
+            <KetQuaDungOnTap entry={entry} onTiepTuc={tiepTuc} />
+          ) : (
+            <PhanHoiSaiTracNghiem dapAnDung={entry.meaning} onTiepTuc={tiepTuc} />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
+  const [nhap, setNhap] = useState("");
+  const [ketQua, setKetQua] = useState(null); // null | "dung" | "sai"
+  const [hienGoiY, setHienGoiY] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function tiepTuc() {
+    if (!ketQua || isLoading) return;
+    onRate(entry.id, ketQua === "dung" ? "correct" : "wrong");
+  }
+
+  // Enter trong ô gõ: lần đầu kiểm tra, lần sau sang từ tiếp theo
+  function kiemTra(event) {
+    event.preventDefault();
+    if (ketQua) {
+      tiepTuc();
+      return;
+    }
+    if (!nhap.trim()) {
+      inputRef.current?.focus();
+      return;
+    }
+    setKetQua(chuanHoaDapAn(nhap) === chuanHoaDapAn(entry.word) ? "dung" : "sai");
+  }
+
+  return (
+    <div className="review-card ui-content-enter">
+      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+      <div className="review-card__word-section">
+        <p className="review-card__term">{entry.meaning}</p>
+        <p className="review-card__prompt">Gõ từ tiếng Anh</p>
+        {hienGoiY && !ketQua && (
+          <p className="review-card__hint" lang="en">{taoGoiY(entry.word)}</p>
+        )}
+      </div>
+      <form className="review-card__body" onSubmit={kiemTra}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={nhap}
+          onChange={(event) => setNhap(event.target.value)}
+          readOnly={Boolean(ketQua)}
+          placeholder="Gõ từ tiếng Anh..."
+          aria-label="Từ tiếng Anh"
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          lang="en"
+          className={`review-input${ketQua === "dung" ? " review-input--dung" : ketQua === "sai" ? " review-input--sai" : ""}`}
+        />
+        {!ketQua ? (
+          <div className="review-card__actions">
+            {choGoiY && (
+              <button
+                type="button"
+                onClick={() => {
+                  setHienGoiY(true);
+                  inputRef.current?.focus();
+                }}
+                disabled={hienGoiY}
+                className="review-nav-btn"
+              >
+                Gợi ý
+              </button>
+            )}
+            <button type="submit" className="ui-button ui-button--primary review-card__submit">
+              Kiểm tra
+            </button>
+          </div>
+        ) : ketQua === "dung" ? (
+          <KetQuaDungOnTap entry={entry} onTiepTuc={tiepTuc} />
+        ) : (
+          <PhanHoiSaiTracNghiem dapAnDung={entry.word} onTiepTuc={tiepTuc} />
+        )}
+      </form>
+    </div>
+  );
+}
 
 function ReviewCard({ entry, onRate, onRemove, isLoading }) {
   const [revealed, setRevealed] = useState(false);
-  const badge = levelLabel(entry.level ?? 0);
 
   function handleReveal() {
     setRevealed(true);
@@ -198,21 +429,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
 
   return (
     <div className="review-card ui-content-enter">
-      {/* Card header */}
-      <div className="review-card__header">
-        <span className={`review-badge ${badge.cls}`}>{badge.text} · Lv{entry.level ?? 0}</span>
-        <span className="review-card__deck">{entry.deckTitle || `Bộ ${entry.deckId}`}</span>
-        <button
-          type="button"
-          onClick={() => onRemove(entry.id)}
-          disabled={isLoading}
-          className="review-card__remove"
-          aria-label="Xoá khỏi hàng ôn"
-          title="Xoá khỏi hàng ôn"
-        >
-          ✕
-        </button>
-      </div>
+      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
 
       {/* Word */}
       <div className="review-card__word-section">
@@ -332,6 +549,9 @@ function TrangOnTapHomNay() {
   const [removedIds, setRemovedIds] = useState(new Set());
   const [correctCount, setCorrectCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
+  const [cheDoTheoLevel, setCheDoTheoLevel] = useState(
+    () => docCaiDatHocTap("onTap").cheDoTheoLevel ?? CHE_DO_THEO_LEVEL_MAC_DINH
+  );
   const [entryOverrides, setEntryOverrides] = useState({});
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
@@ -430,6 +650,39 @@ function TrangOnTapHomNay() {
     () => tinhThongKeSRS(allCards.filter((card) => !removedIds.has(String(card.id)))),
     [allCards, removedIds]
   );
+
+  // Chế độ ôn của từ hiện tại theo level; trắc nghiệm cần ít nhất 4 từ để có đáp án nhiễu
+  const poolTracNghiem = useMemo(
+    () => allCards.map((entry) => ({ id: entry.id, term_en: entry.word, meaning_vi: entry.meaning })),
+    [allCards]
+  );
+  const levelHienTai = Math.min(5, Math.max(0, currentEntry?.level ?? 0));
+  const cheDoTheoCaiDat = cheDoTheoLevel[levelHienTai] ?? "the";
+  const cheDoHienTai =
+    cheDoTheoCaiDat === "chon" && poolTracNghiem.length < 4 ? "the" : cheDoTheoCaiDat;
+  // Số lượt đã trả lời: đổi key mỗi lượt để thẻ hỏi lại cùng từ luôn bắt đầu mới
+  const soLuot = correctCount + wrongCount;
+  const dapAnLuaChon = useMemo(() => {
+    if (!currentEntry || cheDoHienTai !== "chon") return [];
+    const [cauHoi] = taoDanhSachCauHoi(
+      [{ id: currentEntry.id, term_en: currentEntry.word, meaning_vi: currentEntry.meaning }],
+      "en-vi",
+      `on-tap-${currentEntry.id}-${soLuot}`,
+      poolTracNghiem
+    );
+    return cauHoi?.danhSachDapAn ?? [];
+  }, [cheDoHienTai, currentEntry, poolTracNghiem, soLuot]);
+
+  function doiCheDoLevel(level, cheDo) {
+    const moi = cheDoTheoLevel.map((giaTri, index) => (index === level ? cheDo : giaTri));
+    setCheDoTheoLevel(moi);
+    luuCaiDatHocTap("onTap", { cheDoTheoLevel: moi });
+  }
+
+  function macDinhCheDoLevel() {
+    setCheDoTheoLevel(CHE_DO_THEO_LEVEL_MAC_DINH);
+    luuCaiDatHocTap("onTap", { cheDoTheoLevel: CHE_DO_THEO_LEVEL_MAC_DINH });
+  }
 
   const handleRate = useCallback(
     async (id, ketQua) => {
@@ -573,6 +826,12 @@ function TrangOnTapHomNay() {
         onClear={handleClearFilters}
       />
 
+      <CheDoTheoLevel
+        giaTri={cheDoTheoLevel}
+        onDoi={doiCheDoLevel}
+        onMacDinh={macDinhCheDoLevel}
+      />
+
       {dangTai && <p className="review-sync-note">Đang đồng bộ lịch ôn...</p>}
 
       {/* Progress bar */}
@@ -596,13 +855,33 @@ function TrangOnTapHomNay() {
       ) : isComplete ? (
         <CompletionScreen total={effectiveDone} />
       ) : currentEntry ? (
-        <ReviewCard
-          key={currentId}
-          entry={currentEntry}
-          onRate={handleRate}
-          onRemove={handleRemove}
-          isLoading={isLoading}
-        />
+        cheDoHienTai === "chon" ? (
+          <ReviewTracNghiem
+            key={`${currentId}-${soLuot}`}
+            entry={currentEntry}
+            dapAnLuaChon={dapAnLuaChon}
+            onRate={handleRate}
+            onRemove={handleRemove}
+            isLoading={isLoading}
+          />
+        ) : cheDoHienTai === "go" ? (
+          <ReviewGoTu
+            key={`${currentId}-${soLuot}`}
+            entry={currentEntry}
+            choGoiY={levelHienTai < LEVEL_TAT_GOI_Y}
+            onRate={handleRate}
+            onRemove={handleRemove}
+            isLoading={isLoading}
+          />
+        ) : (
+          <ReviewCard
+            key={`${currentId}-${soLuot}`}
+            entry={currentEntry}
+            onRate={handleRate}
+            onRemove={handleRemove}
+            isLoading={isLoading}
+          />
+        )
       ) : null}
 
       {/* Queue list preview (collapsed) */}

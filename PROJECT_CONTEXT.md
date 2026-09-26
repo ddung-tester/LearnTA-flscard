@@ -106,13 +106,20 @@ LearnTA-flscard/
 /                         TrangChu            public
 /login, /register         TrangDangNhap/DangKy public
 /decks                    TrangDanhSachBo     public
+/practice                 TrangLuyenTap       public (chon bo tu, bo loc, thu tu, so luong roi chon che do; ?bo=<id> mo san mot bo)
+/roadmap                  TrangLoTrinh        public (danh sach lo trinh)
+/roadmap/:slug            TrangChiTietLoTrinh public (cac chang theo thu tu + tien do)
 /decks/:deckId            TrangChiTietBo      public
 /decks/:deckId/flashcard  TrangFlashcard      public
 /decks/:deckId/quiz       TrangQuiz           public
 /decks/:deckId/tu-luan    TrangTuLuan         public
+/decks/:deckId/nghe-viet  TrangTuLuan loai="nghe-viet"  public (nghe roi go tu)
+/decks/:deckId/ngu-canh   TrangQuiz loai="ngu-canh"     public (cau vi du bi che tu, chon tu)
+/decks/:deckId/noi-tu     TrangNoiTu          public (ghep Anh-Viet theo vong 5 cap)
+/decks/:deckId/hon-hop    TrangTuLuan loai="hon-hop"    public (moi cau 1 dang: trac nghiem/go nghia/go tu/nghe viet)
 /dashboard                TrangDashboard      can dang nhap
 /tu-sai                   TrangTuSai          can dang nhap (so tu sai)
-/review                   TrangOnTapHomNay    can dang nhap (on tap SRS)
+/review                   TrangOnTapHomNay    can dang nhap (on tap SRS; moi level Lv0-5 chon che do The / Trac nghiem / Go tu)
 /stats                    TrangThongKe        can dang nhap
 /decks/:deckId/add-word   TrangThemTu         can dang nhap
 /cai-dat                  TrangCaiDat         can dang nhap
@@ -140,6 +147,9 @@ POST   /decks/:deckId/cards | /decks/:deckId/cards/import
 PATCH  /decks/:deckId/cards/reorder
 PUT|DELETE /cards/:cardId, PATCH /cards/:cardId/favorite
 POST   /cards/generate-examples                         Gemini sinh cau vi du theo thi
+POST   /cards/generate-words                            auth, rate limit 15 req/10 phut; body {chu_de | doan_van, so_luong 5-30}; Gemini tao tu (chua luu)
+
+GET    /roadmaps | /roadmaps/:slug                      optional auth; lo trinh + chang (bo tu) + tien do nguoi hoc
 
 GET|PATCH /cards/:cardId/progress, GET /decks/:deckId/progress-summary
 GET|POST  /study-sessions, GET /study-sessions/summary
@@ -162,6 +172,7 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 - Doc: deck mau (`user_id IS NULL`), deck `is_public = TRUE`, hoac deck cua chinh user.
 - Anonymous: `GET /decks` tra deck mau + deck public.
 - Da dang nhap: `GET /decks` tra deck cua minh + deck mau + deck public.
+- `GET /decks` KHONG tra cac bo tu thuoc lo trinh (co trong `roadmap_decks`); cac bo nay chi hien o `/roadmap`, van doc duoc qua `/decks/:deckId`.
 - Ghi (sua/xoa deck, card): chi chu deck (`user_id` = user trong token). Deck mau khong ai sua duoc qua API.
 
 ### Chatbot `/api/chat`
@@ -183,8 +194,12 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 
 Che do moi (nghe viet, noi tu, ...) nen ghep tu cac phan nay thay vi copy Quiz/Tu luan:
 
-- `utils/phienHoc.js`: xao tron on dinh, doan tien trinh 10 cau, `tachKetQuaPhien` (chi tinh the co trong phien), `tachCauMau` (to dam tu trong cau mau).
-- `utils/cauHoiTracNghiem.js`: sinh cau trac nghiem 4 dap an.
+- `utils/phienHoc.js`: xao tron on dinh, doan tien trinh 10 cau, `tachKetQuaPhien` (chi tinh the co trong phien), `tachCauMau` (to dam tu trong cau mau), `cheTuTrongCau` (Ngu canh), `chiaVong` + `laCapNoiDung` (Noi tu).
+- `utils/cauHoiTracNghiem.js`: sinh cau trac nghiem 4 dap an, cau Ngu canh, gan dang cau cho Hon hop (`ganLoaiCauHonHop`).
+- `DanhSachDapAn` + `PhanHoiSaiTracNghiem`: nut dap an trac nghiem dung chung (Trac nghiem, Ngu canh, cau trac nghiem trong Hon hop).
+- Che do moi: `study_sessions.mode` / `quiz_results.question_type` = `listening`, `context`, `matching`, `mixed` (migration 008). `direction` luon la `en-vi` voi cac che do nay.
+- Cai dat hoc (`utils/caiDatHocTap.js`) theo khoa: `flashcard`, `quiz`, `tuluan`, `ngheviet`, `nguCanh`, `noiTu`, `honHop`, `luyenTap` (lua chon trang Luyen tap), `onTap` (`cheDoTheoLevel`, mac dinh Lv0 the, Lv1-2 trac nghiem, Lv3-5 go tu; tu Lv3 tat goi y).
+- URL trang hoc: `?filter=&sort=&q=&n=&random=`. `n` = so tu toi da cua phien (xao truoc roi cat, nen "20 tu ngau nhien" la 20 tu bat ky); `random=1|0` ghi de cai dat ngau nhien da luu. Seed xao tron doi moi lan mo trang (`taoHatGiong`). Chon the cho phien: `chonTheChoPhien`.
 - `hooks/useBoTuHoc`: tai deck + cards (fallback du lieu mau). `hooks/usePhanThuongPhien`: thanh tien do + reward. `hooks/useLuuKetQuaPhien`: tao/ket thuc study session, luu dap an (server cap nhat SRS), streak.
 - `components/common/`: `TheCauHoiPhien`, `ThanhTienDoPhien`, `CaiDatPhienHoc`, `TheTrangThaiPhien`, `PhanHoiDung` (cau mau cua the + `TenseExamplesCard` 6 thi), `StudyResult` (danh sach dung/sai kem level SRS moi, "Lam lai cau sai").
 
@@ -206,6 +221,7 @@ Schema day du: `backend/database/schema.sql`. Bang:
 | `quiz_results` | ket qua quiz |
 | `streak_logs` | log hoc theo ngay (gio VN, UTC+7) |
 | `user_settings` | cai dat hoc (+ `email_reminders`, xem luu y duoi) |
+| `roadmaps`, `roadmap_decks` | lo trinh hoc va cac bo tu mau (`user_id NULL`) theo thu tu; `deck_key` de nap lai khong trung (migration 009) |
 
 Luu y: `schema.sql` CHUA co 2 cot duoc them bang script rieng:
 
@@ -215,6 +231,12 @@ Luu y: `schema.sql` CHUA co 2 cot duoc them bang script rieng:
 Dung DB moi tu `schema.sql` thi phai chay them 2 buoc nay.
 
 Migration moi: them file `backend/database/migrations/00N_*.sql`, cap nhat `schema.sql` cho khop.
+
+Thu tu deploy: chay migration 007 → 008 → 009 TRUOC khi deploy backend (`GET /decks` doc bang `roadmap_decks`; thieu 009 thi danh sach bo tu loi). Sau 009: `npm run seed:roadmaps` (trong `backend/`) de nap lo trinh.
+
+Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). Script nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
+
+Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.jsx` — dan danh sach (`utils/nhapNhanhTu.js`: `tu | /phien am/ | loai tu | nghia | vi du | ghi chu`, van nhan "tu - nghia") hoac AI tao tu theo chu de / doan van. Tu trung (cung tu + loai tu) bi loai.
 
 ---
 

@@ -53,8 +53,27 @@ describe("locTuVung", () => {
 
   it("đọc/ghi URL, bỏ qua giá trị không hợp lệ", () => {
     const query = taoQueryBoLoc({ filter: "da-hoc", sort: "ten", tuKhoa: " táo " });
-    expect(docBoLocTuUrl(new URLSearchParams(query))).toEqual({ filter: "da-hoc", sort: "ten", tuKhoa: "táo" });
+    expect(docBoLocTuUrl(new URLSearchParams(query))).toEqual({ filter: "da-hoc", sort: "ten", tuKhoa: "táo", soLuong: 0, ngauNhien: null });
     expect(taoQueryBoLoc({})).toBe("");
-    expect(docBoLocTuUrl(new URLSearchParams("filter=xyz&sort=abc"))).toEqual({ filter: "tat-ca", sort: "mac-dinh", tuKhoa: "" });
+    expect(docBoLocTuUrl(new URLSearchParams("filter=xyz&sort=abc"))).toEqual({ filter: "tat-ca", sort: "mac-dinh", tuKhoa: "", soLuong: 0, ngauNhien: null });
+  });
+});
+
+describe("số lượng và thứ tự ngẫu nhiên trên URL", () => {
+  it("reads n and random, ignoring invalid values", () => {
+    const boLoc = docBoLocTuUrl(new URLSearchParams("filter=da-hoc&n=20&random=1"));
+    expect(boLoc).toMatchObject({ filter: "da-hoc", soLuong: 20, ngauNhien: true });
+
+    expect(docBoLocTuUrl(new URLSearchParams("n=-3&random=0"))).toMatchObject({ soLuong: 0, ngauNhien: false });
+    expect(docBoLocTuUrl(new URLSearchParams("n=abc"))).toMatchObject({ soLuong: 0, ngauNhien: null });
+    expect(docBoLocTuUrl(new URLSearchParams("n=99999")).soLuong).toBe(1000);
+  });
+
+  it("writes n and random only when set", () => {
+    expect(taoQueryBoLoc({ filter: "chua-hoc-filter", soLuong: 50, ngauNhien: true })).toBe(
+      "?filter=chua-hoc-filter&n=50&random=1"
+    );
+    expect(taoQueryBoLoc({ soLuong: 0, ngauNhien: null })).toBe("");
+    expect(taoQueryBoLoc({ ngauNhien: false })).toBe("?random=0");
   });
 });

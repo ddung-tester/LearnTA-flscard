@@ -4,7 +4,8 @@ import ToggleSwitch from "./ToggleSwitch";
 
 /**
  * CaiDatPhienHoc — popover cài đặt dùng chung cho các chế độ học:
- * chiều hỏi, chỉ từ yêu thích, thứ tự ngẫu nhiên, phần thưởng và mốc thưởng.
+ * chiều hỏi (bỏ qua nếu không truyền dsCheDo), chỉ từ yêu thích, thứ tự ngẫu nhiên,
+ * phần thưởng và mốc thưởng.
  */
 export default function CaiDatPhienHoc({
   label,
@@ -25,19 +26,21 @@ export default function CaiDatPhienHoc({
     <StudySettingsPopover label={label}>
       <section className="ui-settings-popover__section">
         <p className="ui-settings-popover__title">Học tập</p>
-        <div className="ui-settings-popover__row">
-          <div className="ui-settings-popover__field">
-            <span className="ui-settings-popover__label">Ngôn ngữ</span>
-            <span className="ui-settings-popover__hint">Đổi chiều câu hỏi và đáp án</span>
+        {dsCheDo && (
+          <div className="ui-settings-popover__row">
+            <div className="ui-settings-popover__field">
+              <span className="ui-settings-popover__label">Ngôn ngữ</span>
+              <span className="ui-settings-popover__hint">Đổi chiều câu hỏi và đáp án</span>
+            </div>
+            <ModeSwitch
+              value={cheDo}
+              onChange={onDoiCheDo}
+              options={dsCheDo}
+              ariaLabel="Đổi chiều câu hỏi"
+              variant="compact"
+            />
           </div>
-          <ModeSwitch
-            value={cheDo}
-            onChange={onDoiCheDo}
-            options={dsCheDo}
-            ariaLabel="Đổi chiều câu hỏi"
-            variant="compact"
-          />
-        </div>
+        )}
         <div className="ui-settings-popover__row">
           <div className="ui-settings-popover__field">
             <span className="ui-settings-popover__label">Chỉ học từ yêu thích</span>

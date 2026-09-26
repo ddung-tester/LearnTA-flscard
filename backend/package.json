@@ -12,7 +12,8 @@
     "seed:examples": "node scripts/seed-examples.js",
     "seed:ai-examples": "node scripts/seed-ai-examples.js",
     "migrate:tense-examples": "node scripts/add_tense_examples_column.js",
-    "test": "node --test"
+    "test": "node --test",
+    "seed:roadmaps": "node scripts/seed-roadmaps.js"
   },
   "keywords": [],
   "license": "ISC",

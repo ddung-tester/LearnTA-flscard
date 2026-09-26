@@ -25,25 +25,48 @@ const MAC_DINH_CAI_DAT = {
   },
 };
 
+// Các chế độ không có chiều hỏi (không lưu cheDo)
+const CAI_DAT_KHONG_CHIEU = {
+  chiHocTuYeuThich: false,
+  batRandom: false,
+  batReward: false,
+  soCauDungNhanThuong: 10,
+};
+MAC_DINH_CAI_DAT.ngheviet = { ...CAI_DAT_KHONG_CHIEU };
+MAC_DINH_CAI_DAT.nguCanh = { ...CAI_DAT_KHONG_CHIEU };
+MAC_DINH_CAI_DAT.noiTu = { ...CAI_DAT_KHONG_CHIEU };
+MAC_DINH_CAI_DAT.honHop = { ...CAI_DAT_KHONG_CHIEU };
+
+// Trang Luyện tập: bộ từ, bộ lọc, thứ tự, số lượng đã chọn lần trước
+MAC_DINH_CAI_DAT.luyenTap = { boId: null, filter: "tat-ca", ngauNhien: true, soLuong: 20 };
+
+// Ôn tập SRS: chế độ cho từng level Lv0–Lv5 ("the" | "chon" | "go")
+export const CHE_DO_THEO_LEVEL_MAC_DINH = ["the", "chon", "chon", "go", "go", "go"];
+MAC_DINH_CAI_DAT.onTap = { cheDoTheoLevel: CHE_DO_THEO_LEVEL_MAC_DINH };
+
 function coTheDungLocalStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
+function ghepVoiMacDinh(parsed = {}) {
+  return Object.fromEntries(
+    Object.entries(MAC_DINH_CAI_DAT).map(([mode, macDinh]) => [
+      mode,
+      { ...macDinh, ...(parsed?.[mode] || {}) },
+    ])
+  );
+}
+
 export function docTatCaCaiDat() {
-  if (!coTheDungLocalStorage()) return MAC_DINH_CAI_DAT;
+  if (!coTheDungLocalStorage()) return ghepVoiMacDinh();
 
   try {
     const raw = window.localStorage.getItem(KHO_CAI_DAT);
-    if (!raw) return MAC_DINH_CAI_DAT;
+    if (!raw) return ghepVoiMacDinh();
 
-    const parsed = JSON.parse(raw);
-    return {
-      flashcard: { ...MAC_DINH_CAI_DAT.flashcard, ...(parsed?.flashcard || {}) },
-      quiz: { ...MAC_DINH_CAI_DAT.quiz, ...(parsed?.quiz || {}) },
-      tuluan: { ...MAC_DINH_CAI_DAT.tuluan, ...(parsed?.tuluan || {}) },
-    };
+    return ghepVoiMacDinh(JSON.parse(raw));
   } catch {
-    return MAC_DINH_CAI_DAT;
+    return ghepVoiMacDinh();
   }
 }
 
@@ -70,7 +93,9 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
 
     // Đồng bộ lên CSDL Backend (MySQL) nếu người dùng đã đăng nhập
     const payloadBackend = {};
-    if (caiDatCanLuu.cheDo !== undefined) payloadBackend.default_direction = caiDatCanLuu.cheDo;
+    if (caiDatCanLuu.cheDo === "en-vi" || caiDatCanLuu.cheDo === "vi-en") {
+      payloadBackend.default_direction = caiDatCanLuu.cheDo;
+    }
     if (caiDatCanLuu.chiHocTuYeuThich !== undefined) payloadBackend.only_favorite = caiDatCanLuu.chiHocTuYeuThich;
     if (caiDatCanLuu.batRandom !== undefined) payloadBackend.random_order = caiDatCanLuu.batRandom;
     if (caiDatCanLuu.soCauDungNhanThuong !== undefined) payloadBackend.reward_trigger_count = caiDatCanLuu.soCauDungNhanThuong;
@@ -110,6 +135,9 @@ export async function dongBoCaiDatTuDatabase() {
     tatCa.flashcard = { ...tatCa.flashcard, ...capNhat };
     tatCa.quiz = { ...tatCa.quiz, ...capNhatVoimoc };
     tatCa.tuluan = { ...tatCa.tuluan, ...capNhatVoimoc };
+    for (const mode of ["ngheviet", "nguCanh", "noiTu", "honHop"]) {
+      tatCa[mode] = { ...tatCa[mode], ...capNhatVoimoc, cheDo: undefined };
+    }
 
     if (coTheDungLocalStorage()) {
       window.localStorage.setItem(KHO_CAI_DAT, JSON.stringify(tatCa));

@@ -29,6 +29,7 @@ import {
   getProgressColor,
 } from "../utils/progressColor";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import { chonTheChoPhien, taoHatGiong } from "../utils/phienHoc";
 import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
 
 const DS_CHE_DO = [
@@ -158,27 +159,6 @@ function laVungNhapLieu(element) {
   );
 }
 
-function taoSoTuSeed(seed) {
-  let hash = 2166136261;
-
-  for (let i = 0; i < seed.length; i += 1) {
-    hash ^= seed.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${item}`) {
-  return [...danhSach]
-    .map((item, index) => ({
-      item,
-      thuTu: taoSoTuSeed(`${seed}-${layKhoa(item, index)}`),
-    }))
-    .sort((a, b) => a.thuTu - b.thuTu)
-    .map(({ item }) => item);
-}
-
 function taoDanhSachTheoTienTrinh(danhSach, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
   return danhSach.map((the, index) => ({
     ...the,
@@ -224,9 +204,9 @@ function TrangFlashcard() {
     return docCaiDatHocTap("flashcard").chiHocTuYeuThich;
   });
   const [batRandom, setBatRandom] = useState(
-    () => docCaiDatHocTap("flashcard").batRandom
+    () => boLocUrl.ngauNhien ?? docCaiDatHocTap("flashcard").batRandom
   );
-  const [lanTron, setLanTron] = useState(0); // tăng để trigger re-shuffle
+  const [lanTron, setLanTron] = useState(taoHatGiong); // đổi để trigger re-shuffle
   const [soTheDaHoanTatTheoTienTrinh, setSoTheDaHoanTatTheoTienTrinh] = useState([]);
   const [soTheDaHoanTat, setSoTheDaHoanTat] = useState(0);
   const [hienReward, setHienReward] = useState(false);
@@ -317,14 +297,14 @@ function TrangFlashcard() {
     [danhSachGoc, chiHocTuYeuThich, boLocUrl]
   );
   // useMemo để chỉ re-shuffle khi lanTron hoặc danh sách nguồn thay đổi
-  const danhSach = useMemo(() => {
-    if (!batRandom) return danhSachLoc;
-    return tronMangOnDinh(
-      danhSachLoc,
-      `flashcard-${boId}-${lanTron}`,
-      (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
-    );
-  }, [batRandom, boId, lanTron, danhSachLoc]);
+  const danhSach = useMemo(
+    () => chonTheChoPhien(danhSachLoc, {
+      ngauNhien: batRandom,
+      seed: `flashcard-${boId}-${lanTron}`,
+      soLuong: boLocUrl.soLuong,
+    }),
+    [batRandom, boId, lanTron, danhSachLoc, boLocUrl.soLuong]
+  );
   const danhSachTheoTienTrinh = useMemo(
     () => taoDanhSachTheoTienTrinh(danhSach),
     [danhSach]

@@ -13,7 +13,7 @@
  *   onHocLaiTuSai: callback làm lại câu sai (tùy chọn)
  *   danhSachCardSai / danhSachCardDung: card sai / đúng CÓ TRONG PHIÊN
  *   laLamLai: phiên này là lượt làm lại câu sai
- *   mode: "quiz" | "tuluan"
+ *   mode: "quiz" | "tuluan" | "nghe-viet" | "ngu-canh" | "noi-tu" | "hon-hop"
  */
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -25,6 +25,15 @@ import {
   levelSauKetQua,
   moTaKhoangOn,
 } from "../../utils/srsReview";
+
+const TEN_CHE_DO = {
+  quiz: "trắc nghiệm",
+  tuluan: "tự luận",
+  "nghe-viet": "nghe viết",
+  "ngu-canh": "ngữ cảnh",
+  "noi-tu": "nối từ",
+  "hon-hop": "hỗn hợp",
+};
 
 function DanhSachTuKetQua({ danhSach, dung, levelTruoc }) {
   return (
@@ -220,7 +229,7 @@ function StudyResult({
   // Màu con dấu theo kết quả, cùng ngưỡng với vòng điểm
   const hangDiem = tiLeDung >= 80 ? "tot" : tiLeDung >= 50 ? "kha" : "yeu";
 
-  const tenLoai = mode === "quiz" ? "trắc nghiệm" : "tự luận";
+  const tenLoai = TEN_CHE_DO[mode] ?? "phiên học";
 
   return (
     <div className="study-result">

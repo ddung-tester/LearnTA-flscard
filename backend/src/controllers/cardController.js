@@ -14,7 +14,11 @@ const {
   parseBoolean,
   parsePositiveInt,
 } = require("../utils/http");
-const { generateTenseExamples } = require("../services/aiService");
+const aiService = require("../services/aiService");
+const { generateTenseExamples } = aiService;
+
+const SO_TU_AI_MAC_DINH = 15;
+const SO_TU_AI_TOI_DA = 30;
 
 /**
  * Gọi AI sinh câu mẫu và lưu vào DB — chạy background sau khi response đã gửi.
@@ -515,6 +519,28 @@ async function generateCardExamples(req, res) {
   res.json({ examples });
 }
 
+// Body: { chu_de } hoặc { doan_van }, kèm so_luong (5-30). Chỉ trả về gợi ý, chưa lưu vào bộ từ.
+async function generateVocabularyCards(req, res) {
+  const topic = cleanTextWithLimit(req.body.chu_de ?? req.body.topic, 200, "chu_de");
+  const passage = cleanTextWithLimit(req.body.doan_van ?? req.body.passage, 3000, "doan_van");
+
+  if (!topic && !passage) {
+    throw createHttpError(400, "Can nhap chu de hoac doan van");
+  }
+
+  const rawCount = Number(req.body.so_luong ?? req.body.count ?? SO_TU_AI_MAC_DINH);
+  const count = Number.isInteger(rawCount)
+    ? Math.min(SO_TU_AI_TOI_DA, Math.max(5, rawCount))
+    : SO_TU_AI_MAC_DINH;
+
+  const words = await aiService.generateVocabulary({ topic, passage, count });
+  if (words.length === 0) {
+    throw createHttpError(502, "AI chua tao duoc tu nao, thu lai sau");
+  }
+
+  res.json({ words });
+}
+
 module.exports = {
   listCardsByDeck,
   createCard,
@@ -527,4 +553,5 @@ module.exports = {
   normalizeCard,
   ensureDeckExists,
   generateCardExamples,
+  generateVocabularyCards,
 };

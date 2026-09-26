@@ -14,9 +14,26 @@ const {
   parsePositiveInt,
 } = require("../utils/http");
 
-const VALID_MODES = new Set(["flashcard", "quiz", "written", "review"]);
+const VALID_MODES = new Set([
+  "flashcard",
+  "quiz",
+  "written",
+  "review",
+  "listening",
+  "context",
+  "matching",
+  "mixed",
+]);
 const VALID_DIRECTIONS = new Set(["en-vi", "vi-en"]);
-const VALID_QUESTION_TYPES = new Set(["multiple_choice", "written", "flashcard"]);
+const VALID_QUESTION_TYPES = new Set([
+  "multiple_choice",
+  "written",
+  "flashcard",
+  "listening",
+  "context",
+  "matching",
+  "mixed",
+]);
 
 function normalizeSession(row) {
   if (!row) return null;

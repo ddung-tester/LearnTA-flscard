@@ -114,20 +114,41 @@ export function apDungBoLoc(danhSach, { filter = "tat-ca", sort = "mac-dinh", tu
   return sapXepTu(timTheoTuKhoa(locTheoFilter(danhSach, filter), tuKhoa), sort);
 }
 
-// Đọc bộ lọc từ URL trang học (?filter=&sort=&q=).
+// Số lượng từ mỗi phiên cho trang Luyện tập (0 = tất cả).
+export const SO_LUONG_TU = [10, 20, 50, 100, 200, 0];
+const SO_LUONG_TOI_DA = 1000;
+
+function docSoLuong(giaTri) {
+  const so = Number(giaTri);
+  return Number.isInteger(so) && so > 0 ? Math.min(so, SO_LUONG_TOI_DA) : 0;
+}
+
+// Đọc bộ lọc từ URL trang học (?filter=&sort=&q=&n=&random=).
+// ngauNhien: true/false khi URL chỉ định, null để trang học dùng cài đặt đã lưu.
 export function docBoLocTuUrl(searchParams) {
+  const random = searchParams.get("random");
   return {
     filter: chuanHoaFilter(searchParams.get("filter")),
     sort: chuanHoaSort(searchParams.get("sort")),
     tuKhoa: searchParams.get("q") || "",
+    soLuong: docSoLuong(searchParams.get("n")),
+    ngauNhien: random === "1" ? true : random === "0" ? false : null,
   };
 }
 
-export function taoQueryBoLoc({ filter = "tat-ca", sort = "mac-dinh", tuKhoa = "" }) {
+export function taoQueryBoLoc({
+  filter = "tat-ca",
+  sort = "mac-dinh",
+  tuKhoa = "",
+  soLuong = 0,
+  ngauNhien = null,
+}) {
   const params = new URLSearchParams();
   if (filter !== "tat-ca") params.set("filter", filter);
   if (sort !== "mac-dinh") params.set("sort", sort);
   if (tuKhoa.trim()) params.set("q", tuKhoa.trim());
+  if (soLuong > 0) params.set("n", String(soLuong));
+  if (ngauNhien !== null) params.set("random", ngauNhien ? "1" : "0");
   const query = params.toString();
   return query ? `?${query}` : "";
 }

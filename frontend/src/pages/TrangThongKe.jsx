@@ -76,6 +76,10 @@ function modeLabel(mode) {
     written: "Tự luận",
     tuluan: "Tự luận",
     review: "Ôn tập",
+    listening: "Nghe viết",
+    context: "Ngữ cảnh",
+    matching: "Nối từ",
+    mixed: "Hỗn hợp",
   }[mode] || mode || "Khác";
 }
 

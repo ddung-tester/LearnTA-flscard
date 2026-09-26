@@ -1,13 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
+  cheTuTrongCau,
+  chiaVong,
+  chonTheChoPhien,
+  chuanHoaDapAn,
   ganTienTrinh,
+  laCapNoiDung,
+  O_TRONG,
   tachCauMau,
+  taoGoiY,
   tachKetQuaPhien,
   taoDanhSachTienTrinh,
   tinhTienTrinh,
   tronMangOnDinh,
 } from "./phienHoc";
-import { taoDanhSachCauHoi } from "./cauHoiTracNghiem";
+import {
+  ganLoaiCauHonHop,
+  LOAI_CAU_HON_HOP,
+  taoDanhSachCauHoi,
+  taoDanhSachCauHoiNguCanh,
+} from "./cauHoiTracNghiem";
 
 const THE = [
   { id: 1, term_en: "apple", meaning_vi: "quả táo" },
@@ -87,5 +99,124 @@ describe("taoDanhSachCauHoi", () => {
   it("is deterministic per seed and needs at least 4 cards in the pool", () => {
     expect(taoDanhSachCauHoi(THE, "en-vi", "x")).toEqual(taoDanhSachCauHoi(THE, "en-vi", "x"));
     expect(taoDanhSachCauHoi(THE.slice(0, 3), "en-vi", "x")).toEqual([]);
+  });
+});
+
+describe("cheTuTrongCau", () => {
+  it("blanks the word and its inflections, case-insensitive", () => {
+    expect(cheTuTrongCau("She runs. Run fast!", "run")).toBe(`She ${O_TRONG}. ${O_TRONG} fast!`);
+    expect(cheTuTrongCau("I gave up smoking.", "gave up")).toBe(`I ${O_TRONG} smoking.`);
+  });
+
+  it("returns null when the sentence does not contain the word", () => {
+    expect(cheTuTrongCau("I like pineapples.", "apple")).toBeNull();
+    expect(cheTuTrongCau(null, "apple")).toBeNull();
+    expect(cheTuTrongCau("Apple pie.", "")).toBeNull();
+  });
+});
+
+describe("taoDanhSachCauHoiNguCanh", () => {
+  const CO_VI_DU = THE.map((the) => ({
+    ...the,
+    example_sentence: the.id === 5 ? "No example here." : `I bought a ${the.term_en} today.`,
+  }));
+
+  it("only keeps cards whose example contains the word, answers are English words", () => {
+    const ds = taoDanhSachCauHoiNguCanh(CO_VI_DU, "s", CO_VI_DU);
+
+    expect(ds.map((c) => c.id)).toEqual([1, 2, 3, 4]);
+    expect(ds[0]).toMatchObject({ cauHoi: `I bought a ${O_TRONG} today.`, dapAnDung: "apple" });
+    expect(ds[0].danhSachDapAn).toHaveLength(4);
+    expect(ds[0].danhSachDapAn.every((d) => CO_VI_DU.some((t) => t.term_en === d))).toBe(true);
+  });
+});
+
+describe("ganLoaiCauHonHop", () => {
+  it("gives every card one of the four types, choice cards carry 4 options", () => {
+    const ds = ganLoaiCauHonHop(THE, "seed", THE);
+
+    expect(ds.every((t) => LOAI_CAU_HON_HOP.includes(t.__loaiCau))).toBe(true);
+    for (const the of ds.filter((t) => t.__loaiCau === "chon")) {
+      expect(["en-vi", "vi-en"]).toContain(the.__chieuChon);
+      expect(the.__dapAnLuaChon).toHaveLength(4);
+    }
+    expect(ganLoaiCauHonHop(THE, "seed", THE)).toEqual(ds);
+  });
+
+  it("drops the choice type when the deck has fewer than 4 words", () => {
+    const ds = ganLoaiCauHonHop(THE.slice(0, 3), "seed", THE.slice(0, 3));
+    expect(ds.some((t) => t.__loaiCau === "chon")).toBe(false);
+  });
+
+  it("uses every type across a larger session", () => {
+    const nhieu = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, term_en: `w${i}`, meaning_vi: `n${i}` }));
+    const cacLoai = new Set(ganLoaiCauHonHop(nhieu, "x", nhieu).map((t) => t.__loaiCau));
+    expect([...cacLoai].sort()).toEqual([...LOAI_CAU_HON_HOP].sort());
+  });
+});
+
+describe("chiaVong", () => {
+  const ds = (n) => Array.from({ length: n }, (_, i) => i);
+
+  it("splits evenly with at most N per round", () => {
+    expect(chiaVong(ds(11), 5).map((v) => v.length)).toEqual([4, 4, 3]);
+    expect(chiaVong(ds(10), 5).map((v) => v.length)).toEqual([5, 5]);
+    expect(chiaVong(ds(6), 5).map((v) => v.length)).toEqual([3, 3]);
+    expect(chiaVong(ds(3), 5).map((v) => v.length)).toEqual([3]);
+  });
+
+  it("keeps order and every item", () => {
+    expect(chiaVong(ds(7), 5).flat()).toEqual(ds(7));
+    expect(chiaVong([], 5)).toEqual([]);
+  });
+});
+
+describe("laCapNoiDung", () => {
+  const BIG = { id: 1, term_en: "big", meaning_vi: "lớn" };
+  const LARGE = { id: 2, term_en: "large", meaning_vi: " Lớn " };
+  const BANK_1 = { id: 3, term_en: "bank", meaning_vi: "ngân hàng" };
+  const BANK_2 = { id: 4, term_en: "Bank", meaning_vi: "bờ sông" };
+
+  it("accepts the same card, same meaning or same word", () => {
+    expect(laCapNoiDung(BIG, BIG)).toBe(true);
+    expect(laCapNoiDung(BIG, LARGE)).toBe(true);
+    expect(laCapNoiDung(BANK_1, BANK_2)).toBe(true);
+  });
+
+  it("rejects unrelated cards", () => {
+    expect(laCapNoiDung(BIG, BANK_1)).toBe(false);
+  });
+});
+
+describe("chonTheChoPhien", () => {
+  const nhieu = Array.from({ length: 30 }, (_, i) => ({ id: i + 1 }));
+
+  it("keeps order and cuts to the limit when not random", () => {
+    expect(chonTheChoPhien(nhieu, { soLuong: 5 }).map((t) => t.id)).toEqual([1, 2, 3, 4, 5]);
+    expect(chonTheChoPhien(nhieu, { soLuong: 0 })).toHaveLength(30);
+  });
+
+  it("shuffles before cutting, so a random pick is not just the first N", () => {
+    const a = chonTheChoPhien(nhieu, { ngauNhien: true, seed: "a", soLuong: 10 });
+    const b = chonTheChoPhien(nhieu, { ngauNhien: true, seed: "b", soLuong: 10 });
+
+    expect(a).toHaveLength(10);
+    expect(a.map((t) => t.id)).not.toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(a.map((t) => t.id)).not.toEqual(b.map((t) => t.id));
+    expect(chonTheChoPhien(nhieu, { ngauNhien: true, seed: "a", soLuong: 10 })).toEqual(a);
+  });
+});
+
+describe("chuanHoaDapAn / taoGoiY", () => {
+  it("compares typed answers ignoring case and extra spaces", () => {
+    expect(chuanHoaDapAn("  Give   UP ")).toBe(chuanHoaDapAn("give up"));
+    expect(chuanHoaDapAn(null)).toBe("");
+  });
+
+  it("shows 40% of the letters, keeps spaces", () => {
+    expect(taoGoiY("apple")).toBe("ap___");
+    expect(taoGoiY("give up")).toBe("giv_ __");
+    expect(taoGoiY("a")).toBe("a");
+    expect(taoGoiY("")).toBe("");
   });
 });

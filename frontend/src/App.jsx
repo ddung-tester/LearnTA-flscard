@@ -19,6 +19,10 @@ const TrangThemTu = lazy(() => import("./pages/TrangThemTu"));
 const TrangFlashcard = lazy(() => import("./pages/TrangFlashcard"));
 const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
 const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
+const TrangNoiTu = lazy(() => import("./pages/TrangNoiTu"));
+const TrangLuyenTap = lazy(() => import("./pages/TrangLuyenTap"));
+const TrangLoTrinh = lazy(() => import("./pages/TrangLoTrinh"));
+const TrangChiTietLoTrinh = lazy(() => import("./pages/TrangChiTietLoTrinh"));
 const TrangTuSai = lazy(() => import("./pages/TrangTuSai"));
 const TrangOnTapHomNay = lazy(() => import("./pages/TrangOnTapHomNay"));
 const TrangDangNhap = lazy(() => import("./pages/TrangDangNhap"));
@@ -69,6 +73,9 @@ function UngDung() {
           <Route path="/register" element={<TrangDangKy />} />
           <Route path="/decks" element={<TrangDanhSachBo />} />
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
+          <Route path="/practice" element={<TrangLuyenTap />} />
+          <Route path="/roadmap" element={<TrangLoTrinh />} />
+          <Route path="/roadmap/:slug" element={<TrangChiTietLoTrinh />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />
             <Route path="/tu-sai" element={<TrangTuSai />} />
@@ -80,6 +87,10 @@ function UngDung() {
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
           <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />
           <Route path="/decks/:deckId/tu-luan" element={<TrangTuLuan />} />
+          <Route path="/decks/:deckId/nghe-viet" element={<TrangTuLuan loai="nghe-viet" />} />
+          <Route path="/decks/:deckId/ngu-canh" element={<TrangQuiz loai="ngu-canh" />} />
+          <Route path="/decks/:deckId/noi-tu" element={<TrangNoiTu />} />
+          <Route path="/decks/:deckId/hon-hop" element={<TrangTuLuan loai="hon-hop" />} />
         </Route>
       </Routes>
     </Suspense>

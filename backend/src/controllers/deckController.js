@@ -136,13 +136,17 @@ async function assertUniqueDeckTitle(userId, title, excludeDeckId = null) {
   }
 }
 
+// Bộ từ thuộc lộ trình chỉ hiện ở trang Lộ trình, không lẫn vào danh sách bộ từ
+const KHONG_THUOC_LO_TRINH =
+  "NOT EXISTS (SELECT 1 FROM roadmap_decks rd WHERE rd.deck_id = d.id)";
+
 async function listDecks(req, res) {
   const userId = currentUserId(req);
 
   if (userId === null) {
     const [rows] = await pool.query(
       `${deckWithStatsSql()}
-       WHERE d.user_id IS NULL OR d.is_public = TRUE
+       WHERE (d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH}
        ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
       [userId]
     );
@@ -153,7 +157,7 @@ async function listDecks(req, res) {
 
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE
+     WHERE (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH}
      ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
     [userId, userId]
   );
