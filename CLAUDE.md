@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **Bat dau bang `HANDOFF.md`**: viec da lam, viec treo (deploy/migration chua chay), plan tiep theo.
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.

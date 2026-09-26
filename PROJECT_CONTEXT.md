@@ -3,6 +3,8 @@
 > Cap nhat: 2026-09-23. File nay mo ta trang thai THAT cua code tren `main`.
 > Khi code thay doi lon (route, bang DB, luong auth), cap nhat lai file nay.
 
+> **AI/dev moi vao du an: doc `HANDOFF.md` truoc** (da lam gi, chua lam gi, deploy, plan tiep theo).
+
 ## 1. Ten du an
 
 **LearnTA / Streak Drop** — ung dung web hoc tu vung tieng Anh cho nguoi Viet.
