@@ -43,8 +43,9 @@ Cách chạy migration khi có proxy (ví dụ): mở `cloud-sql-proxy.x86.exe f
 - Khách không tìm được nội dung mẫu (production không còn deck mẫu nào ngoài lộ trình, `GET /decks` bỏ bộ lộ trình) → khách thấy tab "Lộ trình" trên header, nút phụ trang chủ đổi thành "Xem lộ trình học" → `/roadmap`. Màn ≤420px ẩn chữ "Streak Drop" (vẫn `sr-only`) để header không tràn.
 - "Ví dụ 6 thì" của 240 từ lộ trình là câu khuôn mẫu vô nghĩa → đã sinh `tense_examples` bằng `node scripts/seed-ai-examples.js --apply` (Gemini). Khi thêm từ lộ trình mới, chạy lại script này (chỉ điền thẻ còn `NULL`).
 
+- Header khi **đã đăng nhập** (4 tab + avatar) tràn ngang trên điện thoại (434px/375px) → ở ≤560px tab xuống hàng dưới, chia đều (`.dash-nav__tabs--day-du`); đã kiểm tra 320px, 375px, desktop, khách, `/login`.
+
 Phát hiện, **chưa sửa**:
-- Header khi **đã đăng nhập** (4 tab + avatar) rộng hơn màn điện thoại 375px → tràn ngang (có từ trước).
 - Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401 trong console (không vỡ luồng).
 - Mở chatbot khi đang ở câu gõ từ/nghe viết thì gợi ý "Giải thích từ "family"" lộ đáp án.
 - Ô chọn bộ từ ở `/practice` trên điện thoại hẹp, tên bộ bị cắt.

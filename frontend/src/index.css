@@ -5115,6 +5115,11 @@ body.is-page-loading .page-transition-root {
   gap: 0;
 }
 
+/* Tab điều hướng nằm sát khu tài khoản ở bên phải */
+.dash-nav__tabs {
+  margin-left: auto;
+}
+
 /* Flat nav link — no pill border, no background */
 .dash-nav__link {
   position: relative;
@@ -5286,7 +5291,25 @@ body.has-video-background--app .app-shell-header {
 
 @media (max-width: 560px) {
   .app-shell-header__inner--dashboard {
-    height: 3.25rem;
+    height: auto;
+    min-height: 3.25rem;
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  /* Đã đăng nhập: 4 tab không vừa một hàng với logo + avatar, xuống hàng dưới và chia đều */
+  .dash-nav__tabs--day-du {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    border-top: 1px solid oklch(47% 0.06 56/ 0.1);
+  }
+
+  .dash-nav__tabs--day-du .dash-nav__link {
+    flex: 1 1 0;
+    justify-content: center;
+    height: 2.75rem;
+    padding: 0 0.25rem;
   }
 
   .dash-nav__link,

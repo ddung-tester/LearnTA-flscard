@@ -85,12 +85,15 @@ function BoCuc() {
             className="dash-nav__brand"
           >
             <span className="dash-nav__brand-mark" aria-hidden="true" />
-            {/* Màn rất hẹp: chỉ giữ biểu tượng để header không tràn ngang */}
-            <span className="max-[420px]:sr-only">Streak Drop</span>
+            {/* Khách, màn rất hẹp: chỉ giữ biểu tượng để header không tràn ngang */}
+            <span className={isAuthenticated ? undefined : "max-[420px]:sr-only"}>Streak Drop</span>
           </Link>
-          <nav className="dash-nav__links" aria-label="Điều hướng chính">
-            {!laTrangAuth && !laPhienHoc &&
-              dsTab.map((tab) => {
+          {!laTrangAuth && !laPhienHoc && (
+            <nav
+              className={`dash-nav__links dash-nav__tabs${isAuthenticated ? " dash-nav__tabs--day-du" : ""}`}
+              aria-label="Điều hướng chính"
+            >
+              {dsTab.map((tab) => {
                 const dangActive = tab.laActive(viTri.pathname);
                 return (
                   <Link
@@ -114,6 +117,9 @@ function BoCuc() {
                   </Link>
                 );
               })}
+            </nav>
+          )}
+          <div className="dash-nav__links dash-nav__account">
             {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">
                 <button
@@ -213,7 +219,7 @@ function BoCuc() {
             ) : (
               null
             )}
-          </nav>
+          </div>
         </div>
       </header>
 
