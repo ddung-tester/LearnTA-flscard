@@ -7712,7 +7712,8 @@ body.has-video-background--app .app-shell-header {
   color: var(--mau-chu-phu);
 }
 
-.practice-select {
+/* Ghép với .ui-word-sort__select (max-width 11rem, khai báo sau) nên cần selector mạnh hơn */
+.ui-word-sort__select.practice-select {
   width: 100%;
   max-width: none;
 }
@@ -8683,4 +8684,330 @@ body.has-video-background--app .ui-word-row:not(.ui-word-row--editing) {
   .ui-word-row:not(.ui-word-row--editing) .ui-word-actions {
     align-self: center;
   }
+}
+
+/* ── Khoá học riêng: trang bài học (Lý thuyết · Từ vựng · Bài tập) ── */
+.khoa-hoc-so-bai {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mau-nhan);
+}
+
+.khoa-hoc-khoa {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.khoa-hoc-ds-bai {
+  list-style: none;
+  padding: 0;
+}
+
+.khoa-hoc-tab__dem {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.khoa-hoc-ly-thuyet,
+.khoa-hoc-tu-vung {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.khoa-hoc-muc,
+.khoa-hoc-ghi-nho {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+  box-shadow: var(--bong-card);
+}
+
+.khoa-hoc-muc__tieu-de,
+.khoa-hoc-ghi-nho__tieu-de {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-muc__cong-thuc {
+  justify-self: start;
+  max-width: 100%;
+  padding: 0.45rem 0.75rem;
+  border-left: 3px solid var(--mau-chinh);
+  border-radius: 0.4rem;
+  background: var(--mau-mat-2);
+  color: var(--mau-chinh);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.khoa-hoc-muc__quy-tac,
+.khoa-hoc-ghi-nho ul {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 1.2rem;
+  list-style: disc;
+  color: var(--mau-chu);
+  font-size: 0.925rem;
+  line-height: 1.55;
+}
+
+.khoa-hoc-muc__vi-du {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.khoa-hoc-muc__vi-du li,
+.khoa-hoc-tu {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.khoa-hoc-muc__vi-du-en {
+  display: block;
+  font-weight: 600;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-muc__vi-du-vi {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--mau-chu-phu);
+}
+
+.khoa-hoc-ghi-nho {
+  background: var(--mau-mat-2);
+}
+
+.khoa-hoc-nut-doc {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-mat);
+  color: var(--mau-chinh);
+}
+
+.khoa-hoc-nut-doc svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.khoa-hoc-nut-doc:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.khoa-hoc-ds-tu {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.khoa-hoc-tu {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.8rem;
+  background: var(--mau-mat);
+}
+
+.khoa-hoc-tu__noi-dung {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.khoa-hoc-tu__noi-dung > p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+}
+
+.khoa-hoc-tu__tu {
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-tu__phien-am {
+  font-size: 0.85rem;
+  color: var(--mau-chu-mo);
+}
+
+.khoa-hoc-tu__nghia {
+  font-size: 0.925rem;
+  color: var(--mau-chu-phu);
+}
+
+.khoa-hoc-bai-tap {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.khoa-hoc-bai-tap__phan {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 26rem;
+}
+
+.khoa-hoc-bai-tap__dau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.khoa-hoc-bai-tap__dem {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+  font-variant-numeric: tabular-nums;
+}
+
+.khoa-hoc-bai-tap__yeu-cau,
+.khoa-hoc-bai-tap__hinh {
+  font-size: 0.875rem;
+  color: var(--mau-chu-phu);
+}
+
+.khoa-hoc-bai-tap__hinh {
+  font-style: italic;
+}
+
+.khoa-hoc-bai-tap__dien {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.khoa-hoc-phan-hoi {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--mau-vien);
+  border-left-width: 4px;
+  border-radius: 0.9rem;
+  background: var(--mau-mat);
+}
+
+.khoa-hoc-phan-hoi--dung {
+  border-left-color: var(--mau-thanh-cong);
+}
+
+.khoa-hoc-phan-hoi--sai {
+  border-left-color: var(--mau-loi);
+}
+
+.khoa-hoc-phan-hoi__ket-qua {
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-phan-hoi__goi-y {
+  font-size: 0.9rem;
+  color: var(--mau-chu-phu);
+}
+
+.khoa-hoc-phan-hoi__tiep {
+  justify-self: start;
+  gap: 0.5rem;
+}
+
+.khoa-hoc-phan-hoi__tiep kbd {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.khoa-hoc-ai {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.7rem;
+  background: var(--mau-mat-2);
+}
+
+.khoa-hoc-ai__nhan {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mau-nhan);
+}
+
+.khoa-hoc-ai__text {
+  font-size: 0.925rem;
+  line-height: 1.6;
+  color: var(--mau-chu);
+  white-space: pre-line;
+}
+
+.khoa-hoc-ai__cho,
+.khoa-hoc-ai__loi {
+  font-size: 0.9rem;
+  color: var(--mau-chu-phu);
+}
+
+.khoa-hoc-tong-ket {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+}
+
+.khoa-hoc-tong-ket__diem {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-tong-ket__sai {
+  display: grid;
+  gap: 0.45rem;
+  padding-left: 1.2rem;
+  list-style: decimal;
+  font-size: 0.9rem;
+  color: var(--mau-chu);
+}
+
+.khoa-hoc-tong-ket__dap-an {
+  margin-left: 0.4rem;
+  font-weight: 600;
+  color: var(--mau-thanh-cong);
+}
+
+.khoa-hoc-dieu-huong {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* 3 tab của bài học luôn nằm một hàng, kể cả màn 320px */
+.khoa-hoc-tabs {
+  flex-wrap: nowrap;
+}
+
+.khoa-hoc-tabs .ui-filter-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 0.4rem;
 }

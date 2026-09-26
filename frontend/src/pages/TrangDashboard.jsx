@@ -7,6 +7,7 @@ import { layTienDoDeck } from "../utils/tienDoHocTap";
 import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
+import { layDanhSachKhoaHoc } from "../services/courseApi";
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -118,6 +119,20 @@ function TrangDashboard() {
 
   const [mistakeStats, setMistakeStats] = useState(() => layThongKeTuSai());
   const [srsStats, setSrsStats] = useState(() => layThongKeSRS());
+  // Khoá học riêng: tải riêng, không chặn phần còn lại của dashboard
+  const [khoaHoc, setKhoaHoc] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    layDanhSachKhoaHoc()
+      .then((ds) => {
+        if (active) setKhoaHoc(ds);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -416,6 +431,15 @@ function TrangDashboard() {
                 <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
               </Link>
             )}
+            {khoaHoc.map((khoa) => (
+              <Link key={khoa.id} to="/khoa-hoc" className="dash-review-cta">
+                <span className="dash-review-cta__body">
+                  <strong>{khoa.title}</strong>
+                  <span>{khoa.lessons.length} bài · lý thuyết, từ vựng, bài tập có AI giải thích</span>
+                </span>
+                <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
+              </Link>
+            ))}
             <div className="dash-quick-grid">
               <QuickAction icon="decks" to="/decks" label="Quản lý bộ từ" sub="Xem và chỉnh sửa các bộ từ" />
               <QuickAction

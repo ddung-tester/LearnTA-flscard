@@ -185,8 +185,80 @@ async function generateVocabulary({ topic = "", passage = "", count }) {
   return parseVocabularyResponse(result.response.text(), count);
 }
 
+// ── Giải thích câu bài tập của khoá học riêng ───────────────────────────────────
+
+function textOfOption(question, key) {
+  return (question.options || []).find((option) => option.key === key)?.text || "";
+}
+
+/**
+ * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
+ *           learnerAnswer: string, isCorrect: boolean }} input — câu hỏi đọc từ DB
+ */
+function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect }) {
+  const isMultipleChoice = question.type === "multiple_choice";
+  const focus = grammar
+    .map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`)
+    .join("\n");
+  const options = isMultipleChoice
+    ? question.options.map((option) => `${option.key}. ${option.text}`).join("\n")
+    : "(Câu điền từ, người học tự gõ đáp án)";
+  const correct = isMultipleChoice
+    ? `${question.answer_key}. ${textOfOption(question, question.answer_key)}`
+    : question.accepted_answers.join(" / ");
+  const answer = isMultipleChoice
+    ? `${learnerAnswer}. ${textOfOption(question, learnerAnswer)}`
+    : `"${learnerAnswer}"`;
+
+  return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy giải thích một câu bài tập người học vừa làm.
+
+Bài học: ${lessonTitle}
+Kiến thức trọng tâm của bài:
+${focus || "- (không có)"}
+
+Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
+${question.prompt}
+${question.image_description ? `Hình minh hoạ trong tài liệu: ${question.image_description}\n` : ""}Các lựa chọn:
+${options}
+
+Đáp án đúng: ${correct}
+Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
+${question.explanation ? `Gợi ý có sẵn: ${question.explanation}\n` : ""}
+Yêu cầu:
+- Viết bằng tiếng Việt, 3–5 câu ngắn, thân thiện, dễ hiểu với người mất gốc.
+- Nếu người học SAI: nói rõ vì sao câu trả lời của họ sai trước, rồi vì sao đáp án đúng.
+- Nếu người học ĐÚNG: khen ngắn một câu, rồi nhắc lại quy tắc để nhớ lâu.
+- Nêu quy tắc hoặc công thức liên quan và 1 câu ví dụ mới tương tự, kèm nghĩa tiếng Việt.
+- Chỉ viết đoạn văn thuần, được **in đậm** từ khoá; không dùng in nghiêng hay định dạng markdown khác; không tiêu đề, không lời chào, không chép lại đề bài.`;
+}
+
+// Model chính giống chatbot LearnBot (chất lượng hơn); quá tải (503) hoặc hết lượt thì dùng bản lite
+const COURSE_EXPLANATION_MODELS = ["gemini-3.6-flash", "gemini-flash-lite-latest"];
+
+async function explainCourseQuestion(input) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildCourseExplanationPrompt(input);
+  let lastError;
+
+  for (const modelName of COURSE_EXPLANATION_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
   generateTenseExamples,
   generateVocabulary,
   parseVocabularyResponse,
+  buildCourseExplanationPrompt,
+  explainCourseQuestion,
 };

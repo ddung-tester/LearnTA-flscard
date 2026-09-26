@@ -23,7 +23,16 @@ Ngôn ngữ giao tiếp với người dùng: **tiếng Việt**. Giữ phong c�
 
 Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vite build` OK. Lint frontend không có lỗi mới (còn lỗi cũ, xem mục 6).
 
+| 7 | **Khoá học riêng (48 buổi)** — 2026-09-27 | Tài liệu PDF là khoá học trả phí độc quyền của bên khác → người dùng chọn **chỉ mình họ học**: mọi thứ gắn `user_id` chủ khoá, người khác nhận 404; nội dung nằm ở `backend/database/private-content/` (`.gitignore`, KHÔNG commit). Migration 010 (4 bảng `course*`), `utils/khoaHoc.js` + `scripts/nhap-khoa-hoc.js`, API `/courses`, `/course-questions/:id/explain` (Gemini, cache, tự chuyển model lite khi model chính 503). FE `/khoa-hoc`, `/khoa-hoc/:courseId/bai/:soBai` (Lý thuyết · Từ vựng · Bài tập; trả lời xong AI giải thích ngay dưới), lối vào ở Dashboard. |
+
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
+
+### 3.0 Khoá học riêng
+- **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. **Chưa deploy backend** (người dùng tự deploy) → trước khi deploy, trang `/khoa-hoc` trên production sẽ báo lỗi tải.
+- 47 bài còn lại: người dùng trích bằng ChatGPT theo định dạng 3 file của bài 13 (xem `docs/khoa-hoc-48-ngay.md`), chép vào `private-content/khoa-hoc-48-ngay/bai-XX/`, rồi chạy `npm run nhap:khoa-hoc -- --email=... --apply`. Đừng để người dùng push file nội dung lên GitHub (bài 13 từng bị push vào `docs/48day/`, đã gỡ khỏi git nhưng vẫn còn trong lịch sử commit `b89f435`).
+- Bài 13: 23/43 câu (Quiz, Practice) có đáp án do ChatGPT tự suy ra vì tài liệu không có đáp án → nên soát lại.
+- Chưa có 40–50 câu bài tập thêm mỗi bài (có thể sinh bằng Gemini từ lý thuyết đã nhập). Chưa lưu tiến độ làm bài (điểm mỗi lần làm chỉ ở trình duyệt).
+- Từ vựng bài học chưa có câu ví dụ → chế độ Ngữ cảnh không dùng được; `npm run seed:ai-examples -- --apply` sẽ sinh 6 thì cho các thẻ này.
 
 ### 3.1 Deploy — ĐÃ XONG (2026-09-26)
 Người dùng tự chạy migration 007/008/009 và deploy backend (revision `flashcard-backend-00078`). Seed lộ trình đã chạy (`npm run seed:roadmaps` qua proxy: 3 lộ trình, 12 bộ, 240 từ). Smoke test OK: `/api/health`, `/api/db-test`, `/api/roadmaps` trả 3 lộ trình. Proxy chạy được bằng `cloud-sql-proxy.x86.exe` (ADC của gcloud đã có trên máy) hoặc cấu hình `cloud-sql-proxy` trong `.claude/launch.json`. Phần dưới giữ lại để tham khảo khi deploy lần sau.

@@ -13,7 +13,8 @@
     "seed:ai-examples": "node scripts/seed-ai-examples.js",
     "migrate:tense-examples": "node scripts/add_tense_examples_column.js",
     "test": "node --test",
-    "seed:roadmaps": "node scripts/seed-roadmaps.js"
+    "seed:roadmaps": "node scripts/seed-roadmaps.js",
+    "nhap:khoa-hoc": "node scripts/nhap-khoa-hoc.js"
   },
   "keywords": [],
   "license": "ISC",

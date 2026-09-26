@@ -3,7 +3,30 @@
 > Tài liệu gốc có bản quyền, chỉ nhập vào **tài khoản cá nhân** (người khác không xem được).
 > File JSON đặt trong `backend/database/private-content/khoa-hoc-48-ngay/` — thư mục đã `.gitignore`, **không commit**.
 
-## Kết quả cần có
+## Định dạng importer đang đọc (từ bài 13)
+
+Mỗi bài một thư mục, **đặt trên máy, không push lên GitHub**:
+
+```
+backend/database/private-content/khoa-hoc-48-ngay/
+  bai-13/
+    lesson.json      lesson_number, title, vocabulary[{word, part_of_speech, meaning_vi, pronunciation}],
+                     grammar[{id, title, pattern, rules[], examples[{en, vi}]}], learning_notes_vi[]
+    exercises.json   lesson_number, questions[{id, source, section, type, prompt, options[{key, text}],
+                     instruction?, image_description_vi?}]   type: multiple_choice | fill_blank | image_based_fill_blank
+    answers.json     lesson_number, answers[{question_id, answer (chữ cái) | accepted_answers[], explanation_vi, provenance}]
+```
+
+47 bài còn lại cứ giữ **đúng định dạng của bài 13** (cùng prompt đã tạo ra bài 13). Kiểm tra rồi nhập (trong `backend/`):
+
+```
+npm run nhap:khoa-hoc
+npm run nhap:khoa-hoc -- --email=<email đăng nhập> --apply
+```
+
+> Prompt bên dưới là bản đề xuất ban đầu, xuất ra định dạng **khác** (`buoi-XX.json`) — importer chưa đọc định dạng đó.
+
+## Kết quả cần có (bản đề xuất ban đầu)
 
 Mỗi buổi 2 file (XX = 01…48), tổng 96 file:
 

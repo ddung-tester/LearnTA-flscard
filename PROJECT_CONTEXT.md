@@ -125,6 +125,8 @@ LearnTA-flscard/
 /stats                    TrangThongKe        can dang nhap
 /decks/:deckId/add-word   TrangThemTu         can dang nhap
 /cai-dat                  TrangCaiDat         can dang nhap
+/khoa-hoc                 TrangKhoaHoc        can dang nhap (khoa hoc rieng cua user)
+/khoa-hoc/:courseId/bai/:soBai  TrangBaiHoc   can dang nhap (?tab=ly-thuyet|tu-vung|bai-tap)
 ```
 
 `/`, `/login`, `/register` dung video background "immersive" va khong hien ChatbotWidget. Cac trang con lai dung nen phang + ChatbotWidget.
@@ -164,6 +166,9 @@ PATCH /reviews/by-card/:cardId/result  body {result:"correct"|"wrong"} hoac {lev
 DELETE /reviews/by-card/:cardId
 
 GET /user/stats, GET|PATCH /user/settings               auth
+
+GET  /courses | /courses/:courseId/lessons/:lessonNumber auth, chi chu khoa (courses.user_id); khoa cua nguoi khac tra 404
+POST /course-questions/:questionId/explain              auth, rate limit 60 req/5 phut; body {answer: chu cai | cau da go}; Gemini giai thich, cache theo (cau, dap an)
 
 POST /chat                                              optional auth, rate limit 20 req/phut
 POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
@@ -224,6 +229,7 @@ Schema day du: `backend/database/schema.sql`. Bang:
 | `streak_logs` | log hoc theo ngay (gio VN, UTC+7) |
 | `user_settings` | cai dat hoc (+ `email_reminders`, xem luu y duoi) |
 | `roadmaps`, `roadmap_decks` | lo trinh hoc va cac bo tu mau (`user_id NULL`) theo thu tu; `deck_key` de nap lai khong trung (migration 009) |
+| `courses`, `course_lessons`, `course_questions`, `course_question_explanations` | khoa hoc RIENG cua mot user (migration 010): bai hoc (ly thuyet JSON + bo tu rieng `deck_id`), cau hoi (trac nghiem / dien tu), cache giai thich AI |
 
 Luu y: `schema.sql` CHUA co 2 cot duoc them bang script rieng:
 
@@ -237,6 +243,8 @@ Migration moi: them file `backend/database/migrations/00N_*.sql`, cap nhat `sche
 Thu tu deploy: chay migration 007 → 008 → 009 TRUOC khi deploy backend (`GET /decks` doc bang `roadmap_decks`; thieu 009 thi danh sach bo tu loi). Sau 009: `npm run seed:roadmaps` (trong `backend/`) de nap lo trinh.
 
 Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). Script nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
+
+Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` (da `.gitignore`, KHONG commit). Nhap: `npm run nhap:khoa-hoc` (chi kiem tra file) roi `npm run nhap:khoa-hoc -- --email=<email chu khoa> --apply [--bai=13]`. Chay lai an toan; tu vung moi bai thanh 1 bo tu rieng cua chu khoa. Can migration 010 truoc. Prompt trich xuat: `docs/khoa-hoc-48-ngay.md`.
 
 Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.jsx` — dan danh sach (`utils/nhapNhanhTu.js`: `tu | /phien am/ | loai tu | nghia | vi du | ghi chu`, van nhan "tu - nghia") hoac AI tao tu theo chu de / doan van. Tu trung (cung tu + loai tu) bi loai.
 
