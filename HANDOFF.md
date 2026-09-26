@@ -25,8 +25,8 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
-### 3.1 Deploy (NGƯỜI DÙNG ĐÃ YÊU CẦU "deploy đi, chạy migration luôn" nhưng CHƯA thực hiện)
-Trạng thái: code đã push (Vercel tự build FE). **Backend Cloud Run chưa deploy, migration 007/008/009 chưa chạy trên DB thật, seed lộ trình chưa chạy.** Lý do chưa làm: phiên trước không có quyền vào DB (đăng nhập `root@localhost` bị từ chối khi thử MySQL local; `.env` trỏ Cloud SQL qua proxy `127.0.0.1:3307`, cần `gcloud auth` + Cloud SQL Auth Proxy). Không thử thêm credential nào khác.
+### 3.1 Deploy — ĐÃ XONG (2026-09-26)
+Người dùng tự chạy migration 007/008/009 và deploy backend (revision `flashcard-backend-00078`). Seed lộ trình đã chạy (`npm run seed:roadmaps` qua proxy: 3 lộ trình, 12 bộ, 240 từ). Smoke test OK: `/api/health`, `/api/db-test`, `/api/roadmaps` trả 3 lộ trình. Proxy chạy được bằng `cloud-sql-proxy.x86.exe` (ADC của gcloud đã có trên máy) hoặc cấu hình `cloud-sql-proxy` trong `.claude/launch.json`. Phần dưới giữ lại để tham khảo khi deploy lần sau.
 
 **Thứ tự bắt buộc:**
 1. Chạy migration **007 → 008 → 009** (`backend/database/migrations/`) lên Cloud SQL. Nếu deploy BE trước khi có 009, `GET /decks` sẽ lỗi (truy vấn đọc `roadmap_decks`).
@@ -36,8 +36,19 @@ Trạng thái: code đã push (Vercel tự build FE). **Backend Cloud Run chưa 
 
 Cách chạy migration khi có proxy (ví dụ): mở `cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307`, rồi chạy file SQL bằng client MySQL hoặc script Node (mẫu kết nối: `backend/scripts/run-migration.js`, đọc `DB_*` từ `.env`). Migration 007 có sẵn kịch bản kiểm thử logic (bảng tạm) — nên thử trên DB tạm trước.
 
-### 3.2 Chưa kiểm tra bằng trình duyệt thật
-Tất cả UI mới chỉ qua test render (SSR) + build, **chưa ai bấm thử**. Cần chạy `npm run dev` (FE+BE+proxy) và thử:
+### 3.2 Kiểm tra bằng trình duyệt thật — đã thử phần khách (2026-09-26)
+Đã bấm thử trên production ở chế độ **khách**: `/roadmap`, `/roadmap/:slug`, `/practice?bo=`, Nối từ (ghép sai/đúng, 2 vòng, kết quả, "Làm lại câu sai"), Hỗn hợp (câu sai quay lại sau 5 câu, "Làm lại câu sai"), Ngữ cảnh (240 câu đều che đúng từ), Nghe viết (tự đọc khi sang câu), responsive điện thoại `/practice` + `/roadmap`. Đã sửa:
+- Xáo trộn "ngẫu nhiên" ra từng cụm id liền nhau (FNV-1a không trộn ký tự cuối; 2 cột Nối từ gần như thẳng hàng) → thêm bước trộn fmix32 trong `taoSoTuSeed`.
+- Gõ nghĩa bắt gõ nguyên chuỗi "anh trai, em trai" → `khopDapAn` nhận một nghĩa bất kỳ (tách `,` `;` `/`).
+
+Phát hiện, **chưa sửa** (cần người dùng chốt):
+- Khách không tìm được nội dung mẫu: tab điều hướng chỉ hiện khi đăng nhập (`BoCuc.jsx`), nút "Xem bộ từ mẫu" ở trang chủ dẫn tới `/decks` nhưng production không còn deck mẫu nào ngoài lộ trình (`GET /decks` bỏ bộ lộ trình) → `/decks` và `/practice` trống với khách.
+- "Ví dụ 6 thì" của 240 từ lộ trình là câu khuôn mẫu vô nghĩa ("He bought a family yesterday") vì chưa có `tense_examples`. Có thể sinh bằng `npm run seed:ai-examples` (Gemini, ghi DB production).
+- Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401 trong console (không vỡ luồng).
+- Mở chatbot khi đang ở câu gõ từ/nghe viết thì gợi ý "Giải thích từ "family"" lộ đáp án.
+- Ô chọn bộ từ ở `/practice` trên điện thoại hẹp, tên bộ bị cắt.
+
+Còn **chưa thử** (cần tài khoản): `/review`, `/practice` khi đăng nhập, Thêm nhanh (dán + AI Gemini). Danh sách gốc:
 - Mỗi chế độ: làm hết phiên → "Làm lại câu sai". Nghe viết: máy có tự đọc khi sang câu (trình duyệt có thể chặn autoplay). Hỗn hợp: chọn sai câu trắc nghiệm rồi Enter → câu quay lại sau ~5 câu. Nối từ: bộ có 2 từ trùng nghĩa phải ghép chéo được.
 - `/practice`: đổi bộ/bộ lọc → số từ cập nhật; "20 từ + ngẫu nhiên" mở 2 lần ra 2 bộ khác nhau.
 - `/review`: đặt Lv0=Gõ từ, Lv1=Trắc nghiệm; trả lời sai → từ về cuối hàng.
@@ -74,7 +85,7 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 # Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
 cd backend; npm ci; npm test            # node --test, kỳ vọng 38 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 67 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 69 pass
 npx vite build; npx eslint <file>
 ```
 Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).
@@ -90,8 +101,8 @@ Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git
 
 ## 7. Plan đề xuất cho người làm tiếp
 
-1. **Deploy** (mục 3.1): migration 007→008→009, deploy BE, seed lộ trình, smoke test production.
-2. **Bấm thử toàn bộ** (mục 3.2), sửa lỗi UI/hành vi phát hiện.
+1. ~~**Deploy** (mục 3.1)~~ — xong 2026-09-26.
+2. **Bấm thử** phần cần đăng nhập (mục 3.2) và xử lý các phát hiện chưa sửa ở 3.2.
 3. **Chốt với người dùng**: nguồn từ vựng mở rộng (3.4) và đồng ý sửa `PRODUCT.md` để làm game hóa (3.3).
 4. **Game hóa** theo thứ tự: coin (cộng khi lưu phiên) → shop → đá hồi streak → leaderboard → chuỗi chung.
 5. Các mục thấp ưu tiên ở 3.5 khi cần.

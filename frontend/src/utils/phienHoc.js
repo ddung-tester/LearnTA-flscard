@@ -13,6 +13,14 @@ export function taoSoTuSeed(seed) {
     hash = Math.imul(hash, 16777619);
   }
 
+  // Trộn cuối (fmix32 của MurmurHash3): FNV-1a gần như giữ nguyên thứ tự khi chuỗi chỉ khác
+  // ký tự cuối (id thẻ liên tiếp), làm "ngẫu nhiên" ra từng cụm id liền nhau.
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+
   return hash >>> 0;
 }
 
@@ -114,6 +122,19 @@ export function tinhTienTrinh(danhSachTienTrinh, soCauDung) {
  */
 export function chuanHoaDapAn(text) {
   return String(text || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Đáp án gõ tay đúng khi khớp cả chuỗi hoặc một nghĩa trong danh sách
+ * ("anh trai, em trai" nhận cả "anh trai"; tách theo dấu phẩy, chấm phẩy, gạch chéo).
+ */
+export function khopDapAn(cauTraLoi, dapAn) {
+  const traLoi = chuanHoaDapAn(cauTraLoi);
+  if (!traLoi) return false;
+  if (traLoi === chuanHoaDapAn(dapAn)) return true;
+  return String(dapAn || "")
+    .split(/[,;/]/)
+    .some((nghia) => chuanHoaDapAn(nghia) === traLoi);
 }
 
 /**

@@ -23,8 +23,8 @@ import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { ganLoaiCauHonHop } from "../utils/cauHoiTracNghiem";
 import {
   chonTheChoPhien,
-  chuanHoaDapAn,
   ganTienTrinh,
+  khopDapAn,
   tachKetQuaPhien,
   taoDanhSachTienTrinh,
   taoGoiY,
@@ -603,7 +603,7 @@ function TrangTuLuan({ loai }) {
 
       const theHienTai = danhSachThe[chiSo];
       const dapAnNhapLai = cheDoNhapLai.dapAnDung;
-      const dungNhapLai = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnNhapLai);
+      const dungNhapLai = khopDapAn(cauTraLoi, dapAnNhapLai);
 
       if (dungNhapLai) {
         // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
@@ -655,7 +655,7 @@ function TrangTuLuan({ loai }) {
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
-    const dung = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnDung);
+    const dung = khopDapAn(cauTraLoi, dapAnDung);
 
     if (dung) {
       if (hienGoiY) {
@@ -783,7 +783,7 @@ function TrangTuLuan({ loai }) {
 
     const theHienTai = danhSachThe[chiSo];
     const dapAnDung = layDapAnDung(theHienTai);
-    const dung = chuanHoaDapAn(cauTraLoi) === chuanHoaDapAn(dapAnDung);
+    const dung = khopDapAn(cauTraLoi, dapAnDung);
 
     if (dung) {
       // Nhập đúng: sang câu kế, CHƯA ghi nhận tiến trình, chèn thẻ retry 5 câu sau
