@@ -377,8 +377,18 @@
 
 .review-card__rating-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.review-card__rating-label--level {
+  margin-top: 0.9rem;
+}
+
+.review-card__level-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
 .review-btn {
@@ -418,16 +428,20 @@
   color: oklch(43% 0.12 24);
 }
 
-.review-btn--hard:hover {
-  border-color: oklch(76% 0.13 72/ 0.55);
-  background: oklch(96% 0.035 72);
-  color: oklch(43% 0.09 72);
-}
-
-.review-btn--good:hover,
-.review-btn--easy:hover {
+.review-btn--easy:hover,
+.review-btn--level:hover {
   border-color: oklch(55% 0.080 52/ 0.45);
   background: oklch(96% 0.015 52);
+  color: var(--mau-chinh);
+}
+
+.review-btn--level {
+  min-height: 2.75rem;
+  padding: 0.35rem 0.25rem;
+}
+
+.review-btn--current {
+  border-color: var(--mau-chinh);
   color: var(--mau-chinh);
 }
 
@@ -548,8 +562,8 @@
     font-size: 2rem;
   }
 
-  .review-card__rating-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .review-card__level-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

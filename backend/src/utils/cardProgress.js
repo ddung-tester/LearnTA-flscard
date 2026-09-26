@@ -1,13 +1,4 @@
-function addDays(days) {
-  return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-}
-
-function nextReviewDate(masteryLevel) {
-  if (masteryLevel <= 1) return addDays(1);
-  if (masteryLevel <= 3) return addDays(3);
-  if (masteryLevel === 4) return addDays(7);
-  return addDays(14);
-}
+const { scheduleAnswer, scheduleLevel } = require("./srs");
 
 async function findProgress(connection, userId, cardId, { lock = false } = {}) {
   if (userId === null || userId === undefined) {
@@ -41,18 +32,7 @@ function normalizeProgress(row, userId, cardId) {
   };
 }
 
-async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect }) {
-  if (userId === null || userId === undefined) {
-    return null;
-  }
-
-  const current = await findProgress(connection, userId, cardId, { lock: true });
-  const currentMastery = current?.mastery_level || 0;
-  const nextMastery = isCorrect
-    ? Math.min(5, currentMastery + 1)
-    : Math.max(0, currentMastery - 1);
-  const nextReviewAt = nextReviewDate(nextMastery);
-
+async function writeProgress(connection, current, { userId, cardId, level, nextReviewAt, correct, wrong }) {
   if (current) {
     await connection.execute(
       `UPDATE card_progress
@@ -63,22 +43,60 @@ async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect 
            last_reviewed_at = CURRENT_TIMESTAMP,
            next_review_at = ?
        WHERE id = ?`,
-      [nextMastery, isCorrect ? 1 : 0, isCorrect ? 0 : 1, nextReviewAt, current.id]
+      [level, correct, wrong, nextReviewAt, current.id]
     );
   } else {
     await connection.execute(
       `INSERT INTO card_progress
         (user_id, card_id, mastery_level, review_count, correct_count, wrong_count, last_reviewed_at, next_review_at)
        VALUES (?, ?, ?, 1, ?, ?, CURRENT_TIMESTAMP, ?)`,
-      [userId, cardId, nextMastery, isCorrect ? 1 : 0, isCorrect ? 0 : 1, nextReviewAt]
+      [userId, cardId, level, correct, wrong, nextReviewAt]
     );
   }
 
   return findProgress(connection, userId, cardId);
 }
 
+async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect, now = new Date() }) {
+  if (userId === null || userId === undefined) {
+    return null;
+  }
+
+  const current = await findProgress(connection, userId, cardId, { lock: true });
+  const next = scheduleAnswer(current?.mastery_level || 0, isCorrect, now);
+
+  return writeProgress(connection, current, {
+    userId,
+    cardId,
+    level: next.level,
+    nextReviewAt: next.nextReviewAt,
+    correct: isCorrect ? 1 : 0,
+    wrong: isCorrect ? 0 : 1,
+  });
+}
+
+// Nguoi hoc tu chon level sau khi lat the (giong luyentu).
+async function setProgressLevel(connection, { userId, cardId, level, now = new Date() }) {
+  if (userId === null || userId === undefined) {
+    return null;
+  }
+
+  const current = await findProgress(connection, userId, cardId, { lock: true });
+  const next = scheduleLevel(level, now);
+
+  return writeProgress(connection, current, {
+    userId,
+    cardId,
+    level: next.level,
+    nextReviewAt: next.nextReviewAt,
+    correct: 0,
+    wrong: 0,
+  });
+}
+
 module.exports = {
   findProgress,
   normalizeProgress,
+  setProgressLevel,
   updateProgressFromAnswer,
 };

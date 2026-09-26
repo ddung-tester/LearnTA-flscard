@@ -147,8 +147,9 @@ PATCH     /study-sessions/:id/finish, POST /study-sessions/:id/answers
 POST      /quiz-results, GET /decks/:deckId/quiz-results/latest
 
 GET|POST|DELETE /mistakes, POST /mistakes/bulk, PATCH|DELETE /mistakes/:id
-GET /reviews, /reviews/due; POST /reviews, /reviews/bulk
-PATCH /reviews/:id/result, /reviews/by-card/:cardId/result; DELETE tuong ung
+GET /reviews, /reviews/due; POST /reviews, /reviews/bulk     auth, doc/ghi card_progress
+PATCH /reviews/by-card/:cardId/result  body {result:"correct"|"wrong"} hoac {level:0-5}
+DELETE /reviews/by-card/:cardId
 
 GET /user/stats, GET|PATCH /user/settings               auth
 
@@ -170,6 +171,14 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 - `chatContextService` doc tu DB theo id (co check `canReadDeck`): the dang hoc, toi da 30 tu trong deck, toi da 10 tu sai nhieu nhat (neu dang nhap), roi noi vao system prompt. Khong tin noi dung client gui.
 - Frontend: cac trang hoc dat `<ChatbotTheDangHoc the={...} />` de bao the dang hien thi; widget lay `deckId` tu URL.
 
+### SRS (mot luat cho moi che do, giong luyentu)
+
+- Luat o `backend/src/utils/srs.js`, ban sao o `frontend/src/utils/srsReview.js`. Lv0-Lv5, khoang on 0/1/3/7/14/30 ngay (Lv>=1 den han luc 00:00 gio VN).
+- Dung: len 1 cap, on lai sau khoang cua cap moi. Sai: xuong 1 cap (toi thieu 0), on lai ngay. Tu chon level: on lai theo level do.
+- Nguon dung la `card_progress`. Quiz/Tu luan ghi qua `POST /study-sessions/:id/answers`; Flashcard va trang On tap ghi qua `PATCH /reviews/by-card/:cardId/result`. Moi cau tra loi chi ghi 1 lan.
+- `POST /reviews/bulk` chi them tu chua co tien do (du lieu hoc luc chua dang nhap), khong ghi de level tren server.
+- Lv5 (`status: "mastered"`) van quay lai khi den han.
+
 ---
 
 ## 7. Database
@@ -182,9 +191,9 @@ Schema day du: `backend/database/schema.sql`. Bang:
 | `decks` | bo tu; `user_id NULL` = deck mau; `is_public`, `streak`, `mastered_count` |
 | `cards` | tu; `term_en`, `meaning_vi`, `example_sentence`, `note`, `pronunciation`, `part_of_speech`, `is_favorite`, `sort_order` (+ `tense_examples` JSON, xem luu y duoi) |
 | `study_sessions`, `study_answers` | phien hoc va tung cau tra loi |
-| `card_progress` | mastery 0-5 theo user/card, `next_review_at` |
+| `card_progress` | lich on SRS duy nhat: level 0-5 theo user/card, `next_review_at` |
 | `mistake_words` | so tu sai, dem `mistake_count` |
-| `card_reviews` | hang doi on tap SRS dong bo voi client |
+| `card_reviews` | KHONG CON DUNG tu migration 007 (da gop vao `card_progress`) |
 | `quiz_results` | ket qua quiz |
 | `streak_logs` | log hoc theo ngay (gio VN, UTC+7) |
 | `user_settings` | cai dat hoc (+ `email_reminders`, xem luu y duoi) |
@@ -208,7 +217,7 @@ Migration moi: them file `backend/database/migrations/00N_*.sql`, cap nhat `sche
 | `hocTA.cardFavorites` | `data/duLieuMau.js` | favorite cua mock data |
 | `hoc_tu_vung_progress` | `utils/tienDoHocTap.js` | tien do flashcard/quiz gan nhat theo deck |
 | `learnta_user_study_settings` | `utils/caiDatHocTap.js` | cai dat hoc theo mode |
-| `streak_drop_srs_v1` | `utils/srsReview.js` | hang doi SRS; dong bo 2 chieu voi `/reviews` |
+| `streak_drop_srs_v1` | `utils/srsReview.js` | ban sao SRS; khi dang nhap, du lieu tu `/reviews` ghi de ban local |
 | `streak_drop_mistake_notebook_v1` | `utils/mistakeNotebook.js` | so tu sai; dong bo voi `/mistakes` |
 | `streak_drop_study_sessions_v1` | `utils/studySessionHistory.js` | lich su phien hoc |
 

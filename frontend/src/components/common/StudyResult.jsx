@@ -17,7 +17,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { luuTuSaiDongBo, danhDauDaOnDongBo } from "../../utils/mistakeNotebook";
-import { ghiNhanDungVaoSRSDongBo } from "../../utils/srsReview";
+import { ghiNhanDungVaoSRS, ghiNhanSaiVaoSRS } from "../../utils/srsReview";
 
 function AnimatedNumber({ value, duration = 800 }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -122,18 +122,21 @@ function StudyResult({
 }) {
   const tiLeDung = tongSoCau > 0 ? Math.round((soCauDung / tongSoCau) * 100) : 0;
 
-  // Lưu kết quả vào Mistake Notebook + SRS khi màn hình kết quả xuất hiện
+  // Lưu kết quả vào Mistake Notebook + SRS khi màn hình kết quả xuất hiện.
+  // SRS ở đây chỉ cập nhật bản local: server đã tự áp dụng cùng luật khi
+  // trang Quiz/Tự luận lưu đáp án của study session.
   useEffect(() => {
     const deckInfo = { deckId, deckTitle, source: mode };
 
-    // 1. Lưu từ sai → Mistake Notebook (cũng tự động queue vào SRS qua mistakeNotebook.js)
+    // 1. Lưu từ sai → Mistake Notebook, rồi hạ 1 cấp SRS và đưa vào diện ôn ngay
     if (danhSachCardSai.length > 0) {
       luuTuSaiDongBo(danhSachCardSai, deckInfo);
+      ghiNhanSaiVaoSRS(danhSachCardSai, deckInfo);
     }
 
     // 2. Ghi nhận từ đúng → tăng SRS level
     if (danhSachCardDung.length > 0) {
-      ghiNhanDungVaoSRSDongBo(danhSachCardDung, deckInfo);
+      ghiNhanDungVaoSRS(danhSachCardDung, deckInfo);
 
       // 3. Nếu từ đúng đã đạt mastered → đánh dấu reviewed trong Mistake Notebook
       //    (nếu có trong notebook). Không xóa entry — chỉ đánh dấu.

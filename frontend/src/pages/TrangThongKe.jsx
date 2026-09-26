@@ -24,7 +24,8 @@ function tinhPhanPhoiMastery(srsList) {
 
 function tinhThongKeSrsDanhSach(entries) {
   const active = entries.filter((entry) => entry.status === "active");
-  const due = active.filter((entry) => {
+  // Lv5 (mastered) vẫn quay lại ôn khi đến hạn.
+  const due = entries.filter((entry) => {
     if (!entry.nextReviewAt) return true;
     return new Date(entry.nextReviewAt) <= new Date();
   }).length;
@@ -35,7 +36,7 @@ function tinhThongKeSrsDanhSach(entries) {
     duHomNay: due,
     active: active.length,
     mastered,
-    khoHoc: active.length - due,
+    khoHoc: entries.length - due,
   };
 }
 
@@ -112,7 +113,7 @@ function DeckStatRow({ deck, srsList, mistakeList }) {
   const deckSrs = srsList.filter((e) => String(e.deckId) === String(deck.id));
   const deckMistakes = mistakeList.filter((e) => String(e.deckId) === String(deck.id));
   const masteredCount = deckSrs.filter((e) => e.status === "mastered").length;
-  const dueCount = deckSrs.filter((e) => e.status === "active" && new Date(e.nextReviewAt) <= new Date()).length;
+  const dueCount = deckSrs.filter((e) => new Date(e.nextReviewAt) <= new Date()).length;
   const mistakeCount = deckMistakes.filter((e) => e.status === "active").length;
   const total = deck.total_words ?? 0;
   const pct = total > 0 ? Math.round((masteredCount / total) * 100) : 0;

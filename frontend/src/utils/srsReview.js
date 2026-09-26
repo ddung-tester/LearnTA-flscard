@@ -1,10 +1,14 @@
 /**
- * srsReview.js — Lightweight SRS (Spaced Repetition) queue, localStorage-backed.
+ * srsReview.js — Bản SRS phía client (localStorage), đồng bộ với backend.
  *
- * Giữ một hàng đợi ôn tập client-side. Khi user ôn, gọi API backend
- * PATCH /cards/:cardId/progress với is_correct để backend cập nhật mastery_level
- * và next_review_at. SRS queue ở đây chứa metadata để render card
- * và tính due date client-side.
+ * Một luật SRS duy nhất cho mọi chế độ học (giống backend/src/utils/srs.js):
+ *   Đúng → lên 1 cấp, ôn lại sau khoảng của cấp mới.
+ *   Sai  → xuống 1 cấp (tối thiểu Lv0), ôn lại ngay.
+ *   Tự chọn cấp (sau khi lật thẻ) → ôn lại sau khoảng của cấp đó.
+ *   Khoảng ôn: Lv0 ngay · Lv1 1 ngày · Lv2 3 ngày · Lv3 7 ngày · Lv4 14 ngày · Lv5 30 ngày.
+ *
+ * Khi đã đăng nhập, backend (card_progress) là nguồn đúng: dữ liệu tải về luôn
+ * ghi đè bản local. Bản local để hiển thị ngay và giữ tiến độ khi chưa đăng nhập.
  *
  * Cấu trúc mỗi entry:
  * {
@@ -14,56 +18,28 @@
  *   word: string,           // card.term_en
  *   meaning: string,        // card.meaning_vi
  *   example: string|null,   // card.example_sentence
- *   source: "mistake"|"quiz"|"tuluan"|"manual",
- *   level: number,          // 0–5 (local mirror of mastery_level)
+ *   source: string,         // nơi từ vào SRS lần đầu (chỉ có ở bản local)
+ *   level: number,          // 0–5
  *   reviewCount: number,
  *   lastReviewedAt: string|null,
- *   nextReviewAt: string,   // ISO — ngày cần ôn tiếp theo
- *   ease: "again"|"hard"|"good"|"easy"|null,
- *   status: "active"|"mastered",
+ *   nextReviewAt: string,   // ISO — lúc cần ôn tiếp theo
+ *   status: "active"|"mastered", // mastered = Lv5, vẫn quay lại khi đến hạn
+ *   updatedAt: string,
  * }
- *
- * Interval mapping (simple, không phải SM-2):
- *   again → +0 ngày (ngay hôm nay / hôm sau)
- *   hard  → +1 ngày
- *   good  → +3 ngày
- *   easy  → +7 ngày
- *   level >= 5 (auto-mastered sau nhiều lần easy/good)
  */
 
 import {
-  capNhatReviewResult,
   capNhatReviewResultTheoCard,
   dongBoReviews,
   layReviews,
   layReviewsDenHan,
-  xoaReview,
   xoaReviewTheoCard,
 } from "../services/reviewApi";
 
 const KHO_SRS = "streak_drop_srs_v1";
+const MAX_LEVEL = 5;
 
-// ── Intervals theo level (ngày) ──────────────────────────────────────────────
-// Wrong (ease=again/hard):
-//   again → 4 giờ, hard → 1 ngày
-// Correct (ease=good/easy) — tính theo current level SAU khi tăng:
-//   level 0→1 correct  : +1 ngày
-//   level 1→2 correct  : +3 ngày
-//   level 2→3 correct  : +7 ngày
-//   level 3→4 correct  : +14 ngày
-//   level 4→5+ mastered: +30 ngày
-
-const INTERVAL_AGAIN_HOURS = 4;
-const MASTERED_THRESHOLD = 5;
-
-// Interval theo level MỚI sau khi đúng
-function intervalTheoLevel(newLevel) {
-  if (newLevel <= 1) return 1;
-  if (newLevel === 2) return 3;
-  if (newLevel === 3) return 7;
-  if (newLevel === 4) return 14;
-  return 30; // mastered
-}
+export const KHOANG_ON_NGAY = [0, 1, 3, 7, 14, 30];
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
@@ -86,78 +62,91 @@ function ghiTatCa(data) {
   }
 }
 
-function toDateValue(value) {
-  const date = value ? new Date(value) : null;
-  return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+function chuanHoaLevel(level) {
+  const so = Math.trunc(Number(level));
+  if (!Number.isFinite(so)) return 0;
+  return Math.min(MAX_LEVEL, Math.max(0, so));
+}
+
+function trangThaiTheoLevel(level) {
+  return level >= MAX_LEVEL ? "mastered" : "active";
+}
+
+/**
+ * Lv0 đến hạn ngay; Lv≥1 đến hạn lúc 00:00 của ngày thứ N.
+ */
+function tinhNgayOnTheoLevel(level) {
+  const soNgay = KHOANG_ON_NGAY[chuanHoaLevel(level)];
+  const d = new Date();
+  if (soNgay === 0) return d.toISOString();
+  d.setDate(d.getDate() + soNgay);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+/**
+ * @param {number} levelHienTai
+ * @param {"correct"|"wrong"|number} ketQua - đúng/sai, hoặc level người học tự chọn
+ */
+function apDungKetQua(levelHienTai, ketQua) {
+  const level = chuanHoaLevel(levelHienTai);
+
+  if (typeof ketQua === "number") {
+    const levelMoi = chuanHoaLevel(ketQua);
+    return { level: levelMoi, nextReviewAt: tinhNgayOnTheoLevel(levelMoi) };
+  }
+
+  if (ketQua === "wrong") {
+    return { level: Math.max(0, level - 1), nextReviewAt: new Date().toISOString() };
+  }
+
+  const levelMoi = Math.min(MAX_LEVEL, level + 1);
+  return { level: levelMoi, nextReviewAt: tinhNgayOnTheoLevel(levelMoi) };
 }
 
 function chuanHoaSRSTuBackend(item) {
-  const localId = item.card_id ? String(item.card_id) : `review-${item.id}`;
+  const level = chuanHoaLevel(item.level);
 
   return {
-    id: localId,
-    backendId: item.id,
+    id: String(item.card_id),
     deckId: item.deck_id ?? null,
     deckTitle: item.deck_title ?? "",
     word: item.term_en ?? "",
     meaning: item.meaning_vi ?? "",
     example: item.example_sentence ?? null,
-    source: item.source ?? "quiz",
-    level: item.level ?? 0,
+    level,
     reviewCount: item.review_count ?? 0,
     lastReviewedAt: item.last_reviewed_at ?? null,
     nextReviewAt: item.next_review_at ?? new Date().toISOString(),
-    ease: item.ease ?? null,
-    status: item.status ?? "active",
+    status: trangThaiTheoLevel(level),
     updatedAt: item.updated_at ?? item.last_reviewed_at ?? new Date().toISOString(),
   };
 }
 
 function chuanHoaSRSChoBackend(entry) {
-  const cardId = Number(entry.id);
-
   return {
-    card_id: Number.isFinite(cardId) && cardId > 0 ? cardId : undefined,
-    deck_id: entry.deckId ?? undefined,
-    term_en: entry.word ?? "",
-    meaning_vi: entry.meaning ?? "",
-    example_sentence: entry.example ?? null,
-    source: entry.source ?? "quiz",
+    card_id: Number(entry.id),
     level: entry.level ?? 0,
-    ease: entry.ease ?? null,
     review_count: entry.reviewCount ?? 0,
     last_reviewed_at: entry.lastReviewedAt ?? undefined,
     next_review_at: entry.nextReviewAt ?? undefined,
-    status: entry.status ?? "active",
   };
 }
 
-function hopNhatEntry(localEntry, incomingEntry) {
-  if (!localEntry) return incomingEntry;
-
-  const dungIncoming =
-    toDateValue(incomingEntry.updatedAt || incomingEntry.lastReviewedAt) >=
-    toDateValue(localEntry.updatedAt || localEntry.lastReviewedAt);
-
-  return {
-    ...localEntry,
-    ...(dungIncoming ? incomingEntry : {}),
-    backendId: incomingEntry.backendId ?? localEntry.backendId,
-    level: Math.max(localEntry.level ?? 0, incomingEntry.level ?? 0),
-    reviewCount: Math.max(localEntry.reviewCount ?? 0, incomingEntry.reviewCount ?? 0),
-    updatedAt:
-      toDateValue(incomingEntry.updatedAt) >= toDateValue(localEntry.updatedAt)
-        ? incomingEntry.updatedAt
-        : localEntry.updatedAt,
-  };
+function laCardIdHopLe(id) {
+  const cardId = Number(id);
+  return Number.isInteger(cardId) && cardId > 0;
 }
 
+/**
+ * Backend là nguồn đúng: ghi đè bản local, chỉ giữ trường backend không có (source).
+ */
 export function hopNhatSRSTuBackend(items = []) {
   const tatCa = docTatCa();
 
   for (const item of items) {
     const incoming = chuanHoaSRSTuBackend(item);
-    tatCa[incoming.id] = hopNhatEntry(tatCa[incoming.id], incoming);
+    tatCa[incoming.id] = { ...tatCa[incoming.id], ...incoming };
   }
 
   ghiTatCa(tatCa);
@@ -165,36 +154,7 @@ export function hopNhatSRSTuBackend(items = []) {
 }
 
 /**
- * Tính ngày ôn tiếp theo từ ease rating (dùng trong Daily Review).
- */
-function tinhNgayOnTiep(ease) {
-  const now = new Date();
-  if (ease === "again") {
-    return new Date(now.getTime() + INTERVAL_AGAIN_HOURS * 60 * 60 * 1000).toISOString();
-  }
-  const days =
-    ease === "hard" ? 1 :
-    ease === "good" ? 3 :
-    ease === "easy" ? 7 :
-    3;
-  const d = new Date(now);
-  d.setDate(d.getDate() + days);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-/**
- * Tính ngày ôn tiếp theo theo level mới (dùng cho correct answers từ quiz).
- */
-function tinhNgayOnTheoLevel(newLevel) {
-  const d = new Date();
-  d.setDate(d.getDate() + intervalTheoLevel(newLevel));
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-/**
- * Kiểm tra card có đến hạn ôn hôm nay không.
+ * Kiểm tra card có đến hạn ôn không (kể cả Lv5).
  */
 function laDenHanHomNay(entry) {
   if (!entry.nextReviewAt) return true;
@@ -203,10 +163,14 @@ function laDenHanHomNay(entry) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+export function moTaKhoangOn(level) {
+  const soNgay = KHOANG_ON_NGAY[chuanHoaLevel(level)];
+  return soNgay === 0 ? "Ôn ngay" : `${soNgay} ngày`;
+}
+
 /**
- * Thêm hoặc cập nhật card vào SRS queue.
- * Nếu đã tồn tại → không ghi đè nextReviewAt.
- * Nếu chưa có → tạo với nextReviewAt = hôm nay (due ngay).
+ * Thêm card vào SRS queue nếu chưa có (Lv0, đến hạn ngay).
+ * Nếu đã có → chỉ cập nhật nội dung, giữ nguyên level và nextReviewAt.
  *
  * @param {Object[]} cards - mảng card objects
  * @param {Object} opts - { deckId, deckTitle, source }
@@ -222,7 +186,6 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
     const cu = tatCa[key];
 
     if (!cu) {
-      // Mới: tạo entry, due ngay hôm nay
       tatCa[key] = {
         id: key,
         deckId: Number(deckId),
@@ -235,12 +198,10 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
         reviewCount: 0,
         lastReviewedAt: null,
         nextReviewAt: now, // due ngay lập tức
-        ease: null,
         status: "active",
         updatedAt: now,
       };
     } else {
-      // Đã có: chỉ cập nhật content, giữ nguyên nextReviewAt
       tatCa[key] = {
         ...cu,
         word: card.term_en ?? card.word ?? cu.word,
@@ -255,22 +216,6 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
   ghiTatCa(tatCa);
 }
 
-export async function themVaoSRSDongBo(cards, opts) {
-  themVaoSRS(cards, opts);
-
-  try {
-    const tatCa = docTatCa();
-    const items = cards
-      .map((card) => tatCa[String(card.id)])
-      .filter(Boolean)
-      .map(chuanHoaSRSChoBackend);
-    const result = await dongBoReviews(items);
-    hopNhatSRSTuBackend(result.reviews || []);
-  } catch {
-    // Local SRS vẫn đã được cập nhật.
-  }
-}
-
 /**
  * Lấy tất cả SRS entries dưới dạng mảng, sắp xếp theo nextReviewAt.
  */
@@ -282,12 +227,10 @@ export function layTatCaSRS() {
 }
 
 /**
- * Lấy các card đến hạn ôn hôm nay.
+ * Lấy các card đến hạn ôn.
  */
 export function layCardsDenHan() {
-  return layTatCaSRS().filter(
-    (e) => e.status === "active" && laDenHanHomNay(e)
-  );
+  return layTatCaSRS().filter(laDenHanHomNay);
 }
 
 /**
@@ -300,32 +243,28 @@ export function layCardsDenHanTheoDeck(deckId) {
 }
 
 /**
- * Cập nhật kết quả ôn tập cho một card.
- * Tăng level, tính nextReviewAt mới, cập nhật status nếu mastered.
+ * Áp dụng một kết quả ôn cho card đã có trong SRS (chỉ local).
  *
- * @param {string} id - card id
- * @param {"again"|"hard"|"good"|"easy"} ease
+ * @param {string|number} id - card id
+ * @param {"correct"|"wrong"|number} ketQua - đúng/sai, hoặc level tự chọn (0–5)
  * @returns {Object|null} entry đã cập nhật
  */
-export function capNhatKetQuaOn(id, ease) {
+export function capNhatKetQuaOn(id, ketQua) {
   const tatCa = docTatCa();
   const key = String(id);
   const cu = tatCa[key];
   if (!cu) return null;
 
-  const levelChange = ease === "easy" ? 2 : ease === "good" ? 1 : ease === "hard" ? 0 : -1;
-  const newLevel = Math.max(0, Math.min(5, (cu.level ?? 0) + levelChange));
-  const isMastered = newLevel >= MASTERED_THRESHOLD;
-
+  const now = new Date().toISOString();
+  const tiepTheo = apDungKetQua(cu.level ?? 0, ketQua);
   const updated = {
     ...cu,
-    level: newLevel,
-    ease,
+    level: tiepTheo.level,
     reviewCount: (cu.reviewCount ?? 0) + 1,
-    lastReviewedAt: new Date().toISOString(),
-    nextReviewAt: tinhNgayOnTiep(ease),
-    status: isMastered ? "mastered" : "active",
-    updatedAt: new Date().toISOString(),
+    lastReviewedAt: now,
+    nextReviewAt: tiepTheo.nextReviewAt,
+    status: trangThaiTheoLevel(tiepTheo.level),
+    updatedAt: now,
   };
 
   tatCa[key] = updated;
@@ -333,20 +272,35 @@ export function capNhatKetQuaOn(id, ease) {
   return updated;
 }
 
-export async function capNhatKetQuaOnDongBo(id, ease) {
-  const updatedLocal = capNhatKetQuaOn(id, ease);
-  if (!updatedLocal) return null;
+/**
+ * Áp dụng kết quả local rồi gửi lên backend; bản backend trả về sẽ ghi đè local.
+ */
+export async function capNhatKetQuaOnDongBo(id, ketQua) {
+  const updatedLocal = capNhatKetQuaOn(id, ketQua);
+  if (!updatedLocal || !laCardIdHopLe(id)) return updatedLocal;
 
   try {
-    const backendResult = updatedLocal.backendId
-      ? await capNhatReviewResult(updatedLocal.backendId, ease)
-      : await capNhatReviewResultTheoCard(id, ease);
-    hopNhatSRSTuBackend([backendResult]);
+    const payload = typeof ketQua === "number" ? { level: ketQua } : { result: ketQua };
+    const backendResult = await capNhatReviewResultTheoCard(Number(id), payload);
+    if (backendResult) {
+      return (
+        hopNhatSRSTuBackend([backendResult]).find((entry) => entry.id === String(id)) ??
+        updatedLocal
+      );
+    }
   } catch {
-    // Backend best-effort. Local state đã được cập nhật.
+    // Backend best-effort (vd: chưa đăng nhập). Local state đã được cập nhật.
   }
 
   return updatedLocal;
+}
+
+/**
+ * Ghi kết quả một thẻ ở chế độ không tự lưu đáp án lên server (vd: flashcard).
+ */
+export async function ghiNhanKetQuaDongBo(card, ketQua, opts) {
+  themVaoSRS([card], opts);
+  return capNhatKetQuaOnDongBo(card.id, ketQua);
 }
 
 /**
@@ -359,19 +313,12 @@ export function xoaKhoiSRS(id) {
 }
 
 export async function xoaKhoiSRSDongBo(id) {
-  const entry = docTatCa()[String(id)];
   xoaKhoiSRS(id);
 
-  try {
-    if (entry?.backendId) {
-      await xoaReview(entry.backendId);
-      return;
-    }
+  if (!laCardIdHopLe(id)) return;
 
-    const cardId = Number(id);
-    if (Number.isInteger(cardId) && cardId > 0) {
-      await xoaReviewTheoCard(cardId);
-    }
+  try {
+    await xoaReviewTheoCard(Number(id));
   } catch {
     // Local removal remains available while offline. A later explicit sync may
     // restore the server item, which is safer than claiming a remote delete.
@@ -401,117 +348,40 @@ export function datLaiSRS(id) {
  */
 export function layThongKeSRS() {
   const ds = layTatCaSRS();
-  const duHomNay = ds.filter((e) => e.status === "active" && laDenHanHomNay(e)).length;
+  const duHomNay = ds.filter(laDenHanHomNay).length;
   const active = ds.filter((e) => e.status === "active").length;
   const mastered = ds.filter((e) => e.status === "mastered").length;
-  // khoHoc = active nhưng chưa đến hạn hôm nay
-  const khoHoc = active - duHomNay;
+  // khoHoc = chưa đến hạn ôn
+  const khoHoc = ds.length - duHomNay;
   return { total: ds.length, duHomNay, active, mastered, khoHoc };
 }
 
-/**
- * Ghi nhận kết quả TRẢ LỜI ĐÚNG từ quiz/written vào SRS.
- *
- * Logic:
- * - Card chưa có trong SRS: tạo mới với level=1, nextReview = +1 ngày
- * - Card đã có trong SRS: tăng level +1, tính nextReview theo level mới
- * - Level >= MASTERED_THRESHOLD → status = "mastered", interval = 30 ngày
- * - Không ghi đè nextReviewAt nếu card đã được mastered (tránh giảm interval)
- *
- * @param {Object[]} cards - mảng card đúng (danhSachCardDung)
- * @param {Object} opts - { deckId, deckTitle, source }
- */
-export function ghiNhanDungVaoSRS(cards, { deckId, deckTitle, source = "quiz" }) {
+function ghiNhanKetQuaLocal(cards, ketQua, opts) {
   if (!Array.isArray(cards) || cards.length === 0) return;
 
-  const tatCa = docTatCa();
-  const now = new Date().toISOString();
-
+  themVaoSRS(cards, opts);
   for (const card of cards) {
-    const key = String(card.id);
-    const cu = tatCa[key];
-
-    if (!cu) {
-      // Card chưa có trong SRS → tạo mới ở level 1
-      const newLevel = 1;
-      tatCa[key] = {
-        id: key,
-        deckId: Number(deckId),
-        deckTitle: deckTitle ?? "",
-        word: card.term_en ?? card.word ?? "",
-        meaning: card.meaning_vi ?? card.meaning ?? "",
-        example: card.example_sentence ?? card.example ?? null,
-        source,
-        level: newLevel,
-        reviewCount: 1,
-        lastReviewedAt: now,
-        nextReviewAt: tinhNgayOnTheoLevel(newLevel),
-        ease: "good",
-        status: "active",
-        updatedAt: now,
-      };
-    } else {
-      // Đã có → tăng level, không giảm xuống dưới hiện tại
-      const currentLevel = cu.level ?? 0;
-      const newLevel = Math.min(MASTERED_THRESHOLD, currentLevel + 1);
-      const isMastered = newLevel >= MASTERED_THRESHOLD;
-
-      // Nếu đã mastered thì không đẩy nextReviewAt gần hơn
-      const newNextReview = isMastered || newLevel > currentLevel
-        ? tinhNgayOnTheoLevel(newLevel)
-        : cu.nextReviewAt;
-
-      tatCa[key] = {
-        ...cu,
-        // Cập nhật content nếu thay đổi
-        word: card.term_en ?? card.word ?? cu.word,
-        meaning: card.meaning_vi ?? card.meaning ?? cu.meaning,
-        example: card.example_sentence ?? card.example ?? cu.example,
-        deckTitle: deckTitle ?? cu.deckTitle,
-        level: newLevel,
-        reviewCount: (cu.reviewCount ?? 0) + 1,
-        lastReviewedAt: now,
-        nextReviewAt: newNextReview,
-        ease: "good",
-        status: isMastered ? "mastered" : "active",
-        updatedAt: now,
-      };
-    }
-  }
-
-  ghiTatCa(tatCa);
-}
-
-export async function ghiNhanDungVaoSRSDongBo(cards, opts) {
-  ghiNhanDungVaoSRS(cards, opts);
-
-  try {
-    const tatCa = docTatCa();
-    const items = cards
-      .map((card) => tatCa[String(card.id)])
-      .filter(Boolean)
-      .map(chuanHoaSRSChoBackend);
-    const result = await dongBoReviews(items);
-    hopNhatSRSTuBackend(result.reviews || []);
-  } catch {
-    // Local SRS vẫn đã được cập nhật.
+    capNhatKetQuaOn(card.id, ketQua);
   }
 }
 
 /**
- * Ghi nhận kết quả TRẢ LỜI SAI vào SRS (reset level, due sớm).
- * Dùng thay cho themVaoSRS khi muốn explicit "wrong".
+ * Ghi nhận các card TRẢ LỜI ĐÚNG vào SRS local (lên 1 cấp).
+ * Dùng cho chế độ đã lưu đáp án lên server qua study session (Quiz, Tự luận):
+ * server tự áp dụng cùng luật, nên ở đây không gửi thêm để tránh cộng 2 lần.
  *
- * @param {Object[]} cards - mảng card sai
+ * @param {Object[]} cards
  * @param {Object} opts - { deckId, deckTitle, source }
  */
-export function ghiNhanSaiVaoSRS(cards, { deckId, deckTitle, source = "quiz" }) {
-  // Reuse themVaoSRS — đã set due = now với level giữ nguyên
-  themVaoSRS(cards, { deckId, deckTitle, source });
+export function ghiNhanDungVaoSRS(cards, opts) {
+  ghiNhanKetQuaLocal(cards, "correct", opts);
 }
 
-export async function ghiNhanSaiVaoSRSDongBo(cards, opts) {
-  await themVaoSRSDongBo(cards, opts);
+/**
+ * Ghi nhận các card TRẢ LỜI SAI vào SRS local (xuống 1 cấp, ôn lại ngay).
+ */
+export function ghiNhanSaiVaoSRS(cards, opts) {
+  ghiNhanKetQuaLocal(cards, "wrong", opts);
 }
 
 export async function taiSRSDongBo(params = {}) {
@@ -526,16 +396,20 @@ export async function taiSRSDongBo(params = {}) {
 export async function taiCardsDenHanDongBo(params = {}) {
   try {
     const items = await layReviewsDenHan(params);
-    return hopNhatSRSTuBackend(items).filter(
-      (entry) => entry.status === "active" && laDenHanHomNay(entry)
-    );
+    return hopNhatSRSTuBackend(items).filter(laDenHanHomNay);
   } catch {
     return layCardsDenHan();
   }
 }
 
+/**
+ * Đẩy các từ học lúc chưa đăng nhập lên backend. Từ đã có tiến độ trên server
+ * được giữ nguyên phía server, rồi ghi đè lại bản local.
+ */
 export async function dongBoSRSLenBackend() {
-  const items = layTatCaSRS().map(chuanHoaSRSChoBackend);
+  const items = layTatCaSRS()
+    .filter((entry) => laCardIdHopLe(entry.id))
+    .map(chuanHoaSRSChoBackend);
   if (items.length === 0) return layTatCaSRS();
 
   try {

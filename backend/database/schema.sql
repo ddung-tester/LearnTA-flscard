@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS study_answers (
   UNIQUE KEY unique_study_answer_session_card (session_id, card_id)
 ) ENGINE=InnoDB;
 
+-- Nguon duy nhat cua lich on SRS: moi user + card mot level (0-5), luat o backend/src/utils/srs.js.
 CREATE TABLE IF NOT EXISTS card_progress (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -207,6 +208,7 @@ CREATE TABLE IF NOT EXISTS mistake_words (
   INDEX idx_mistake_words_created_at (created_at)
 ) ENGINE=InnoDB;
 
+-- Khong con dung tu migration 007 (du lieu da gop vao card_progress). Giu lai de doi chieu.
 CREATE TABLE IF NOT EXISTS card_reviews (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,

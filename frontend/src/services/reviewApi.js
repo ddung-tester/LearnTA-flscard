@@ -30,18 +30,9 @@ export async function dongBoReviews(items) {
   return response.data;
 }
 
-export async function capNhatReviewResult(reviewId, result) {
-  const response = await api.patch(`/reviews/${reviewId}/result`, { result });
-  return response.data;
-}
-
-export async function capNhatReviewResultTheoCard(cardId, result) {
-  const response = await api.patch(`/reviews/by-card/${cardId}/result`, { result });
-  return response.data;
-}
-
-export async function xoaReview(reviewId) {
-  const response = await api.delete(`/reviews/${reviewId}`);
+// payload: { result: "correct" | "wrong" } hoặc { level: 0-5 }
+export async function capNhatReviewResultTheoCard(cardId, payload) {
+  const response = await api.patch(`/reviews/by-card/${cardId}/result`, payload);
   return response.data;
 }
 

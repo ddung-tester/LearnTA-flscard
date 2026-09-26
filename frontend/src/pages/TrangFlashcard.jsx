@@ -29,7 +29,7 @@ import {
   getProgressColor,
 } from "../utils/progressColor";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
-import { ghiNhanDungVaoSRSDongBo, ghiNhanSaiVaoSRSDongBo } from "../utils/srsReview";
+import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
 
 const DS_CHE_DO = [
   {
@@ -500,7 +500,7 @@ function TrangFlashcard() {
     const cardKey = `${cheDo}-${card.id}`;
     if (!daDanhGiaRef.current.has(cardKey)) {
       daDanhGiaRef.current.add(cardKey);
-      ghiNhanDungVaoSRSDongBo([card], {
+      ghiNhanKetQuaDongBo(card, "correct", {
         deckId: boId,
         deckTitle: bo.title ?? "",
         source: "flashcard",
@@ -515,7 +515,7 @@ function TrangFlashcard() {
     const cardKey = `${cheDo}-${card.id}`;
     if (!daDanhGiaRef.current.has(cardKey)) {
       daDanhGiaRef.current.add(cardKey);
-      ghiNhanSaiVaoSRSDongBo([card], {
+      ghiNhanKetQuaDongBo(card, "wrong", {
         deckId: boId,
         deckTitle: bo.title ?? "",
         source: "flashcard",

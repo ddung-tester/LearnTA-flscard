@@ -1,10 +1,10 @@
 /**
  * TrangOnTapHomNay — Daily Review page (SRS).
  *
- * Hiển thị các từ đến hạn ôn hôm nay từ SRS queue (localStorage).
- * Khi user đánh giá (Again/Hard/Good/Easy):
- * 1. Cập nhật SRS queue local (capNhatKetQuaOn)
- * 2. Gọi backend PATCH /cards/:cardId/progress (is_correct) nếu có thể
+ * Hiển thị các từ đến hạn ôn (kể cả Lv5) từ SRS queue.
+ * Sau khi lật thẻ, user chọn Quên / Thuộc hoặc tự chọn level Lv0–Lv5:
+ * 1. Cập nhật SRS local + backend PATCH /reviews/by-card/:cardId/result
+ * 2. Từ "Quên" hoặc về Lv0 được đưa xuống cuối hàng để ôn lại trong phiên
  * 3. Show toast + chuyển sang card tiếp theo
  */
 import {
@@ -24,6 +24,7 @@ import "./TrangOnTapHomNay.css";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,
+  moTaKhoangOn,
   xoaKhoiSRSDongBo,
   taiSRSDongBo,
 } from "../utils/srsReview";
@@ -38,13 +39,11 @@ function levelLabel(level) {
   return { text: "Mới", cls: "review-badge--new" };
 }
 
-function easeConfig(ease) {
-  return {
-    again: { label: "Lại", sub: "4 giờ", cls: "review-btn--again" },
-    hard:  { label: "Khó", sub: "1 ngày", cls: "review-btn--hard" },
-    good:  { label: "Ổn", sub: "3 ngày", cls: "review-btn--good" },
-    easy:  { label: "Dễ", sub: "7 ngày", cls: "review-btn--easy" },
-  }[ease];
+const CAC_LEVEL = [0, 1, 2, 3, 4, 5];
+
+// Từ phải ôn lại ngay trong phiên: trả lời "Quên" hoặc tự chọn Lv0.
+function laOnLaiNgay(ketQua) {
+  return ketQua === "wrong" || ketQua === 0;
 }
 
 function laDenHan(entry) {
@@ -62,14 +61,14 @@ function matchReviewSearch(entry, search) {
 
 function tinhThongKeSRS(ds) {
   const activeItems = ds.filter((entry) => entry.status === "active");
-  const duHomNay = activeItems.filter(laDenHan).length;
+  const duHomNay = ds.filter(laDenHan).length;
   const mastered = ds.filter((entry) => entry.status === "mastered").length;
   return {
     total: ds.length,
     duHomNay,
     active: activeItems.length,
     mastered,
-    khoHoc: activeItems.length - duHomNay,
+    khoHoc: ds.length - duHomNay,
   };
 }
 
@@ -80,12 +79,9 @@ function ReviewFilters({
   setDeckFilter,
   levelFilter,
   setLevelFilter,
-  sourceFilter,
-  setSourceFilter,
   search,
   setSearch,
   uniqueDecks,
-  uniqueSources,
   onClear,
 }) {
   return (
@@ -147,23 +143,7 @@ function ReviewFilters({
         ))}
       </select>
 
-      {uniqueSources.length > 1 && (
-        <select
-          value={sourceFilter}
-          onChange={(event) => setSourceFilter(event.target.value)}
-          className="review-select"
-          aria-label="Lọc theo nguồn"
-        >
-          <option value="">Mọi nguồn</option>
-          {uniqueSources.map((source) => (
-            <option key={source} value={source}>
-              {source}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {(filterMode !== "due" || deckFilter || levelFilter || sourceFilter || search) && (
+      {(filterMode !== "due" || deckFilter || levelFilter || search) && (
         <button type="button" onClick={onClear} className="review-nav-btn">
           Xoá lọc
         </button>
@@ -207,11 +187,14 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
     setRevealed(true);
   }
 
-  function handleRate(ease) {
+  function handleRate(ketQua) {
     if (!revealed || isLoading) return;
-    onRate(entry.id, ease);
+    onRate(entry.id, ketQua);
     setRevealed(false); // reset for next card (same component reused)
   }
+
+  const level = entry.level ?? 0;
+  const levelKhiThuoc = Math.min(5, level + 1);
 
   return (
     <div className="review-card ui-content-enter">
@@ -257,24 +240,49 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
       {/* Rating buttons — only show after reveal */}
       {revealed && (
         <div className="review-card__rating ui-content-enter">
-          <p className="review-card__rating-label">Bạn nhớ mức nào?</p>
+          <p className="review-card__rating-label">Bạn nhớ từ này không?</p>
           <div className="review-card__rating-row">
-            {["again", "hard", "good", "easy"].map((ease) => {
-              const cfg = easeConfig(ease);
-              return (
-                <button
-                  key={ease}
-                  type="button"
-                  onClick={() => handleRate(ease)}
-                  disabled={isLoading}
-                  className={`review-btn ${cfg.cls}`}
-                  id={`btn-rate-${ease}`}
-                >
-                  <span className="review-btn__label">{cfg.label}</span>
-                  <span className="review-btn__sub">{cfg.sub}</span>
-                </button>
-              );
-            })}
+            <button
+              type="button"
+              onClick={() => handleRate("wrong")}
+              disabled={isLoading}
+              className="review-btn review-btn--again"
+              id="btn-rate-wrong"
+            >
+              <span className="review-btn__label">Quên</span>
+              <span className="review-btn__sub">Lv{Math.max(0, level - 1)} · Ôn ngay</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRate("correct")}
+              disabled={isLoading}
+              className="review-btn review-btn--easy"
+              id="btn-rate-correct"
+            >
+              <span className="review-btn__label">Thuộc</span>
+              <span className="review-btn__sub">
+                Lv{levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
+              </span>
+            </button>
+          </div>
+
+          <p className="review-card__rating-label review-card__rating-label--level">
+            Hoặc tự chọn level
+          </p>
+          <div className="review-card__level-row">
+            {CAC_LEVEL.map((lv) => (
+              <button
+                key={lv}
+                type="button"
+                onClick={() => handleRate(lv)}
+                disabled={isLoading}
+                className={`review-btn review-btn--level ${lv === level ? "review-btn--current" : ""}`}
+                id={`btn-rate-level-${lv}`}
+              >
+                <span className="review-btn__label">Lv{lv}</span>
+                <span className="review-btn__sub">{moTaKhoangOn(lv)}</span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -317,7 +325,6 @@ function TrangOnTapHomNay() {
   const [filterMode, setFilterMode] = useState("due");
   const [deckFilter, setDeckFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
   const [search, setSearch] = useState("");
   const [queue, setQueue] = useState([]);
   const [doneCount, setDoneCount] = useState(0);
@@ -367,27 +374,21 @@ function TrangOnTapHomNay() {
     return [...seen.values()];
   }, [allCards]);
 
-  const uniqueSources = useMemo(
-    () => [...new Set(allCards.map((entry) => entry.source).filter(Boolean))],
-    [allCards]
-  );
-
   const filteredCards = useMemo(() => {
     let ds = allCards;
 
     if (filterMode === "due") {
-      ds = ds.filter((entry) => entry.status === "active" && laDenHan(entry));
+      ds = ds.filter(laDenHan);
     } else if (filterMode === "active") {
       ds = ds.filter((entry) => entry.status === "active");
     }
 
     if (deckFilter) ds = ds.filter((entry) => String(entry.deckId) === deckFilter);
     if (levelFilter !== "") ds = ds.filter((entry) => String(entry.level ?? 0) === levelFilter);
-    if (sourceFilter) ds = ds.filter((entry) => entry.source === sourceFilter);
     ds = ds.filter((entry) => matchReviewSearch(entry, search));
 
     return [...ds].sort((a, b) => new Date(a.nextReviewAt || 0) - new Date(b.nextReviewAt || 0));
-  }, [allCards, filterMode, deckFilter, levelFilter, sourceFilter, search]);
+  }, [allCards, filterMode, deckFilter, levelFilter, search]);
 
   const entryMap = useMemo(
     () =>
@@ -431,13 +432,14 @@ function TrangOnTapHomNay() {
   );
 
   const handleRate = useCallback(
-    async (id, ease) => {
+    async (id, ketQua) => {
       if (actionLockRef.current) return;
 
       actionLockRef.current = true;
       setIsLoading(true);
+      let updatedEntry = null;
       try {
-        const updatedEntry = await capNhatKetQuaOnDongBo(id, ease);
+        updatedEntry = await capNhatKetQuaOnDongBo(id, ketQua);
         if (updatedEntry) {
           setEntryOverrides((current) => ({
             ...current,
@@ -448,16 +450,17 @@ function TrangOnTapHomNay() {
         // Silent — helper already keeps local SRS as fallback.
       }
 
-      // 3. Update queue — remove current card, move "again" to end
+      // 3. Update queue — remove current card, move "Quên"/Lv0 to end
+      const onLaiNgay = laOnLaiNgay(ketQua);
       setQueue((prev) => {
         const rest = prev.filter((x) => x !== id);
-        if (ease === "again") {
+        if (onLaiNgay) {
           return [...rest, id]; // retry later in session
         }
         return rest;
       });
 
-      if (ease !== "again") {
+      if (!onLaiNgay) {
         setDoneCount((n) => n + 1);
         setCorrectCount((n) => n + 1);
       } else {
@@ -465,13 +468,13 @@ function TrangOnTapHomNay() {
       }
 
       // 4. Toast
-      const msgs = {
-        again: "📌 Sẽ ôn lại ngay sau!",
-        hard:  "💪 Ghi nhận! Ôn lại sau 1 ngày.",
-        good:  "👍 Tốt! Ôn lại sau 3 ngày.",
-        easy:  "🌟 Xuất sắc! Ôn lại sau 7 ngày.",
-      };
-      toast.success(msgs[ease] ?? "Đã lưu!");
+      if (onLaiNgay) {
+        toast.success("📌 Sẽ ôn lại ngay sau!");
+      } else if (updatedEntry) {
+        toast.success(`Lv${updatedEntry.level} · ôn lại sau ${moTaKhoangOn(updatedEntry.level)}.`);
+      } else {
+        toast.success("Đã lưu!");
+      }
 
       actionLockRef.current = false;
       setIsLoading(false);
@@ -529,7 +532,6 @@ function TrangOnTapHomNay() {
     setFilterMode("due");
     setDeckFilter("");
     setLevelFilter("");
-    setSourceFilter("");
     setSearch("");
   }
 
@@ -565,12 +567,9 @@ function TrangOnTapHomNay() {
         setDeckFilter={setDeckFilter}
         levelFilter={levelFilter}
         setLevelFilter={setLevelFilter}
-        sourceFilter={sourceFilter}
-        setSourceFilter={setSourceFilter}
         search={search}
         setSearch={setSearch}
         uniqueDecks={uniqueDecks}
-        uniqueSources={uniqueSources}
         onClear={handleClearFilters}
       />
 

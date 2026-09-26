@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   capNhatKetQuaOn,
   datLaiSRS,
+  ghiNhanDungVaoSRS,
+  ghiNhanSaiVaoSRS,
   hopNhatSRSTuBackend,
   layCardsDenHan,
   layThongKeSRS,
+  moTaKhoangOn,
   themVaoSRS,
   xoaKhoiSRS,
 } from "./srsReview";
@@ -24,8 +27,21 @@ function taoLocalStorage() {
 const CARD = { id: 1, term_en: "apple", meaning_vi: "quả táo" };
 const OPTS = { deckId: 10, deckTitle: "Fruits" };
 
+// 2026-09-26 10:00 giờ máy
+const NOW = new Date(2026, 8, 26, 10, 0, 0);
+
+function nuaDemSau(soNgay) {
+  return new Date(2026, 8, 26 + soNgay, 0, 0, 0).toISOString();
+}
+
 beforeEach(() => {
   vi.stubGlobal("localStorage", taoLocalStorage());
+  vi.useFakeTimers();
+  vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("themVaoSRS", () => {
@@ -35,58 +51,91 @@ describe("themVaoSRS", () => {
     expect(entry).toMatchObject({ id: "1", deckId: 10, word: "apple", level: 0, status: "active" });
   });
 
-  it("keeps nextReviewAt when the card already exists", () => {
+  it("keeps level and nextReviewAt when the card already exists", () => {
     themVaoSRS([CARD], OPTS);
-    const updated = capNhatKetQuaOn(1, "good");
+    const updated = capNhatKetQuaOn(1, "correct");
     themVaoSRS([{ ...CARD, meaning_vi: "táo" }], OPTS);
 
     const entry = JSON.parse(localStorage.getItem("streak_drop_srs_v1"))["1"];
     expect(entry.meaning).toBe("táo");
+    expect(entry.level).toBe(1);
     expect(entry.nextReviewAt).toBe(updated.nextReviewAt);
   });
 });
 
-describe("capNhatKetQuaOn", () => {
+describe("capNhatKetQuaOn — one rule for every mode", () => {
   it("returns null for unknown cards", () => {
-    expect(capNhatKetQuaOn(999, "good")).toBeNull();
+    expect(capNhatKetQuaOn(999, "correct")).toBeNull();
   });
 
   it.each([
-    ["again", 1],
-    ["hard", 2],
-    ["good", 3],
-    ["easy", 4],
-  ])("ease %s from level 2 gives level %i", (ease, expected) => {
+    [0, 1, 1],
+    [1, 2, 3],
+    [2, 3, 7],
+    [3, 4, 14],
+    [4, 5, 30],
+    [5, 5, 30],
+  ])("correct from Lv%i goes to Lv%i, due in %i days at midnight", (from, to, days) => {
     themVaoSRS([CARD], OPTS);
-    capNhatKetQuaOn(1, "easy"); // level 0 → 2
-    expect(capNhatKetQuaOn(1, ease).level).toBe(expected);
+    capNhatKetQuaOn(1, from);
+    const entry = capNhatKetQuaOn(1, "correct");
+
+    expect(entry.level).toBe(to);
+    expect(entry.nextReviewAt).toBe(nuaDemSau(days));
   });
 
-  it("marks card mastered at level 5 and removes it from due list", () => {
+  it("wrong lowers one level (min 0) and is due now", () => {
     themVaoSRS([CARD], OPTS);
-    capNhatKetQuaOn(1, "easy");
-    capNhatKetQuaOn(1, "easy");
-    const entry = capNhatKetQuaOn(1, "easy");
+    capNhatKetQuaOn(1, 3);
 
-    expect(entry.level).toBe(5);
+    expect(capNhatKetQuaOn(1, "wrong")).toMatchObject({ level: 2, nextReviewAt: NOW.toISOString() });
+    capNhatKetQuaOn(1, 0);
+    expect(capNhatKetQuaOn(1, "wrong").level).toBe(0);
+    expect(layCardsDenHan()).toHaveLength(1);
+  });
+
+  it("choosing a level schedules by that level", () => {
+    themVaoSRS([CARD], OPTS);
+    expect(capNhatKetQuaOn(1, 4)).toMatchObject({ level: 4, nextReviewAt: nuaDemSau(14) });
+    expect(capNhatKetQuaOn(1, 0).nextReviewAt).toBe(NOW.toISOString());
+  });
+
+  it("Lv5 is mastered but comes back when due", () => {
+    themVaoSRS([CARD], OPTS);
+    const entry = capNhatKetQuaOn(1, 5);
+
     expect(entry.status).toBe("mastered");
-    expect(layThongKeSRS()).toMatchObject({ total: 1, mastered: 1, active: 0 });
+    expect(layThongKeSRS()).toMatchObject({ total: 1, mastered: 1, active: 0, duHomNay: 0 });
+
+    vi.setSystemTime(new Date(2026, 9, 27, 8, 0, 0)); // 31 ngày sau
+    expect(layCardsDenHan()).toHaveLength(1);
+    expect(layThongKeSRS().duHomNay).toBe(1);
+  });
+});
+
+describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
+  it("adds unseen cards then applies the answer", () => {
+    ghiNhanDungVaoSRS([CARD], OPTS);
+    ghiNhanSaiVaoSRS([{ id: 2, term_en: "pear", meaning_vi: "quả lê" }], OPTS);
+
+    const tatCa = JSON.parse(localStorage.getItem("streak_drop_srs_v1"));
+    expect(tatCa["1"]).toMatchObject({ level: 1, nextReviewAt: nuaDemSau(1) });
+    expect(tatCa["2"]).toMatchObject({ level: 0, nextReviewAt: NOW.toISOString() });
   });
 
-  it("schedules 'again' 4 hours later, so it is no longer due now", () => {
+  it("a wrong answer on a known card lowers its level", () => {
     themVaoSRS([CARD], OPTS);
-    const entry = capNhatKetQuaOn(1, "again");
-    const hours = (new Date(entry.nextReviewAt) - Date.now()) / 36e5;
+    capNhatKetQuaOn(1, 3);
+    ghiNhanSaiVaoSRS([CARD], OPTS);
 
-    expect(hours).toBeCloseTo(4, 1);
-    expect(layCardsDenHan()).toHaveLength(0);
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1"))["1"].level).toBe(2);
   });
 });
 
 describe("datLaiSRS / xoaKhoiSRS", () => {
   it("resets a mastered card to active, one level lower, due now", () => {
     themVaoSRS([CARD], OPTS);
-    ["easy", "easy", "easy"].forEach((ease) => capNhatKetQuaOn(1, ease));
+    capNhatKetQuaOn(1, 5);
     datLaiSRS(1);
 
     const [entry] = layCardsDenHan();
@@ -101,9 +150,9 @@ describe("datLaiSRS / xoaKhoiSRS", () => {
 });
 
 describe("hopNhatSRSTuBackend", () => {
-  it("keeps the higher level and newer content when merging", () => {
-    themVaoSRS([CARD], OPTS);
-    capNhatKetQuaOn(1, "easy"); // local level 2
+  it("backend is the source of truth, local-only fields are kept", () => {
+    themVaoSRS([CARD], { ...OPTS, source: "flashcard" });
+    capNhatKetQuaOn(1, 2); // local Lv2
 
     const [entry] = hopNhatSRSTuBackend([
       {
@@ -112,10 +161,29 @@ describe("hopNhatSRSTuBackend", () => {
         term_en: "apple (backend)",
         level: 1,
         review_count: 5,
-        updated_at: new Date(Date.now() + 60_000).toISOString(),
+        next_review_at: nuaDemSau(1),
       },
     ]);
 
-    expect(entry).toMatchObject({ backendId: 55, word: "apple (backend)", level: 2, reviewCount: 5 });
+    expect(entry).toMatchObject({
+      id: "1",
+      word: "apple (backend)",
+      level: 1,
+      reviewCount: 5,
+      source: "flashcard",
+    });
+  });
+});
+
+describe("moTaKhoangOn", () => {
+  it("labels each level's interval", () => {
+    expect([0, 1, 2, 3, 4, 5].map(moTaKhoangOn)).toEqual([
+      "Ôn ngay",
+      "1 ngày",
+      "3 ngày",
+      "7 ngày",
+      "14 ngày",
+      "30 ngày",
+    ]);
   });
 });

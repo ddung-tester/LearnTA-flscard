@@ -14,19 +14,9 @@ router.post(
   asyncHandler(reviewController.bulkUpsertReviews)
 );
 router.patch(
-  "/reviews/:reviewId/result",
-  requireAuth,
-  asyncHandler(reviewController.updateReviewResult)
-);
-router.patch(
   "/reviews/by-card/:cardId/result",
   requireAuth,
   asyncHandler(reviewController.updateReviewResultByCard)
-);
-router.delete(
-  "/reviews/:reviewId",
-  requireAuth,
-  asyncHandler(reviewController.deleteReview)
 );
 router.delete(
   "/reviews/by-card/:cardId",
