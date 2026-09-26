@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "backend", "run", "dev"],
+      "port": 8080
+    },
+    {
+      "name": "cloud-sql-proxy",
+      "runtimeExecutable": "./cloud-sql-proxy.x86.exe",
+      "runtimeArgs": ["flash-card-499907:asia-southeast1:flashcard-mysql", "--port=3307"],
+      "port": 3307
+    }
+  ]
+}

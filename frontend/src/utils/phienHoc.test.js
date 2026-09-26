@@ -5,6 +5,7 @@ import {
   chonTheChoPhien,
   chuanHoaDapAn,
   ganTienTrinh,
+  khopDapAn,
   laCapNoiDung,
   O_TRONG,
   tachCauMau,
@@ -34,6 +35,24 @@ describe("tronMangOnDinh", () => {
     const a = tronMangOnDinh(THE, "s1", (the) => the.id);
     expect(tronMangOnDinh(THE, "s1", (the) => the.id)).toEqual(a);
     expect([...a].sort((x, y) => x.id - y.id)).toEqual(THE);
+  });
+
+  it("does not keep consecutive ids together (ids trong DB thường liên tiếp)", () => {
+    const the = Array.from({ length: 20 }, (_, i) => ({ id: 267 + i }));
+    let soCapLienTiep = 0;
+    const cacThuTu = new Set();
+
+    for (let i = 0; i < 200; i += 1) {
+      const ids = tronMangOnDinh(the, `seed-${i}`, (t) => t.id).map((t) => t.id);
+      cacThuTu.add(ids.join(","));
+      for (let j = 1; j < ids.length; j += 1) {
+        if (Math.abs(ids[j] - ids[j - 1]) === 1) soCapLienTiep += 1;
+      }
+    }
+
+    // Hoán vị ngẫu nhiên 20 phần tử: trung bình ~1,9 cặp kề nhau liên tiếp
+    expect(soCapLienTiep / 200).toBeLessThan(3);
+    expect(cacThuTu.size).toBe(200);
   });
 });
 
@@ -211,6 +230,17 @@ describe("chuanHoaDapAn / taoGoiY", () => {
   it("compares typed answers ignoring case and extra spaces", () => {
     expect(chuanHoaDapAn("  Give   UP ")).toBe(chuanHoaDapAn("give up"));
     expect(chuanHoaDapAn(null)).toBe("");
+  });
+
+  it("accepts the full answer or any one meaning in a list", () => {
+    expect(khopDapAn("anh trai", "anh trai, em trai")).toBe(true);
+    expect(khopDapAn(" Em  trai ", "anh trai, em trai")).toBe(true);
+    expect(khopDapAn("anh trai, em trai", "anh trai, em trai")).toBe(true);
+    expect(khopDapAn("phụ huynh", "cha hoặc mẹ, phụ huynh")).toBe(true);
+    expect(khopDapAn("cũ", "già; cũ")).toBe(true);
+    expect(khopDapAn("trai", "anh trai, em trai")).toBe(false);
+    expect(khopDapAn("", "anh trai, em trai")).toBe(false);
+    expect(khopDapAn(" , ", "anh trai, em trai")).toBe(false);
   });
 
   it("shows 40% of the letters, keeps spaces", () => {
