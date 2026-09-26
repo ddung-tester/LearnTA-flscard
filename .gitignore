@@ -22,6 +22,9 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Nội dung khoá học riêng (tài liệu có bản quyền, chỉ nhập vào tài khoản cá nhân, không commit)
+backend/database/private-content/
+
 # Cloud SQL Auth Proxy binary (tải về local, không commit)
 cloud-sql-proxy.exe
 cloud-sql-proxy.x86.exe
