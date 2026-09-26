@@ -29,6 +29,10 @@ function BoCuc() {
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
+  // Khách chỉ thấy tab Lộ trình: bộ từ mẫu nằm trong lộ trình, không có trong "Bộ từ"
+  const dsTab = isAuthenticated
+    ? DS_TAB_DIEU_HUONG
+    : DS_TAB_DIEU_HUONG.filter((tab) => tab.to === "/roadmap");
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {
@@ -81,11 +85,12 @@ function BoCuc() {
             className="dash-nav__brand"
           >
             <span className="dash-nav__brand-mark" aria-hidden="true" />
-            Streak Drop
+            {/* Màn rất hẹp: chỉ giữ biểu tượng để header không tràn ngang */}
+            <span className="max-[420px]:sr-only">Streak Drop</span>
           </Link>
           <nav className="dash-nav__links" aria-label="Điều hướng chính">
-            {isAuthenticated && !laTrangAuth && !laPhienHoc &&
-              DS_TAB_DIEU_HUONG.map((tab) => {
+            {!laTrangAuth && !laPhienHoc &&
+              dsTab.map((tab) => {
                 const dangActive = tab.laActive(viTri.pathname);
                 return (
                   <Link

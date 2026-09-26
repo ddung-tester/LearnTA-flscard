@@ -40,10 +40,11 @@ Cách chạy migration khi có proxy (ví dụ): mở `cloud-sql-proxy.x86.exe f
 Đã bấm thử trên production ở chế độ **khách**: `/roadmap`, `/roadmap/:slug`, `/practice?bo=`, Nối từ (ghép sai/đúng, 2 vòng, kết quả, "Làm lại câu sai"), Hỗn hợp (câu sai quay lại sau 5 câu, "Làm lại câu sai"), Ngữ cảnh (240 câu đều che đúng từ), Nghe viết (tự đọc khi sang câu), responsive điện thoại `/practice` + `/roadmap`. Đã sửa:
 - Xáo trộn "ngẫu nhiên" ra từng cụm id liền nhau (FNV-1a không trộn ký tự cuối; 2 cột Nối từ gần như thẳng hàng) → thêm bước trộn fmix32 trong `taoSoTuSeed`.
 - Gõ nghĩa bắt gõ nguyên chuỗi "anh trai, em trai" → `khopDapAn` nhận một nghĩa bất kỳ (tách `,` `;` `/`).
+- Khách không tìm được nội dung mẫu (production không còn deck mẫu nào ngoài lộ trình, `GET /decks` bỏ bộ lộ trình) → khách thấy tab "Lộ trình" trên header, nút phụ trang chủ đổi thành "Xem lộ trình học" → `/roadmap`. Màn ≤420px ẩn chữ "Streak Drop" (vẫn `sr-only`) để header không tràn.
+- "Ví dụ 6 thì" của 240 từ lộ trình là câu khuôn mẫu vô nghĩa → đã sinh `tense_examples` bằng `node scripts/seed-ai-examples.js --apply` (Gemini). Khi thêm từ lộ trình mới, chạy lại script này (chỉ điền thẻ còn `NULL`).
 
-Phát hiện, **chưa sửa** (cần người dùng chốt):
-- Khách không tìm được nội dung mẫu: tab điều hướng chỉ hiện khi đăng nhập (`BoCuc.jsx`), nút "Xem bộ từ mẫu" ở trang chủ dẫn tới `/decks` nhưng production không còn deck mẫu nào ngoài lộ trình (`GET /decks` bỏ bộ lộ trình) → `/decks` và `/practice` trống với khách.
-- "Ví dụ 6 thì" của 240 từ lộ trình là câu khuôn mẫu vô nghĩa ("He bought a family yesterday") vì chưa có `tense_examples`. Có thể sinh bằng `npm run seed:ai-examples` (Gemini, ghi DB production).
+Phát hiện, **chưa sửa**:
+- Header khi **đã đăng nhập** (4 tab + avatar) rộng hơn màn điện thoại 375px → tràn ngang (có từ trước).
 - Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401 trong console (không vỡ luồng).
 - Mở chatbot khi đang ở câu gõ từ/nghe viết thì gợi ý "Giải thích từ "family"" lộ đáp án.
 - Ô chọn bộ từ ở `/practice` trên điện thoại hẹp, tên bộ bị cắt.
