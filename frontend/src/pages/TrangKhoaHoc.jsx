@@ -2,9 +2,43 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
+import { tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
+import "./KhoaHoc.css";
+
+function LichBuoiHoc({ khoa }) {
+  const theoSo = new Map(khoa.lessons.map((bai) => [bai.lesson_number, bai]));
+  const tong = tongSoBuoiKhoaHoc(khoa.title, Math.max(0, ...theoSo.keys()));
+
+  return (
+    <ol className="kh-lich" aria-label={`${tong} buổi của khoá, ${khoa.lessons.length} buổi đã có nội dung`}>
+      {Array.from({ length: tong }, (_, i) => {
+        const bai = theoSo.get(i + 1);
+        return (
+          <li key={i}>
+            {bai ? (
+              <Link
+                to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`}
+                className="kh-lich__o kh-lich__o--co"
+                title={bai.title}
+              >
+                {i + 1}
+                <span className="sr-only">: {bai.title}</span>
+              </Link>
+            ) : (
+              <span className="kh-lich__o" title="Chưa có nội dung">
+                {i + 1}
+                <span className="sr-only"> (chưa có nội dung)</span>
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 /**
- * TrangKhoaHoc — các khoá học riêng của người dùng (tài liệu cá nhân) và danh sách bài.
+ * TrangKhoaHoc — các khoá học riêng của người dùng (tài liệu cá nhân): lịch buổi học + các buổi đã có.
  */
 function TrangKhoaHoc() {
   const { setPageDataLoading } = usePageTransition();
@@ -31,41 +65,45 @@ function TrangKhoaHoc() {
 
   if (!trangThai.xong) return null;
 
-  return (
-    <div className="ui-page-stack">
-      <div className="ui-page-header">
-        <div className="ui-page-header__title">
-          <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">Khoá học</h2>
-          <p className="text-sm text-[var(--mau-chu-phu)]">Tài liệu riêng của bạn, người khác không xem được.</p>
-        </div>
-      </div>
+  if (trangThai.loi) {
+    return <p className="kh-trong">Không tải được khoá học. Kiểm tra kết nối rồi tải lại trang.</p>;
+  }
+  if (trangThai.khoaHoc.length === 0) {
+    return <p className="kh-trong">Bạn chưa có khoá học nào.</p>;
+  }
 
-      {trangThai.loi ? (
-        <p className="text-sm text-[var(--mau-chu-phu)]">Không tải được khoá học. Thử lại sau.</p>
-      ) : trangThai.khoaHoc.length === 0 ? (
-        <p className="text-sm text-[var(--mau-chu-phu)]">Bạn chưa có khoá học nào.</p>
-      ) : (
-        trangThai.khoaHoc.map((khoa) => (
-          <section key={khoa.id} className="khoa-hoc-khoa" aria-labelledby={`khoa-${khoa.id}`}>
-            <h3 id={`khoa-${khoa.id}`} className="roadmap-card__title">
-              {khoa.title}
-            </h3>
-            <ol className="roadmap-grid khoa-hoc-ds-bai">
-              {khoa.lessons.map((bai) => (
-                <li key={bai.lesson_number}>
-                  <Link to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`} className="roadmap-card">
-                    <span className="khoa-hoc-so-bai">Bài {bai.lesson_number}</span>
-                    <span className="roadmap-card__title">{bai.title}</span>
-                    <span className="roadmap-card__meta">
-                      {bai.word_count} từ · {bai.question_count} câu bài tập
+  return (
+    <div className="ui-page-stack kh-trang">
+      {trangThai.khoaHoc.map((khoa) => (
+        <section key={khoa.id} className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
+          <header className="kh-khoa__dau">
+            <h2 id={`khoa-${khoa.id}`} className="kh-khoa__ten">{khoa.title}</h2>
+            <p className="kh-khoa__mo-ta">
+              Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
+            </p>
+          </header>
+
+          <LichBuoiHoc khoa={khoa} />
+
+          <ul className="kh-ds-buoi">
+            {khoa.lessons.map((bai) => (
+              <li key={bai.lesson_number}>
+                <Link to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`} className="kh-buoi">
+                  <span className="kh-buoi__so" aria-hidden="true">{bai.lesson_number}</span>
+                  <span className="kh-buoi__chu">
+                    <span className="kh-buoi__nhan">Buổi {bai.lesson_number}</span>
+                    <span className="kh-buoi__ten">{bai.title}</span>
+                    <span className="kh-buoi__meta">
+                      <span>{bai.word_count} từ vựng</span>
+                      <span>{bai.question_count} câu bài tập</span>
                     </span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ))
-      )}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

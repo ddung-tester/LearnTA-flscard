@@ -37,20 +37,57 @@ export function layDapAnHienThi(cauHoi) {
   return (cauHoi.accepted_answers || []).join(" / ");
 }
 
-const TEN_NGUON = { lesson: "Bài tập trong bài", exam: "Bài thi", extra: "Bài tập thêm" };
+const TEN_NGUON = { lesson: "Trong bài", exam: "Bài thi", extra: "Luyện thêm" };
 const TEN_PHAN = {
   practice: "Practice",
-  fill_verbs: "Điền dạng đúng của động từ",
-  picture_answers: "Trả lời theo tranh",
+  fill_verbs: "Điền động từ",
+  picture_answers: "Theo tranh",
   multiple_choice: "Trắc nghiệm",
 };
 
-/** "Bài tập trong bài · Quiz 1", "Bài thi · Trả lời theo tranh" */
-export function tenPhanBaiTap(cauHoi) {
-  const quiz = /^quiz_(\d+)$/.exec(cauHoi.section || "");
-  const phan = quiz ? `Quiz ${quiz[1]}` : TEN_PHAN[cauHoi.section] || String(cauHoi.section || "").replace(/_/g, " ");
-  const nguon = TEN_NGUON[cauHoi.source];
-  return nguon ? `${nguon} · ${phan}` : phan;
+/** Phần bài tập của một câu: { khoa, nguon: "Trong bài" | "Bài thi" | ..., phan: "Quiz 1" } */
+export function phanBaiTap(cauHoi) {
+  const section = String(cauHoi.section || "");
+  const quiz = /^quiz_(\d+)$/.exec(section);
+  return {
+    khoa: `${cauHoi.source}/${section}`,
+    nguon: TEN_NGUON[cauHoi.source] || "Khác",
+    phan: quiz ? `Quiz ${quiz[1]}` : TEN_PHAN[section] || section.replace(/_/g, " "),
+  };
+}
+
+/** Các phần theo thứ tự xuất hiện, nhóm theo nguồn: [{ nguon, cacPhan: [{ khoa, phan, soCau }] }] */
+export function nhomPhanBaiTap(danhSachCau) {
+  const nhom = new Map();
+  for (const cau of danhSachCau) {
+    const { khoa, nguon, phan } = phanBaiTap(cau);
+    if (!nhom.has(nguon)) nhom.set(nguon, new Map());
+    const cacPhan = nhom.get(nguon);
+    if (!cacPhan.has(khoa)) cacPhan.set(khoa, { khoa, phan, soCau: 0 });
+    cacPhan.get(khoa).soCau += 1;
+  }
+  return [...nhom].map(([nguon, cacPhan]) => ({ nguon, cacPhan: [...cacPhan.values()] }));
+}
+
+/** Tổng số buổi đọc từ tên khoá ("Khoá 48 ngày ..." → 48); không có số thì lấy số buổi lớn nhất đang có */
+export function tongSoBuoiKhoaHoc(tenKhoa, soBuoiLonNhat) {
+  const khop = /(\d+)\s*(ngày|buổi|bài)/i.exec(tenKhoa || "");
+  return Math.max(khop ? Number(khop[1]) : 0, soBuoiLonNhat || 0);
+}
+
+// Chỗ trống trong công thức: S, O, V, N, V2, V-ing, "V nguyên mẫu", Adj, Adv, "..."
+const LA_CHO_TRONG = /^(?:[SOVN](?:[\s\d/-]|$)|adj\b|adv\b|\.{2,}|…)/i;
+
+/**
+ * Tách công thức "S + was/were + not + ..." thành các khối ghép câu.
+ * laCho = true với chỗ người học tự điền (chủ ngữ, động từ...), false với từ cố định.
+ */
+export function tachCongThuc(congThuc) {
+  return String(congThuc || "")
+    .split(/\s\+\s/)
+    .map((khoi) => khoi.trim())
+    .filter(Boolean)
+    .map((khoi) => ({ text: khoi, laCho: LA_CHO_TRONG.test(khoi) }));
 }
 
 const TEN_LOAI_TU = {

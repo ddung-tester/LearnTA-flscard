@@ -4,7 +4,10 @@ import {
   laTraLoiDung,
   layDapAnHienThi,
   tachChuDam,
-  tenPhanBaiTap,
+  tachCongThuc,
+  tongSoBuoiKhoaHoc,
+  nhomPhanBaiTap,
+  phanBaiTap,
 } from "./baiTapKhoaHoc";
 
 const TRAC_NGHIEM = {
@@ -47,11 +50,41 @@ describe("chấm bài tập khoá học", () => {
   });
 });
 
+describe("tongSoBuoiKhoaHoc", () => {
+  it("reads the lesson count from the course name, never below the lessons that exist", () => {
+    expect(tongSoBuoiKhoaHoc("Khoá 48 ngày lấy gốc tiếng Anh", 13)).toBe(48);
+    expect(tongSoBuoiKhoaHoc("Khoá ngữ pháp", 13)).toBe(13);
+    expect(tongSoBuoiKhoaHoc("Khoá 10 buổi", 12)).toBe(12);
+  });
+});
+
+describe("tachCongThuc", () => {
+  it("marks learner slots and fixed words", () => {
+    expect(tachCongThuc("S + did not (didn’t) + V nguyên mẫu + ...")).toEqual([
+      { text: "S", laCho: true },
+      { text: "did not (didn’t)", laCho: false },
+      { text: "V nguyên mẫu", laCho: true },
+      { text: "...", laCho: true },
+    ]);
+    expect(tachCongThuc("Was/Were + S + ...?").map((k) => k.laCho)).toEqual([false, true, true]);
+    expect(tachCongThuc("She/He + V2/V-ed").map((k) => k.laCho)).toEqual([false, true]);
+    expect(tachCongThuc("")).toEqual([]);
+  });
+});
+
 describe("hiển thị", () => {
-  it("names exercise sections", () => {
-    expect(tenPhanBaiTap(TRAC_NGHIEM)).toBe("Bài tập trong bài · Quiz 2");
-    expect(tenPhanBaiTap(DIEN_TU)).toBe("Bài thi · Điền dạng đúng của động từ");
-    expect(tenPhanBaiTap({ source: "khac", section: "new_part" })).toBe("new part");
+  it("names exercise sections and groups them by source", () => {
+    expect(phanBaiTap(TRAC_NGHIEM)).toEqual({ khoa: "lesson/quiz_2", nguon: "Trong bài", phan: "Quiz 2" });
+    expect(phanBaiTap(DIEN_TU).phan).toBe("Điền động từ");
+    expect(phanBaiTap({ source: "khac", section: "new_part" })).toEqual({
+      khoa: "khac/new_part",
+      nguon: "Khác",
+      phan: "new part",
+    });
+    expect(nhomPhanBaiTap([TRAC_NGHIEM, DIEN_TU, TRAC_NGHIEM])).toEqual([
+      { nguon: "Trong bài", cacPhan: [{ khoa: "lesson/quiz_2", phan: "Quiz 2", soCau: 2 }] },
+      { nguon: "Bài thi", cacPhan: [{ khoa: "exam/fill_verbs", phan: "Điền động từ", soCau: 1 }] },
+    ]);
   });
 
   it("splits **bold** segments without HTML", () => {
