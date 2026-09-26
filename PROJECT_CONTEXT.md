@@ -26,7 +26,7 @@ Tests: node:test (backend) + vitest (frontend), chay tren GitHub Actions
 
 ### Viec con ton dong
 
-- `TrangTuLuan.jsx` (~1800 dong), `TrangChiTietBo.jsx` (~1800), `TrangQuiz.jsx` (~1400) qua lon; Quiz va Tu luan lap nhieu logic (combo, reward, luu tien do). Nen tach dan, moi lan 1 trang.
+- `TrangChiTietBo.jsx` (~1800 dong) va `TrangTuLuan.jsx` (~1300) van lon. Quiz va Tu luan da dung chung khung phien hoc (xem muc "Khung phien hoc"); phan con lai cua Tu luan chu yeu la logic go/goi y/nhap lai.
 - Frontend lint co 17 loi san (chu yeu `react-hooks/set-state-in-effect`, tap trung o `RewardTikTokEffect.jsx`). CI dang de lint `continue-on-error`.
 - Dependency `resend` trong `backend/package.json` khong duoc dung (email gui qua Nodemailer/Gmail).
 - Video reward (~70 MB) nam trong `frontend/public/media/milestones/` va lich su git.
@@ -74,7 +74,7 @@ LearnTA-flscard/
         RewardTikTokEffect.jsx reward video overlay
       contexts/                AuthContext, ToastContext, PageTransitionContext, ChatbotContext
       data/                    duLieuMau.js (mock fallback), tenseExamples.js
-      hooks/                   useCombo, useTTS, useSoundEffect
+      hooks/                   useCombo, useTTS, useSoundEffect, useBoTuHoc, usePhanThuongPhien, useLuuKetQuaPhien
       pages/                   Trang*.jsx (xem muc 5)
       services/                api.js + authApi, deckApi, cardApi, studyApi, reviewApi, ...
       utils/                   srsReview, mistakeNotebook, tienDoHocTap, caiDatHocTap, ...
@@ -178,6 +178,15 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 - Nguon dung la `card_progress`. Quiz/Tu luan ghi qua `POST /study-sessions/:id/answers`; Flashcard va trang On tap ghi qua `PATCH /reviews/by-card/:cardId/result`. Moi cau tra loi chi ghi 1 lan.
 - `POST /reviews/bulk` chi them tu chua co tien do (du lieu hoc luc chua dang nhap), khong ghi de level tren server.
 - Lv5 (`status: "mastered"`) van quay lai khi den han.
+
+### Khung phien hoc (frontend, dung chung cho moi che do hoc)
+
+Che do moi (nghe viet, noi tu, ...) nen ghep tu cac phan nay thay vi copy Quiz/Tu luan:
+
+- `utils/phienHoc.js`: xao tron on dinh, doan tien trinh 10 cau, `tachKetQuaPhien` (chi tinh the co trong phien), `tachCauMau` (to dam tu trong cau mau).
+- `utils/cauHoiTracNghiem.js`: sinh cau trac nghiem 4 dap an.
+- `hooks/useBoTuHoc`: tai deck + cards (fallback du lieu mau). `hooks/usePhanThuongPhien`: thanh tien do + reward. `hooks/useLuuKetQuaPhien`: tao/ket thuc study session, luu dap an (server cap nhat SRS), streak.
+- `components/common/`: `TheCauHoiPhien`, `ThanhTienDoPhien`, `CaiDatPhienHoc`, `TheTrangThaiPhien`, `PhanHoiDung` (cau mau cua the + `TenseExamplesCard` 6 thi), `StudyResult` (danh sach dung/sai kem level SRS moi, "Lam lai cau sai").
 
 ---
 

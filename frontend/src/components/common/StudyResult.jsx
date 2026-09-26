@@ -1,5 +1,5 @@
 /**
- * StudyResult — Màn hình kết quả chung cho Quiz và Tự luận.
+ * StudyResult — Màn hình kết quả chung cho mọi chế độ học.
  *
  * Props:
  *   deckTitle: tên bộ từ
@@ -9,15 +9,64 @@
  *   soCauSai: số câu sai
  *   maxCombo: combo cao nhất (tùy chọn)
  *   loiLuu: thông báo lỗi lưu (tùy chọn)
- *   onLamLai: callback làm lại
- *   onHocLaiTuSai: callback học lại từ sai (tùy chọn)
- *   danhSachCardSai: mảng card sai (tùy chọn)
+ *   onLamLai: callback làm lại toàn bộ
+ *   onHocLaiTuSai: callback làm lại câu sai (tùy chọn)
+ *   danhSachCardSai / danhSachCardDung: card sai / đúng CÓ TRONG PHIÊN
+ *   laLamLai: phiên này là lượt làm lại câu sai
  *   mode: "quiz" | "tuluan"
  */
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { luuTuSaiDongBo, danhDauDaOnDongBo } from "../../utils/mistakeNotebook";
-import { ghiNhanDungVaoSRS, ghiNhanSaiVaoSRS } from "../../utils/srsReview";
+import {
+  ghiNhanDungVaoSRS,
+  ghiNhanSaiVaoSRS,
+  layLevelSRS,
+  levelSauKetQua,
+  moTaKhoangOn,
+} from "../../utils/srsReview";
+
+function DanhSachTuKetQua({ danhSach, dung, levelTruoc }) {
+  return (
+    <ul className="ui-card-list">
+      {danhSach.map((card, i) => {
+        const level = levelSauKetQua(levelTruoc[String(card.id)], dung ? "correct" : "wrong");
+
+        return (
+          <li
+            key={card.id}
+            className={`ui-reading-card ui-word-row border rounded-xl bg-[var(--mau-mat)] px-4 py-3.5 ${dung ? "border-[var(--mau-vien)]" : "border-[var(--mau-loi)]/30"}`}
+          >
+            <div className="ui-word-row__inner">
+              <div className="ui-word-main">
+                <span className="ui-word-index">{i + 1}</span>
+                <div className="ui-word-pair">
+                  <div className="flex items-center gap-1 w-full min-w-0">
+                    <span className="ui-word-card ui-word-card--term flex-1">
+                      {card.term_en}
+                    </span>
+                  </div>
+                  <span className="ui-word-card ui-word-card--meaning">
+                    {card.meaning_vi}
+                  </span>
+                </div>
+              </div>
+              <span
+                className={`study-result__level ${dung ? "" : "study-result__level--sai"}`}
+                title="Cấp độ SRS sau phiên này"
+              >
+                Lv{level} · {dung ? `Ôn lại: ${moTaKhoangOn(level)}` : "Ôn ngay"}
+              </span>
+            </div>
+            {card.example_sentence && (
+              <p className="ui-word-example">{card.example_sentence}</p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 function AnimatedNumber({ value, duration = 800 }) {
   const [displayValue, setDisplayValue] = useState(0);
@@ -118,9 +167,14 @@ function StudyResult({
   onHocLaiTuSai,
   danhSachCardSai = [],
   danhSachCardDung = [], // mảng card đúng — dùng để cập nhật SRS mastery
+  laLamLai = false,
   mode = "quiz",
 }) {
   const tiLeDung = tongSoCau > 0 ? Math.round((soCauDung / tongSoCau) * 100) : 0;
+  // Level SRS trước phiên (chỉ đọc) → hiển thị level mới theo đúng luật SRS
+  const [levelTruoc] = useState(() =>
+    layLevelSRS([...danhSachCardSai, ...danhSachCardDung].map((card) => card.id))
+  );
 
   // Lưu kết quả vào Mistake Notebook + SRS khi màn hình kết quả xuất hiện.
   // SRS ở đây chỉ cập nhật bản local: server đã tự áp dụng cùng luật khi
@@ -178,7 +232,9 @@ function StudyResult({
       </Link>
 
       <section className="study-result__card">
-        <p className="study-result__tag">Tổng kết {tenLoai}</p>
+        <p className="study-result__tag">
+          {laLamLai ? `Làm lại câu sai · ${tenLoai}` : `Tổng kết ${tenLoai}`}
+        </p>
         <h2 className="study-result__title">
           <span className={`ui-dau-cham study-result__dau study-result__dau--${hangDiem}`}>
             {loiKhen}
@@ -227,22 +283,28 @@ function StudyResult({
         </div>
 
         <div className="study-result__actions">
-          <button
-            type="button"
-            onClick={onLamLai}
-            className="ui-button ui-button--ghost study-result__btn"
-          >
-            Làm lại
-          </button>
           {soCauSai > 0 && onHocLaiTuSai && (
             <button
               type="button"
               onClick={onHocLaiTuSai}
               className="ui-button ui-button--primary study-result__btn study-result__btn--review"
             >
-              Ôn lại {soCauSai} từ sai
+              Làm lại câu sai ({soCauSai})
             </button>
           )}
+          <button
+            type="button"
+            onClick={onLamLai}
+            className="ui-button ui-button--ghost study-result__btn"
+          >
+            Làm lại toàn bộ
+          </button>
+          <Link
+            to={`/decks/${deckId}`}
+            className="ui-button ui-button--ghost study-result__btn"
+          >
+            Chọn chế độ khác
+          </Link>
         </div>
       </section>
 
@@ -255,40 +317,24 @@ function StudyResult({
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <span>{soCauSai} từ cần ôn lại</span>
+            <span>Trả lời sai ({danhSachCardSai.length}) · cần ôn lại</span>
           </div>
-          <ul className="ui-card-list">
-            {danhSachCardSai.map((card, i) => (
-              <li
-                key={card.id}
-                className="ui-reading-card ui-word-row border border-[var(--mau-loi)]/30 rounded-xl bg-[var(--mau-mat)] px-4 py-3.5"
-              >
-                <div className="ui-word-row__inner">
-                  <div className="ui-word-main">
-                    <span className="ui-word-index">{i + 1}</span>
-                    <div className="ui-word-pair">
-                      <div className="flex items-center gap-1 w-full min-w-0">
-                        <span className="ui-word-card ui-word-card--term flex-1">
-                          {card.term_en}
-                        </span>
-                      </div>
-                      <span className="ui-word-card ui-word-card--meaning">
-                        {card.meaning_vi}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {card.example_sentence && (
-                  <p className="ui-word-example">{card.example_sentence}</p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <DanhSachTuKetQua danhSach={danhSachCardSai} dung={false} levelTruoc={levelTruoc} />
           <div className="study-result__notebook-link">
             <Link to="/tu-sai" className="ui-link text-sm font-medium text-[var(--mau-chinh)] hover:underline">
               Xem sổ từ sai của bạn →
             </Link>
           </div>
+        </section>
+      )}
+
+      {/* Danh sách từ đúng */}
+      {danhSachCardDung.length > 0 && (
+        <section className="study-result__wrong-list">
+          <div className="study-result__wrong-header study-result__wrong-header--dung">
+            <span>Trả lời đúng ({danhSachCardDung.length})</span>
+          </div>
+          <DanhSachTuKetQua danhSach={danhSachCardDung} dung={true} levelTruoc={levelTruoc} />
         </section>
       )}
     </div>

@@ -4800,6 +4800,35 @@ body.is-page-loading .page-transition-root {
   height: 0.9rem;
 }
 
+.study-result__wrong-header--dung {
+  color: var(--mau-thanh-cong);
+}
+
+.study-result__level {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-mat-2);
+  color: var(--mau-chu-phu);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.study-result__level--sai {
+  border-color: color-mix(in srgb, var(--mau-loi) 35%, transparent);
+  color: var(--mau-loi);
+}
+
+@media (min-width: 640px) {
+  .study-result__level {
+    align-self: center;
+  }
+}
+
 /* ── Batch 3: Responsive & Visual Consistency Polish ──────────────────── */
 
 /* --- Mobile-first page padding consistency --- */

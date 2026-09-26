@@ -1,39 +1,36 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
-import ComboDisplay from "../components/common/ComboDisplay";
+import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
+import PhanHoiDung from "../components/common/PhanHoiDung";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
-import TenseExamplesCard from "../components/common/TenseExamplesCard";
+import ThanhTienDoPhien from "../components/common/ThanhTienDoPhien";
+import TheCauHoiPhien from "../components/common/TheCauHoiPhien";
+import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
 import { getTenseExamples } from "../data/tenseExamples";
-import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
+import useBoTuHoc from "../hooks/useBoTuHoc";
 import useCombo from "../hooks/useCombo";
+import useLuuKetQuaPhien from "../hooks/useLuuKetQuaPhien";
+import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
-import SegmentedRewardProgressBar from "../components/common/SegmentedRewardProgressBar";
-import ToggleSwitch from "../components/common/ToggleSwitch";
-import ModeSwitch from "../components/common/ModeSwitch";
-import { layDeckTheoId } from "../services/deckApi";
-import { layCardsTheoDeck } from "../services/cardApi";
-import { getUserStats } from "../services/userApi";
-import {
-  ketThucStudySession,
-  luuQuizResult,
-  luuStudyAnswers,
-  taoStudySession,
-} from "../services/studyApi";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import {
+  ganTienTrinh,
+  tachKetQuaPhien,
+  taoDanhSachTienTrinh,
+  tinhTienTrinh,
+  tronMangOnDinh,
+} from "../utils/phienHoc";
 
 const DS_CHE_DO = [
   { key: "vi-en", nhan: "Nghĩa → Từ", shortLabel: "Nghĩa → Từ" },
   { key: "en-vi", nhan: "Từ → Nghĩa", shortLabel: "Từ → Nghĩa" },
 ];
-const SO_TU_MOI_TIEN_TRINH = 10;
 
 function chuanHoa(t) { return t.trim().toLowerCase().replace(/\s+/g, " "); }
 
@@ -62,55 +59,16 @@ function taoGoiYDapAn(dapAn) {
   return ketQua;
 }
 
-function taoSoTuSeed(seed) {
-  let hash = 2166136261;
-
-  for (let i = 0; i < seed.length; i += 1) {
-    hash ^= seed.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function tronMangOnDinh(danhSach, seed, layKhoa = (item, index) => `${index}-${item}`) {
-  return [...danhSach]
-    .map((item, index) => ({
-      item,
-      thuTu: taoSoTuSeed(`${seed}-${layKhoa(item, index)}`),
-    }))
-    .sort((a, b) => a.thuTu - b.thuTu)
-    .map(({ item }) => item);
-}
-
-function taoDanhSachTheTheoTienTrinh(danhSach, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
-  return danhSach.map((the, index) => ({
-    ...the,
-    __sessionKey: `${the?.id ?? "card"}-${index}`,
-    __segmentIndex: Math.floor(index / kichThuocTienTrinh),
-  }));
-}
-
-function taoDanhSachTienTrinh(tongSoCau, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRINH) {
-  const tongSoTienTrinh = Math.ceil(tongSoCau / kichThuocTienTrinh);
-
-  return Array.from({ length: tongSoTienTrinh }, (_, index) => ({
-    index,
-    totalValue: Math.min(
-      kichThuocTienTrinh,
-      Math.max(0, tongSoCau - index * kichThuocTienTrinh)
-    ),
-  }));
-}
-
 function TrangTuLuan() {
   const { deckId } = useParams();
-  const { setPageDataLoading } = usePageTransition();
   const boId = Number(deckId);
-  const [bo, setBo] = useState(null);
-  const [danhSachGoc, setDanhSachGoc] = useState([]);
-  const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
-  const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
+  const {
+    bo,
+    danhSachGoc,
+    dangTai: dangTaiDuLieu,
+    loi: loiTaiDuLieu,
+    taiLai: taiDuLieuTuLuan,
+  } = useBoTuHoc(boId, "tu-luan");
 
   const [searchParams] = useSearchParams();
   const boLocUrl = useMemo(() => docBoLocTuUrl(searchParams), [searchParams]);
@@ -153,25 +111,17 @@ function TrangTuLuan() {
   const dangCooldownSaiRef = useRef(false); // đang trong cooldown flash đỏ sau khi sai
   const dangTrongCheDoGoiYRef = useRef(false); // đang sai trong khi hienGoiY=true
 
-  const [hienReward, setHienReward] = useState(false);
-  const [lanReward, setLanReward] = useState(0);
   const [dangChuyenCau, setDangChuyenCau] = useState(false);
-  const [dangChoReward, setDangChoReward] = useState(false);
 
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
-  const [rewardProgressPhase, setRewardProgressPhase] = useState("idle");
-  const [, setRewardProgressValue] = useState(0);
-  const [studySessionId, setStudySessionId] = useState(null);
-  const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
-  const [streakCelebration, setStreakCelebration] = useState(null);
-  const prevStreakRef = useRef(null);
+  const phanThuong = usePhanThuongPhien({ batReward, soCauDungNhanThuong });
+  const { hienReward, dangChoReward } = phanThuong;
   // Set lưu card_id đã bị sai ít nhất 1 lần trong session
   const [tapCardSai, setTapCardSai] = useState(() => new Set());
   // Danh sách card chỉ để học lại từ sai (null = học tất cả)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
   const inputRef = useRef(null);
-  const rewardProgressTimerRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
   const wrongAnswerTimerRef = useRef(null);
   const postRewardContinueTimerRef = useRef(null);
@@ -182,8 +132,6 @@ function TrangTuLuan() {
   const phatAmThanhDung = useSoundEffect("/sound/bigo.mp3", { volume: 0.9 });
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const choHoanThanhRef = useRef(false);   // true khi câu cuối đúng + có reward đang chờ
-  const daLuuKetQuaRef = useRef(false);
-  const dataRequestRef = useRef(0);
   // true khi đang chờ user nhấn Enter/Tiếp tục sau khi đúng ở chế độ nhập lại (hint/retry/revealAnswer)
   // — thay vì auto-chuyển sau 600ms, ta giữ TenseExamplesCard để user đọc câu mẫu
   const pendingRetryCardRef = useRef(false);
@@ -191,61 +139,6 @@ function TrangTuLuan() {
   const scrollBeforeCheckRef = useRef(0);
   // Ngăn gọi chuyenCauMem() 2 lần trong cùng một sự kiện (window keydown + button click)
   const chuyenCauMemLockRef = useRef(false);
-  async function taiDuLieuTuLuan() {
-    const requestId = ++dataRequestRef.current;
-    setDangTaiDuLieu(true);
-    setLoiTaiDuLieu("");
-
-    try {
-      const [deck, cards] = await Promise.all([
-        layDeckTheoId(boId),
-        layCardsTheoDeck(boId),
-      ]);
-
-      if (requestId === dataRequestRef.current) {
-        setBo(deck);
-        setDanhSachGoc(cards);
-      }
-    } catch (error) {
-      if (requestId === dataRequestRef.current) {
-        const mockDeck = layBoTheoId(boId);
-        const mockCards = layTheoBoId(boId);
-        if (mockDeck && mockCards && mockCards.length > 0) {
-          setBo(mockDeck);
-          setDanhSachGoc(mockCards);
-        } else {
-          setBo(null);
-          setDanhSachGoc([]);
-          setLoiTaiDuLieu(error.message);
-        }
-      }
-    } finally {
-      if (requestId === dataRequestRef.current) {
-        setDangTaiDuLieu(false);
-      }
-    }
-  }
-
-  useEffect(() => {
-    taiDuLieuTuLuan();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boId]);
-
-  // Baseline streak khi mount
-  useEffect(() => {
-    getUserStats()
-      .then((stats) => { prevStreakRef.current = stats.current_streak ?? 0; })
-      .catch(() => {});
-  }, []);
-
-  useLayoutEffect(() => {
-    const loadingKey = `tu-luan-${boId}`;
-    setPageDataLoading(loadingKey, dangTaiDuLieu);
-
-    return () => {
-      setPageDataLoading(loadingKey, false);
-    };
-  }, [boId, dangTaiDuLieu, setPageDataLoading]);
 
   const danhSachLocTuLuan = useMemo(() => {
     // Nếu đang học lại từ sai, dùng danh sách đó thay vì danhSachGoc (vẫn giữ thứ tự sắp xếp)
@@ -265,49 +158,15 @@ function TrangTuLuan() {
           (the, index) => the?.id ?? `${index}-${the?.term_en}-${the?.meaning_vi}`
         )
       : [...danhSachLocTuLuan];
-    return taoDanhSachTheTheoTienTrinh(ds);
+    return ganTienTrinh(ds);
   }, [danhSachLocTuLuan, batRandom, boId, lanTronTuLuan, lanLam]);
 
   const tongSoCauMucTieu = danhSachTheGoc.length;
-  const danhSachTienTrinh = useMemo(() => {
-    return taoDanhSachTienTrinh(danhSachTheGoc.length);
-  }, [danhSachTheGoc]);
-
   // Thanh tiến trình lấp đầy tuyến tính từ soCauDung, không bị hổng/nhảy cóc
-  const cacThanhTienTrinh = useMemo(() => {
-    let daTichLuy = 0;
-    return danhSachTienTrinh.map((tienTrinh) => {
-      const totalValue = tienTrinh.totalValue || 1;
-      const currentValue = Math.min(
-        totalValue,
-        Math.max(0, soCauDung - daTichLuy)
-      );
-      daTichLuy += totalValue;
-      return {
-        index: tienTrinh.index,
-        currentValue,
-        totalValue,
-        progressPercent: (currentValue / totalValue) * 100,
-      };
-    });
-  }, [danhSachTienTrinh, soCauDung]);
-
-  const chiSoTienTrinhDangHoatDong = (() => {
-    const idx = cacThanhTienTrinh.findIndex(
-      (tienTrinh) => tienTrinh.currentValue < tienTrinh.totalValue
-    );
-    return idx === -1 ? Math.max(0, cacThanhTienTrinh.length - 1) : idx;
-  })();
-
-  const soTienTrinhHoanThanh = cacThanhTienTrinh.filter(
-    (tienTrinh) => tienTrinh.currentValue >= tienTrinh.totalValue
-  ).length;
-  const progressSegmentsPayload = cacThanhTienTrinh.map((tienTrinh) => ({
-    segment_index: tienTrinh.index,
-    current: tienTrinh.currentValue,
-    total: tienTrinh.totalValue,
-    is_completed: tienTrinh.currentValue >= tienTrinh.totalValue,
-  }));
+  const tienTrinh = useMemo(
+    () => tinhTienTrinh(taoDanhSachTienTrinh(tongSoCauMucTieu), soCauDung),
+    [tongSoCauMucTieu, soCauDung]
+  );
 
   const [prevDanhSachTheGoc, setPrevDanhSachTheGoc] = useState(danhSachTheGoc);
   if (danhSachTheGoc !== prevDanhSachTheGoc) {
@@ -325,62 +184,36 @@ function TrangTuLuan() {
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
     setDanhSachKetQua([]);
-    daLuuKetQuaRef.current = false;
     pendingRetryCardRef.current = false;
     resetAll();
   }
 
-  useEffect(() => {
-    if (!bo || tongSoCauMucTieu === 0 || daHoanThanh) return;
-
-    let daHuy = false;
-
-    taoStudySession({
-      deck_id: boId,
-      mode: "written",
-      direction: cheDo,
-      only_favorite: chiHocTuYeuThich,
-      random_order: batRandom,
-      total: tongSoCauMucTieu,
-      segment_size: SO_TU_MOI_TIEN_TRINH,
-      segment_total: danhSachTienTrinh.length,
-      segment_completed: 0,
-      progress_segments: danhSachTienTrinh.map((tienTrinh) => ({
-        segment_index: tienTrinh.index,
-        current: 0,
-        total: tienTrinh.totalValue,
-        is_completed: false,
-      })),
-    })
-      .then((session) => {
-        if (!daHuy) setStudySessionId(session.id);
-      })
-      .catch(() => {
-        if (!daHuy) setStudySessionId(null);
-      });
-
-    return () => {
-      daHuy = true;
-    };
-  }, [
+  const { loiLuuKetQua, streakCelebration, dongStreakCelebration } = useLuuKetQuaPhien({
     bo,
     boId,
-    cheDo,
-    chiHocTuYeuThich,
-    batRandom,
-    lanLam,
-    tongSoCauMucTieu,
-    danhSachTienTrinh,
+    mode: "written",
+    questionType: "written",
+    direction: cheDo,
+    onlyFavorite: chiHocTuYeuThich,
+    randomOrder: batRandom,
+    tongSoCau: tongSoCauMucTieu,
+    lanLam: `${lanLam}.${lanTronTuLuan}`,
     daHoanThanh,
-  ]);
-
-
-  function xoaTimerProgressReward() {
-    if (rewardProgressTimerRef.current) {
-      clearTimeout(rewardProgressTimerRef.current);
-      rewardProgressTimerRef.current = null;
-    }
-  }
+    ketQua: {
+      soCauDung,
+      maxCombo,
+      soTienTrinhHoanThanh: tienTrinh.soHoanThanh,
+      progressSegments: tienTrinh.payload,
+      answers: danhSachKetQua.map((ketQua) => ({
+        card_id: ketQua.id,
+        question_text: ketQua.cauHoi,
+        correct_answer: ketQua.dapAnDung,
+        user_answer: ketQua.cauTraLoi,
+        is_correct: ketQua.dung,
+        answer_meta: ketQua.answerMeta ?? null,
+      })),
+    },
+  });
 
   function xoaTimerChuyenCau() {
     if (questionTransitionTimerRef.current) {
@@ -422,22 +255,23 @@ function TrangTuLuan() {
   }
 
   function xoaTatCaTimerTuLuan() {
-    xoaTimerProgressReward();
     xoaTimerChuyenCau();
     xoaTimerTraLoiSai();
     xoaTimerSauReward();
     xoaTimerFocusInput();
   }
 
+  function datLaiPhanThuong() {
+    xoaTimerSauReward();
+    phanThuong.datLai();
+  }
+
   useEffect(() => {
     Promise.resolve().then(() => {
       xoaTatCaTimerTuLuan();
+      phanThuong.datLai();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [danhSachTheGoc]);
-
-  useLayoutEffect(() => {
-    daLuuKetQuaRef.current = false;
   }, [danhSachTheGoc]);
 
   // Khôi phục scroll khi TenseExamplesCard hiện ra — tránh browser tự cuộn xuống nút Tiếp tục
@@ -450,7 +284,6 @@ function TrangTuLuan() {
   useEffect(
     () => () => {
       [
-        rewardProgressTimerRef,
         questionTransitionTimerRef,
         wrongAnswerTimerRef,
         postRewardContinueTimerRef,
@@ -466,41 +299,8 @@ function TrangTuLuan() {
     []
   );
 
-  function batDauTienTrinhReward(giaTri, coReward) {
-    xoaTimerProgressReward();
-    setRewardProgressValue(giaTri);
-    setRewardProgressPhase("correctPulse");
-
-    if (coReward) {
-      setDangChoReward(true);
-    } else {
-      setDangChoReward(false);
-    }
-
-    rewardProgressTimerRef.current = window.setTimeout(() => {
-      if (coReward) {
-        setRewardProgressPhase("beamLaunch");
-        rewardProgressTimerRef.current = window.setTimeout(() => {
-          setHienReward(true);
-          setLanReward(prev => prev + 1);
-          rewardProgressTimerRef.current = null;
-        }, 600);
-      } else {
-        setRewardProgressPhase("idle");
-        rewardProgressTimerRef.current = null;
-      }
-    }, 450);
-  }
-
   function xuLyRewardDongXong() {
-    xoaTimerProgressReward();
-    setDangChoReward(false);
-    setRewardProgressPhase("rewardComplete");
-    rewardProgressTimerRef.current = window.setTimeout(() => {
-      setRewardProgressPhase("idle");
-      setRewardProgressValue(0);
-      rewardProgressTimerRef.current = null;
-    }, 780);
+    phanThuong.ketThucReward();
 
     if (ketQuaDung && chiSo + 1 >= danhSachThe.length) {
       choHoanThanhRef.current = false;
@@ -567,82 +367,6 @@ function TrangTuLuan() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daKiemTra, ketQuaDung, chiSo]);
 
-  useEffect(() => {
-    if (!bo || !daHoanThanh || tongSoCauMucTieu === 0) return;
-    if (daLuuKetQuaRef.current) return;
-
-    daLuuKetQuaRef.current = true;
-
-    async function luuKetQuaLenBackend() {
-      const total = tongSoCauMucTieu;
-      const review = total - soCauDung;
-      const answers = danhSachKetQua.map((ketQua) => ({
-        card_id: ketQua.id,
-        question_text: ketQua.cauHoi,
-        correct_answer: ketQua.dapAnDung,
-        user_answer: ketQua.cauTraLoi,
-        is_correct: ketQua.dung,
-        answer_meta: ketQua.answerMeta ?? null,
-      }));
-
-      try {
-        await luuQuizResult({
-          deck_id: boId,
-          question_type: "written",
-          direction: cheDo,
-          correct: soCauDung,
-          review,
-          total,
-          progress_segments: progressSegmentsPayload,
-        });
-
-        if (studySessionId) {
-          await ketThucStudySession(studySessionId, {
-            correct: soCauDung,
-            review,
-            total,
-            xp_earned: soCauDung * 10,
-            max_combo: maxCombo,
-            segment_size: SO_TU_MOI_TIEN_TRINH,
-            segment_total: danhSachTienTrinh.length,
-            segment_completed: soTienTrinhHoanThanh,
-            progress_segments: progressSegmentsPayload,
-          });
-
-          if (answers.length > 0) {
-            await luuStudyAnswers(studySessionId, answers);
-          }
-
-          // Fetch streak mới sau khi lưu xong
-          try {
-            const stats = await getUserStats();
-            const newStreak = stats.current_streak ?? 0;
-            const prevStreak = prevStreakRef.current;
-            prevStreakRef.current = newStreak;
-            window.dispatchEvent(new CustomEvent("streak-updated", { detail: { streak: newStreak } }));
-            if (prevStreak !== null && newStreak > prevStreak && newStreak > 0) {
-              setStreakCelebration(newStreak);
-            }
-          } catch {
-            // silent
-          }
-        }
-      } catch (error) {
-        setLoiLuuKetQua(error.message);
-      }
-    }
-
-    luuKetQuaLenBackend();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    bo,
-    boId,
-    cheDo,
-    daHoanThanh,
-    studySessionId,
-    tongSoCauMucTieu,
-  ]);
-
   function layCauHoi(the) { return the ? (cheDo === "vi-en" ? the.meaning_vi : the.term_en) : ""; }
   function layDapAnDung(the) { return the ? (cheDo === "vi-en" ? the.term_en : the.meaning_vi) : ""; }
   function layNgonNguCauHoi() { return cheDo === "vi-en" ? "vi-VN" : "en-US"; }
@@ -656,21 +380,10 @@ function TrangTuLuan() {
     ttsSpeak(layDapAnDung(danhSachThe[chiSo]), layNgonNguDapAn());
   }
 
-  function datLaiProgressReward() {
-    xoaTimerProgressReward();
-    setDangChoReward(false);
-    setRewardProgressPhase("idle");
-    setRewardProgressValue(0);
-  }
-
   function tangTienTrinhChoThe() {
-    setSoCauDung((hienTai) => {
-      const diemMoi = hienTai + 1;
-      const tienDoMoi = ((diemMoi - 1) % soCauDungNhanThuong) + 1;
-      const coReward = batReward && diemMoi % soCauDungNhanThuong === 0;
-      batDauTienTrinhReward(tienDoMoi, coReward);
-      return diemMoi;
-    });
+    const soCauDungMoi = soCauDung + 1;
+    setSoCauDung(soCauDungMoi);
+    phanThuong.ghiNhanCauDung(soCauDungMoi);
   }
 
 
@@ -1114,32 +827,39 @@ function TrangTuLuan() {
     }
   }
 
-  function lamLai() {
+  // Đưa phiên về câu đầu; tăng lanLam để xếp lại câu hỏi và mở study session mới.
+  function batDauLai() {
     xoaTatCaTimerTuLuan();
-    datLaiProgressReward();
+    datLaiPhanThuong();
     pendingRetryCardRef.current = false;
     chuyenCauMemLockRef.current = false;
-    setDanhSachHocLai(null);
     setLanLam((g) => g + 1);
     setChiSo(0);
     setCauTraLoi("");
     setDaKiemTra(false);
+    setKetQuaDung(false);
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
     setDangChoNhanEnterSauSai(false);
     setSoCauDung(0);
-    setDanhSachThe(danhSachTheGoc);
+    setDanhSachThe([]);
     setDaHoanThanh(false);
     setDanhSachKetQua([]);
-    setLanReward(0);
     setDangChuyenCau(false);
-    setDangChoReward(false);
     resetAll();
-    setStudySessionId(null);
-    setLoiLuuKetQua("");
-    daLuuKetQuaRef.current = false;
     setTapCardSai(new Set());
+  }
+
+  function lamLai() {
+    setDanhSachHocLai(null);
+    batDauLai();
+  }
+
+  function hocLaiTuSai(danhSachCardSai) {
+    if (danhSachCardSai.length === 0) return;
+    setDanhSachHocLai(danhSachCardSai);
+    batDauLai();
   }
 
   function doiCheDoHoc(key) {
@@ -1150,89 +870,46 @@ function TrangTuLuan() {
   }
 
   function doiCheDoReward() {
-    setBatReward((dangBat) => {
-      const moi = !dangBat;
-      if (dangBat) {
-        setHienReward(false);
-        setDangChoReward(false);
-        xoaTimerProgressReward();
-        setRewardProgressPhase("idle");
-        setRewardProgressValue(0);
-      }
-      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
-      return moi;
-    });
+    const moi = !batReward;
+    if (!moi) datLaiPhanThuong();
+    setBatReward(moi);
+    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
   }
 
   function doiRandom() {
-    xoaTatCaTimerTuLuan();
-    setBatRandom((prev) => {
-      const moi = !prev;
-      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
-      if (moi) setLanTronTuLuan((lanHienTai) => lanHienTai + 1);
-      return moi;
-    });
+    const moi = !batRandom;
+    setBatRandom(moi);
+    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom: moi, soCauDungNhanThuong });
+    if (moi) setLanTronTuLuan((lanHienTai) => lanHienTai + 1);
+    batDauLai();
   }
 
   function capNhatMocReward(e) {
     const v = Math.max(1, Number(e.target.value) || 1);
-    xoaTimerProgressReward();
+    datLaiPhanThuong();
     setSoCauDungNhanThuong(v);
     luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: v });
-    setDangChoReward(false);
-    setHienReward(false);
-    setRewardProgressPhase("idle");
-    setRewardProgressValue(0);
   }
 
   function doiChiHocTuYeuThich() {
-    xoaTatCaTimerTuLuan();
-    pendingRetryCardRef.current = false;
-    setChiHocTuYeuThich((p) => {
-      const moi = !p;
-      luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
-      return moi;
-    });
-    setLanLam(g => g + 1);
-    setChiSo(0);
-    setSoCauDung(0);
-    setDaHoanThanh(false);
-    setDaBoQua(false);
-    setDaKiemTra(false);
-    setKetQuaDung(false);
-    setHienGoiY(false);
-    setHienCanhBaoNhap(false);
-    setDangChoNhanEnterSauSai(false);
-    setDangChoReward(false);
-    setHienReward(false);
-    resetAll();
+    const moi = !chiHocTuYeuThich;
+    setChiHocTuYeuThich(moi);
+    luuCaiDatHocTap("tuluan", { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
+    batDauLai();
   }
 
-  if (dangTaiDuLieu) return (
-    <div className="ui-study-empty-wrap">
-      <section className="ui-study-empty-card">
-        <h2 className="ui-study-empty-card__title">Đang tải dữ liệu...</h2>
-      </section>
-    </div>
-  );
+  if (dangTaiDuLieu) return <TheTrangThaiPhien tieuDe="Đang tải dữ liệu..." />;
 
   if (loiTaiDuLieu) return (
-    <div className="ui-study-empty-wrap">
-      <section className="ui-study-empty-card">
-        <h2 className="ui-study-empty-card__title">
-          Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.
-        </h2>
-        <div className="ui-study-empty-card__actions">
-          <button
-            type="button"
-            onClick={taiDuLieuTuLuan}
-            className="ui-button ui-button--primary ui-study-empty-card__button"
-          >
-            Thử lại
-          </button>
-        </div>
-      </section>
-    </div>
+    <TheTrangThaiPhien tieuDe="Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.">
+      <button
+        type="button"
+        onClick={taiDuLieuTuLuan}
+        className="ui-button ui-button--primary ui-study-empty-card__button"
+      >
+        Thử lại
+      </button>
+    </TheTrangThaiPhien>
   );
 
   if (!bo) return null;
@@ -1242,101 +919,81 @@ function TrangTuLuan() {
     const khongKhopBoLoc = !chiHocTuYeuThich && danhSachGoc.length > 0;
 
     return (
-      <div className="ui-study-empty-wrap">
-        <section className="ui-study-empty-card">
-          <h2 className="ui-study-empty-card__title">
-            {dangThieuTuYeuThich
-              ? "Chưa có từ yêu thích"
-              : khongKhopBoLoc
-                ? "Không có từ nào khớp bộ lọc"
-                : "Bộ từ này chưa có từ nào"}
-          </h2>
-          <p className="ui-study-empty-card__copy">
-            {dangThieuTuYeuThich
-              ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học tự luận."
-              : khongKhopBoLoc
-                ? "Quay lại bộ từ và chọn bộ lọc khác."
-                : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."}
-          </p>
-          <div className="ui-study-empty-card__actions">
-            {dangThieuTuYeuThich && (
-              <button
-                type="button"
-                onClick={doiChiHocTuYeuThich}
-                className="ui-button ui-button--ghost ui-study-empty-card__button"
-              >
-                Tắt lọc yêu thích
-              </button>
-            )}
-            <Link
-              to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
-              className="ui-button ui-button--primary ui-study-empty-card__button"
-            >
-              Quay lại bộ từ
-            </Link>
-          </div>
-        </section>
-      </div>
+      <TheTrangThaiPhien
+        tieuDe={
+          dangThieuTuYeuThich
+            ? "Chưa có từ yêu thích"
+            : khongKhopBoLoc
+              ? "Không có từ nào khớp bộ lọc"
+              : "Bộ từ này chưa có từ nào"
+        }
+        moTa={
+          dangThieuTuYeuThich
+            ? "Tắt lọc yêu thích hoặc thả tim thêm vài từ trước khi học tự luận."
+            : khongKhopBoLoc
+              ? "Quay lại bộ từ và chọn bộ lọc khác."
+              : "Thêm một vài cặp từ Anh Việt trước khi bắt đầu."
+        }
+      >
+        {dangThieuTuYeuThich && (
+          <button
+            type="button"
+            onClick={doiChiHocTuYeuThich}
+            className="ui-button ui-button--ghost ui-study-empty-card__button"
+          >
+            Tắt lọc yêu thích
+          </button>
+        )}
+        <Link
+          to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+          className="ui-button ui-button--primary ui-study-empty-card__button"
+        >
+          Quay lại bộ từ
+        </Link>
+      </TheTrangThaiPhien>
     );
   }
 
-  if (daHoanThanh) {
-    const soCauSai = tapCardSai.size;
-    const soCauDungThucTe = tongSoCauMucTieu - soCauSai;
-    const danhSachCardSai = danhSachGoc.filter((card) => tapCardSai.has(card.id));
-    // Lấy danh sách card đúng để cập nhật SRS mastery
-    const danhSachCardDung = danhSachGoc.filter((card) => !tapCardSai.has(card.id));
+  const theHienTai = danhSachThe[chiSo];
+  const hieuUngThuong = (
+    <RewardTikTokEffect
+      active={batReward && hienReward}
+      lanKichHoat={phanThuong.lanReward}
+      config={CAU_HINH_REWARD_QUIZ}
+      progressOriginRef={progressOriginRef}
+      progressEndpointRef={progressEndpointRef}
+      onRequestClose={phanThuong.dongReward}
+      onHideComplete={xuLyRewardDongXong}
+      combo={combo}
+      tenseExamples={daHoanThanh ? null : getTenseExamples(theHienTai)}
+    />
+  );
 
-    function hocLaiTuSai() {
-      if (danhSachCardSai.length === 0) return;
-      xoaTatCaTimerTuLuan();
-      datLaiProgressReward();
-      // Set trước, sau đó tăng lanLam để useEffect pick up đúng danhSachHocLai
-      setDanhSachHocLai(danhSachCardSai);
-      setLanLam((g) => g + 1);
-      setChiSo(0);
-      setCauTraLoi("");
-      setDaKiemTra(false);
-      setHienGoiY(false);
-      setHienCanhBaoNhap(false);
-      setDaBoQua(false);
-      setDangChoNhanEnterSauSai(false);
-      setSoCauDung(0);
-      setDanhSachThe([]);
-      setDaHoanThanh(false);
-      setDanhSachKetQua([]);
-      setLanReward(0);
-      setDangChuyenCau(false);
-      setDangChoReward(false);
-      resetAll();
-      setStudySessionId(null);
-      setLoiLuuKetQua("");
-      daLuuKetQuaRef.current = false;
-      setTapCardSai(new Set());
-    }
+  if (daHoanThanh) {
+    const { danhSachCardDung, danhSachCardSai } = tachKetQuaPhien(danhSachLocTuLuan, tapCardSai);
 
     return (
       <>
         {streakCelebration !== null && (
-          <StreakCelebration
-            streak={streakCelebration}
-            onClose={() => setStreakCelebration(null)}
-          />
+          <StreakCelebration streak={streakCelebration} onClose={dongStreakCelebration} />
         )}
-        <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} tenseExamples={null} />
+        {hieuUngThuong}
         <div className="ui-content-enter ui-study-session relative z-10 mx-auto max-w-2xl">
           <StudyResult
             deckTitle={bo.title}
             deckId={boId}
             tongSoCau={tongSoCauMucTieu}
-            soCauDung={soCauDungThucTe}
-            soCauSai={soCauSai}
+            soCauDung={danhSachCardDung.length}
+            soCauSai={danhSachCardSai.length}
             maxCombo={maxCombo}
             loiLuu={loiLuuKetQua}
             onLamLai={lamLai}
-            onHocLaiTuSai={soCauSai > 0 ? hocLaiTuSai : undefined}
+            onHocLaiTuSai={
+              danhSachCardSai.length > 0 ? () => hocLaiTuSai(danhSachCardSai) : undefined
+            }
             danhSachCardSai={danhSachCardSai}
             danhSachCardDung={danhSachCardDung}
+            laLamLai={danhSachHocLai !== null}
             mode="tuluan"
           />
         </div>
@@ -1344,184 +1001,58 @@ function TrangTuLuan() {
     );
   }
 
-  const tongSoCauHoi = tongSoCauMucTieu;
-  const chiSoTienTrinhDangRender = Math.max(0, chiSoTienTrinhDangHoatDong);
-  const tienDoTienTrinhDangHoatDong =
-    cacThanhTienTrinh[chiSoTienTrinhDangRender]?.progressPercent
-    ?? 0;
-
-  if (!danhSachThe[chiSo] && !daHoanThanh) {
-    return (
-      <div className="ui-study-empty-wrap">
-        <section className="ui-study-empty-card">
-          <h2 className="ui-study-empty-card__title">Đang cập nhật...</h2>
-        </section>
-      </div>
-    );
+  if (!theHienTai) {
+    return <TheTrangThaiPhien tieuDe="Đang cập nhật..." />;
   }
-
-  const theHienTai = danhSachThe[chiSo];
 
   return (
     <>
       <ChatbotTheDangHoc the={theHienTai} />
-      <RewardTikTokEffect active={batReward && hienReward} lanKichHoat={lanReward} config={CAU_HINH_REWARD_QUIZ} progressOriginRef={progressOriginRef} progressEndpointRef={progressEndpointRef} onRequestClose={() => setHienReward(false)} onHideComplete={xuLyRewardDongXong} combo={combo} tenseExamples={getTenseExamples(theHienTai)} />
+      {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
           <Link to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
-          <StudySettingsPopover label="Cài đặt tự luận">
-            <section className="ui-settings-popover__section">
-              <p className="ui-settings-popover__title">Học tập</p>
-              <div className="ui-settings-popover__row">
-                <div className="ui-settings-popover__field">
-                  <span className="ui-settings-popover__label">Ngôn ngữ</span>
-                  <span className="ui-settings-popover__hint">Đổi chiều câu hỏi và đáp án</span>
-                </div>
-                <ModeSwitch
-                  value={cheDo}
-                  onChange={doiCheDoHoc}
-                  options={DS_CHE_DO}
-                  ariaLabel="Đổi chế độ tự luận"
-                  variant="compact"
-                />
-              </div>
-              <div className="ui-settings-popover__row">
-                <div className="ui-settings-popover__field">
-                  <span className="ui-settings-popover__label">Chỉ từ yêu thích</span>
-                  <span className="ui-settings-popover__hint">Chỉ hỏi các từ đã thả tim</span>
-                </div>
-                <ToggleSwitch
-                  checked={chiHocTuYeuThich}
-                  onChange={doiChiHocTuYeuThich}
-                  ariaLabel={`Chỉ học từ yêu thích ${chiHocTuYeuThich ? "bật" : "tắt"}`}
-                />
-              </div>
-              <div className="ui-settings-popover__row">
-                <div className="ui-settings-popover__field">
-                  <span className="ui-settings-popover__label">Thứ tự ngẫu nhiên</span>
-                  <span className="ui-settings-popover__hint">Xáo trộn thứ tự từ khi bắt đầu</span>
-                </div>
-                <ToggleSwitch
-                  checked={batRandom}
-                  onChange={doiRandom}
-                  ariaLabel={`Ngẫu nhiên ${batRandom ? "bật" : "tắt"}`}
-                />
-              </div>
-            </section>
-            <section className="ui-settings-popover__section">
-              <p className="ui-settings-popover__title">Phần thưởng</p>
-              <div className="ui-settings-popover__row">
-                <div className="ui-settings-popover__field">
-                  <span className="ui-settings-popover__label">Reward</span>
-                  <span className="ui-settings-popover__hint">Bật hoặc tắt hiệu ứng thưởng</span>
-                </div>
-                <ToggleSwitch
-                  checked={batReward}
-                  onChange={doiCheDoReward}
-                  ariaLabel={`Reward ${batReward ? "bật" : "tắt"}`}
-                />
-              </div>
-              <div className="ui-settings-popover__row">
-                <div className="ui-settings-popover__field">
-                  <label htmlFor="moc-reward-tuluan" className="ui-settings-popover__label">
-                    Mốc thưởng
-                  </label>
-                  <span className="ui-settings-popover__hint">Số câu đúng để kích hoạt thưởng</span>
-                </div>
-                <input
-                  id="moc-reward-tuluan"
-                  type="number"
-                  min="1"
-                  value={soCauDungNhanThuong}
-                  onChange={capNhatMocReward}
-                  className="ui-input--compact rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-input)] text-[var(--mau-chu)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)]"
-                />
-              </div>
-            </section>
-          </StudySettingsPopover>
-        </div>
-
-        <div className="ui-written-progress mb-4">
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="ui-mode-chip">
-              {cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"}
-            </span>
-            <span className="text-xs font-semibold tabular-nums text-[var(--mau-chu-phu)]">
-              Câu <span className="text-[var(--mau-chu)]">{Math.min(soCauDung + 1, tongSoCauHoi)}</span>/{tongSoCauHoi}
-            </span>
-          </div>
-          <SegmentedRewardProgressBar
-            segments={cacThanhTienTrinh}
-            totalCorrect={soCauDung}
-            totalTarget={tongSoCauHoi}
-            activeSegmentIndex={chiSoTienTrinhDangRender}
-            phase={rewardProgressPhase}
-            activeEndRef={progressOriginRef}
-            endpointRef={progressEndpointRef}
-            combo={combo}
+          <CaiDatPhienHoc
+            label="Cài đặt tự luận"
+            idMocReward="moc-reward-tuluan"
+            dsCheDo={DS_CHE_DO}
+            cheDo={cheDo}
+            onDoiCheDo={doiCheDoHoc}
+            chiHocTuYeuThich={chiHocTuYeuThich}
+            onDoiYeuThich={doiChiHocTuYeuThich}
+            batRandom={batRandom}
+            onDoiRandom={doiRandom}
+            batReward={batReward}
+            onDoiReward={doiCheDoReward}
+            soCauDungNhanThuong={soCauDungNhanThuong}
+            onDoiMocReward={capNhatMocReward}
           />
-          <div className="mt-1.5 flex justify-end">
-            <ComboDisplay
-              combo={combo}
-              phase={comboPhase}
-              progressPercent={tienDoTienTrinhDangHoatDong}
-            />
-          </div>
         </div>
 
-          {/* Card câu hỏi */}
-        <section
-          key={danhSachThe[chiSo]?.id}
-          className={`ui-question-flow ui-the-cau-hoi relative mb-6 text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] sm:py-10 ${dangChuyenCau ? "ui-question-flow--leaving" : ""}`}
-        >
-          {danhSachThe[chiSo]?.__saiBuoc && (
-            <span
-              style={{
-                position: "absolute",
-                top: "0.6rem",
-                left: "0.75rem",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.25rem",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: "#b45309",
-                background: "#fef3c7",
-                border: "1px solid #fcd34d",
-                borderRadius: "0.4rem",
-                padding: "0.15rem 0.5rem",
-              }}
-            >
-              ⚠ Lỗi sai trước đây
-            </span>
-          )}
-          <button
-            type="button"
-            className={`tts-speaker-btn tts-speaker-btn--corner${ttsDangDoc ? " tts-speaker-btn--active" : ""}`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              docCauHoiHienTai();
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            aria-label="Đọc câu hỏi"
-            title="Đọc câu hỏi"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          </button>
-          <h2 className="text-3xl font-semibold text-[var(--mau-chu)] sm:text-[2.25rem] leading-snug">
-            {layCauHoi(danhSachThe[chiSo])}
-          </h2>
-        </section>
+        <ThanhTienDoPhien
+          className="ui-written-progress mb-4"
+          nhanCheDo={cheDo === "vi-en" ? "VI \u2192 EN" : "EN \u2192 VI"}
+          soCauDung={soCauDung}
+          tongSoCau={tongSoCauMucTieu}
+          tienTrinh={tienTrinh}
+          phase={phanThuong.phase}
+          originRef={progressOriginRef}
+          endpointRef={progressEndpointRef}
+          combo={combo}
+          comboPhase={comboPhase}
+        />
+
+        <TheCauHoiPhien
+          key={theHienTai.id}
+          className="mb-6 sm:py-10"
+          cauHoi={layCauHoi(theHienTai)}
+          laCauHoiLai={theHienTai.__saiBuoc}
+          dangRoiDi={dangChuyenCau}
+          dangDoc={ttsDangDoc}
+          onDoc={docCauHoiHienTai}
+        />
 
         <form onSubmit={kiemTraDapAn} className="space-y-3">
           <div className="relative">
@@ -1764,22 +1295,15 @@ function TrangTuLuan() {
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
         </form>
 
-        {/* Đúng rồi: hiện thông báo và câu mẫu 3 thì — nằm NGOÀI form để tránh browser tự focus và scroll */}
+        {/* Đúng rồi: hiện câu mẫu + ví dụ các thì — nằm NGOÀI form để tránh browser tự focus và scroll */}
         {daKiemTra && ketQuaDung && (
-          <div className="pt-2 pb-4 text-center">
-            <div className="mb-3">
-              <span className="ui-dau-cham ui-dau-cham--dung">
-                Chính xác!
-              </span>
-            </div>
-            <TenseExamplesCard
-              card={theHienTai}
-              termEn={theHienTai?.term_en}
-              meaningVi={theHienTai?.meaning_vi}
-              onTiepTuc={() => chuyenCauMem()}
-              showContinueButton={true}
-            />
-          </div>
+          <PhanHoiDung
+            className="pt-2 pb-4 text-center"
+            the={theHienTai}
+            termEn={theHienTai?.term_en}
+            meaningVi={theHienTai?.meaning_vi}
+            onTiepTuc={() => chuyenCauMem()}
+          />
         )}
       </div>
     </>

@@ -6,7 +6,9 @@ import {
   ghiNhanSaiVaoSRS,
   hopNhatSRSTuBackend,
   layCardsDenHan,
+  layLevelSRS,
   layThongKeSRS,
+  levelSauKetQua,
   moTaKhoangOn,
   themVaoSRS,
   xoaKhoiSRS,
@@ -172,6 +174,21 @@ describe("hopNhatSRSTuBackend", () => {
       reviewCount: 5,
       source: "flashcard",
     });
+  });
+});
+
+describe("layLevelSRS / levelSauKetQua", () => {
+  it("reads current levels without writing and predicts the next level", () => {
+    themVaoSRS([CARD], OPTS);
+    capNhatKetQuaOn(1, 3);
+    const truoc = localStorage.getItem("streak_drop_srs_v1");
+
+    expect(layLevelSRS([1, 2])).toEqual({ 1: 3, 2: null });
+    expect(localStorage.getItem("streak_drop_srs_v1")).toBe(truoc);
+    expect(levelSauKetQua(3, "correct")).toBe(4);
+    expect(levelSauKetQua(3, "wrong")).toBe(2);
+    expect(levelSauKetQua(null, "correct")).toBe(1);
+    expect(levelSauKetQua(null, "wrong")).toBe(0);
   });
 });
 

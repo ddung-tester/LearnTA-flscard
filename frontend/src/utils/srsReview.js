@@ -169,6 +169,23 @@ export function moTaKhoangOn(level) {
 }
 
 /**
+ * Level hiện tại trong SRS local của từng card (null nếu card chưa vào SRS).
+ */
+export function layLevelSRS(ids) {
+  const tatCa = docTatCa();
+  return Object.fromEntries(
+    ids.map((id) => [String(id), tatCa[String(id)]?.level ?? null])
+  );
+}
+
+/**
+ * Level sau khi áp dụng một kết quả, theo đúng luật SRS (không ghi gì).
+ */
+export function levelSauKetQua(level, ketQua) {
+  return apDungKetQua(level ?? 0, ketQua).level;
+}
+
+/**
  * Thêm card vào SRS queue nếu chưa có (Lv0, đến hạn ngay).
  * Nếu đã có → chỉ cập nhật nội dung, giữ nguyên level và nextReviewAt.
  *
