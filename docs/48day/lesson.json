@@ -1,0 +1,176 @@
+{
+  "lesson_number": 13,
+  "title": "Thì quá khứ đơn: thể phủ định và nghi vấn",
+  "language": "vi",
+  "source": {
+    "file": "Bài 13 - Thì quá khứ đơn thể phủ định và nghi vấn.pdf",
+    "pages": 4
+  },
+  "vocabulary": [
+    {
+      "word": "bill",
+      "part_of_speech": "noun",
+      "meaning_vi": "hóa đơn",
+      "pronunciation": "/bɪl/",
+      "source_page": 1
+    },
+    {
+      "word": "suit",
+      "part_of_speech": "noun",
+      "meaning_vi": "bộ com lê",
+      "pronunciation": "/suːt/",
+      "source_page": 1
+    },
+    {
+      "word": "factory",
+      "part_of_speech": "noun",
+      "meaning_vi": "nhà máy",
+      "pronunciation": "/ˈfæktəri/",
+      "source_page": 1
+    },
+    {
+      "word": "family",
+      "part_of_speech": "noun",
+      "meaning_vi": "gia đình",
+      "pronunciation": "/ˈfæməli/",
+      "source_page": 1
+    },
+    {
+      "word": "shoe",
+      "part_of_speech": "noun",
+      "meaning_vi": "giày",
+      "pronunciation": "/ʃuː/",
+      "source_page": 1
+    },
+    {
+      "word": "contest",
+      "part_of_speech": "noun",
+      "meaning_vi": "cuộc thi",
+      "pronunciation": "/ˈkɒntest/",
+      "source_page": 1
+    },
+    {
+      "word": "cold",
+      "part_of_speech": "adjective",
+      "meaning_vi": "lạnh",
+      "pronunciation": "/kəʊld/",
+      "source_page": 1
+    },
+    {
+      "word": "fresh",
+      "part_of_speech": "adjective",
+      "meaning_vi": "tươi, mới",
+      "pronunciation": "/freʃ/",
+      "source_page": 1
+    },
+    {
+      "word": "close",
+      "part_of_speech": "adjective",
+      "meaning_vi": "gần; gần gũi; thân thiết",
+      "pronunciation": "/kləʊz/",
+      "source_page": 1
+    },
+    {
+      "word": "late",
+      "part_of_speech": "adverb",
+      "meaning_vi": "muộn",
+      "pronunciation": "/leɪt/",
+      "source_page": 1
+    },
+    {
+      "word": "abroad",
+      "part_of_speech": "adverb",
+      "meaning_vi": "nước ngoài",
+      "pronunciation": "/əˈbrɔːd/",
+      "source_page": 1
+    }
+  ],
+  "grammar": [
+    {
+      "id": "past_simple_negative_be",
+      "title": "Phủ định với to be",
+      "pattern": "S + was/were + not + ...",
+      "rules": [
+        "I/he/she/it dùng was not (wasn’t).",
+        "You/we/they dùng were not (weren’t)."
+      ],
+      "examples": [
+        {
+          "en": "He wasn’t at home last night.",
+          "vi": "Tối qua anh ấy không ở nhà."
+        }
+      ],
+      "source_page": 2
+    },
+    {
+      "id": "past_simple_negative_verb",
+      "title": "Phủ định với động từ thường",
+      "pattern": "S + did not (didn’t) + V nguyên mẫu + ...",
+      "rules": [
+        "Sau did not/didn’t, động từ giữ nguyên; không chia quá khứ."
+      ],
+      "examples": [
+        {
+          "en": "I didn’t meet Sam yesterday.",
+          "vi": "Hôm qua tôi không gặp Sam."
+        },
+        {
+          "en": "They didn’t attend the meeting.",
+          "vi": "Họ đã không tham dự cuộc họp."
+        },
+        {
+          "en": "She didn’t break the vase.",
+          "vi": "Cô ấy không làm vỡ chiếc bình."
+        }
+      ],
+      "source_page": 2
+    },
+    {
+      "id": "past_simple_question_be",
+      "title": "Nghi vấn với to be",
+      "pattern": "Was/Were + S + ...?",
+      "rules": [
+        "I/he/she/it dùng Was; you/we/they dùng Were.",
+        "Trả lời ngắn: Yes, S + was/were. hoặc No, S + wasn’t/weren’t."
+      ],
+      "examples": [
+        {
+          "en": "Was she at home last night? — Yes, she was.",
+          "vi": "Tối qua cô ấy có ở nhà không? — Có."
+        },
+        {
+          "en": "Were they at school yesterday? — No, they weren’t.",
+          "vi": "Hôm qua họ có ở trường không? — Không."
+        }
+      ],
+      "source_pages": [
+        2,
+        3
+      ]
+    },
+    {
+      "id": "past_simple_question_verb",
+      "title": "Nghi vấn với động từ thường",
+      "pattern": "Did + S + V nguyên mẫu + ...?",
+      "rules": [
+        "Sau Did, động từ giữ nguyên.",
+        "Trả lời ngắn: Yes, S + did. hoặc No, S + didn’t."
+      ],
+      "examples": [
+        {
+          "en": "Did she sleep well last night? — Yes, she did.",
+          "vi": "Tối qua cô ấy có ngủ ngon không? — Có."
+        },
+        {
+          "en": "Did they clean the kitchen yesterday? — No, they didn’t.",
+          "vi": "Hôm qua họ đã dọn dẹp nhà bếp à? — Không."
+        }
+      ],
+      "source_page": 3
+    }
+  ],
+  "learning_notes_vi": [
+    "Với to be trong quá khứ, dùng was/were trực tiếp để phủ định hoặc đảo lên đầu câu hỏi.",
+    "Với động từ thường, dùng did/didn’t và đưa động từ chính về nguyên mẫu."
+  ]
+}
