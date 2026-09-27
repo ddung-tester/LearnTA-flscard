@@ -227,7 +227,6 @@ function RewardTikTokEffect({
           video.loop = false;
           video.src = src;
           video.load();
-          // eslint-disable-next-line react-hooks/immutability -- callback ref populating a ref map (correct pattern)
           cacheVideoRefs.current[src] = video;
         });
       } catch {

@@ -29,6 +29,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 | 10 | **Nội dung khoá: câu ví dụ + soát đáp án** — 2026-09-27 | `lesson.json` nhận `vocabulary[].example` (không bắt buộc, phải chứa chính từ) → `cards.example_sentence`, mở được chế độ Ngữ cảnh. Bài 13: đã thêm 11 câu ví dụ tự soạn và **nhập lại** lên Cloud SQL. Nhập lại giờ chỉ xoá lời giải thích AI của câu đổi nội dung (trước xoá cả bài). Đã soát 23 câu đáp án ChatGPT tự suy ra ở bài 13: **đúng cả 23**. Đoạn prompt bổ sung cho ChatGPT ở `docs/khoa-hoc-48-ngay.md`. |
 | 11 | **Bài luyện thêm do AI sinh** — 2026-09-27 | `npm run sinh:luyen-them -- --bai=XX` (Gemini, model chính 503 thì tự chuyển lite) → `bai-XX/extra.json` để soát; importer nhập kèm nếu có (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Câu luyện thêm **không** tính vào tiến độ buổi, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: đã sinh 40 câu, soát từng câu (đúng cả 40). Thư mục dùng chung cho 2 script: `scripts/thuMucKhoaHoc.js`. |
 | 12 | **Ôn câu bài tập theo SRS + thống kê khoá học** — 2026-09-27 | Migration **012** (**đã chạy**): `course_question_progress.mastery_level`, `next_review_at`. Câu vào lịch ôn khi trả lời **sai** (`utils/khoaHoc.lichOnCauHoi`, cùng luật `srs.js` với từ vựng); làm đúng ngay lần đầu thì không bị hỏi lại. `GET /course-questions/due` (tối đa 100 câu), `GET /courses` thêm `due_count` mỗi buổi. Trang **`/khoa-hoc/on-tap`** (`TrangOnCauHoi`, dùng `BaiTapKhoaHoc onTap`). Lối vào: nút "Ôn N câu sai" ở trang Khoá học, mục trên Dashboard, nút trên `/review`, nút + khối **Khoá học** ở `/stats`. Câu ôn không gộp chung hàng đợi thẻ của `/review` (trang đó ~900 dòng chỉ xử lý thẻ từ). |
+| 13 | **Sửa lỗi đã biết + dọn nợ** — 2026-09-27 | Khách không còn gọi API cần đăng nhập sau phiên học (hết 401); chatbot chỉ biết thẻ sau khi trả lời (hết lộ đáp án); `/practice` hiện đủ tên bộ dài trên điện thoại; `schema.sql` thêm `cards.tense_examples`, `user_settings.email_reminders`; gỡ `resend`; sửa khoá trùng trong `tenseExamples.js`. Xem mục 3.2 và 6. |
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
@@ -60,10 +61,10 @@ Cách chạy migration khi có proxy (ví dụ): mở `cloud-sql-proxy.x86.exe f
 
 - Header khi **đã đăng nhập** (4 tab + avatar) tràn ngang trên điện thoại (434px/375px) → ở ≤560px tab xuống hàng dưới, chia đều (`.dash-nav__tabs--day-du`); đã kiểm tra 320px, 375px, desktop, khách, `/login`.
 
-Phát hiện, **chưa sửa**:
-- Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401 trong console (không vỡ luồng).
-- Mở chatbot khi đang ở câu gõ từ/nghe viết thì gợi ý "Giải thích từ "family"" lộ đáp án.
-- Ô chọn bộ từ ở `/practice` trên điện thoại hẹp, tên bộ bị cắt.
+Phát hiện lúc đó, **đã sửa ở bước 13** (2026-09-27):
+- Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401: giờ bỏ qua khi chưa có token (`useLuuKetQuaPhien`, `mistakeNotebook.luuTuSaiDongBo`).
+- Chatbot lộ đáp án ("Giải thích từ "family"" khi đang gõ từ): trang Quiz / Tự luận / Ôn tập chỉ báo thẻ cho chatbot **sau khi trả lời**; Nối từ không báo thẻ.
+- Ô chọn bộ ở `/practice` cắt tên dài trên điện thoại: màn < 480px hiện đủ tên bộ đang chọn ngay dưới ô.
 
 Còn **chưa thử** (cần tài khoản): `/review`, `/practice` khi đăng nhập, Thêm nhanh (dán + AI Gemini). Danh sách gốc:
 - Mỗi chế độ: làm hết phiên → "Làm lại câu sai". Nghe viết: máy có tự đọc khi sang câu (trình duyệt có thể chặn autoplay). Hỗn hợp: chọn sai câu trắc nghiệm rồi Enter → câu quay lại sau ~5 câu. Nối từ: bộ có 2 từ trùng nghĩa phải ghép chéo được.
@@ -109,10 +110,8 @@ Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git
 
 ## 6. Vấn đề đã biết (có sẵn, không phải do các bước trên)
 
-- Frontend lint còn lỗi cũ: `react-hooks/set-state-in-effect` ở `TrangFlashcard.jsx`, `StudyResult.jsx` (`AnimatedNumber`), `BoCuc.jsx`, `TrangChiTietBo.jsx`, `RewardTikTokEffect.jsx`. CI đang để lint `continue-on-error`.
-- `resend` trong `backend/package.json` không dùng (email qua Nodemailer).
+- Frontend lint: còn 14 lỗi, **tất cả** là `react-hooks/set-state-in-effect` (code vẫn chạy đúng: tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng) ở `ChatbotWidget`, `PageLoadingOverlay`, `RewardTikTokEffect`, `AnimatedModal`, `BoCuc`, `StudyResult`, `TrangChiTietBo`, `TrangDanhSachBo`, `TrangFlashcard`, `TrangThemTu`, `TrangTuSai` + 8 cảnh báo `exhaustive-deps`. CI vẫn để lint `continue-on-error`. Đã sửa ở bước 13: khoá trùng `teach` và hàm thừa `getThirdPerson` (`data/tenseExamples.js`), chỉ thị eslint thừa.
 - Video reward ~70 MB trong `frontend/public/media/milestones/` và lịch sử git.
-- `schema.sql` chưa có `cards.tense_examples` và `user_settings.email_reminders` (thêm bằng script riêng — xem `PROJECT_CONTEXT.md`).
 - Migration 007 chưa được chạy thử trên MySQL thật (chỉ kiểm bằng lý luận + test JS của controller); nên thử trên bản sao DB trước khi chạy production.
 - Bảng `card_reviews` giữ lại để đối chiếu, code không còn đọc/ghi; có thể xoá sau khi xác nhận migration 007 đúng.
 

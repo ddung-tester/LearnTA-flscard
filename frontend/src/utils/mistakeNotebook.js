@@ -27,6 +27,7 @@ import {
   xoaMistake,
   xoaMistakes,
 } from "../services/mistakeApi";
+import { getStoredAuthToken } from "../services/api";
 import { themVaoSRS } from "./srsReview";
 
 const KHO_TU_SAI = "streak_drop_mistake_notebook_v1";
@@ -187,6 +188,8 @@ export function luuTuSai(cards, { deckId, deckTitle, source }) {
 
 export async function luuTuSaiDongBo(cards, opts) {
   luuTuSai(cards, opts);
+  // Khách: chỉ lưu trong trình duyệt, đăng nhập rồi learningSync mới đẩy lên
+  if (!getStoredAuthToken()) return;
 
   try {
     const tatCa = docTatCa();

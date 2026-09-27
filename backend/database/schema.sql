@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS cards (
 
   pronunciation VARCHAR(255),
   part_of_speech VARCHAR(50),
+  -- Câu mẫu 6 thì do AI sinh (scripts/add_tense_examples_column.js, seed-ai-examples.js)
+  tense_examples JSON NULL DEFAULT NULL,
 
   is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
@@ -310,6 +312,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
   random_order BOOLEAN NOT NULL DEFAULT FALSE,
   reward_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   reward_trigger_count INT UNSIGNED NOT NULL DEFAULT 10,
+  -- Nhắc học qua email (database/add_email_reminders.sql)
+  email_reminders BOOLEAN NOT NULL DEFAULT TRUE,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

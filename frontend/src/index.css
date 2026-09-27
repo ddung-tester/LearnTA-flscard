@@ -7718,6 +7718,19 @@ body.has-video-background--app .app-shell-header {
   max-width: none;
 }
 
+.practice-select__ten-day-du {
+  display: none;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--mau-chu-phu);
+}
+
+@media (max-width: 479px) {
+  .practice-select__ten-day-du {
+    display: block;
+  }
+}
+
 .practice-ready {
   font-size: 0.875rem;
   color: var(--mau-chu-phu);

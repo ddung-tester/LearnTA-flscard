@@ -6,7 +6,6 @@ import StudyResult from "../components/common/StudyResult";
 import ThanhTienDoPhien from "../components/common/ThanhTienDoPhien";
 import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
-import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useBoTuHoc from "../hooks/useBoTuHoc";
 import useCombo from "../hooks/useCombo";
 import useLuuKetQuaPhien from "../hooks/useLuuKetQuaPhien";
@@ -429,7 +428,6 @@ function TrangNoiTu() {
 
   return (
     <>
-      <ChatbotTheDangHoc the={dangChon?.the} />
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">

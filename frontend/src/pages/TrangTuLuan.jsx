@@ -1110,7 +1110,8 @@ function TrangTuLuan({ loai }) {
 
   return (
     <>
-      <ChatbotTheDangHoc the={theHienTai} />
+      {/* Chatbot chỉ biết thẻ sau khi kiểm tra đáp án, để gợi ý không lộ đáp án */}
+      <ChatbotTheDangHoc the={daKiemTra ? theHienTai : null} />
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">

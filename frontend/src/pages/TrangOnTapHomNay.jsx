@@ -306,6 +306,7 @@ function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) 
 
   return (
     <div className="review-card ui-content-enter">
+      {daChon !== null && <ChatbotTheDangHoc the={entry} />}
       <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
       <div className="review-card__word-section">
         <p className="review-card__term" lang="en">{entry.word}</p>
@@ -361,6 +362,7 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
 
   return (
     <div className="review-card ui-content-enter">
+      {ketQua && <ChatbotTheDangHoc the={entry} />}
       <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
       <div className="review-card__word-section">
         <p className="review-card__term">{entry.meaning}</p>
@@ -806,7 +808,8 @@ function TrangOnTapHomNay() {
 
   return (
     <div className="review-page ui-content-enter">
-      <ChatbotTheDangHoc the={currentEntry} />
+      {/* Chế độ thẻ: xem được cả hai mặt. Trắc nghiệm / gõ từ: thẻ tự báo chatbot sau khi trả lời */}
+      {cheDoHienTai === "the" && <ChatbotTheDangHoc the={currentEntry} />}
       {/* Header */}
       <div className="review-header">
         <div>

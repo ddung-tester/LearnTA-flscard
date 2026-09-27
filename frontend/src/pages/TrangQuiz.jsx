@@ -607,7 +607,8 @@ function TrangQuiz({ loai }) {
 
   return (
     <>
-      <ChatbotTheDangHoc the={cauHienTai?.the} />
+      {/* Chatbot chỉ biết thẻ sau khi trả lời, để gợi ý "Giải thích từ ..." không lộ đáp án */}
+      <ChatbotTheDangHoc the={daTraLoi ? cauHienTai?.the : null} />
       {hieuUngThuong}
       <div className="ui-study-session ui-quiz-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">

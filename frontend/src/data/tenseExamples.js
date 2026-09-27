@@ -60,7 +60,7 @@ const IRREGULAR_PAST = {
   understand: "understood", begin: "began", break: "broke", choose: "chose",
   cut: "cut", hit: "hit", let: "let", set: "set", fall: "fell", hold: "held",
   lose: "lost", ride: "rode", rise: "rose", spend: "spent", wear: "wore",
-  catch: "caught", fight: "fought", teach: "taught", throw: "threw",
+  catch: "caught", fight: "fought", throw: "threw",
   drive: "drove", forget: "forgot", grow: "grew", hide: "hid",
 };
 
@@ -155,18 +155,6 @@ const COMMON_ADJECTIVES = new Set([
 // ---------------------------------------------------------------------------
 // Hàm chia động từ
 // ---------------------------------------------------------------------------
-function getThirdPerson(verb) {
-  const v = verb.toLowerCase();
-  if (["go", "do"].includes(v)) return `${v}es`;
-  if (v.endsWith("s") || v.endsWith("sh") || v.endsWith("ch") || v.endsWith("x") || v.endsWith("z")) {
-    return `${v}es`;
-  }
-  if (v.endsWith("y") && !/[aeiou]y$/i.test(v)) {
-    return `${v.slice(0, -1)}ies`;
-  }
-  return `${v}s`;
-}
-
 function getIngForm(verb) {
   const v = verb.toLowerCase();
   if (v.endsWith("ie")) return `${v.slice(0, -2)}ying`;

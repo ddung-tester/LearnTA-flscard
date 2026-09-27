@@ -125,6 +125,7 @@ function TrangLuyenTap() {
     };
   }, [boId]);
 
+  const boDangChon = dsBo.danhSach.find((bo) => bo.id === boId) ?? null;
   const dangTaiThe = boId !== null && theCuaBo.boId !== boId;
   const danhSachThe = dangTaiThe ? DANH_SACH_RONG : theCuaBo.danhSach;
   const demFilter = useMemo(() => demTheoFilter(danhSachThe), [danhSachThe]);
@@ -195,6 +196,12 @@ function TrangLuyenTap() {
                     </optgroup>
                   ))}
                 </select>
+                {/* Ô chọn không xuống dòng được: màn hẹp hiện đủ tên bộ dài ngay bên dưới */}
+                {boDangChon && boDangChon.title.length > 26 && (
+                  <span className="practice-select__ten-day-du" aria-hidden="true">
+                    {boDangChon.title}
+                  </span>
+                )}
               </label>
 
               <NhomChip

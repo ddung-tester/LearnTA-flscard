@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getStoredAuthToken } from "../services/api";
 import { getUserStats } from "../services/userApi";
 import {
   ketThucStudySession,
@@ -46,8 +47,9 @@ export default function useLuuKetQuaPhien({
     ketQuaRef.current = { ketQua, onHoanThanh };
   });
 
-  // Lấy streak hiện tại làm mốc để phát hiện streak tăng sau khi học xong
+  // Lấy streak hiện tại làm mốc để phát hiện streak tăng sau khi học xong (khách không có streak)
   useEffect(() => {
+    if (!getStoredAuthToken()) return;
     getUserStats()
       .then((stats) => {
         prevStreakRef.current = stats.current_streak ?? 0;
@@ -132,6 +134,7 @@ export default function useLuuKetQuaPhien({
           await luuStudyAnswers(sessionId, kq.answers);
         }
 
+        if (!getStoredAuthToken()) return;
         try {
           const stats = await getUserStats();
           const newStreak = stats.current_streak ?? 0;
