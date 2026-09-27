@@ -17,5 +17,10 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Các chỗ còn vi phạm (tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng) vẫn chạy đúng;
+      // sửa hết phải viết lại ~10 file lớn. Để cảnh báo, còn lỗi lint khác thì CI chặn.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

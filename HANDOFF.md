@@ -110,10 +110,10 @@ Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git
 
 ## 6. Vấn đề đã biết (có sẵn, không phải do các bước trên)
 
-- Frontend lint: còn 14 lỗi, **tất cả** là `react-hooks/set-state-in-effect` (code vẫn chạy đúng: tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng) ở `ChatbotWidget`, `PageLoadingOverlay`, `RewardTikTokEffect`, `AnimatedModal`, `BoCuc`, `StudyResult`, `TrangChiTietBo`, `TrangDanhSachBo`, `TrangFlashcard`, `TrangThemTu`, `TrangTuSai` + 8 cảnh báo `exhaustive-deps`. CI vẫn để lint `continue-on-error`. Đã sửa ở bước 13: khoá trùng `teach` và hàm thừa `getThirdPerson` (`data/tenseExamples.js`), chỉ thị eslint thừa.
-- Video reward ~70 MB trong `frontend/public/media/milestones/` và lịch sử git.
+- Frontend lint: **0 lỗi** — CI giờ chặn khi có lỗi lint (đã bỏ `continue-on-error`). Quy tắc `react-hooks/set-state-in-effect` hạ thành **cảnh báo** trong `eslint.config.js` (người dùng chọn, 2026-09-27); còn 14 chỗ vi phạm (code vẫn chạy đúng: tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng) ở `ChatbotWidget`, `PageLoadingOverlay`, `RewardTikTokEffect`, `AnimatedModal`, `BoCuc`, `StudyResult`, `TrangChiTietBo`, `TrangDanhSachBo`, `TrangFlashcard`, `TrangThemTu`, `TrangTuSai` + 8 cảnh báo `exhaustive-deps`. Đã sửa ở bước 13: khoá trùng `teach` và hàm thừa `getThirdPerson` (`data/tenseExamples.js`), chỉ thị eslint thừa.
+- Video reward ~70 MB trong `frontend/public/media/milestones/` và lịch sử git — người dùng chọn **để nguyên** (2026-09-27).
 - Migration 007 chưa được chạy thử trên MySQL thật (chỉ kiểm bằng lý luận + test JS của controller); nên thử trên bản sao DB trước khi chạy production.
-- Bảng `card_reviews` giữ lại để đối chiếu, code không còn đọc/ghi; có thể xoá sau khi xác nhận migration 007 đúng.
+- Bảng `card_reviews` giữ lại để đối chiếu, code không còn đọc/ghi — người dùng chọn **giữ** (2026-09-27).
 
 ## 7. Plan đề xuất cho người làm tiếp
 

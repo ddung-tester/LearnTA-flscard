@@ -29,7 +29,7 @@ Tests: node:test (backend) + vitest (frontend), chay tren GitHub Actions
 ### Viec con ton dong
 
 - `TrangChiTietBo.jsx` (~1800 dong) va `TrangTuLuan.jsx` (~1300) van lon. Quiz va Tu luan da dung chung khung phien hoc (xem muc "Khung phien hoc"); phan con lai cua Tu luan chu yeu la logic go/goi y/nhap lai.
-- Frontend lint co 17 loi san (chu yeu `react-hooks/set-state-in-effect`, tap trung o `RewardTikTokEffect.jsx`). CI dang de lint `continue-on-error`.
+- Frontend lint: 0 loi; `react-hooks/set-state-in-effect` ha thanh canh bao (`eslint.config.js`, con 14 cho vi pham). CI chan khi co loi lint.
 - Dependency `resend` trong `backend/package.json` khong duoc dung (email gui qua Nodemailer/Gmail).
 - Video reward (~70 MB) nam trong `frontend/public/media/milestones/` va lich su git.
 
@@ -60,7 +60,7 @@ Tests: node:test (backend) + vitest (frontend), chay tren GitHub Actions
 
 ```txt
 LearnTA-flscard/
-  .github/workflows/ci.yml     CI: test + build FE/BE, lint FE (khong chan)
+  .github/workflows/ci.yml     CI: test + build FE/BE, lint FE (chan khi co loi)
   frontend/
     public/
       animation/ background/ sound/
