@@ -15,7 +15,7 @@ function taoBai() {
       lesson_number: 3,
       title: "Bài giả định",
       vocabulary: [
-        { word: "lamp", part_of_speech: "noun", meaning_vi: "cái đèn", pronunciation: "/læmp/" },
+        { word: "lamp", part_of_speech: "noun", meaning_vi: "cái đèn", pronunciation: "/læmp/", example: "The lamps were not on." },
         { word: "quiet", part_of_speech: "adjective", meaning_vi: "yên tĩnh" },
       ],
       grammar: [
@@ -91,7 +91,9 @@ test("chuanHoaBaiHoc merges answers into questions and keeps only usable theory"
     meaning_vi: "yên tĩnh",
     pronunciation: null,
     part_of_speech: "adjective",
+    example_sentence: null,
   });
+  assert.equal(bai.vocabulary[0].example_sentence, "The lamps were not on.");
   assert.deepEqual(bai.questions[0], {
     question_key: "quiz_1_01",
     source: "lesson",
@@ -140,7 +142,7 @@ test("kiemTraBaiHoc reports broken answers, ids and lesson numbers", () => {
 });
 
 function taoDbGia() {
-  const db = { courses: [], course_lessons: [], decks: [], cards: [], course_questions: [] };
+  const db = { courses: [], course_lessons: [], decks: [], cards: [], course_questions: [], giaiThichBiXoa: [] };
   let nextId = 1;
   const id = () => nextId++;
 
@@ -157,7 +159,13 @@ function taoDbGia() {
         return [db.decks.filter((row) => row.id === params[0] && row.user_id === params[1])];
       }
       if (sql.includes("FROM cards")) return [db.cards.filter((row) => row.deck_id === params[0])];
-      if (sql.startsWith("DELETE e FROM course_question_explanations")) return [{}];
+      if (sql.startsWith("SELECT") && sql.includes("FROM course_questions")) {
+        return [db.course_questions.filter((row) => row.lesson_id === params[0])];
+      }
+      if (sql.startsWith("DELETE FROM course_question_explanations")) {
+        db.giaiThichBiXoa.push(...params[0]);
+        return [{}];
+      }
       if (sql.startsWith("DELETE FROM course_questions")) {
         const truoc = db.course_questions.length;
         db.course_questions = db.course_questions.filter(
@@ -182,12 +190,15 @@ function taoDbGia() {
       }
       if (sql.startsWith("UPDATE decks")) return [{}];
       if (sql.startsWith("INSERT INTO cards")) {
-        const [meaning_vi, , , , deck_id, term_en] = params;
-        db.cards.push({ id: id(), deck_id, term_en, meaning_vi });
+        const [meaning_vi, , , , example_sentence, deck_id, term_en] = params;
+        db.cards.push({ id: id(), deck_id, term_en, meaning_vi, example_sentence });
         return [{}];
       }
       if (sql.startsWith("UPDATE cards")) {
-        db.cards.find((row) => row.id === params[4]).meaning_vi = params[0];
+        const the = db.cards.find((row) => row.id === params[5]);
+        the.meaning_vi = params[0];
+        // COALESCE(?, example_sentence): file không có câu ví dụ thì giữ câu cũ
+        if (params[4] !== null) the.example_sentence = params[4];
         return [{}];
       }
       if (sql.startsWith("INSERT INTO course_lessons")) {
@@ -200,12 +211,14 @@ function taoDbGia() {
         return [{}];
       }
       if (sql.startsWith("INSERT INTO course_questions")) {
-        const [lesson_id, question_key, , , , , prompt] = params;
+        const [lesson_id, question_key, , , type, instruction, prompt, options, answer_key, accepted_answers, explanation, , image_description] =
+          params;
+        const noiDung = { type, instruction, prompt, options, answer_key, accepted_answers, explanation, image_description };
         const hienCo = db.course_questions.find(
           (row) => row.lesson_id === lesson_id && row.question_key === question_key
         );
-        if (hienCo) hienCo.prompt = prompt;
-        else db.course_questions.push({ id: id(), lesson_id, question_key, prompt });
+        if (hienCo) Object.assign(hienCo, noiDung);
+        else db.course_questions.push({ id: id(), lesson_id, question_key, ...noiDung });
         return [{}];
       }
       throw new Error(`Unexpected execute: ${sql}`);
@@ -234,6 +247,8 @@ test("napBaiHoc gives the owner a private deck and is idempotent", async () => {
   files.exercises.questions.pop();
   files.answers.answers.pop();
   files.lesson.vocabulary[0].meaning_vi = "đèn";
+  delete files.lesson.vocabulary[0].example;
+  files.lesson.vocabulary[1].example = "It was quiet last night.";
   const lan2 = thongKeMoi();
   await napBaiHoc(conn, { userId: 9, khoaHoc, bai: chuanHoaBaiHoc(files) }, lan2);
 
@@ -245,4 +260,19 @@ test("napBaiHoc gives the owner a private deck and is idempotent", async () => {
     ["quiz_1_01"]
   );
   assert.equal(conn.db.cards.find((row) => row.term_en === "lamp").meaning_vi, "đèn");
+  assert.equal(conn.db.cards.find((row) => row.term_en === "lamp").example_sentence, "The lamps were not on.");
+  // Câu còn lại không đổi nội dung → giữ lời giải thích AI đã lưu
+  assert.deepEqual(conn.db.giaiThichBiXoa, []);
+
+  // Lần 3: sửa đề một câu → chỉ bỏ lời giải thích của câu đó
+  files.exercises.questions[0].prompt = "The lamp _____ off.";
+  await napBaiHoc(conn, { userId: 9, khoaHoc, bai: chuanHoaBaiHoc(files) }, thongKeMoi());
+  assert.deepEqual(conn.db.giaiThichBiXoa, [conn.db.course_questions[0].id]);
+  assert.equal(conn.db.cards.find((row) => row.term_en === "quiet").example_sentence, "It was quiet last night.");
+});
+
+test("kiemTraBaiHoc requires an example sentence to contain the word itself", () => {
+  const files = taoBai();
+  files.lesson.vocabulary[1].example = "The room was silent.";
+  assert.deepEqual(kiemTraBaiHoc(files, 3), ['Từ #2 "quiet": câu ví dụ không chứa chính từ này']);
 });

@@ -10,14 +10,26 @@ Mỗi bài một thư mục, **đặt trên máy, không push lên GitHub**:
 ```
 backend/database/private-content/khoa-hoc-48-ngay/
   bai-13/
-    lesson.json      lesson_number, title, vocabulary[{word, part_of_speech, meaning_vi, pronunciation}],
+    lesson.json      lesson_number, title, vocabulary[{word, part_of_speech, meaning_vi, pronunciation, example?}],
                      grammar[{id, title, pattern, rules[], examples[{en, vi}]}], learning_notes_vi[]
     exercises.json   lesson_number, questions[{id, source, section, type, prompt, options[{key, text}],
                      instruction?, image_description_vi?}]   type: multiple_choice | fill_blank | image_based_fill_blank
     answers.json     lesson_number, answers[{question_id, answer (chữ cái) | accepted_answers[], explanation_vi, provenance}]
 ```
 
-47 bài còn lại cứ giữ **đúng định dạng của bài 13** (cùng prompt đã tạo ra bài 13). Kiểm tra rồi nhập (trong `backend/`):
+47 bài còn lại cứ giữ **đúng định dạng của bài 13** (cùng prompt đã tạo ra bài 13), **thêm câu ví dụ** cho từ vựng: dán đoạn dưới vào cuối prompt đó.
+
+```text
+BỔ SUNG: mỗi phần tử trong "vocabulary" có thêm trường "example": 1 câu tiếng Anh ngắn (tối đa 10 từ) do bạn tự viết,
+chỉ dùng ngữ pháp đã học tới bài này, và PHẢI chứa nguyên văn chữ ở trường "word"
+(word = "child" thì câu phải có "child"). Không dùng lại câu có trong bài tập của bài.
+```
+
+`example` không bắt buộc, nhưng có thì từ vựng của buổi dùng được chế độ **Ngữ cảnh**. Câu ví dụ không chứa chính từ đó thì importer báo lỗi. Nhập lại một bài giữ nguyên tiến độ SRS, tiến độ bài tập và lời giải thích AI của những câu không đổi nội dung.
+
+Câu có `provenance` khác `answer_pdf` (ChatGPT tự suy ra đáp án vì tài liệu không có) được importer đếm và in ra — soát lại trước khi nhập. Bài 13: đã soát, cả 23 câu đúng.
+
+Kiểm tra rồi nhập (trong `backend/`):
 
 ```
 npm run nhap:khoa-hoc

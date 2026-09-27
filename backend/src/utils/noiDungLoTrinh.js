@@ -178,6 +178,7 @@ async function napNoiDungLoTrinh(connection, danhSachLoTrinh) {
 }
 
 module.exports = {
+  cauChuaTu,
   chuanHoaNoiDungLoTrinh,
   kiemTraNoiDungLoTrinh,
   napNoiDungLoTrinh,

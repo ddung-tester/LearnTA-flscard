@@ -4,6 +4,8 @@
 // câu hỏi theo question_key. Câu hỏi không còn trong file bị xoá; từ vựng thì không xoá
 // (người học có thể đã có tiến độ SRS trên các từ đó).
 
+const { cauChuaTu } = require("./noiDungLoTrinh");
+
 const MA_CAU_HOP_LE = /^[a-z0-9_-]{1,80}$/i;
 // image_based_fill_blank: vẫn là điền từ, ảnh gốc chỉ còn mô tả
 const LOAI_CAU = {
@@ -107,6 +109,8 @@ function chuanHoaBaiHoc({ lesson, exercises, answers }) {
       meaning_vi: chuoi(tu?.meaning_vi),
       pronunciation: chuoi(tu?.pronunciation) || null,
       part_of_speech: chuoi(tu?.part_of_speech) || null,
+      // Câu ví dụ (không bắt buộc): có thì từ vựng dùng được chế độ Ngữ cảnh
+      example_sentence: chuoi(tu?.example) || null,
     })),
     questions: (Array.isArray(exercises?.questions) ? exercises.questions : []).map((cau, index) =>
       chuanHoaCauHoi(cau, dapAnTheoCau.get(chuoi(cau?.id)), index)
@@ -140,6 +144,10 @@ function kiemTraBaiHoc(files, soBai) {
     if (!tu.term_en || !tu.meaning_vi) loi.push(`${noi}: thiếu từ hoặc nghĩa`);
     for (const [truong, toiDa] of Object.entries(GIOI_HAN_TU)) {
       if ((tu[truong] || "").length > toiDa) loi.push(`${noi}: ${truong} quá ${toiDa} ký tự`);
+    }
+    // Chế độ Ngữ cảnh che chính từ trong câu ví dụ → câu phải chứa từ
+    if (tu.example_sentence && tu.term_en && !cauChuaTu(tu.example_sentence, tu.term_en)) {
+      loi.push(`${noi}: câu ví dụ không chứa chính từ này`);
     }
     const khoa = tu.term_en.toLowerCase();
     if (tuDaCo.has(khoa)) loi.push(`${noi}: bị trùng`);
@@ -218,18 +226,22 @@ async function napBoTuCuaBai(connection, { userId, bai, deckIdCu, tieuDeKhoa }, 
 
   for (const [index, tu] of bai.vocabulary.entries()) {
     const cardId = theoTu.get(tu.term_en.toLowerCase());
-    const noiDung = [tu.meaning_vi, tu.pronunciation, tu.part_of_speech, index];
+    const noiDung = [tu.meaning_vi, tu.pronunciation, tu.part_of_speech, index, tu.example_sentence];
 
     if (cardId) {
+      // File không có câu ví dụ thì giữ câu đang có (vd. đã sinh bằng AI)
       await connection.execute(
-        "UPDATE cards SET meaning_vi = ?, pronunciation = ?, part_of_speech = ?, sort_order = ? WHERE id = ?",
+        `UPDATE cards
+         SET meaning_vi = ?, pronunciation = ?, part_of_speech = ?, sort_order = ?,
+             example_sentence = COALESCE(?, example_sentence)
+         WHERE id = ?`,
         [...noiDung, cardId]
       );
       thongKe.tuCapNhat += 1;
     } else {
       await connection.execute(
-        `INSERT INTO cards (meaning_vi, pronunciation, part_of_speech, sort_order, deck_id, term_en)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO cards (meaning_vi, pronunciation, part_of_speech, sort_order, example_sentence, deck_id, term_en)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [...noiDung, deckId, tu.term_en]
       );
       thongKe.tuMoi += 1;
@@ -239,14 +251,38 @@ async function napBoTuCuaBai(connection, { userId, bai, deckIdCu, tieuDeKhoa }, 
   return deckId;
 }
 
+// Những gì lời giải thích AI dựa vào (aiService.buildCourseExplanationPrompt); đổi thì giải thích cũ hết đúng
+function noiDungGiaiThich(cau) {
+  const mang = (value) => (typeof value === "string" ? JSON.parse(value) : value) || [];
+  return JSON.stringify([
+    cau.type,
+    cau.instruction || null,
+    cau.prompt,
+    cau.image_description || null,
+    cau.explanation || null,
+    mang(cau.options).map((luaChon) => [luaChon.key, luaChon.text]),
+    cau.answer_key || null,
+    mang(cau.accepted_answers),
+  ]);
+}
+
 async function napCauHoi(connection, lessonId, questions, thongKe) {
-  // Nội dung câu có thể đã đổi: bỏ lời giải thích AI cũ của bài này
-  await connection.query(
-    `DELETE e FROM course_question_explanations e
-     JOIN course_questions q ON q.id = e.question_id
-     WHERE q.lesson_id = ?`,
+  // Chỉ bỏ lời giải thích AI đã lưu của câu có nội dung đổi; câu giữ nguyên thì dùng lại (đỡ gọi Gemini)
+  const [cauCu] = await connection.query(
+    `SELECT id, question_key, type, instruction, prompt, image_description, explanation,
+            options, answer_key, accepted_answers
+     FROM course_questions
+     WHERE lesson_id = ?`,
     [lessonId]
   );
+  const cuTheoMa = new Map(cauCu.map((cau) => [cau.question_key, cau]));
+  const idCauDoi = questions
+    .map((cau) => [cuTheoMa.get(cau.question_key), cau])
+    .filter(([cu, moi]) => cu && noiDungGiaiThich(cu) !== noiDungGiaiThich(moi))
+    .map(([cu]) => cu.id);
+  if (idCauDoi.length > 0) {
+    await connection.query("DELETE FROM course_question_explanations WHERE question_id IN (?)", [idCauDoi]);
+  }
 
   for (const cau of questions) {
     await connection.execute(
