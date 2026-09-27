@@ -1,126 +1,122 @@
 # HANDOFF.md — Bàn giao cho AI/dev làm tiếp
 
-> Cập nhật: 2026-09-26. Đọc file này TRƯỚC, rồi đọc `CLAUDE.md` (quy tắc làm việc), `PROJECT_CONTEXT.md` (trạng thái kỹ thuật chi tiết), `PRODUCT.md` (định hướng sản phẩm), `README.md` (chạy local + deploy).
+> Cập nhật: 2026-09-27. Đọc file này TRƯỚC, rồi đọc `CLAUDE.md` (quy tắc làm việc), `PROJECT_CONTEXT.md` (trạng thái kỹ thuật chi tiết), `PRODUCT.md` (định hướng sản phẩm), `README.md` (chạy local + deploy).
 
 ## 1. Mục tiêu
 
 Người dùng (chủ dự án) muốn website **giống luyentu.com "từ trải nghiệm đến phương thức học"**, và đã chọn **"giống tất cả"** (cả phương pháp học lẫn game hóa). Được phép sửa DB + BE + FE. **Bắt buộc giữ** phần hiển thị câu mẫu và 6 thì (`TenseExamplesCard`, `data/tenseExamples.js`).
 
+Ngoài ra người dùng đang tự học một **khoá 48 buổi** (tài liệu PDF trả phí của bên khác) ngay trong app — khoá này chỉ chủ tài khoản xem được (mục 2).
+
 Cách phân tích luyentu: SPA nên đọc mã bundle JS công khai của họ. **Không được sao chép dữ liệu, tên, ảnh, câu chữ của luyentu** (bản quyền) — nội dung lộ trình do dự án tự soạn.
 
-Ngôn ngữ giao tiếp với người dùng: **tiếng Việt**. Giữ phong cách đặt tên tiếng Việt (không dấu) trong code và văn bản tiếng Việt có dấu cho UI.
+Ngôn ngữ giao tiếp với người dùng: **tiếng Việt**. Giữ phong cách đặt tên tiếng Việt (không dấu) trong code và văn bản tiếng Việt có dấu cho UI. Làm việc trực tiếp trên `main` (không branch/PR); push `main` là deploy cả frontend lẫn backend (mục 5).
 
-## 2. Đã làm (tất cả đã commit + push lên `origin/main`)
+## 2. Cấu trúc sản phẩm (chốt với người dùng 2026-09-27)
+
+Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **mỗi bộ có đúng 1 nguồn** — nguồn quyết định bộ hiện ở đâu, sửa được không, "quay lại" về đâu:
+
+| Nguồn (`source`) | Là gì | Hiện ở | Sửa được |
+|---|---|---|---|
+| `course` | từ vựng 1 buổi của khoá học riêng (`course_lessons.deck_id`) | tab **Khoá học** → buổi học | **Không** (script nhập quản lý); chủ khoá vẫn thả tim |
+| `roadmap` | chặng của lộ trình công khai (`roadmap_decks`) | tab **Khoá học** → lộ trình | Không (bộ mẫu `user_id NULL`) |
+| `user` | bộ người dùng tự tạo | tab **Bộ từ** | Chủ bộ |
+| `sample` | bộ mẫu cũ ngoài lộ trình | — (production không còn) | Không |
+
+- Header khi đăng nhập: **Dashboard · Khoá học · Bộ từ · Luyện tập** (khách: chỉ Khoá học). `/roadmap` chuyển hướng về `/khoa-hoc`.
+- **Luyện tập** (`/practice`) và **Ôn tập** (`/review`, SRS) dùng chung cho mọi nguồn; ô chọn bộ ở `/practice` nhóm theo nguồn.
+- Khoá học: trang khoá (lịch 48 ô, "Học tiếp Buổi X", "Ôn N câu sai") → buổi học (Từ vựng · Lý thuyết · Bài tập có AI giải thích) → ôn câu sai theo SRS (`/khoa-hoc/on-tap`). Tiến độ buổi = từ đã học + câu đang đúng; câu **luyện thêm** do AI sinh là tuỳ chọn, không tính vào tiến độ.
+
+## 3. Đã làm (tất cả đã commit + push lên `origin/main`, đã chạy trên production)
 
 | Bước | Nội dung | Ghi chú chính |
 |---|---|---|
 | 1 | **Gộp SRS về một luật** | Lv0–Lv5, khoảng ôn 0/1/3/7/14/30 ngày (Lv≥1 đến hạn 00:00 giờ VN). Đúng +1 cấp, sai −1 cấp và ôn ngay. Luật ở `backend/src/utils/srs.js`, bản sao ở `frontend/src/utils/srsReview.js`. Nguồn duy nhất: bảng `card_progress`. Bảng `card_reviews` bỏ dùng (migration 007 gộp dữ liệu). Lv5 vẫn quay lại khi đến hạn. `/review` đổi 4 nút Lại/Khó/Ổn/Dễ thành Quên/Thuộc + chọn Lv0–5. |
-| 2 | **Khung phiên học dùng chung** | `utils/phienHoc.js`, hooks `useBoTuHoc` / `usePhanThuongPhien` / `useLuuKetQuaPhien`, components `TheCauHoiPhien`, `ThanhTienDoPhien`, `CaiDatPhienHoc`, `TheTrangThaiPhien`, `PhanHoiDung` (câu mẫu + 6 thì), `DanhSachDapAn`. `TrangQuiz` 1371→~690 dòng. `StudyResult`: danh sách đúng/sai kèm level mới, "Làm lại câu sai". |
+| 2 | **Khung phiên học dùng chung** | `utils/phienHoc.js`, hooks `useBoTuHoc` / `usePhanThuongPhien` / `useLuuKetQuaPhien`, components `TheCauHoiPhien`, `ThanhTienDoPhien`, `CaiDatPhienHoc`, `TheTrangThaiPhien`, `PhanHoiDung` (câu mẫu + 6 thì), `DanhSachDapAn`. `StudyResult`: danh sách đúng/sai kèm level mới, "Làm lại câu sai". |
 | 3 | **4 chế độ mới** | Nghe viết (`/nghe-viet`, TrangTuLuan loai="nghe-viet"), Ngữ cảnh (`/ngu-canh`, TrangQuiz loai="ngu-canh"), Nối từ (`/noi-tu`, TrangNoiTu), Hỗn hợp (`/hon-hop`, TrangTuLuan loai="hon-hop"). Migration 008 mở rộng ENUM `mode`/`question_type`. |
-| 4 | **Trang Luyện tập + ôn theo level** | `/practice` (chọn bộ, lọc Tất cả/Chưa học/Đã học, Ngẫu nhiên/Theo thứ tự, 10–200 từ, chọn chế độ). URL học nhận `?filter=&sort=&q=&n=&random=`. `/review`: mỗi level chọn chế độ Thẻ/Trắc nghiệm/Gõ từ (mặc định Lv0 thẻ, Lv1–2 trắc nghiệm, Lv3–5 gõ; từ Lv3 tắt gợi ý). Sửa lỗi "ngẫu nhiên" ra cùng thứ tự mỗi lần (seed `taoHatGiong`). |
-| 5 | **Lộ trình** | `/roadmap`, `/roadmap/:slug`, API `GET /api/roadmaps[/:slug]`, bảng `roadmaps` + `roadmap_decks` (migration 009). 3 lộ trình × 4 chặng × 20 từ = **240 từ tự soạn** trong `backend/database/content/lo-trinh.json`. Nạp bằng `npm run seed:roadmaps` (chạy lại an toàn, không xoá từ cũ). `GET /decks` **không** trả các bộ thuộc lộ trình. |
+| 4 | **Trang Luyện tập + ôn theo level** | `/practice` (chọn bộ, lọc Tất cả/Chưa học/Đã học, Ngẫu nhiên/Theo thứ tự, 10–200 từ, chọn chế độ). URL học nhận `?filter=&sort=&q=&n=&random=`. `/review`: mỗi level chọn chế độ Thẻ/Trắc nghiệm/Gõ từ (mặc định Lv0 thẻ, Lv1–2 trắc nghiệm, Lv3–5 gõ; từ Lv3 tắt gợi ý). |
+| 5 | **Lộ trình** | `/roadmap/:slug` (danh sách nay nằm trong tab Khoá học, bước 8), API `GET /api/roadmaps[/:slug]`, bảng `roadmaps` + `roadmap_decks` (migration 009). 3 lộ trình × 4 chặng × 20 từ = **240 từ tự soạn** trong `backend/database/content/lo-trinh.json`, nạp bằng `npm run seed:roadmaps` (chạy lại an toàn). `tense_examples` của 240 từ đã sinh bằng `node scripts/seed-ai-examples.js --apply` — thêm từ lộ trình mới thì chạy lại (chỉ điền thẻ còn `NULL`). |
 | 6 | **Thêm từ nhanh** | Nút "Thêm nhanh" ở trang chi tiết bộ: tab dán danh sách (`từ \| /phiên âm/ \| loại từ \| nghĩa \| ví dụ \| ghi chú`, vẫn nhận "từ - nghĩa", dán từ Excel, có prompt ChatGPT) và tab AI tạo từ theo chủ đề/đoạn văn (`POST /api/cards/generate-words`, Gemini, rate limit 15 req/10 phút). Loại từ trùng. |
+| 7 | **Khoá học riêng (48 buổi)** | Tài liệu PDF là khoá trả phí của bên khác → **chỉ chủ tài khoản học**: mọi thứ gắn `user_id` chủ khoá, người khác nhận 404; nội dung nằm ở `backend/database/private-content/` (`.gitignore`, KHÔNG commit). Migration 010 (4 bảng `course*`), `utils/khoaHoc.js` + `scripts/nhap-khoa-hoc.js`, API `/courses`, `/course-questions/:id/explain` (Gemini, cache, tự chuyển model lite khi model chính 503). FE `/khoa-hoc/:courseId/bai/:soBai` (Từ vựng · Lý thuyết · Bài tập; trả lời xong AI giải thích ngay dưới). |
+| 8 | **Mỗi bộ từ có đúng 1 nguồn** | Xem mục 2. `deckController` trả `source` + `parent` (suy ra từ bảng nối, không thêm cột). `GET /decks` khi đăng nhập chỉ trả bộ tự tạo (đúng `CLAUDE.md`); `GET /decks?scope=learnable` cho `/practice`. Tab Khoá học (`/khoa-hoc`, public) gộp khoá riêng + lộ trình, `TrangLoTrinh.jsx` bị xoá. Trang chi tiết bộ quay lại đúng buổi / chặng (`utils/nguonBoTu.js`). |
+| 9 | **Tiến độ theo buổi** | Migration 011 (`course_question_progress`): mỗi câu trả lời gửi `POST /course-questions/:id/answer`, server tự chấm, lưu kết quả lần gần nhất. `GET /courses` trả từ đã học/đã thuộc + câu đã làm/đúng mỗi buổi. Trang khoá: "Học tiếp / Bắt đầu Buổi X" (buổi gần nhất đang học dở, xong thì buổi kế), lịch 48 ô (xanh = xong, khoanh đỏ = học tiếp). Bài tập mở sẵn phần **"Còn lại"** khi đã làm dở. Dashboard dẫn thẳng tới buổi học tiếp. |
+| 10 | **Câu ví dụ + soát đáp án** | `lesson.json` nhận `vocabulary[].example` (không bắt buộc, phải chứa chính từ) → `cards.example_sentence`, mở được chế độ Ngữ cảnh. Bài 13: đã thêm 11 câu ví dụ tự soạn và nhập lại. Nhập lại chỉ xoá lời giải thích AI của câu đổi nội dung. Đã soát 23 câu đáp án ChatGPT tự suy ra ở bài 13: **đúng cả 23**. |
+| 11 | **Bài luyện thêm do AI sinh** | `npm run sinh:luyen-them -- --bai=XX` (Gemini) → `bai-XX/extra.json` để soát; importer nhập kèm (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Không tính vào tiến độ, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: 40 câu, đã soát từng câu (đúng cả 40). |
+| 12 | **Ôn câu bài tập theo SRS + thống kê** | Migration 012: `course_question_progress.mastery_level`, `next_review_at`. Câu vào lịch ôn khi trả lời **sai** (`utils/khoaHoc.lichOnCauHoi`, cùng luật `srs.js`); đúng ngay lần đầu thì không bị hỏi lại. `GET /course-questions/due`, `due_count` mỗi buổi. Trang `/khoa-hoc/on-tap` (`TrangOnCauHoi`, `BaiTapKhoaHoc onTap`). Lối vào: trang khoá, Dashboard, `/review`, `/stats` (có thêm khối Khoá học). Câu ôn **không** gộp vào hàng đợi thẻ của `/review`. |
+| 13 | **Sửa lỗi đã biết + dọn nợ** | Khách không còn gọi `/user/stats`, `/mistakes/bulk` (hết 401). Chatbot chỉ biết thẻ **sau khi trả lời** ở Quiz / Tự luận / Ôn tập, Nối từ không báo thẻ (hết lộ đáp án). `/practice` hiện đủ tên bộ dài dưới ô chọn trên màn < 480px. `schema.sql` đủ cột; gỡ `resend`; sửa khoá trùng `teach` trong `tenseExamples.js`. Lint 0 lỗi, CI chặn lint (mục 8). |
 
-Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vite build` OK. Lint frontend không có lỗi mới (còn lỗi cũ, xem mục 6).
+## 4. Việc treo / chưa làm — ưu tiên từ trên xuống
 
-| 7 | **Khoá học riêng (48 buổi)** — 2026-09-27 | Tài liệu PDF là khoá học trả phí độc quyền của bên khác → người dùng chọn **chỉ mình họ học**: mọi thứ gắn `user_id` chủ khoá, người khác nhận 404; nội dung nằm ở `backend/database/private-content/` (`.gitignore`, KHÔNG commit). Migration 010 (4 bảng `course*`), `utils/khoaHoc.js` + `scripts/nhap-khoa-hoc.js`, API `/courses`, `/course-questions/:id/explain` (Gemini, cache, tự chuyển model lite khi model chính 503). FE `/khoa-hoc`, `/khoa-hoc/:courseId/bai/:soBai` (Lý thuyết · Từ vựng · Bài tập; trả lời xong AI giải thích ngay dưới), lối vào ở Dashboard. |
-| 8 | **Sắp lại cấu trúc: mỗi bộ từ có đúng 1 nguồn** — 2026-09-27 | `deckController` trả `source` (`user`/`sample`/`course`/`roadmap`, suy ra từ `roadmap_decks`/`course_lessons`) + `parent`. Tab **"Khoá học"** (`/khoa-hoc`, public) gộp khoá riêng + lộ trình; `/roadmap` chuyển hướng về đó, `TrangLoTrinh.jsx` bị xoá. **"Bộ từ"** khi đăng nhập chỉ còn bộ tự tạo (bỏ bộ khoá học, bộ mẫu, bộ public của người khác — đúng `CLAUDE.md`). `/practice` dùng `GET /decks?scope=learnable`, ô chọn nhóm theo nguồn (bỏ mẹo chèn bộ `?bo=`). Bộ khoá học **chỉ đọc** (403 khi sửa/xoá/thêm từ), chủ khoá vẫn thả tim được. Trang chi tiết bộ: nút quay lại về đúng buổi / chặng (`utils/nguonBoTu.js`). Đã tự deploy (revision `flashcard-backend-00088`), smoke test production OK. |
-| 9 | **Tiến độ theo buổi (khoá học)** — 2026-09-27 | Migration **011** (`course_question_progress`, **đã chạy** trên Cloud SQL): mỗi câu trả lời gửi `POST /course-questions/:id/answer`, server tự chấm và lưu kết quả lần gần nhất. `GET /courses` trả thêm từ đã học/đã thuộc + câu đã làm/đúng mỗi buổi. Trang Khoá học: nút "Học tiếp / Bắt đầu Buổi X" (buổi gần nhất đang học dở, xong thì buổi kế), lịch 48 ô tô xanh buổi đã xong + khoanh đỏ buổi học tiếp, thẻ buổi có tiến độ. Trang buổi: bước Từ vựng / Bài tập hiện "x/y"; bài tập mở sẵn phần **"Còn lại"** (câu chưa đúng) khi đã làm dở. Dashboard dẫn thẳng tới buổi học tiếp. |
-| 10 | **Nội dung khoá: câu ví dụ + soát đáp án** — 2026-09-27 | `lesson.json` nhận `vocabulary[].example` (không bắt buộc, phải chứa chính từ) → `cards.example_sentence`, mở được chế độ Ngữ cảnh. Bài 13: đã thêm 11 câu ví dụ tự soạn và **nhập lại** lên Cloud SQL. Nhập lại giờ chỉ xoá lời giải thích AI của câu đổi nội dung (trước xoá cả bài). Đã soát 23 câu đáp án ChatGPT tự suy ra ở bài 13: **đúng cả 23**. Đoạn prompt bổ sung cho ChatGPT ở `docs/khoa-hoc-48-ngay.md`. |
-| 11 | **Bài luyện thêm do AI sinh** — 2026-09-27 | `npm run sinh:luyen-them -- --bai=XX` (Gemini, model chính 503 thì tự chuyển lite) → `bai-XX/extra.json` để soát; importer nhập kèm nếu có (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Câu luyện thêm **không** tính vào tiến độ buổi, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: đã sinh 40 câu, soát từng câu (đúng cả 40). Thư mục dùng chung cho 2 script: `scripts/thuMucKhoaHoc.js`. |
-| 12 | **Ôn câu bài tập theo SRS + thống kê khoá học** — 2026-09-27 | Migration **012** (**đã chạy**): `course_question_progress.mastery_level`, `next_review_at`. Câu vào lịch ôn khi trả lời **sai** (`utils/khoaHoc.lichOnCauHoi`, cùng luật `srs.js` với từ vựng); làm đúng ngay lần đầu thì không bị hỏi lại. `GET /course-questions/due` (tối đa 100 câu), `GET /courses` thêm `due_count` mỗi buổi. Trang **`/khoa-hoc/on-tap`** (`TrangOnCauHoi`, dùng `BaiTapKhoaHoc onTap`). Lối vào: nút "Ôn N câu sai" ở trang Khoá học, mục trên Dashboard, nút trên `/review`, nút + khối **Khoá học** ở `/stats`. Câu ôn không gộp chung hàng đợi thẻ của `/review` (trang đó ~900 dòng chỉ xử lý thẻ từ). |
-| 13 | **Sửa lỗi đã biết + dọn nợ** — 2026-09-27 | Khách không còn gọi API cần đăng nhập sau phiên học (hết 401); chatbot chỉ biết thẻ sau khi trả lời (hết lộ đáp án); `/practice` hiện đủ tên bộ dài trên điện thoại; `schema.sql` thêm `cards.tense_examples`, `user_settings.email_reminders`; gỡ `resend`; sửa khoá trùng trong `tenseExamples.js`. Xem mục 3.2 và 6. |
+### 4.1 Nội dung khoá 48 ngày — CHỜ NGƯỜI DÙNG
+Mới có **bài 13** (tài khoản `ddung.tester@gmail.com`). Người dùng trích 47 bài còn lại bằng ChatGPT theo đúng prompt đã tạo bài 13 + đoạn "BỔ SUNG" câu ví dụ trong `docs/khoa-hoc-48-ngay.md`, chép vào `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/`. Khi có bài mới, quy trình (trong `backend/`, cần proxy Cloud SQL):
+1. `npm run nhap:khoa-hoc -- --bai=XX` — kiểm tra file (không đụng DB); sửa lỗi nếu có.
+2. **Soát** các câu có `provenance` khác `answer_pdf` (ChatGPT tự suy ra đáp án; importer in số lượng).
+3. `npm run sinh:luyen-them -- --bai=XX` → soát `bai-XX/extra.json` (đáp án + giải thích).
+4. `npm run nhap:khoa-hoc -- --email=ddung.tester@gmail.com --apply --bai=XX`, rồi đọc lại DB kiểm tra.
+- Nên làm thử 1–2 bài trước để chắc định dạng. **Đừng để người dùng push file nội dung lên GitHub** (bài 13 từng bị push vào `docs/48day/`, đã gỡ nhưng vẫn còn trong lịch sử commit `b89f435`).
 
-## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
-
-### 3.0 Khoá học riêng
-- **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. Backend đã lên production (push `main` tự deploy, xem mục 3.1). Không cần migration mới cho bước 8.
-- 47 bài còn lại: người dùng trích bằng ChatGPT theo định dạng 3 file của bài 13 (xem `docs/khoa-hoc-48-ngay.md`), chép vào `private-content/khoa-hoc-48-ngay/bai-XX/`, rồi chạy `npm run nhap:khoa-hoc -- --email=... --apply`. Đừng để người dùng push file nội dung lên GitHub (bài 13 từng bị push vào `docs/48day/`, đã gỡ khỏi git nhưng vẫn còn trong lịch sử commit `b89f435`).
-- Bài 13: 23/43 câu (Quiz, Practice) có đáp án do ChatGPT tự suy ra vì tài liệu không có đáp án → **đã soát, đúng cả 23** (bước 10). Các bài sau: soát lúc nhập.
-- Bài luyện thêm: bài 13 đã có 40 câu (bước 11); các bài sau chạy `npm run sinh:luyen-them -- --bai=XX`, soát rồi nhập. Tiến độ bài tập đã lưu trên server (bước 9).
-- Câu ví dụ từ vựng: bài 13 đã có (bước 10); các bài sau lấy từ trường `example` khi trích. `npm run seed:ai-examples -- --apply` vẫn dùng để sinh "Ví dụ 6 thì" (`tense_examples`).
-
-### 3.1 Deploy — ĐÃ XONG (2026-09-26)
-**Push lên `main` tự deploy cả hai**: frontend qua Vercel, backend qua trigger Cloud Build `^main$` → Cloud Run `flashcard-backend` (trigger cấu hình trên GCP, không nằm trong repo). Kiểm tra bằng `gcloud builds list --limit 2` (cột COMMIT_SHA). **Migration không tự chạy** — chạy tay trước khi push code cần bảng/cột mới. Phần "thứ tự bắt buộc" dưới đây viết khi còn deploy tay, giữ để tham khảo.
-Người dùng tự chạy migration 007/008/009 và deploy backend (revision `flashcard-backend-00078`). Seed lộ trình đã chạy (`npm run seed:roadmaps` qua proxy: 3 lộ trình, 12 bộ, 240 từ). Smoke test OK: `/api/health`, `/api/db-test`, `/api/roadmaps` trả 3 lộ trình. Proxy chạy được bằng `cloud-sql-proxy.x86.exe` (ADC của gcloud đã có trên máy) hoặc cấu hình `cloud-sql-proxy` trong `.claude/launch.json`. Phần dưới giữ lại để tham khảo khi deploy lần sau.
-
-**Thứ tự bắt buộc:**
-1. Chạy migration **007 → 008 → 009** (`backend/database/migrations/`) lên Cloud SQL. Nếu deploy BE trước khi có 009, `GET /decks` sẽ lỗi (truy vấn đọc `roadmap_decks`).
-2. Deploy backend: `cd backend && gcloud run deploy <tên-service> --source . --region asia-southeast1` (env var đã set sẵn trên Cloud Run, xem `README.md`).
-3. Chạy `npm run seed:roadmaps` trong `backend/` (qua proxy) để nạp 240 từ.
-4. Kiểm tra: `/api/health`, `/api/db-test`, `/api/roadmaps`, mở `/roadmap` và `/practice` trên Vercel.
-
-Cách chạy migration khi có proxy (ví dụ): mở `cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307`, rồi chạy file SQL bằng client MySQL hoặc script Node (mẫu kết nối: `backend/scripts/run-migration.js`, đọc `DB_*` từ `.env`). Migration 007 có sẵn kịch bản kiểm thử logic (bảng tạm) — nên thử trên DB tạm trước.
-
-### 3.2 Kiểm tra bằng trình duyệt thật — đã thử phần khách (2026-09-26)
-Đã bấm thử trên production ở chế độ **khách**: `/roadmap`, `/roadmap/:slug`, `/practice?bo=`, Nối từ (ghép sai/đúng, 2 vòng, kết quả, "Làm lại câu sai"), Hỗn hợp (câu sai quay lại sau 5 câu, "Làm lại câu sai"), Ngữ cảnh (240 câu đều che đúng từ), Nghe viết (tự đọc khi sang câu), responsive điện thoại `/practice` + `/roadmap`. Đã sửa:
-- Xáo trộn "ngẫu nhiên" ra từng cụm id liền nhau (FNV-1a không trộn ký tự cuối; 2 cột Nối từ gần như thẳng hàng) → thêm bước trộn fmix32 trong `taoSoTuSeed`.
-- Gõ nghĩa bắt gõ nguyên chuỗi "anh trai, em trai" → `khopDapAn` nhận một nghĩa bất kỳ (tách `,` `;` `/`).
-- Khách không tìm được nội dung mẫu (production không còn deck mẫu nào ngoài lộ trình, `GET /decks` bỏ bộ lộ trình) → khách thấy tab "Lộ trình" trên header, nút phụ trang chủ đổi thành "Xem lộ trình học" → `/roadmap`. Màn ≤420px ẩn chữ "Streak Drop" (vẫn `sr-only`) để header không tràn.
-- "Ví dụ 6 thì" của 240 từ lộ trình là câu khuôn mẫu vô nghĩa → đã sinh `tense_examples` bằng `node scripts/seed-ai-examples.js --apply` (Gemini). Khi thêm từ lộ trình mới, chạy lại script này (chỉ điền thẻ còn `NULL`).
-
-- Header khi **đã đăng nhập** (4 tab + avatar) tràn ngang trên điện thoại (434px/375px) → ở ≤560px tab xuống hàng dưới, chia đều (`.dash-nav__tabs--day-du`); đã kiểm tra 320px, 375px, desktop, khách, `/login`.
-
-Phát hiện lúc đó, **đã sửa ở bước 13** (2026-09-27):
-- Khách làm bài gọi `/user/stats` và `/mistakes/bulk` → 401: giờ bỏ qua khi chưa có token (`useLuuKetQuaPhien`, `mistakeNotebook.luuTuSaiDongBo`).
-- Chatbot lộ đáp án ("Giải thích từ "family"" khi đang gõ từ): trang Quiz / Tự luận / Ôn tập chỉ báo thẻ cho chatbot **sau khi trả lời**; Nối từ không báo thẻ.
-- Ô chọn bộ ở `/practice` cắt tên dài trên điện thoại: màn < 480px hiện đủ tên bộ đang chọn ngay dưới ô.
-
-Còn **chưa thử** (cần tài khoản): `/review`, `/practice` khi đăng nhập, Thêm nhanh (dán + AI Gemini). Danh sách gốc:
-- Mỗi chế độ: làm hết phiên → "Làm lại câu sai". Nghe viết: máy có tự đọc khi sang câu (trình duyệt có thể chặn autoplay). Hỗn hợp: chọn sai câu trắc nghiệm rồi Enter → câu quay lại sau ~5 câu. Nối từ: bộ có 2 từ trùng nghĩa phải ghép chéo được.
+### 4.2 Chưa kiểm tra bằng tài khoản thật
+Các tính năng cần đăng nhập mới chỉ được bấm thử bằng **API giả chạy local** (dữ liệu tự soạn) + test; chưa bấm trên tài khoản thật: trang khoá / buổi học / luyện thêm / ôn câu sai / khối Khoá học ở `/stats`, `/review`, `/practice` khi đăng nhập, Thêm nhanh (dán + AI — **prompt AI tạo từ chưa thử với Gemini thật**). Checklist cũ còn giá trị:
+- Mỗi chế độ: làm hết phiên → "Làm lại câu sai". Nghe viết tự đọc khi sang câu (trình duyệt có thể chặn autoplay). Hỗn hợp: chọn sai câu trắc nghiệm rồi Enter → câu quay lại sau ~5 câu. Nối từ: 2 từ trùng nghĩa phải ghép chéo được.
 - `/practice`: đổi bộ/bộ lọc → số từ cập nhật; "20 từ + ngẫu nhiên" mở 2 lần ra 2 bộ khác nhau.
 - `/review`: đặt Lv0=Gõ từ, Lv1=Trắc nghiệm; trả lời sai → từ về cuối hàng.
-- Thêm nhanh (dán + AI) cần `GEMINI_API_KEY` thật — **prompt AI chưa được thử với Gemini thật**.
-- Responsive điện thoại của `/practice`, `/roadmap`.
 
-### 3.3 Game hóa (chưa làm — phần còn lại để "giống tất cả")
-Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +10, Nghe viết +15, Tổng hợp +20; làm lại không cộng), **cửa hàng** (avatar, hình nền, "Đá hồi streak" lấp 1 ngày trống trong 14 ngày qua), **bảng xếp hạng streak**, **chuỗi chung** với bạn bè (mời bằng email, khôi phục 500 xu), chat cộng đồng, nhắc học. **Xung đột định hướng**: `PRODUCT.md` đang ghi anti-reference "Heavy gamification (streaks, badges, excessive popups)". Người dùng đã chọn "giống tất cả" nên **phải sửa PRODUCT.md** trước/cùng khi làm. Hiện đã có: streak, combo, video reward (`RewardTikTokEffect`), `streak_logs`, `users.total_xp`. Đề xuất: bảng `user_coins`/`coin_transactions`, `shop_items`/`user_items`, cộng coin khi lưu phiên (chỉ lượt đầu, không cộng lượt làm lại), rồi shop, rồi leaderboard.
+### 4.3 Game hóa (chưa làm — phần còn lại để "giống tất cả")
+Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +10, Nghe viết +15, Tổng hợp +20; làm lại không cộng), **cửa hàng** (avatar, hình nền, "Đá hồi streak" lấp 1 ngày trống trong 14 ngày qua), **bảng xếp hạng streak**, **chuỗi chung** với bạn bè (mời bằng email, khôi phục 500 xu), chat cộng đồng, nhắc học. **Xung đột định hướng**: `PRODUCT.md` đang ghi anti-reference "Heavy gamification (streaks, badges, excessive popups)" → **phải chốt với người dùng và sửa PRODUCT.md** trước khi làm. Hiện đã có: streak, combo, video reward (`RewardTikTokEffect`), `streak_logs`, `users.total_xp`. Đề xuất: `user_coins`/`coin_transactions`, `shop_items`/`user_items`, cộng coin khi lưu phiên (chỉ lượt đầu), rồi shop, rồi leaderboard.
 
-### 3.4 Nội dung lộ trình
-240 từ mới là bộ khởi đầu. Muốn mở rộng: danh sách giấy phép mở (NGSL ~2.800 từ, TSL ~1.200 từ TOEIC, NAWL — CC BY-SA 4.0, phải ghi nguồn) chỉ có từ tiếng Anh, cần thêm nghĩa Việt + câu ví dụ (AI hoặc soạn tay). Có thể dùng chính tính năng "Tạo bằng AI" hoặc mở rộng `seed-roadmaps.js`. **Chưa hỏi/chốt nguồn với người dùng.** Test `noiDungLoTrinh.test.js` bắt buộc mỗi câu ví dụ chứa chính từ (để Ngữ cảnh dùng được) và số từ tổng = 240 (sửa con số này khi thêm nội dung).
+### 4.4 Nội dung lộ trình
+240 từ mới là bộ khởi đầu. Muốn mở rộng: danh sách giấy phép mở (NGSL ~2.800 từ, TSL ~1.200 từ TOEIC, NAWL — CC BY-SA 4.0, phải ghi nguồn) chỉ có từ tiếng Anh, cần thêm nghĩa Việt + câu ví dụ. **Chưa chốt nguồn với người dùng.** Test `noiDungLoTrinh.test.js` bắt buộc mỗi câu ví dụ chứa chính từ và tổng = 240 (sửa con số khi thêm nội dung).
 
-### 3.5 Khác luyentu (chưa làm, mức ưu tiên thấp)
-- Giới hạn 30 giây/câu ở Trắc nghiệm/Nghe/Gõ.
-- Nút "Dịch câu" ở Ngữ cảnh (thẻ chưa lưu bản dịch câu ví dụ; có thể dùng `tense_examples[].translation` hoặc thêm cột).
-- Nhóm "Đặc biệt": Flappy Bird, Giải cứu khỉ, Đặt câu (Đặt câu có thể dùng Gemini sẵn có).
-- Trắc nghiệm ở `/review`: đáp án nhiễu lấy từ chính hàng ôn (cần ≥4 từ, nếu không tự dùng Thẻ).
-- Import Excel/CSV (.xlsx), AI tạo từ từ **ảnh**, extension Chrome, PWA/cài như app, gói Pro/thanh toán, shared deck/copy bộ từ, thư viện cộng đồng, lớp học.
-- Dashboard/Home chưa có ô "Luyện tập"/"Lộ trình" nổi bật; `TrangChu` vẫn theo `PRODUCT.md` (entry point, không phải landing marketing).
-- `PROJECT_CONTEXT.md` mục "Việc còn tồn đọng" còn nhắc `TrangChiTietBo.jsx` (~1800 dòng) và `TrangTuLuan.jsx` (~1300 dòng) quá lớn.
+### 4.5 Khác (ưu tiên thấp)
+- Gộp câu bài tập đến hạn vào chung hàng đợi của `/review` (hiện là trang riêng `/khoa-hoc/on-tap`).
+- Nút "Sao chép sang bộ của tôi" cho bộ khoá học / lộ trình (bộ khoá học chỉ đọc).
+- Giới hạn 30 giây/câu ở Trắc nghiệm/Nghe/Gõ; nút "Dịch câu" ở Ngữ cảnh (thẻ chưa lưu bản dịch câu ví dụ).
+- Nhóm "Đặc biệt" của luyentu: Flappy Bird, Giải cứu khỉ, Đặt câu (Đặt câu có thể dùng Gemini).
+- Import Excel/CSV, AI tạo từ từ ảnh, PWA/cài như app, gói Pro/thanh toán, thư viện cộng đồng, lớp học.
+- `TrangChiTietBo.jsx` (~1760 dòng), `TrangTuLuan.jsx` (~1450), `TrangOnTapHomNay.jsx` (~920) vẫn lớn.
 
-## 4. Kiến trúc cần nắm nhanh (chi tiết: `PROJECT_CONTEXT.md`)
+## 5. Deploy & migration
+
+- **Push lên `main` tự deploy cả hai**: frontend qua Vercel, backend qua trigger Cloud Build `^main$` → Cloud Run `flashcard-backend` (trigger cấu hình trên GCP, không nằm trong repo). Kiểm tra: `gcloud builds list --limit 2 --format="table(createTime,status,substitutions.COMMIT_SHA)"`, rồi `curl <url>/api/health`. CI GitHub Actions (test + lint + build) chạy song song, không chặn deploy.
+- **Migration KHÔNG tự chạy** — chạy tay lên Cloud SQL **trước** khi push code cần bảng/cột mới. Đã chạy trên production: **001 → 012** (007/008/009 ngày 2026-09-26; 010/011/012 ngày 2026-09-27).
+- Proxy: `cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307` (ADC của gcloud đã có trên máy) hoặc cấu hình `cloud-sql-proxy` trong `.claude/launch.json`. Chạy file SQL bằng client MySQL hoặc script Node dùng `mysql2` + `DB_*` trong `backend/.env` (mẫu kết nối: `scripts/run-migration.js`, file này chỉ chạy đúng 1 lệnh cũ). File migration nhiều câu lệnh thì chạy lần lượt từng câu (pool mặc định không bật `multipleStatements`).
+- **Cẩn thận**: backend local đọc `backend/.env` → **DB production** qua proxy. Bấm thử ở chế độ khách vẫn ghi phiên học khách vào DB thật (2026-09-27 có 1 phiên khách thử ở bộ "TOEIC · Họp & liên lạc"). Muốn thử giao diện khi đăng nhập mà không đụng dữ liệu thật: chạy một API giả (Node `http`) ở cổng 8080 trả dữ liệu tự soạn, đặt `localStorage["hocTA.authToken"]` bất kỳ, xong nhớ xoá.
+
+## 6. Kiến trúc cần nắm nhanh (chi tiết: `PROJECT_CONTEXT.md`)
 
 - FE: React 19 + Vite + Tailwind 4 + token trong `index.css`; BE: Express 5 + MySQL2; DB: Cloud SQL MySQL 8.
-- **Luật SRS**: 1 nơi ghi duy nhất. Quiz/Tự luận/Nghe viết/Ngữ cảnh/Hỗn hợp/Nối từ ghi qua `POST /study-sessions/:id/answers` (server áp luật); Flashcard và `/review` ghi qua `PATCH /reviews/by-card/:cardId/result` (`{result:"correct"|"wrong"}` hoặc `{level:0-5}`). `StudyResult` chỉ cập nhật bản **local** (server đã tự áp) — đừng gửi thêm để tránh cộng 2 lần. `POST /reviews/bulk` chỉ thêm từ chưa có tiến độ (không ghi đè level server).
-- **Tái sử dụng khi thêm chế độ mới**: ghép từ khung phiên (mục 2, bước 2) thay vì copy trang. `TrangQuiz` và `TrangTuLuan` nhận prop `loai`; thêm route trong `App.jsx`, thêm regex `laPhienHoc` trong `BoCuc.jsx` (ẩn thanh điều hướng khi đang học), thêm khoá cài đặt trong `utils/caiDatHocTap.js`, thêm giá trị ENUM (migration mới + `schema.sql` + `VALID_MODES`/`VALID_QUESTION_TYPES` trong `studyController.js`), thêm nhãn trong `StudyResult` (`TEN_CHE_DO`) và `TrangThongKe` (`modeLabel`).
-- Quyền deck: đọc được nếu deck mẫu (`user_id NULL`), `is_public`, hoặc của mình; ghi chỉ chủ deck. Bộ thuộc lộ trình là deck mẫu.
+- **Luật SRS**: 1 nơi ghi duy nhất cho từ vựng. Quiz/Tự luận/Nghe viết/Ngữ cảnh/Hỗn hợp/Nối từ ghi qua `POST /study-sessions/:id/answers` (server áp luật); Flashcard và `/review` ghi qua `PATCH /reviews/by-card/:cardId/result`. `StudyResult` chỉ cập nhật bản **local** — đừng gửi thêm để tránh cộng 2 lần. `POST /reviews/bulk` chỉ thêm từ chưa có tiến độ. Câu bài tập khoá học dùng cùng luật nhưng lưu ở `course_question_progress` (chỉ câu từng sai).
+- **Quyền bộ từ**: đọc được nếu bộ mẫu (`user_id NULL`), `is_public`, hoặc của mình; ghi chỉ chủ bộ **và** `source ≠ course` (`deckController.canWriteDeck`); thả tim chỉ cần là chủ bộ (`isDeckOwner`). Khoá học: mọi truy vấn lọc `courses.user_id` = user trong token.
+- **Chatbot**: trang học đặt `<ChatbotTheDangHoc the={...} />` — chỉ truyền thẻ **sau khi người học đã trả lời** (nếu không, gợi ý "Giải thích từ X" lộ đáp án).
+- **Tái sử dụng khi thêm chế độ mới**: ghép từ khung phiên (bước 2) thay vì copy trang. Thêm route trong `App.jsx`, regex `laPhienHoc` trong `BoCuc.jsx`, khoá cài đặt trong `utils/caiDatHocTap.js`, giá trị ENUM (migration + `schema.sql` + `VALID_MODES`/`VALID_QUESTION_TYPES` trong `studyController.js`), nhãn trong `StudyResult` (`TEN_CHE_DO`) và `TrangThongKe` (`modeLabel`).
 - Cài đặt học lưu localStorage (`learnta_user_study_settings`) + đồng bộ `user_settings` (chỉ direction/random/reward).
-- Cấu hình bắt buộc theo `CLAUDE.md`: anonymous chỉ thấy deck `user_id IS NULL`; không thêm tài khoản demo seed; UI đăng nhập gọn dùng `ui-form-panel`/`ui-button`.
+- Bắt buộc theo `CLAUDE.md`: khách chỉ thấy bộ `user_id IS NULL`; không thêm tài khoản demo seed; UI đăng nhập gọn dùng `ui-form-panel`/`ui-button`.
 
-## 5. Cách chạy & kiểm tra
+## 7. Cách chạy & kiểm tra
 
 ```powershell
-# Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
+# Backend (test không cần DB; chạy server cần backend/.env + proxy → DB production, xem mục 5)
 cd backend; npm ci; npm test            # node --test, kỳ vọng 67 pass
 # Frontend
 cd frontend; npm ci; npx vitest run     # kỳ vọng 88 pass
-npx vite build; npx eslint <file>
+npx vite build; npm run lint            # lint: 0 lỗi (còn cảnh báo, mục 8)
 ```
-Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).
+Mẹo môi trường (Windows): khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng của file (có file LF, có file CRLF trong working copy). Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash; heredoc có thể biến `\n` trong chuỗi thành xuống dòng thật).
 
-## 6. Vấn đề đã biết (có sẵn, không phải do các bước trên)
+## 8. Vấn đề đã biết
 
-- Frontend lint: **0 lỗi** — CI giờ chặn khi có lỗi lint (đã bỏ `continue-on-error`). Quy tắc `react-hooks/set-state-in-effect` hạ thành **cảnh báo** trong `eslint.config.js` (người dùng chọn, 2026-09-27); còn 14 chỗ vi phạm (code vẫn chạy đúng: tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng) ở `ChatbotWidget`, `PageLoadingOverlay`, `RewardTikTokEffect`, `AnimatedModal`, `BoCuc`, `StudyResult`, `TrangChiTietBo`, `TrangDanhSachBo`, `TrangFlashcard`, `TrangThemTu`, `TrangTuSai` + 8 cảnh báo `exhaustive-deps`. Đã sửa ở bước 13: khoá trùng `teach` và hàm thừa `getThirdPerson` (`data/tenseExamples.js`), chỉ thị eslint thừa.
-- Video reward ~70 MB trong `frontend/public/media/milestones/` và lịch sử git — người dùng chọn **để nguyên** (2026-09-27).
-- Migration 007 chưa được chạy thử trên MySQL thật (chỉ kiểm bằng lý luận + test JS của controller); nên thử trên bản sao DB trước khi chạy production.
-- Bảng `card_reviews` giữ lại để đối chiếu, code không còn đọc/ghi — người dùng chọn **giữ** (2026-09-27).
+- Frontend lint: **0 lỗi**, CI chặn khi có lỗi lint. Quy tắc `react-hooks/set-state-in-effect` đã hạ thành **cảnh báo** trong `eslint.config.js` (người dùng chọn 2026-09-27): còn 14 chỗ (tải dữ liệu khi vào trang, reset khi đổi bộ, hẹn giờ hiệu ứng — vẫn chạy đúng) ở `ChatbotWidget`, `PageLoadingOverlay`, `RewardTikTokEffect`, `AnimatedModal`, `BoCuc`, `StudyResult`, `TrangChiTietBo`, `TrangDanhSachBo`, `TrangFlashcard`, `TrangThemTu`, `TrangTuSai` + 8 cảnh báo `exhaustive-deps`.
+- Video reward ~70 MB trong `frontend/public/media/milestones/` và lịch sử git — người dùng chọn **để nguyên**.
+- Bảng `card_reviews` không còn dùng từ migration 007 — người dùng chọn **giữ** để đối chiếu.
+- Model Gemini chính (`gemini-3.6-flash`) hay trả 503 lúc đông; giải thích câu hỏi và sinh luyện thêm tự chuyển sang `gemini-flash-lite-latest`.
+- `npm audit` của backend có cảnh báo lỗ hổng phụ thuộc, chưa xử lý.
 
-## 7. Plan đề xuất cho người làm tiếp
+## 9. Plan đề xuất cho người làm tiếp
 
-1. ~~**Deploy** (mục 3.1)~~ — xong 2026-09-26.
-2. **Bấm thử** phần cần đăng nhập (mục 3.2) và xử lý các phát hiện chưa sửa ở 3.2.
-3. **Chốt với người dùng**: nguồn từ vựng mở rộng (3.4) và đồng ý sửa `PRODUCT.md` để làm game hóa (3.3).
-4. **Game hóa** theo thứ tự: coin (cộng khi lưu phiên) → shop → đá hồi streak → leaderboard → chuỗi chung.
-5. Các mục thấp ưu tiên ở 3.5 khi cần.
+1. **Nội dung khoá 48 ngày** khi người dùng gửi bài mới (quy trình mục 4.1).
+2. **Bấm thử bằng tài khoản thật** các luồng ở mục 4.2 (nhờ người dùng đăng nhập, không tự nhập mật khẩu).
+3. **Chốt với người dùng**: nguồn từ vựng mở rộng (4.4) và đồng ý sửa `PRODUCT.md` để làm game hóa (4.3).
+4. **Game hóa** theo thứ tự: coin → shop → đá hồi streak → leaderboard → chuỗi chung.
+5. Các mục 4.5 khi cần.
 
-Mỗi bước: theo `CLAUDE.md` — thay đổi tối thiểu, có test, chạy `npm test` (BE) + `npx vitest run` + `vite build` (FE) trước khi báo xong; cập nhật `PROJECT_CONTEXT.md` khi đổi route/bảng/luồng.
+Mỗi bước: theo `CLAUDE.md` — thay đổi tối thiểu, có test, chạy `npm test` (BE) + `npx vitest run` + `vite build` + `npm run lint` (FE) trước khi báo xong; cập nhật `PROJECT_CONTEXT.md` khi đổi route/bảng/luồng và thêm dòng vào bảng mục 3.
