@@ -25,6 +25,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 
 | 7 | **Khoá học riêng (48 buổi)** — 2026-09-27 | Tài liệu PDF là khoá học trả phí độc quyền của bên khác → người dùng chọn **chỉ mình họ học**: mọi thứ gắn `user_id` chủ khoá, người khác nhận 404; nội dung nằm ở `backend/database/private-content/` (`.gitignore`, KHÔNG commit). Migration 010 (4 bảng `course*`), `utils/khoaHoc.js` + `scripts/nhap-khoa-hoc.js`, API `/courses`, `/course-questions/:id/explain` (Gemini, cache, tự chuyển model lite khi model chính 503). FE `/khoa-hoc`, `/khoa-hoc/:courseId/bai/:soBai` (Lý thuyết · Từ vựng · Bài tập; trả lời xong AI giải thích ngay dưới), lối vào ở Dashboard. |
 | 8 | **Sắp lại cấu trúc: mỗi bộ từ có đúng 1 nguồn** — 2026-09-27 | `deckController` trả `source` (`user`/`sample`/`course`/`roadmap`, suy ra từ `roadmap_decks`/`course_lessons`) + `parent`. Tab **"Khoá học"** (`/khoa-hoc`, public) gộp khoá riêng + lộ trình; `/roadmap` chuyển hướng về đó, `TrangLoTrinh.jsx` bị xoá. **"Bộ từ"** khi đăng nhập chỉ còn bộ tự tạo (bỏ bộ khoá học, bộ mẫu, bộ public của người khác — đúng `CLAUDE.md`). `/practice` dùng `GET /decks?scope=learnable`, ô chọn nhóm theo nguồn (bỏ mẹo chèn bộ `?bo=`). Bộ khoá học **chỉ đọc** (403 khi sửa/xoá/thêm từ), chủ khoá vẫn thả tim được. Trang chi tiết bộ: nút quay lại về đúng buổi / chặng (`utils/nguonBoTu.js`). Đã tự deploy (revision `flashcard-backend-00088`), smoke test production OK. |
+| 9 | **Tiến độ theo buổi (khoá học)** — 2026-09-27 | Migration **011** (`course_question_progress`, **đã chạy** trên Cloud SQL): mỗi câu trả lời gửi `POST /course-questions/:id/answer`, server tự chấm và lưu kết quả lần gần nhất. `GET /courses` trả thêm từ đã học/đã thuộc + câu đã làm/đúng mỗi buổi. Trang Khoá học: nút "Học tiếp / Bắt đầu Buổi X" (buổi gần nhất đang học dở, xong thì buổi kế), lịch 48 ô tô xanh buổi đã xong + khoanh đỏ buổi học tiếp, thẻ buổi có tiến độ. Trang buổi: bước Từ vựng / Bài tập hiện "x/y"; bài tập mở sẵn phần **"Còn lại"** (câu chưa đúng) khi đã làm dở. Dashboard dẫn thẳng tới buổi học tiếp. |
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
@@ -32,7 +33,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 - **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. Backend đã lên production (push `main` tự deploy, xem mục 3.1). Không cần migration mới cho bước 8.
 - 47 bài còn lại: người dùng trích bằng ChatGPT theo định dạng 3 file của bài 13 (xem `docs/khoa-hoc-48-ngay.md`), chép vào `private-content/khoa-hoc-48-ngay/bai-XX/`, rồi chạy `npm run nhap:khoa-hoc -- --email=... --apply`. Đừng để người dùng push file nội dung lên GitHub (bài 13 từng bị push vào `docs/48day/`, đã gỡ khỏi git nhưng vẫn còn trong lịch sử commit `b89f435`).
 - Bài 13: 23/43 câu (Quiz, Practice) có đáp án do ChatGPT tự suy ra vì tài liệu không có đáp án → nên soát lại.
-- Chưa có 40–50 câu bài tập thêm mỗi bài (có thể sinh bằng Gemini từ lý thuyết đã nhập). Chưa lưu tiến độ làm bài (điểm mỗi lần làm chỉ ở trình duyệt).
+- Chưa có 40–50 câu bài tập thêm mỗi bài (có thể sinh bằng Gemini từ lý thuyết đã nhập). Tiến độ bài tập đã lưu trên server (bước 9).
 - Từ vựng bài học chưa có câu ví dụ → chế độ Ngữ cảnh không dùng được; `npm run seed:ai-examples -- --apply` sẽ sinh 6 thì cho các thẻ này.
 
 ### 3.1 Deploy — ĐÃ XONG (2026-09-26)
@@ -96,9 +97,9 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 
 ```powershell
 # Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
-cd backend; npm ci; npm test            # node --test, kỳ vọng 57 pass
+cd backend; npm ci; npm test            # node --test, kỳ vọng 60 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 79 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 84 pass
 npx vite build; npx eslint <file>
 ```
 Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).

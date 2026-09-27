@@ -33,9 +33,18 @@ function normalizeQuestion(row) {
     explanation: row.explanation || null,
     answer_source: row.answer_source || null,
     image_description: row.image_description || null,
+    // Kết quả lần trả lời gần nhất của người học: null = chưa làm
+    last_correct:
+      row.last_correct === null || row.last_correct === undefined ? null : Boolean(row.last_correct),
   };
 }
 
+function soNguyen(value) {
+  return Number(value || 0);
+}
+
+// Tiến độ mỗi buổi của chủ khoá: từ "đã học" = có card_progress, "đã thuộc" = Lv5 (giống lộ trình);
+// câu "đúng" = lần trả lời gần nhất đúng
 async function listCourses(req, res) {
   const [rows] = await pool.query(
     `SELECT
@@ -46,7 +55,23 @@ async function listCourses(req, res) {
        l.lesson_number,
        l.title AS lesson_title,
        (SELECT COUNT(*) FROM course_questions q WHERE q.lesson_id = l.id) AS question_count,
-       (SELECT COUNT(*) FROM cards cd WHERE cd.deck_id = l.deck_id) AS word_count
+       (SELECT COUNT(*) FROM cards cd WHERE cd.deck_id = l.deck_id) AS word_count,
+       (SELECT COUNT(*)
+        FROM cards cd
+        JOIN card_progress cp ON cp.card_id = cd.id AND cp.user_id = c.user_id
+        WHERE cd.deck_id = l.deck_id) AS learned_count,
+       (SELECT COUNT(*)
+        FROM cards cd
+        JOIN card_progress cp ON cp.card_id = cd.id AND cp.user_id = c.user_id
+        WHERE cd.deck_id = l.deck_id AND cp.mastery_level >= 5) AS mastered_count,
+       (SELECT COUNT(*)
+        FROM course_questions q
+        JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
+        WHERE q.lesson_id = l.id) AS answered_count,
+       (SELECT COUNT(*)
+        FROM course_questions q
+        JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
+        WHERE q.lesson_id = l.id AND p.is_correct = TRUE) AS correct_count
      FROM courses c
      LEFT JOIN course_lessons l ON l.course_id = c.id
      WHERE c.user_id = ?
@@ -69,8 +94,12 @@ async function listCourses(req, res) {
       courses.get(row.course_id).lessons.push({
         lesson_number: row.lesson_number,
         title: row.lesson_title,
-        question_count: Number(row.question_count || 0),
-        word_count: Number(row.word_count || 0),
+        question_count: soNguyen(row.question_count),
+        word_count: soNguyen(row.word_count),
+        learned_count: soNguyen(row.learned_count),
+        mastered_count: soNguyen(row.mastered_count),
+        answered_count: soNguyen(row.answered_count),
+        correct_count: soNguyen(row.correct_count),
       });
     }
   }
@@ -96,15 +125,21 @@ async function getLesson(req, res) {
   }
 
   const [[questions], [words], [cacBai]] = await Promise.all([
-    pool.query("SELECT * FROM course_questions WHERE lesson_id = ? ORDER BY sort_order ASC, id ASC", [
-      lesson.id,
-    ]),
     pool.query(
-      `SELECT id, term_en, meaning_vi, pronunciation, part_of_speech
-       FROM cards
-       WHERE deck_id = ?
-       ORDER BY sort_order ASC, id ASC`,
-      [lesson.deck_id]
+      `SELECT q.*, p.is_correct AS last_correct
+       FROM course_questions q
+       LEFT JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = ?
+       WHERE q.lesson_id = ?
+       ORDER BY q.sort_order ASC, q.id ASC`,
+      [req.user.id, lesson.id]
+    ),
+    pool.query(
+      `SELECT c.id, c.term_en, c.meaning_vi, c.pronunciation, c.part_of_speech, cp.mastery_level
+       FROM cards c
+       LEFT JOIN card_progress cp ON cp.card_id = c.id AND cp.user_id = ?
+       WHERE c.deck_id = ?
+       ORDER BY c.sort_order ASC, c.id ASC`,
+      [req.user.id, lesson.deck_id]
     ),
     pool.query("SELECT lesson_number FROM course_lessons WHERE course_id = ? ORDER BY lesson_number ASC", [
       courseId,
@@ -130,14 +165,17 @@ async function getLesson(req, res) {
   });
 }
 
-async function explainQuestion(req, res) {
+/**
+ * Đọc câu hỏi (của khoá thuộc người dùng) và câu trả lời người học gửi lên, đã chuẩn hoá.
+ * Đề, đáp án và kiến thức của bài đều đọc lại từ DB, không tin nội dung client gửi.
+ */
+async function docCauTraLoi(req) {
   const questionId = parsePositiveInt(req.params.questionId, "questionId");
   const answer = cleanTextWithLimit(req.body?.answer, MAX_ANSWER_LENGTH, "answer");
   if (!answer) {
     throw createHttpError(400, "answer la bat buoc");
   }
 
-  // Đề, đáp án và kiến thức của bài đều đọc lại từ DB, không tin nội dung client gửi
   const [rows] = await pool.query(
     `SELECT q.*, l.title AS lesson_title, l.content AS lesson_content
      FROM course_questions q
@@ -161,6 +199,25 @@ async function explainQuestion(req, res) {
   if (!answerNorm) {
     throw createHttpError(400, "answer la bat buoc");
   }
+
+  return { questionId, answer, row, question, isMultipleChoice, answerNorm };
+}
+
+// Ghi kết quả lần trả lời gần nhất (server tự chấm) để tiến độ bài tập còn sau khi tải lại trang
+async function answerQuestion(req, res) {
+  const { questionId, question, answerNorm } = await docCauTraLoi(req);
+  const correct = laTraLoiDung(question, answerNorm);
+
+  await pool.query(
+    `INSERT INTO course_question_progress (user_id, question_id, is_correct) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE is_correct = VALUES(is_correct)`,
+    [req.user.id, questionId, correct]
+  );
+  res.json({ correct });
+}
+
+async function explainQuestion(req, res) {
+  const { questionId, answer, row, question, isMultipleChoice, answerNorm } = await docCauTraLoi(req);
 
   const [cached] = await pool.query(
     "SELECT explanation FROM course_question_explanations WHERE question_id = ? AND answer_norm = ? LIMIT 1",
@@ -198,5 +255,6 @@ async function explainQuestion(req, res) {
 module.exports = {
   listCourses,
   getLesson,
+  answerQuestion,
   explainQuestion,
 };

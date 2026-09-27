@@ -1223,6 +1223,27 @@
   background: var(--mau-chinh-hover);
 }
 
+/* Buổi đã xong: tô màu đúng; buổi học tiếp: khoanh bằng màu lề đỏ của vở */
+.kh-lich__o--xong {
+  border-color: var(--kh-dung-chu);
+  background: var(--kh-dung-chu);
+  box-shadow: 0 2px 0 oklch(36% 0.1 145);
+}
+
+.kh-lich__o--xong:hover {
+  background: oklch(38% 0.11 145);
+}
+
+.kh-lich__o--tiep {
+  outline: 3px solid var(--mau-le-do);
+  outline-offset: 3px;
+}
+
+.kh-khoa__tiep {
+  justify-self: start;
+  margin-top: 0.35rem;
+}
+
 @media (max-width: 480px) {
   .kh-lich {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1273,6 +1294,7 @@
 
 .kh-buoi__chu {
   display: grid;
+  flex: 1;
   gap: 0.15rem;
   min-width: 0;
 }
@@ -1296,6 +1318,27 @@
   gap: 0.2rem 0.9rem;
   font-size: 0.82rem;
   color: var(--mau-chu-phu);
+}
+
+.kh-buoi__xong {
+  color: var(--kh-dung-chu);
+}
+
+.kh-buoi__thanh {
+  display: block;
+  height: 0.35rem;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--mau-mat-2);
+  box-shadow: inset 0 0 0 1px var(--mau-vien);
+}
+
+.kh-buoi__thanh span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mau-chinh);
 }
 
 @keyframes kh-hien {

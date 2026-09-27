@@ -8,6 +8,7 @@ import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
+import { tienDoBuoiHoc, timBuoiTiepTheo } from "../utils/baiTapKhoaHoc";
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -431,15 +432,32 @@ function TrangDashboard() {
                 <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
               </Link>
             )}
-            {khoaHoc.map((khoa) => (
-              <Link key={khoa.id} to="/khoa-hoc" className="dash-review-cta">
-                <span className="dash-review-cta__body">
-                  <strong>{khoa.title}</strong>
-                  <span>{khoa.lessons.length} bài · lý thuyết, từ vựng, bài tập có AI giải thích</span>
-                </span>
-                <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
-              </Link>
-            ))}
+            {khoaHoc.map((khoa) => {
+              // Dẫn thẳng tới buổi cần học tiếp; xong hết các buổi hiện có thì về trang khoá học
+              const buoiTiep = timBuoiTiepTheo(khoa.lessons);
+              const tienDo = buoiTiep && tienDoBuoiHoc(buoiTiep);
+              return (
+                <Link
+                  key={khoa.id}
+                  to={buoiTiep ? `/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}` : "/khoa-hoc"}
+                  className="dash-review-cta"
+                >
+                  <span className="dash-review-cta__body">
+                    <strong>
+                      {buoiTiep
+                        ? `${tienDo.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi ${buoiTiep.lesson_number} · ${khoa.title}`
+                        : khoa.title}
+                    </strong>
+                    <span>
+                      {buoiTiep
+                        ? `Từ vựng ${tienDo.tuDaHoc}/${tienDo.tongTu} · Bài tập ${tienDo.cauDung}/${tienDo.tongCau} câu đúng`
+                        : `Đã xong ${khoa.lessons.length} buổi hiện có`}
+                    </span>
+                  </span>
+                  <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
+                </Link>
+              );
+            })}
             <div className="dash-quick-grid">
               <QuickAction icon="decks" to="/decks" label="Quản lý bộ từ" sub="Xem và chỉnh sửa các bộ từ" />
               <QuickAction

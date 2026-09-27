@@ -184,7 +184,8 @@ function TrangBaiHoc() {
   const { setPageDataLoading } = usePageTransition();
   const { speak } = useTTS();
   const khoa = `${courseId}/${soBai}`;
-  const [trangThai, setTrangThai] = useState({ khoa: null, bai: null, loi: "" });
+  // ketQuaCau: { [questionId]: đúng/sai ở lần trả lời gần nhất } — cập nhật ngay khi làm bài
+  const [trangThai, setTrangThai] = useState({ khoa: null, bai: null, loi: "", ketQuaCau: {} });
   const dangTai = trangThai.khoa !== khoa;
   const buoc = CAC_BUOC.some((muc) => muc.key === searchParams.get("tab")) ? searchParams.get("tab") : "tu-vung";
 
@@ -197,10 +198,14 @@ function TrangBaiHoc() {
     let conHieuLuc = true;
     layBaiHoc(courseId, soBai)
       .then((bai) => {
-        if (conHieuLuc) setTrangThai({ khoa, bai, loi: "" });
+        if (!conHieuLuc) return;
+        const ketQuaCau = Object.fromEntries(
+          bai.questions.filter((cau) => cau.last_correct !== null).map((cau) => [cau.id, cau.last_correct])
+        );
+        setTrangThai({ khoa, bai, loi: "", ketQuaCau });
       })
       .catch((error) => {
-        if (conHieuLuc) setTrangThai({ khoa, bai: null, loi: error.message });
+        if (conHieuLuc) setTrangThai({ khoa, bai: null, loi: error.message, ketQuaCau: {} });
       });
     return () => {
       conHieuLuc = false;
@@ -209,7 +214,7 @@ function TrangBaiHoc() {
 
   if (dangTai) return null;
 
-  const { bai } = trangThai;
+  const { bai, ketQuaCau } = trangThai;
   if (!bai) {
     return (
       <div className="ui-page-stack">
@@ -225,11 +230,15 @@ function TrangBaiHoc() {
     setSearchParams({ tab: key }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  const soTuDaHoc = bai.words.filter((tu) => tu.mastery_level !== null && tu.mastery_level !== undefined).length;
+  const soCauDung = bai.questions.filter((cau) => ketQuaCau[cau.id] === true).length;
   const moTaBuoc = {
-    "tu-vung": `${bai.words.length} từ`,
+    "tu-vung": soTuDaHoc > 0 ? `${soTuDaHoc}/${bai.words.length} từ đã học` : `${bai.words.length} từ`,
     "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục`,
-    "bai-tap": `${bai.questions.length} câu`,
+    "bai-tap": Object.keys(ketQuaCau).length > 0 ? `${soCauDung}/${bai.questions.length} câu đúng` : `${bai.questions.length} câu`,
   };
+  const ghiNhanKetQua = (cauId, dung) =>
+    setTrangThai((cu) => ({ ...cu, ketQuaCau: { ...cu.ketQuaCau, [cauId]: dung } }));
 
   return (
     <div className="ui-page-stack kh-trang">
@@ -277,7 +286,14 @@ function TrangBaiHoc() {
             onSangBuoc={chuyenBuoc}
           />
         )}
-        {buoc === "bai-tap" && <BaiTapKhoaHoc key={bai.lesson.id} cauHoi={bai.questions} />}
+        {buoc === "bai-tap" && (
+          <BaiTapKhoaHoc
+            key={bai.lesson.id}
+            cauHoi={bai.questions}
+            ketQuaGanNhat={ketQuaCau}
+            onGhiNhan={ghiNhanKetQua}
+          />
+        )}
       </div>
 
       {(bai.prev_lesson || bai.next_lesson) && (

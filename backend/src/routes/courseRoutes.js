@@ -22,6 +22,11 @@ router.get(
   asyncHandler(courseController.getLesson)
 );
 router.post(
+  "/course-questions/:questionId/answer",
+  requireAuth,
+  asyncHandler(courseController.answerQuestion)
+);
+router.post(
   "/course-questions/:questionId/explain",
   requireAuth,
   aiExplainLimiter,

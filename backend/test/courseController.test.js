@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 Object.assign(process.env, { DB_HOST: "127.0.0.1", DB_USER: "test", DB_NAME: "test" });
 const pool = require("../src/config/db");
 const aiService = require("../src/services/aiService");
-const { explainQuestion, getLesson } = require("../src/controllers/courseController");
+const { answerQuestion, explainQuestion, getLesson, listCourses } = require("../src/controllers/courseController");
 
 function fakePool(ketQuaTheoLan) {
   const calls = [];
@@ -49,8 +49,11 @@ const CAU_TRAC_NGHIEM = {
 test("getLesson only reads the signed-in owner's course and returns neighbours", async () => {
   const calls = fakePool([
     [{ id: 3, lesson_number: 13, title: "Bài 13", deck_id: 40, content: { grammar: [], notes: [] }, course_id: 1, course_title: "Khoá" }],
-    [{ ...CAU_TRAC_NGHIEM, options: JSON.stringify(CAU_TRAC_NGHIEM.options) }],
-    [{ id: 1, term_en: "lamp", meaning_vi: "cái đèn", pronunciation: null, part_of_speech: "noun" }],
+    [
+      { ...CAU_TRAC_NGHIEM, options: JSON.stringify(CAU_TRAC_NGHIEM.options), last_correct: 0 },
+      { ...CAU_TRAC_NGHIEM, id: 6, last_correct: null },
+    ],
+    [{ id: 1, term_en: "lamp", meaning_vi: "cái đèn", pronunciation: null, part_of_speech: "noun", mastery_level: 2 }],
     [{ lesson_number: 12 }, { lesson_number: 13 }],
   ]);
   const res = fakeRes();
@@ -59,9 +62,14 @@ test("getLesson only reads the signed-in owner's course and returns neighbours",
 
   assert.deepEqual(calls[0].params, [1, 13, 7]);
   assert.match(calls[0].sql, /c\.user_id = \?/);
-  assert.deepEqual(calls[2].params, [40]);
+  // Tiến độ câu hỏi và từ vựng là của chính người đang đăng nhập
+  assert.deepEqual(calls[1].params, [7, 3]);
+  assert.deepEqual(calls[2].params, [7, 40]);
   assert.equal(res.body.lesson.lesson_number, 13);
   assert.deepEqual(res.body.questions[0].options, CAU_TRAC_NGHIEM.options);
+  assert.equal(res.body.questions[0].last_correct, false);
+  assert.equal(res.body.questions[1].last_correct, null);
+  assert.equal(res.body.words[0].mastery_level, 2);
   assert.equal(res.body.prev_lesson, 12);
   assert.equal(res.body.next_lesson, null);
 });
@@ -133,4 +141,72 @@ test("buildCourseExplanationPrompt states the right answer and whether the learn
   assert.match(prompt, /Đáp án đúng: A\. is/);
   assert.match(prompt, /Người học trả lời: B\. are → SAI/);
   assert.match(prompt, /- To be: S \+ is/);
+});
+
+test("listCourses returns lesson progress counts of the course owner as numbers", async () => {
+  const calls = fakePool([
+    [
+      {
+        course_id: 1,
+        slug: "khoa-hoc-48-ngay",
+        course_title: "Khoá 48 ngày",
+        description: null,
+        lesson_number: 13,
+        lesson_title: "Bài 13",
+        question_count: 43,
+        word_count: 11,
+        learned_count: "5",
+        mastered_count: "1",
+        answered_count: "20",
+        correct_count: "17",
+      },
+    ],
+  ]);
+  const res = fakeRes();
+
+  await listCourses({ user: { id: 7 } }, res);
+
+  assert.deepEqual(calls[0].params, [7]);
+  assert.match(calls[0].sql, /cp\.user_id = c\.user_id/);
+  assert.match(calls[0].sql, /p\.user_id = c\.user_id/);
+  assert.deepEqual(res.body[0].lessons[0], {
+    lesson_number: 13,
+    title: "Bài 13",
+    question_count: 43,
+    word_count: 11,
+    learned_count: 5,
+    mastered_count: 1,
+    answered_count: 20,
+    correct_count: 17,
+  });
+});
+
+test("answerQuestion grades on the server and stores the latest result", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], {}]);
+  const res = fakeRes();
+
+  await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "a" } }, res);
+
+  assert.deepEqual(calls[0].params, [5, 7]);
+  assert.match(calls[1].sql, /INSERT INTO course_question_progress[\s\S]*ON DUPLICATE KEY UPDATE is_correct/);
+  assert.deepEqual(calls[1].params, [7, 5, true]);
+  assert.deepEqual(res.body, { correct: true });
+
+  const callsDienTu = fakePool([[{ ...CAU_TRAC_NGHIEM, type: "fill_blank", options: null, answer_key: null, accepted_answers: ["was not", "wasn’t"] }], {}]);
+  const resDienTu = fakeRes();
+  await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "Wasn't." } }, resDienTu);
+  assert.deepEqual(callsDienTu[1].params, [7, 5, true]);
+
+  const callsSai = fakePool([[CAU_TRAC_NGHIEM], {}]);
+  await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, fakeRes());
+  assert.deepEqual(callsSai[1].params, [7, 5, false]);
+});
+
+test("answerQuestion does not store anything for another user's question", async () => {
+  const calls = fakePool([[]]);
+  await assert.rejects(
+    answerQuestion({ user: { id: 8 }, params: { questionId: "5" }, body: { answer: "A" } }, fakeRes()),
+    { statusCode: 404 }
+  );
+  assert.equal(calls.length, 1);
 });

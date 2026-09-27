@@ -69,6 +69,39 @@ export function nhomPhanBaiTap(danhSachCau) {
   return [...nhom].map(([nguon, cacPhan]) => ({ nguon, cacPhan: [...cacPhan.values()] }));
 }
 
+/**
+ * Tiến độ một buổi (một phần tử lessons của GET /courses): từ đã học + câu đang đúng trên tổng.
+ * Buổi "xong" khi đã học hết từ và câu nào cũng đúng ở lần trả lời gần nhất.
+ */
+export function tienDoBuoiHoc(bai) {
+  const tongTu = bai.word_count || 0;
+  const tongCau = bai.question_count || 0;
+  const tuDaHoc = Math.min(bai.learned_count || 0, tongTu);
+  const cauDung = Math.min(bai.correct_count || 0, tongCau);
+  const tong = tongTu + tongCau;
+  return {
+    tongTu,
+    tuDaHoc,
+    tongCau,
+    cauDung,
+    phanTram: tong > 0 ? Math.round(((tuDaHoc + cauDung) / tong) * 100) : 0,
+    daBatDau: (bai.learned_count || 0) + (bai.answered_count || 0) > 0,
+    xong: tong > 0 && tuDaHoc + cauDung === tong,
+  };
+}
+
+/**
+ * Buổi nên học tiếp: buổi gần nhất đã bắt đầu nếu chưa xong, không thì buổi kế sau nó;
+ * chưa học buổi nào thì buổi đầu tiên. null khi đã xong mọi buổi hiện có.
+ */
+export function timBuoiTiepTheo(lessons) {
+  const theoSo = [...lessons].sort((a, b) => a.lesson_number - b.lesson_number);
+  const ganNhat = theoSo.filter((bai) => tienDoBuoiHoc(bai).daBatDau).at(-1);
+  if (!ganNhat) return theoSo[0] ?? null;
+  if (!tienDoBuoiHoc(ganNhat).xong) return ganNhat;
+  return theoSo.find((bai) => bai.lesson_number > ganNhat.lesson_number) ?? null;
+}
+
 /** Tổng số buổi đọc từ tên khoá ("Khoá 48 ngày ..." → 48); không có số thì lấy số buổi lớn nhất đang có */
 export function tongSoBuoiKhoaHoc(tenKhoa, soBuoiLonNhat) {
   const khop = /(\d+)\s*(ngày|buổi|bài)/i.exec(tenKhoa || "");

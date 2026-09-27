@@ -5,27 +5,37 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
 import { layDanhSachLoTrinh } from "../services/roadmapApi";
-import { tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
+import { tienDoBuoiHoc, timBuoiTiepTheo, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import "./KhoaHoc.css";
 
-function LichBuoiHoc({ khoa }) {
+function LichBuoiHoc({ khoa, buoiTiep }) {
   const theoSo = new Map(khoa.lessons.map((bai) => [bai.lesson_number, bai]));
   const tong = tongSoBuoiKhoaHoc(khoa.title, Math.max(0, ...theoSo.keys()));
+  const soBuoiXong = khoa.lessons.filter((bai) => tienDoBuoiHoc(bai).xong).length;
 
   return (
-    <ol className="kh-lich" aria-label={`${tong} buổi của khoá, ${khoa.lessons.length} buổi đã có nội dung`}>
+    <ol
+      className="kh-lich"
+      aria-label={`${tong} buổi của khoá, ${khoa.lessons.length} buổi đã có nội dung, xong ${soBuoiXong} buổi`}
+    >
       {Array.from({ length: tong }, (_, i) => {
         const bai = theoSo.get(i + 1);
+        const xong = bai && tienDoBuoiHoc(bai).xong;
+        const laBuoiTiep = bai && bai === buoiTiep;
         return (
           <li key={i}>
             {bai ? (
               <Link
                 to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`}
-                className="kh-lich__o kh-lich__o--co"
+                className={`kh-lich__o kh-lich__o--co${xong ? " kh-lich__o--xong" : ""}${laBuoiTiep ? " kh-lich__o--tiep" : ""}`}
                 title={bai.title}
+                aria-current={laBuoiTiep ? "step" : undefined}
               >
                 {i + 1}
-                <span className="sr-only">: {bai.title}</span>
+                <span className="sr-only">
+                  : {bai.title}
+                  {xong ? " (đã xong)" : laBuoiTiep ? " (học tiếp buổi này)" : ""}
+                </span>
               </Link>
             ) : (
               <span className="kh-lich__o" title="Chưa có nội dung">
@@ -37,6 +47,64 @@ function LichBuoiHoc({ khoa }) {
         );
       })}
     </ol>
+  );
+}
+
+function TheBuoiHoc({ khoaId, bai }) {
+  const tienDo = tienDoBuoiHoc(bai);
+  return (
+    <Link to={`/khoa-hoc/${khoaId}/bai/${bai.lesson_number}`} className="kh-buoi">
+      <span className="kh-buoi__so" aria-hidden="true">{bai.lesson_number}</span>
+      <span className="kh-buoi__chu">
+        <span className="kh-buoi__nhan">
+          Buổi {bai.lesson_number}
+          {tienDo.xong && <span className="kh-buoi__xong"> · Đã xong</span>}
+        </span>
+        <span className="kh-buoi__ten">{bai.title}</span>
+        <span className="kh-buoi__meta">
+          <span>Từ vựng {tienDo.tuDaHoc}/{tienDo.tongTu} đã học</span>
+          <span>Bài tập {tienDo.cauDung}/{tienDo.tongCau} câu đúng</span>
+        </span>
+        {tienDo.daBatDau && (
+          <span className="kh-buoi__thanh" aria-hidden="true">
+            <span style={{ width: `${tienDo.phanTram}%` }} />
+          </span>
+        )}
+      </span>
+    </Link>
+  );
+}
+
+function KhoaHocRieng({ khoa }) {
+  const buoiTiep = timBuoiTiepTheo(khoa.lessons);
+
+  return (
+    <section className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
+      <header className="kh-khoa__dau">
+        <h2 id={`khoa-${khoa.id}`} className="kh-khoa__ten">{khoa.title}</h2>
+        <p className="kh-khoa__mo-ta">
+          Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
+        </p>
+        {buoiTiep && (
+          <Link
+            to={`/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}`}
+            className="ui-button ui-button--primary kh-khoa__tiep px-5 py-2.5"
+          >
+            {tienDoBuoiHoc(buoiTiep).daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
+          </Link>
+        )}
+      </header>
+
+      <LichBuoiHoc khoa={khoa} buoiTiep={buoiTiep} />
+
+      <ul className="kh-ds-buoi">
+        {khoa.lessons.map((bai) => (
+          <li key={bai.lesson_number}>
+            <TheBuoiHoc khoaId={khoa.id} bai={bai} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -90,34 +158,7 @@ function TrangKhoaHoc() {
       )}
 
       {trangThai.khoaHoc.map((khoa) => (
-        <section key={khoa.id} className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
-          <header className="kh-khoa__dau">
-            <h2 id={`khoa-${khoa.id}`} className="kh-khoa__ten">{khoa.title}</h2>
-            <p className="kh-khoa__mo-ta">
-              Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
-            </p>
-          </header>
-
-          <LichBuoiHoc khoa={khoa} />
-
-          <ul className="kh-ds-buoi">
-            {khoa.lessons.map((bai) => (
-              <li key={bai.lesson_number}>
-                <Link to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`} className="kh-buoi">
-                  <span className="kh-buoi__so" aria-hidden="true">{bai.lesson_number}</span>
-                  <span className="kh-buoi__chu">
-                    <span className="kh-buoi__nhan">Buổi {bai.lesson_number}</span>
-                    <span className="kh-buoi__ten">{bai.title}</span>
-                    <span className="kh-buoi__meta">
-                      <span>{bai.word_count} từ vựng</span>
-                      <span>{bai.question_count} câu bài tập</span>
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <KhoaHocRieng key={khoa.id} khoa={khoa} />
       ))}
 
       <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">

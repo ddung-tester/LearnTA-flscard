@@ -6,6 +6,8 @@ import {
   tachChuDam,
   tachCongThuc,
   tongSoBuoiKhoaHoc,
+  tienDoBuoiHoc,
+  timBuoiTiepTheo,
   nhomPhanBaiTap,
   phanBaiTap,
 } from "./baiTapKhoaHoc";
@@ -98,5 +100,43 @@ describe("hiển thị", () => {
       { text: "chủ ngữ số nhiều (You, We) dùng ", dam: false },
       { text: "were", dam: true },
     ]);
+  });
+});
+
+describe("tiến độ khoá học", () => {
+  const buoi = (lesson_number, tienDo = {}) => ({
+    lesson_number,
+    word_count: 10,
+    question_count: 20,
+    learned_count: 0,
+    answered_count: 0,
+    correct_count: 0,
+    ...tienDo,
+  });
+  const XONG = { learned_count: 10, answered_count: 20, correct_count: 20 };
+
+  it("tính phần trăm trên cả từ vựng và bài tập, xong khi đủ hết", () => {
+    expect(tienDoBuoiHoc(buoi(1))).toMatchObject({ phanTram: 0, daBatDau: false, xong: false });
+    expect(tienDoBuoiHoc(buoi(1, { learned_count: 5, answered_count: 12, correct_count: 10 }))).toMatchObject({
+      tuDaHoc: 5,
+      cauDung: 10,
+      phanTram: 50,
+      daBatDau: true,
+      xong: false,
+    });
+    expect(tienDoBuoiHoc(buoi(1, XONG))).toMatchObject({ phanTram: 100, xong: true });
+    // Làm sai hết vẫn tính là đã bắt đầu
+    expect(tienDoBuoiHoc(buoi(1, { answered_count: 3 })).daBatDau).toBe(true);
+    // Buổi chưa có từ lẫn câu hỏi không bao giờ "xong"
+    expect(tienDoBuoiHoc(buoi(1, { word_count: 0, question_count: 0 })).xong).toBe(false);
+  });
+
+  it("chọn buổi học tiếp theo từ chỗ đang học dở", () => {
+    expect(timBuoiTiepTheo([buoi(14), buoi(13)]).lesson_number).toBe(13);
+    // Đang học dở buổi 14 thì tiếp tục buổi 14, kể cả khi buổi 13 còn câu sai
+    expect(timBuoiTiepTheo([buoi(13, { learned_count: 10 }), buoi(14, { answered_count: 1 }), buoi(15)]).lesson_number).toBe(14);
+    expect(timBuoiTiepTheo([buoi(13, XONG), buoi(14)]).lesson_number).toBe(14);
+    expect(timBuoiTiepTheo([buoi(13, XONG)])).toBeNull();
+    expect(timBuoiTiepTheo([])).toBeNull();
   });
 });

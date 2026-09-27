@@ -443,3 +443,24 @@ CREATE TABLE IF NOT EXISTS course_question_explanations (
 
   UNIQUE KEY unique_course_question_explanations (question_id, answer_norm)
 ) ENGINE=InnoDB;
+
+-- Kết quả lần trả lời gần nhất của người học cho mỗi câu bài tập khoá học (migration 011)
+CREATE TABLE IF NOT EXISTS course_question_progress (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  question_id BIGINT UNSIGNED NOT NULL,
+  is_correct BOOLEAN NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_course_question_progress_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_course_question_progress_question
+    FOREIGN KEY (question_id) REFERENCES course_questions(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_course_question_progress (user_id, question_id)
+) ENGINE=InnoDB;

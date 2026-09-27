@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import useTTS from "../hooks/useTTS";
-import { giaiThichCauHoi } from "../services/courseApi";
+import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
   laTraLoiDung,
   layDapAnHienThi,
@@ -10,6 +10,8 @@ import {
 } from "../utils/baiTapKhoaHoc";
 
 const TAT_CA = "tat-ca";
+// Các câu chưa đúng ở lần trả lời gần nhất (kể cả câu chưa làm), để làm tiếp từ lần trước
+const CON_LAI = "con-lai";
 
 function Icon({ children, className = "" }) {
   return (
@@ -166,12 +168,18 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
 /**
  * BaiTapKhoaHoc — làm lần lượt từng câu của một buổi trong khoá học riêng.
  * Trả lời xong: đúng/sai + đáp án, gợi ý có sẵn, rồi AI giải thích ngay bên dưới.
+ * Mỗi câu trả lời được lưu lên server (tiến độ buổi học); đã làm dở thì mở sẵn phần "Còn lại".
  * Phím tắt: 1–4 hoặc A–D chọn đáp án, Enter sang câu tiếp.
+ *
+ * ketQuaGanNhat: { [questionId]: đúng/sai lần trả lời gần nhất }; onGhiNhan(questionId, dung) báo lên trang.
  */
-export default function BaiTapKhoaHoc({ cauHoi }) {
+export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan }) {
   const { speak, isPlaying } = useTTS();
-  const [phan, setPhan] = useState(TAT_CA);
-  const [danhSach, setDanhSach] = useState(cauHoi);
+  const cauConLai = cauHoi.filter((c) => ketQuaGanNhat[c.id] !== true);
+  // Chỉ có ý nghĩa khi đã làm một phần: chưa làm câu nào hoặc sai hết thì "Còn lại" = "Tất cả"
+  const coPhanConLai = cauConLai.length > 0 && cauConLai.length < cauHoi.length;
+  const [phan, setPhan] = useState(coPhanConLai ? CON_LAI : TAT_CA);
+  const [danhSach, setDanhSach] = useState(coPhanConLai ? cauConLai : cauHoi);
   const [chiSo, setChiSo] = useState(0);
   const [ketQua, setKetQua] = useState({});
   const [giaiThich, setGiaiThich] = useState({});
@@ -195,8 +203,15 @@ export default function BaiTapKhoaHoc({ cauHoi }) {
   }
 
   function chonPhan(khoa) {
-    setPhan(khoa);
-    batDauLuot(khoa === TAT_CA ? cauHoi : cauHoi.filter((c) => phanBaiTap(c).khoa === khoa));
+    if (khoa === CON_LAI && cauConLai.length > 0) {
+      setPhan(CON_LAI);
+      batDauLuot(cauConLai);
+      return;
+    }
+    // Đã đúng hết phần "Còn lại" thì làm lại toàn bộ
+    const khoaMoi = khoa === CON_LAI ? TAT_CA : khoa;
+    setPhan(khoaMoi);
+    batDauLuot(khoaMoi === TAT_CA ? cauHoi : cauHoi.filter((c) => phanBaiTap(c).khoa === khoaMoi));
   }
 
   function hoiAI(cauHienTai, traLoi) {
@@ -215,7 +230,11 @@ export default function BaiTapKhoaHoc({ cauHoi }) {
 
   function traLoiCau(traLoi) {
     if (!cau || daTraLoi || !traLoi) return;
-    setKetQua((cu) => ({ ...cu, [cau.id]: { traLoi, dung: laTraLoiDung(cau, traLoi) } }));
+    const dung = laTraLoiDung(cau, traLoi);
+    setKetQua((cu) => ({ ...cu, [cau.id]: { traLoi, dung } }));
+    onGhiNhan?.(cau.id, dung);
+    // Lưu tiến độ lỗi (mất mạng...) không được chặn việc làm bài
+    luuTraLoiCauHoi(cau.id, traLoi).catch(() => {});
     hoiAI(cau, traLoi);
   }
 
@@ -259,6 +278,11 @@ export default function BaiTapKhoaHoc({ cauHoi }) {
       <button type="button" className="kh-chip" aria-pressed={phan === TAT_CA} onClick={() => chonPhan(TAT_CA)}>
         Tất cả <span className="kh-chip__so">{cauHoi.length}</span>
       </button>
+      {(coPhanConLai || phan === CON_LAI) && (
+        <button type="button" className="kh-chip" aria-pressed={phan === CON_LAI} onClick={() => chonPhan(CON_LAI)}>
+          Còn lại <span className="kh-chip__so">{cauConLai.length}</span>
+        </button>
+      )}
       {nhomPhan.map((nhom) => (
         <span key={nhom.nguon} className="kh-bt__nhom">
           <span className="kh-bt__nhom-ten">{nhom.nguon}</span>
