@@ -125,14 +125,24 @@ git push origin main
 
 Vercel tự động build và deploy sau vài giây. Không cần làm gì thêm.
 
-### Backend — Deploy thủ công lên Cloud Run
+### Backend — Cloud Build tự deploy lên Cloud Run
+
+Push lên `main` kích hoạt trigger Cloud Build (cấu hình trên GCP, không nằm trong repo), vài phút sau có revision mới của service `flashcard-backend`. Kiểm tra:
+
+```powershell
+gcloud builds list --limit 2 --format="table(createTime,status,substitutions.COMMIT_SHA)"
+```
+
+**Migration DB không tự chạy** — chạy tay lên Cloud SQL TRƯỚC khi push code cần bảng/cột mới.
 
 File `backend/.env` **không bao giờ được đưa vào Docker image** (nhờ `.dockerignore`).
 Cloud Run đọc env vars từ service config riêng → **không cần sửa `.env` trước khi deploy**.
 
+Deploy tay (chỉ khi cần, vd. trigger lỗi):
+
 ```powershell
 cd backend
-gcloud run deploy <tên-service> --source . --region asia-southeast1
+gcloud run deploy flashcard-backend --source . --region asia-southeast1
 ```
 
 > **Env vars trên Cloud Run** phải được set riêng (1 lần, trừ khi thêm biến mới):
