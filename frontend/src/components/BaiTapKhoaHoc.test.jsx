@@ -41,6 +41,17 @@ describe("BaiTapKhoaHoc", () => {
     expect(html).toContain("Câu <strong>1</strong> / 2");
   });
 
+  it("keeps AI extra practice out of the full and remaining sets, in its own group", () => {
+    const luyenThem = { ...cau(201, "Câu luyện thêm"), source: "extra", section: "ngu_phap" };
+    const html = render(<BaiTapKhoaHoc cauHoi={[...CAU_HOI, luyenThem]} ketQuaGanNhat={{ 1: true }} />);
+
+    expect(html).toContain('Tất cả <span class="kh-chip__so">3</span>');
+    expect(html).toMatch(/aria-pressed="true"[^>]*>Còn lại <span class="kh-chip__so">2<\/span>/);
+    expect(html).toContain('<span class="kh-bt__nhom-ten">Luyện thêm</span>');
+    expect(html).toContain('Ngữ pháp <span class="kh-chip__so">1</span>');
+    expect(html).not.toContain("Câu luyện thêm");
+  });
+
   it("offers the full set again once every question is correct", () => {
     const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{ 1: true, 2: true, 3: true }} />);
 

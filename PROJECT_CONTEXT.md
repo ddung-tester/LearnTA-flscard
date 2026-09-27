@@ -233,7 +233,7 @@ Schema day du: `backend/database/schema.sql`. Bang:
 | `user_settings` | cai dat hoc (+ `email_reminders`, xem luu y duoi) |
 | `roadmaps`, `roadmap_decks` | lo trinh hoc va cac bo tu mau (`user_id NULL`) theo thu tu; `deck_key` de nap lai khong trung (migration 009) |
 | `courses`, `course_lessons`, `course_questions`, `course_question_explanations` | khoa hoc RIENG cua mot user (migration 010): bai hoc (ly thuyet JSON + bo tu rieng `deck_id`), cau hoi (trac nghiem / dien tu), cache giai thich AI |
-| `course_question_progress` | ket qua lan tra loi gan nhat cua moi cau bai tap khoa hoc, UNIQUE (user_id, question_id) (migration 011). Buoi "xong" = hoc het tu + moi cau dung; FE `utils/baiTapKhoaHoc.js` (`tienDoBuoiHoc`, `timBuoiTiepTheo`) |
+| `course_question_progress` | ket qua lan tra loi gan nhat cua moi cau bai tap khoa hoc, UNIQUE (user_id, question_id) (migration 011). Buoi "xong" = hoc het tu + moi cau dung (khong tinh cau luyen them `source = 'extra'`); FE `utils/baiTapKhoaHoc.js` (`tienDoBuoiHoc`, `timBuoiTiepTheo`, `layCauBaiChinh`) |
 
 Luu y: `schema.sql` CHUA co 2 cot duoc them bang script rieng:
 
@@ -248,7 +248,7 @@ Thu tu deploy: chay migration 007 → 008 → 009 TRUOC khi deploy backend (`GET
 
 Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). Script nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
 
-Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` (da `.gitignore`, KHONG commit). Nhap: `npm run nhap:khoa-hoc` (chi kiem tra file) roi `npm run nhap:khoa-hoc -- --email=<email chu khoa> --apply [--bai=13]`. Chay lai an toan; tu vung moi bai thanh 1 bo tu rieng cua chu khoa (chi doc, khong hien o "Bo tu", hien o /practice nhom theo khoa). Can migration 010 truoc. Prompt trich xuat: `docs/khoa-hoc-48-ngay.md`.
+Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` (da `.gitignore`, KHONG commit). Nhap: `npm run nhap:khoa-hoc` (chi kiem tra file) roi `npm run nhap:khoa-hoc -- --email=<email chu khoa> --apply [--bai=13]`. Chay lai an toan; tu vung moi bai thanh 1 bo tu rieng cua chu khoa (chi doc, khong hien o "Bo tu", hien o /practice nhom theo khoa). Can migration 010 truoc. Prompt trich xuat: `docs/khoa-hoc-48-ngay.md`. Tu vung nhan `example` (cau vi du, phai chua chinh tu). Bai luyen them: `npm run sinh:luyen-them -- --bai=XX` (Gemini) → `bai-XX/extra.json`, soat roi nhap cung importer.
 
 Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.jsx` — dan danh sach (`utils/nhapNhanhTu.js`: `tu | /phien am/ | loai tu | nghia | vi du | ghi chu`, van nhan "tu - nghia") hoac AI tao tu theo chu de / doan van. Tu trung (cung tu + loai tu) bi loai.
 

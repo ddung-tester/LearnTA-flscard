@@ -255,10 +255,89 @@ async function explainCourseQuestion(input) {
   throw lastError;
 }
 
+/**
+ * Prompt sinh bài luyện thêm cho một buổi của khoá học riêng (scripts/sinh-bai-luyen-them.js).
+ * Chỉ dùng ngữ pháp + từ vựng của buổi; không lặp câu đã có trong bài.
+ */
+function buildExtraPracticePrompt({ lessonNumber, lessonTitle, grammar, vocabulary, existingPrompts, count }) {
+  const nguPhap = grammar
+    .map((muc) => {
+      const dong = [`- ${muc.title}${muc.pattern ? `: ${muc.pattern}` : ""}`];
+      for (const quyTac of muc.rules || []) dong.push(`  • ${quyTac}`);
+      for (const viDu of muc.examples || []) dong.push(`  Ví dụ: ${viDu.en}`);
+      return dong.join("\n");
+    })
+    .join("\n");
+  const tuVung = vocabulary
+    .map((tu) => `- ${tu.term_en}${tu.part_of_speech ? ` (${tu.part_of_speech})` : ""}: ${tu.meaning_vi}`)
+    .join("\n");
+
+  return `Bạn là giáo viên tiếng Anh cho người Việt mất gốc (A1–A2). Soạn ${count} câu trắc nghiệm MỚI để luyện buổi ${lessonNumber}: "${lessonTitle}".
+
+NGỮ PHÁP CỦA BUỔI
+${nguPhap || "(không có)"}
+
+TỪ VỰNG CỦA BUỔI
+${tuVung || "(không có)"}
+
+CÂU ĐÃ CÓ TRONG BÀI — không lặp lại, không chỉ đổi một chữ:
+${existingPrompts.map((deBai) => `- ${deBai}`).join("\n") || "(không có)"}
+
+YÊU CẦU
+- Khoảng 70% câu luyện ngữ pháp của buổi (nhom = "ngu_phap"), 30% luyện từ vựng của buổi (nhom = "tu_vung").
+- Chỉ dùng ngữ pháp của buổi này và kiến thức cơ bản hơn; không dùng thì hay cấu trúc nâng cao hơn.
+- Mỗi câu đúng 4 lựa chọn khác nhau và đúng MỘT đáp án, không mơ hồ. Lựa chọn nhiễu dựa trên lỗi người Việt hay mắc; không dùng "tất cả đều đúng/sai".
+- Chỗ trống viết đúng 5 dấu gạch dưới: _____
+- Đáp án đúng rải đều A/B/C/D.
+- giai_thich: 1–2 câu tiếng Việt dễ hiểu, vì sao đáp án đúng.
+- Tiếng Anh tự nhiên, đúng ngữ pháp; tiếng Việt có dấu.
+
+TRẢ VỀ JSON THUẦN (không markdown), đúng dạng:
+{"cau_hoi":[{"nhom":"ngu_phap","de_bai":"She _____ at home yesterday.","lua_chon":["was","were","is","be"],"dap_an":"A","giai_thich":"..."}]}`;
+}
+
+/** @returns {object[]} các câu thô Gemini trả về (chưa kiểm tra) */
+function parseExtraPracticeResponse(text) {
+  const json = String(text || "")
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/, "")
+    .trim();
+  const data = JSON.parse(json);
+  // Model lite đôi khi trả thẳng mảng câu thay vì { cau_hoi: [...] }
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.cau_hoi) ? data.cau_hoi : [];
+}
+
+async function generateExtraPractice(input) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildExtraPracticePrompt(input);
+  let lastError;
+
+  for (const modelName of COURSE_EXPLANATION_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { responseMimeType: "application/json" },
+      });
+      const result = await model.generateContent(prompt);
+      return parseExtraPracticeResponse(result.response.text());
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
   generateTenseExamples,
   generateVocabulary,
   parseVocabularyResponse,
   buildCourseExplanationPrompt,
   explainCourseQuestion,
+  buildExtraPracticePrompt,
+  parseExtraPracticeResponse,
+  generateExtraPractice,
 };

@@ -43,7 +43,18 @@ const TEN_PHAN = {
   fill_verbs: "Điền động từ",
   picture_answers: "Theo tranh",
   multiple_choice: "Trắc nghiệm",
+  ngu_phap: "Ngữ pháp",
+  tu_vung: "Từ vựng",
 };
+
+/**
+ * Câu của tài liệu (bỏ câu luyện thêm do AI sinh, source "extra"): dùng cho "Tất cả", "Còn lại"
+ * và tiến độ buổi. Buổi chỉ có câu luyện thêm thì giữ nguyên.
+ */
+export function layCauBaiChinh(cauHoi) {
+  const cauChinh = cauHoi.filter((cau) => cau.source !== "extra");
+  return cauChinh.length > 0 ? cauChinh : cauHoi;
+}
 
 /** Phần bài tập của một câu: { khoa, nguon: "Trong bài" | "Bài thi" | ..., phan: "Quiz 1" } */
 export function phanBaiTap(cauHoi) {

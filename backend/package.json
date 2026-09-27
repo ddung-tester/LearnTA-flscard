@@ -14,7 +14,8 @@
     "migrate:tense-examples": "node scripts/add_tense_examples_column.js",
     "test": "node --test",
     "seed:roadmaps": "node scripts/seed-roadmaps.js",
-    "nhap:khoa-hoc": "node scripts/nhap-khoa-hoc.js"
+    "nhap:khoa-hoc": "node scripts/nhap-khoa-hoc.js",
+    "sinh:luyen-them": "node scripts/sinh-bai-luyen-them.js"
   },
   "keywords": [],
   "license": "ISC",

@@ -15,6 +15,7 @@ backend/database/private-content/khoa-hoc-48-ngay/
     exercises.json   lesson_number, questions[{id, source, section, type, prompt, options[{key, text}],
                      instruction?, image_description_vi?}]   type: multiple_choice | fill_blank | image_based_fill_blank
     answers.json     lesson_number, answers[{question_id, answer (chữ cái) | accepted_answers[], explanation_vi, provenance}]
+    extra.json       (không bắt buộc) bài luyện thêm do Gemini sinh: lesson_number, questions[], answers[] — cùng dạng 2 file trên
 ```
 
 47 bài còn lại cứ giữ **đúng định dạng của bài 13** (cùng prompt đã tạo ra bài 13), **thêm câu ví dụ** cho từ vựng: dán đoạn dưới vào cuối prompt đó.
@@ -28,6 +29,14 @@ chỉ dùng ngữ pháp đã học tới bài này, và PHẢI chứa nguyên v�
 `example` không bắt buộc, nhưng có thì từ vựng của buổi dùng được chế độ **Ngữ cảnh**. Câu ví dụ không chứa chính từ đó thì importer báo lỗi. Nhập lại một bài giữ nguyên tiến độ SRS, tiến độ bài tập và lời giải thích AI của những câu không đổi nội dung.
 
 Câu có `provenance` khác `answer_pdf` (ChatGPT tự suy ra đáp án vì tài liệu không có) được importer đếm và in ra — soát lại trước khi nhập. Bài 13: đã soát, cả 23 câu đúng.
+
+**Bài luyện thêm** (trắc nghiệm 4 lựa chọn, AI sinh từ ngữ pháp + từ vựng của buổi), sau khi 3 file của bài đã hợp lệ:
+
+```
+npm run sinh:luyen-them -- --bai=13 [--so-cau=40] [--ghi-de]
+```
+
+Script ghi `bai-XX/extra.json` (bỏ câu hỏng / trùng đề), **soát lại** rồi mới nhập. Câu luyện thêm hiện ở nhóm "Luyện thêm" trong phần Bài tập, **không** tính vào tiến độ buổi và không nằm trong "Tất cả" / "Còn lại".
 
 Kiểm tra rồi nhập (trong `backend/`):
 

@@ -169,6 +169,8 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
   assert.deepEqual(calls[0].params, [7]);
   assert.match(calls[0].sql, /cp\.user_id = c\.user_id/);
   assert.match(calls[0].sql, /p\.user_id = c\.user_id/);
+  // Câu luyện thêm (AI sinh) không tính vào tiến độ buổi
+  assert.equal(calls[0].sql.match(/q\.source <> 'extra'/g).length, 3);
   assert.deepEqual(res.body[0].lessons[0], {
     lesson_number: 13,
     title: "Bài 13",
@@ -209,4 +211,29 @@ test("answerQuestion does not store anything for another user's question", async
     { statusCode: 404 }
   );
   assert.equal(calls.length, 1);
+});
+
+test("buildExtraPracticePrompt lists the lesson content, existing prompts and the JSON shape", () => {
+  const prompt = aiService.buildExtraPracticePrompt({
+    lessonNumber: 13,
+    lessonTitle: "Quá khứ đơn",
+    grammar: [{ title: "Phủ định", pattern: "S + didn't + V", rules: ["Sau didn't dùng V nguyên mẫu"], examples: [{ en: "I didn't go." }] }],
+    vocabulary: [{ term_en: "bill", part_of_speech: "noun", meaning_vi: "hóa đơn" }],
+    existingPrompts: ["He _____ at home."],
+    count: 40,
+  });
+
+  assert.match(prompt, /Soạn 40 câu trắc nghiệm MỚI để luyện buổi 13: "Quá khứ đơn"/);
+  assert.ok(prompt.includes("- Phủ định: S + didn't + V\n  • Sau didn't dùng V nguyên mẫu\n  Ví dụ: I didn't go."));
+  assert.match(prompt, /- bill \(noun\): hóa đơn/);
+  assert.match(prompt, /- He _____ at home\./);
+  assert.match(prompt, /"cau_hoi":\[/);
+});
+
+test("parseExtraPracticeResponse reads plain or fenced JSON", () => {
+  const cau = { nhom: "ngu_phap", de_bai: "x", lua_chon: ["a", "b", "c", "d"], dap_an: "A" };
+  assert.deepEqual(aiService.parseExtraPracticeResponse(JSON.stringify({ cau_hoi: [cau] })), [cau]);
+  assert.deepEqual(aiService.parseExtraPracticeResponse('```json\n{"cau_hoi":[]}\n```'), []);
+  assert.deepEqual(aiService.parseExtraPracticeResponse(JSON.stringify([cau])), [cau]);
+  assert.throws(() => aiService.parseExtraPracticeResponse("không phải JSON"));
 });

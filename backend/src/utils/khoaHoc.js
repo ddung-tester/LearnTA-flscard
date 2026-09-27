@@ -118,6 +118,75 @@ function chuanHoaBaiHoc({ lesson, exercises, answers }) {
   };
 }
 
+const CHU_LUA_CHON = ["A", "B", "C", "D"];
+
+function chuanHoaDeBai(text) {
+  return chuoi(text).toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Đổi các câu Gemini sinh (scripts/sinh-bai-luyen-them.js) thành extra.json, cùng dạng exercises + answers.
+ * Bỏ từng câu hỏng (không đủ 4 lựa chọn khác nhau, đáp án không phải A–D, trùng đề) thay vì bỏ cả bài.
+ * @returns {{ extra: { lesson_number, questions, answers }, soCauBo: number }}
+ */
+function taoBaiLuyenThem(cauTho, { lessonNumber, deBaiDaCo = [] }) {
+  const daCo = new Set(deBaiDaCo.map(chuanHoaDeBai));
+  const questions = [];
+  const answers = [];
+  let soCauBo = 0;
+
+  for (const cau of Array.isArray(cauTho) ? cauTho : []) {
+    const deBai = chuoi(cau?.de_bai);
+    const luaChon = mangChuoi(cau?.lua_chon);
+    const dapAn = chuoi(cau?.dap_an).toUpperCase();
+    const hopLe =
+      deBai &&
+      luaChon.length === 4 &&
+      new Set(luaChon.map((text) => text.toLowerCase())).size === 4 &&
+      CHU_LUA_CHON.includes(dapAn) &&
+      !daCo.has(chuanHoaDeBai(deBai));
+    if (!hopLe) {
+      soCauBo += 1;
+      continue;
+    }
+
+    daCo.add(chuanHoaDeBai(deBai));
+    const id = `extra_${String(questions.length + 1).padStart(3, "0")}`;
+    questions.push({
+      id,
+      source: "extra",
+      section: cau?.nhom === "tu_vung" ? "tu_vung" : "ngu_phap",
+      type: "multiple_choice",
+      prompt: deBai,
+      options: luaChon.map((text, index) => ({ key: CHU_LUA_CHON[index], text })),
+    });
+    answers.push({
+      question_id: id,
+      answer: dapAn,
+      explanation_vi: chuoi(cau?.giai_thich),
+      provenance: "ai_generated",
+    });
+  }
+
+  return { extra: { lesson_number: lessonNumber, questions, answers }, soCauBo };
+}
+
+/** Gộp bài luyện thêm (extra.json, nếu có) vào 3 file của bài trước khi kiểm tra / nạp */
+function gopBaiLuyenThem(files, extra) {
+  if (!extra) return files;
+  return {
+    ...files,
+    exercises: {
+      ...files.exercises,
+      questions: [...(files.exercises?.questions || []), ...(extra.questions || [])],
+    },
+    answers: {
+      ...files.answers,
+      answers: [...(files.answers?.answers || []), ...(extra.answers || [])],
+    },
+  };
+}
+
 /**
  * @param soBai số bài lấy từ tên thư mục (bai-13) để đối chiếu với nội dung file
  * @returns {string[]} danh sách lỗi (rỗng nếu hợp lệ)
@@ -369,5 +438,7 @@ module.exports = {
   laTraLoiDung,
   chuanHoaBaiHoc,
   kiemTraBaiHoc,
+  taoBaiLuyenThem,
+  gopBaiLuyenThem,
   napBaiHoc,
 };

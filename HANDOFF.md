@@ -27,6 +27,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 | 8 | **Sắp lại cấu trúc: mỗi bộ từ có đúng 1 nguồn** — 2026-09-27 | `deckController` trả `source` (`user`/`sample`/`course`/`roadmap`, suy ra từ `roadmap_decks`/`course_lessons`) + `parent`. Tab **"Khoá học"** (`/khoa-hoc`, public) gộp khoá riêng + lộ trình; `/roadmap` chuyển hướng về đó, `TrangLoTrinh.jsx` bị xoá. **"Bộ từ"** khi đăng nhập chỉ còn bộ tự tạo (bỏ bộ khoá học, bộ mẫu, bộ public của người khác — đúng `CLAUDE.md`). `/practice` dùng `GET /decks?scope=learnable`, ô chọn nhóm theo nguồn (bỏ mẹo chèn bộ `?bo=`). Bộ khoá học **chỉ đọc** (403 khi sửa/xoá/thêm từ), chủ khoá vẫn thả tim được. Trang chi tiết bộ: nút quay lại về đúng buổi / chặng (`utils/nguonBoTu.js`). Đã tự deploy (revision `flashcard-backend-00088`), smoke test production OK. |
 | 9 | **Tiến độ theo buổi (khoá học)** — 2026-09-27 | Migration **011** (`course_question_progress`, **đã chạy** trên Cloud SQL): mỗi câu trả lời gửi `POST /course-questions/:id/answer`, server tự chấm và lưu kết quả lần gần nhất. `GET /courses` trả thêm từ đã học/đã thuộc + câu đã làm/đúng mỗi buổi. Trang Khoá học: nút "Học tiếp / Bắt đầu Buổi X" (buổi gần nhất đang học dở, xong thì buổi kế), lịch 48 ô tô xanh buổi đã xong + khoanh đỏ buổi học tiếp, thẻ buổi có tiến độ. Trang buổi: bước Từ vựng / Bài tập hiện "x/y"; bài tập mở sẵn phần **"Còn lại"** (câu chưa đúng) khi đã làm dở. Dashboard dẫn thẳng tới buổi học tiếp. |
 | 10 | **Nội dung khoá: câu ví dụ + soát đáp án** — 2026-09-27 | `lesson.json` nhận `vocabulary[].example` (không bắt buộc, phải chứa chính từ) → `cards.example_sentence`, mở được chế độ Ngữ cảnh. Bài 13: đã thêm 11 câu ví dụ tự soạn và **nhập lại** lên Cloud SQL. Nhập lại giờ chỉ xoá lời giải thích AI của câu đổi nội dung (trước xoá cả bài). Đã soát 23 câu đáp án ChatGPT tự suy ra ở bài 13: **đúng cả 23**. Đoạn prompt bổ sung cho ChatGPT ở `docs/khoa-hoc-48-ngay.md`. |
+| 11 | **Bài luyện thêm do AI sinh** — 2026-09-27 | `npm run sinh:luyen-them -- --bai=XX` (Gemini, model chính 503 thì tự chuyển lite) → `bai-XX/extra.json` để soát; importer nhập kèm nếu có (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Câu luyện thêm **không** tính vào tiến độ buổi, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: đã sinh 40 câu, soát từng câu (đúng cả 40). Thư mục dùng chung cho 2 script: `scripts/thuMucKhoaHoc.js`. |
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
@@ -34,7 +35,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 - **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. Backend đã lên production (push `main` tự deploy, xem mục 3.1). Không cần migration mới cho bước 8.
 - 47 bài còn lại: người dùng trích bằng ChatGPT theo định dạng 3 file của bài 13 (xem `docs/khoa-hoc-48-ngay.md`), chép vào `private-content/khoa-hoc-48-ngay/bai-XX/`, rồi chạy `npm run nhap:khoa-hoc -- --email=... --apply`. Đừng để người dùng push file nội dung lên GitHub (bài 13 từng bị push vào `docs/48day/`, đã gỡ khỏi git nhưng vẫn còn trong lịch sử commit `b89f435`).
 - Bài 13: 23/43 câu (Quiz, Practice) có đáp án do ChatGPT tự suy ra vì tài liệu không có đáp án → **đã soát, đúng cả 23** (bước 10). Các bài sau: soát lúc nhập.
-- Chưa có 40–50 câu bài tập thêm mỗi bài (có thể sinh bằng Gemini từ lý thuyết đã nhập). Tiến độ bài tập đã lưu trên server (bước 9).
+- Bài luyện thêm: bài 13 đã có 40 câu (bước 11); các bài sau chạy `npm run sinh:luyen-them -- --bai=XX`, soát rồi nhập. Tiến độ bài tập đã lưu trên server (bước 9).
 - Câu ví dụ từ vựng: bài 13 đã có (bước 10); các bài sau lấy từ trường `example` khi trích. `npm run seed:ai-examples -- --apply` vẫn dùng để sinh "Ví dụ 6 thì" (`tense_examples`).
 
 ### 3.1 Deploy — ĐÃ XONG (2026-09-26)
@@ -98,9 +99,9 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 
 ```powershell
 # Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
-cd backend; npm ci; npm test            # node --test, kỳ vọng 61 pass
+cd backend; npm ci; npm test            # node --test, kỳ vọng 65 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 84 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 86 pass
 npx vite build; npx eslint <file>
 ```
 Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).

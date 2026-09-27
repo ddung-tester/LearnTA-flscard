@@ -4,7 +4,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
-import { tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
+import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import "./KhoaHoc.css";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
@@ -231,11 +231,14 @@ function TrangBaiHoc() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const soTuDaHoc = bai.words.filter((tu) => tu.mastery_level !== null && tu.mastery_level !== undefined).length;
-  const soCauDung = bai.questions.filter((cau) => ketQuaCau[cau.id] === true).length;
+  // Tiến độ tính trên câu của tài liệu, không tính câu luyện thêm (giống trang Khoá học)
+  const cauChinh = layCauBaiChinh(bai.questions);
+  const soCauDung = cauChinh.filter((cau) => ketQuaCau[cau.id] === true).length;
+  const daLamCauChinh = cauChinh.some((cau) => cau.id in ketQuaCau);
   const moTaBuoc = {
     "tu-vung": soTuDaHoc > 0 ? `${soTuDaHoc}/${bai.words.length} từ đã học` : `${bai.words.length} từ`,
     "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục`,
-    "bai-tap": Object.keys(ketQuaCau).length > 0 ? `${soCauDung}/${bai.questions.length} câu đúng` : `${bai.questions.length} câu`,
+    "bai-tap": daLamCauChinh ? `${soCauDung}/${cauChinh.length} câu đúng` : `${cauChinh.length} câu`,
   };
   const ghiNhanKetQua = (cauId, dung) =>
     setTrangThai((cu) => ({ ...cu, ketQuaCau: { ...cu.ketQuaCau, [cauId]: dung } }));
@@ -282,7 +285,7 @@ function TrangBaiHoc() {
           <LyThuyet
             content={bai.lesson.content}
             onDoc={docTiengAnh}
-            soCauBaiTap={bai.questions.length}
+            soCauBaiTap={cauChinh.length}
             onSangBuoc={chuyenBuoc}
           />
         )}

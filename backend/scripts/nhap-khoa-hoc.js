@@ -1,6 +1,7 @@
 /**
  * nhap-khoa-hoc.js — Nạp khoá học riêng (tài liệu cá nhân) vào tài khoản của chủ khoá.
  * Nội dung: database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json
+ * + extra.json nếu có (bài luyện thêm, sinh bằng scripts/sinh-bai-luyen-them.js)
  * (thư mục đã .gitignore, KHÔNG commit). Chạy lại nhiều lần an toàn.
  *
  * Kiểm tra file (không đụng DB): node scripts/nhap-khoa-hoc.js
@@ -8,36 +9,15 @@
  * Chỉ một bài:                   thêm --bai=13
  */
 require("dotenv/config");
-const fs = require("fs");
-const path = require("path");
-const { chuanHoaBaiHoc, kiemTraBaiHoc, napBaiHoc } = require("../src/utils/khoaHoc");
+const { chuanHoaBaiHoc, gopBaiLuyenThem, kiemTraBaiHoc, napBaiHoc } = require("../src/utils/khoaHoc");
+const { THU_MUC, docFileBai, docThamSo, timCacBai } = require("./thuMucKhoaHoc");
 
 const KHOA_HOC = {
   slug: "khoa-hoc-48-ngay",
   title: "Khoá 48 ngày lấy gốc tiếng Anh",
   description: "Tài liệu cá nhân, chỉ bạn xem được.",
 };
-const THU_MUC = path.join(__dirname, "../database/private-content/khoa-hoc-48-ngay");
 const APPLY = process.argv.includes("--apply");
-
-function docThamSo(ten) {
-  const thamSo = process.argv.find((arg) => arg.startsWith(`--${ten}=`));
-  return thamSo ? thamSo.slice(ten.length + 3).trim() : "";
-}
-
-function docJson(duongDan) {
-  return JSON.parse(fs.readFileSync(duongDan, "utf8").replace(/^﻿/, ""));
-}
-
-function timCacBai(chiBai) {
-  if (!fs.existsSync(THU_MUC)) return [];
-  return fs
-    .readdirSync(THU_MUC, { withFileTypes: true })
-    .filter((muc) => muc.isDirectory() && /^bai-\d+$/.test(muc.name))
-    .map((muc) => ({ soBai: Number(muc.name.slice(4)), thuMuc: path.join(THU_MUC, muc.name) }))
-    .filter((bai) => !chiBai || bai.soBai === chiBai)
-    .sort((a, b) => a.soBai - b.soBai);
-}
 
 async function main() {
   const chiBai = Number(docThamSo("bai")) || null;
@@ -52,11 +32,11 @@ async function main() {
   for (const { soBai, thuMuc } of cacBai) {
     let files;
     try {
-      files = {
-        lesson: docJson(path.join(thuMuc, "lesson.json")),
-        exercises: docJson(path.join(thuMuc, "exercises.json")),
-        answers: docJson(path.join(thuMuc, "answers.json")),
-      };
+      const doc = docFileBai(thuMuc);
+      if (doc.extra && Number(doc.extra.lesson_number) !== soBai) {
+        throw new Error("extra.json: lesson_number không khớp số bài");
+      }
+      files = gopBaiLuyenThem(doc.files, doc.extra);
     } catch (error) {
       console.error(`❌ Bài ${soBai}: không đọc được file (${error.message})`);
       coLoi = true;
@@ -71,12 +51,15 @@ async function main() {
     }
 
     const bai = chuanHoaBaiHoc(files);
-    const tracNghiem = bai.questions.filter((cau) => cau.type === "multiple_choice").length;
-    const dapAnTuSuyRa = bai.questions.filter((cau) => cau.answer_source !== "answer_pdf").length;
+    const cauChinh = bai.questions.filter((cau) => cau.source !== "extra");
+    const soLuyenThem = bai.questions.length - cauChinh.length;
+    const tracNghiem = cauChinh.filter((cau) => cau.type === "multiple_choice").length;
+    const dapAnTuSuyRa = cauChinh.filter((cau) => cau.answer_source !== "answer_pdf").length;
     console.log(
       `✅ Bài ${soBai}: ${bai.vocabulary.length} từ, ${bai.content.grammar.length} mục ngữ pháp, ` +
-        `${bai.questions.length} câu (${tracNghiem} trắc nghiệm, ${bai.questions.length - tracNghiem} điền từ)` +
-        (dapAnTuSuyRa ? `, ${dapAnTuSuyRa} câu đáp án không lấy từ file đáp án` : "")
+        `${cauChinh.length} câu (${tracNghiem} trắc nghiệm, ${cauChinh.length - tracNghiem} điền từ)` +
+        (dapAnTuSuyRa ? `, ${dapAnTuSuyRa} câu đáp án không lấy từ file đáp án` : "") +
+        (soLuyenThem ? `, ${soLuyenThem} câu luyện thêm (AI)` : "")
     );
     hopLe.push(bai);
   }

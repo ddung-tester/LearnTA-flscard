@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   chuanHoaTraLoi,
   laTraLoiDung,
+  layCauBaiChinh,
   layDapAnHienThi,
   tachChuDam,
   tachCongThuc,
@@ -138,5 +139,14 @@ describe("tiến độ khoá học", () => {
     expect(timBuoiTiepTheo([buoi(13, XONG), buoi(14)]).lesson_number).toBe(14);
     expect(timBuoiTiepTheo([buoi(13, XONG)])).toBeNull();
     expect(timBuoiTiepTheo([])).toBeNull();
+  });
+});
+
+describe("layCauBaiChinh", () => {
+  it("bỏ câu luyện thêm, trừ khi buổi chỉ có câu luyện thêm", () => {
+    const trongBai = { id: 1, source: "lesson" };
+    const luyenThem = { id: 2, source: "extra" };
+    expect(layCauBaiChinh([trongBai, luyenThem])).toEqual([trongBai]);
+    expect(layCauBaiChinh([luyenThem])).toEqual([luyenThem]);
   });
 });

@@ -3,7 +3,9 @@ const assert = require("node:assert/strict");
 const {
   chuanHoaBaiHoc,
   chuanHoaTraLoi,
+  gopBaiLuyenThem,
   kiemTraBaiHoc,
+  taoBaiLuyenThem,
   laTraLoiDung,
   napBaiHoc,
 } = require("../src/utils/khoaHoc");
@@ -275,4 +277,69 @@ test("kiemTraBaiHoc requires an example sentence to contain the word itself", ()
   const files = taoBai();
   files.lesson.vocabulary[1].example = "The room was silent.";
   assert.deepEqual(kiemTraBaiHoc(files, 3), ['Từ #2 "quiet": câu ví dụ không chứa chính từ này']);
+});
+
+test("taoBaiLuyenThem keeps valid AI questions and drops broken or duplicate ones", () => {
+  const tot = { nhom: "ngu_phap", de_bai: "They _____ at home.", lua_chon: ["was", "were", "is", "be"], dap_an: "b", giai_thich: "They dùng were." };
+  const { extra, soCauBo } = taoBaiLuyenThem(
+    [
+      tot,
+      { ...tot, de_bai: " they  _____ AT home. " }, // trùng đề
+      { ...tot, de_bai: "The lamp _____ on." }, // trùng câu có sẵn trong bài
+      { ...tot, de_bai: "Câu 3 lựa chọn", lua_chon: ["a", "b", "c"] },
+      { ...tot, de_bai: "Lựa chọn trùng", lua_chon: ["a", "A", "b", "c"] },
+      { ...tot, de_bai: "Đáp án lạ", dap_an: "E" },
+      { nhom: "tu_vung", de_bai: "\"quiet\" nghĩa là gì?", lua_chon: ["yên tĩnh", "ồn ào", "vui", "buồn"], dap_an: "A" },
+    ],
+    { lessonNumber: 3, deBaiDaCo: ["The lamp _____ on."] }
+  );
+
+  assert.equal(soCauBo, 5);
+  assert.deepEqual(extra.questions.map((cau) => [cau.id, cau.source, cau.section]), [
+    ["extra_001", "extra", "ngu_phap"],
+    ["extra_002", "extra", "tu_vung"],
+  ]);
+  assert.deepEqual(extra.questions[0].options[1], { key: "B", text: "were" });
+  assert.deepEqual(extra.answers[0], {
+    question_id: "extra_001",
+    answer: "B",
+    explanation_vi: "They dùng were.",
+    provenance: "ai_generated",
+  });
+});
+
+test("gopBaiLuyenThem appends extra questions so they pass the same checks and import", () => {
+  const files = taoBai();
+  const { extra } = taoBaiLuyenThem(
+    [{ nhom: "ngu_phap", de_bai: "We _____ quiet.", lua_chon: ["was", "were", "is", "be"], dap_an: "B" }],
+    { lessonNumber: 3 }
+  );
+
+  assert.equal(gopBaiLuyenThem(files, null), files);
+  const gop = gopBaiLuyenThem(files, extra);
+  assert.deepEqual(kiemTraBaiHoc(gop, 3), []);
+  const bai = chuanHoaBaiHoc(gop);
+  assert.equal(bai.questions.length, 3);
+  assert.deepEqual(bai.questions[2], {
+    question_key: "extra_001",
+    source: "extra",
+    section: "ngu_phap",
+    type: "multiple_choice",
+    instruction: null,
+    prompt: "We _____ quiet.",
+    options: [
+      { key: "A", text: "was" },
+      { key: "B", text: "were" },
+      { key: "C", text: "is" },
+      { key: "D", text: "be" },
+    ],
+    answer_key: "B",
+    accepted_answers: null,
+    explanation: null,
+    answer_source: "ai_generated",
+    image_description: null,
+    sort_order: 2,
+  });
+  // Không sửa file gốc
+  assert.equal(files.exercises.questions.length, 2);
 });

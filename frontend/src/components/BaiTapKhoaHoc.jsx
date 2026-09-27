@@ -3,6 +3,7 @@ import useTTS from "../hooks/useTTS";
 import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
   laTraLoiDung,
+  layCauBaiChinh,
   layDapAnHienThi,
   nhomPhanBaiTap,
   phanBaiTap,
@@ -175,11 +176,13 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
  */
 export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan }) {
   const { speak, isPlaying } = useTTS();
-  const cauConLai = cauHoi.filter((c) => ketQuaGanNhat[c.id] !== true);
+  // "Tất cả" / "Còn lại" chỉ gồm câu của tài liệu; câu luyện thêm (AI) chọn riêng ở nhóm "Luyện thêm"
+  const cauChinh = layCauBaiChinh(cauHoi);
+  const cauConLai = cauChinh.filter((c) => ketQuaGanNhat[c.id] !== true);
   // Chỉ có ý nghĩa khi đã làm một phần: chưa làm câu nào hoặc sai hết thì "Còn lại" = "Tất cả"
-  const coPhanConLai = cauConLai.length > 0 && cauConLai.length < cauHoi.length;
+  const coPhanConLai = cauConLai.length > 0 && cauConLai.length < cauChinh.length;
   const [phan, setPhan] = useState(coPhanConLai ? CON_LAI : TAT_CA);
-  const [danhSach, setDanhSach] = useState(coPhanConLai ? cauConLai : cauHoi);
+  const [danhSach, setDanhSach] = useState(coPhanConLai ? cauConLai : cauChinh);
   const [chiSo, setChiSo] = useState(0);
   const [ketQua, setKetQua] = useState({});
   const [giaiThich, setGiaiThich] = useState({});
@@ -211,7 +214,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan })
     // Đã đúng hết phần "Còn lại" thì làm lại toàn bộ
     const khoaMoi = khoa === CON_LAI ? TAT_CA : khoa;
     setPhan(khoaMoi);
-    batDauLuot(khoaMoi === TAT_CA ? cauHoi : cauHoi.filter((c) => phanBaiTap(c).khoa === khoaMoi));
+    batDauLuot(khoaMoi === TAT_CA ? cauChinh : cauHoi.filter((c) => phanBaiTap(c).khoa === khoaMoi));
   }
 
   function hoiAI(cauHienTai, traLoi) {
@@ -276,7 +279,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan })
   const boChonPhan = (
     <div className="kh-bt__phan" role="group" aria-label="Chọn phần bài tập">
       <button type="button" className="kh-chip" aria-pressed={phan === TAT_CA} onClick={() => chonPhan(TAT_CA)}>
-        Tất cả <span className="kh-chip__so">{cauHoi.length}</span>
+        Tất cả <span className="kh-chip__so">{cauChinh.length}</span>
       </button>
       {(coPhanConLai || phan === CON_LAI) && (
         <button type="button" className="kh-chip" aria-pressed={phan === CON_LAI} onClick={() => chonPhan(CON_LAI)}>

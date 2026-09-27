@@ -44,7 +44,8 @@ function soNguyen(value) {
 }
 
 // Tiến độ mỗi buổi của chủ khoá: từ "đã học" = có card_progress, "đã thuộc" = Lv5 (giống lộ trình);
-// câu "đúng" = lần trả lời gần nhất đúng
+// câu "đúng" = lần trả lời gần nhất đúng. Câu luyện thêm (source = 'extra', AI sinh) là tuỳ chọn,
+// không tính vào tiến độ buổi.
 async function listCourses(req, res) {
   const [rows] = await pool.query(
     `SELECT
@@ -54,7 +55,7 @@ async function listCourses(req, res) {
        c.description,
        l.lesson_number,
        l.title AS lesson_title,
-       (SELECT COUNT(*) FROM course_questions q WHERE q.lesson_id = l.id) AS question_count,
+       (SELECT COUNT(*) FROM course_questions q WHERE q.lesson_id = l.id AND q.source <> 'extra') AS question_count,
        (SELECT COUNT(*) FROM cards cd WHERE cd.deck_id = l.deck_id) AS word_count,
        (SELECT COUNT(*)
         FROM cards cd
@@ -67,11 +68,11 @@ async function listCourses(req, res) {
        (SELECT COUNT(*)
         FROM course_questions q
         JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
-        WHERE q.lesson_id = l.id) AS answered_count,
+        WHERE q.lesson_id = l.id AND q.source <> 'extra') AS answered_count,
        (SELECT COUNT(*)
         FROM course_questions q
         JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
-        WHERE q.lesson_id = l.id AND p.is_correct = TRUE) AS correct_count
+        WHERE q.lesson_id = l.id AND q.source <> 'extra' AND p.is_correct = TRUE) AS correct_count
      FROM courses c
      LEFT JOIN course_lessons l ON l.course_id = c.id
      WHERE c.user_id = ?
