@@ -192,7 +192,7 @@ function TrangChu() {
             >
               Bắt đầu học ngay
             </Link>
-            <Link to="/roadmap" className="ui-button ui-button--ghost home-loi__nut-phu">
+            <Link to="/khoa-hoc" className="ui-button ui-button--ghost home-loi__nut-phu">
               Xem lộ trình học
             </Link>
           </div>

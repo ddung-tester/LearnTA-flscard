@@ -1,7 +1,8 @@
 import api from "./api";
 
-export async function layDanhSachDeck() {
-  const response = await api.get("/decks");
+/** scope "learnable": mọi bộ học được (tự tạo + khoá học + lộ trình), dùng cho trang Luyện tập */
+export async function layDanhSachDeck({ scope } = {}) {
+  const response = await api.get("/decks", scope ? { params: { scope } } : undefined);
   return response.data;
 }
 

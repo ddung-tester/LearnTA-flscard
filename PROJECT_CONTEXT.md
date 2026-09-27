@@ -107,9 +107,10 @@ LearnTA-flscard/
 ```txt
 /                         TrangChu            public
 /login, /register         TrangDangNhap/DangKy public
-/decks                    TrangDanhSachBo     public
-/practice                 TrangLuyenTap       public (chon bo tu, bo loc, thu tu, so luong roi chon che do; ?bo=<id> mo san mot bo)
-/roadmap                  TrangLoTrinh        public (danh sach lo trinh)
+/decks                    TrangDanhSachBo     public ("Bo tu": chi bo tu tao)
+/practice                 TrangLuyenTap       public (chon bo tu (GET /decks?scope=learnable, nhom theo nguon), bo loc, thu tu, so luong roi chon che do; ?bo=<id> mo san mot bo)
+/khoa-hoc                 TrangKhoaHoc        public (tab "Khoa hoc": khoa hoc rieng cua user khi dang nhap + danh sach lo trinh)
+/roadmap                  -> chuyen huong /khoa-hoc
 /roadmap/:slug            TrangChiTietLoTrinh public (cac chang theo thu tu + tien do)
 /decks/:deckId            TrangChiTietBo      public
 /decks/:deckId/flashcard  TrangFlashcard      public
@@ -125,7 +126,6 @@ LearnTA-flscard/
 /stats                    TrangThongKe        can dang nhap
 /decks/:deckId/add-word   TrangThemTu         can dang nhap
 /cai-dat                  TrangCaiDat         can dang nhap
-/khoa-hoc                 TrangKhoaHoc        can dang nhap (khoa hoc rieng cua user)
 /khoa-hoc/:courseId/bai/:soBai  TrangBaiHoc   can dang nhap (?tab=ly-thuyet|tu-vung|bai-tap)
 ```
 
@@ -143,7 +143,8 @@ GET    /health, /db-test
 POST   /auth/register | /auth/login | /auth/google     rate limit 10 req/15 phut/IP
 GET    /auth/me                                         auth
 
-GET    /decks | /decks/:deckId                          optional auth
+GET    /decks | /decks/:deckId                          optional auth; moi deck co `source` + `parent` (xem Quyen doc/ghi deck)
+GET    /decks?scope=learnable                           optional auth; moi bo hoc duoc (user_id NULL + bo cua minh), xep theo nhom nguon
 POST   /decks, PUT|DELETE /decks/:deckId                auth, chi chu deck
 
 GET    /decks/:deckId/cards
@@ -177,10 +178,11 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 ### Quyen doc/ghi deck (theo code `deckController.canReadDeck` / `canWriteDeck`)
 
 - Doc: deck mau (`user_id IS NULL`), deck `is_public = TRUE`, hoac deck cua chinh user.
-- Anonymous: `GET /decks` tra deck mau + deck public.
-- Da dang nhap: `GET /decks` tra deck cua minh + deck mau + deck public.
-- `GET /decks` KHONG tra cac bo tu thuoc lo trinh (co trong `roadmap_decks`); cac bo nay chi hien o `/roadmap`, van doc duoc qua `/decks/:deckId`.
-- Ghi (sua/xoa deck, card): chi chu deck (`user_id` = user trong token). Deck mau khong ai sua duoc qua API.
+- Nguon cua deck (`source`, suy ra tu bang noi, khong luu cot): `course` (tu vung 1 buoi cua khoa hoc rieng, co `course_lessons.deck_id`), `roadmap` (chang lo trinh, co `roadmap_decks`), `user` (bo tu tao), `sample` (bo mau cu `user_id NULL` ngoai lo trinh). `parent`: `{course_id, course_title, lesson_number, lesson_title}` hoac `{slug, title}` hoac null. FE: `utils/nguonBoTu.js` (nut quay lai o trang chi tiet bo ve dung buoi/chang; nhom bo o /practice).
+- Anonymous: `GET /decks` tra deck mau + deck public (tru bo lo trinh/khoa hoc).
+- Da dang nhap: `GET /decks` chi tra bo tu tao cua minh (khong gom bo khoa hoc, bo lo trinh, bo mau, bo public cua nguoi khac).
+- `GET /decks?scope=learnable`: nguon hoc cho /practice — `user_id IS NULL` (lo trinh + mau) va bo cua minh (gom bo khoa hoc).
+- Ghi (sua/xoa deck, card): chi chu deck (`user_id` = user trong token), va deck `source = course` CHI DOC ke ca voi chu khoa (script nhap quan ly; xoa bo se mat tien do SRS). Ngoai le: chu khoa van bat/tat yeu thich (`isDeckOwner`). Deck mau khong ai sua duoc qua API.
 
 ### Chatbot `/api/chat`
 
@@ -244,7 +246,7 @@ Thu tu deploy: chay migration 007 → 008 → 009 TRUOC khi deploy backend (`GET
 
 Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). Script nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
 
-Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` (da `.gitignore`, KHONG commit). Nhap: `npm run nhap:khoa-hoc` (chi kiem tra file) roi `npm run nhap:khoa-hoc -- --email=<email chu khoa> --apply [--bai=13]`. Chay lai an toan; tu vung moi bai thanh 1 bo tu rieng cua chu khoa. Can migration 010 truoc. Prompt trich xuat: `docs/khoa-hoc-48-ngay.md`.
+Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` (da `.gitignore`, KHONG commit). Nhap: `npm run nhap:khoa-hoc` (chi kiem tra file) roi `npm run nhap:khoa-hoc -- --email=<email chu khoa> --apply [--bai=13]`. Chay lai an toan; tu vung moi bai thanh 1 bo tu rieng cua chu khoa (chi doc, khong hien o "Bo tu", hien o /practice nhom theo khoa). Can migration 010 truoc. Prompt trich xuat: `docs/khoa-hoc-48-ngay.md`.
 
 Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.jsx` — dan danh sach (`utils/nhapNhanhTu.js`: `tu | /phien am/ | loai tu | nghia | vi du | ghi chu`, van nhan "tu - nghia") hoac AI tao tu theo chu de / doan van. Tu trung (cung tu + loai tu) bi loai.
 

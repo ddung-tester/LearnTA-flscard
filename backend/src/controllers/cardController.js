@@ -4,6 +4,7 @@ const {
   assertDeckWritable,
   currentUserId,
   findDeckById,
+  isDeckOwner,
 } = require("./deckController");
 const {
   cleanNullableText,
@@ -130,6 +131,26 @@ async function ensureCardWritable(cardId, req) {
 
   await ensureDeckWritable(card.deck_id, req);
   return card;
+}
+
+// Yêu thích là đánh dấu của chủ bộ: vẫn bật/tắt được trên bộ chỉ đọc của khoá học
+async function ensureCardFavoritable(cardId, req) {
+  const card = await findCardById(cardId);
+
+  if (!card) {
+    throw createHttpError(404, "Khong tim thay tu vung");
+  }
+
+  const userId = currentUserId(req);
+  const deck = await findDeckById(card.deck_id, { quizUserId: userId });
+
+  if (!deck) {
+    throw createHttpError(404, "Khong tim thay bo tu");
+  }
+
+  if (!isDeckOwner(deck, userId)) {
+    throw createHttpError(403, "Chi co the sua bo tu cua ban");
+  }
 }
 
 async function findCardById(cardId, connection = pool, options = {}) {
@@ -474,7 +495,7 @@ async function updateCard(req, res) {
 
 async function toggleFavorite(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  await ensureCardWritable(cardId, req);
+  await ensureCardFavoritable(cardId, req);
 
   const isFavorite = parseBoolean(req.body.is_favorite ?? req.body.isFavorite);
 

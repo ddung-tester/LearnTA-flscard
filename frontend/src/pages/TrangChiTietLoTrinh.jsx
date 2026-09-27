@@ -46,7 +46,7 @@ function TrangChiTietLoTrinh() {
   if (!loTrinh) {
     return (
       <div className="ui-page-stack">
-        <Link to="/roadmap" className="ui-back-link ui-back-link--quiet">&larr; Lộ trình</Link>
+        <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
         <p className="text-sm text-[var(--mau-chu-phu)]">Không tìm thấy lộ trình này.</p>
       </div>
     );
@@ -64,7 +64,7 @@ function TrangChiTietLoTrinh() {
 
   return (
     <div className="ui-page-stack">
-      <Link to="/roadmap" className="ui-back-link ui-back-link--quiet">&larr; Lộ trình</Link>
+      <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
 
       <div className="ui-page-header">
         <div className="ui-page-header__title">

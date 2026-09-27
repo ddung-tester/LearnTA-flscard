@@ -6,8 +6,13 @@ import { usePageTransition } from "../../contexts/PageTransitionContext";
 
 const DS_TAB_DIEU_HUONG = [
   { to: "/dashboard", nhan: "Dashboard", laActive: (path) => path === "/dashboard" },
+  // Khoá học = nội dung có sẵn (khoá riêng + lộ trình); Bộ từ = bộ tự tạo
+  {
+    to: "/khoa-hoc",
+    nhan: "Khoá học",
+    laActive: (path) => path.startsWith("/khoa-hoc") || path.startsWith("/roadmap"),
+  },
   { to: "/decks", nhan: "Bộ từ", laActive: (path) => path.startsWith("/decks") },
-  { to: "/roadmap", nhan: "Lộ trình", laActive: (path) => path.startsWith("/roadmap") },
   { to: "/practice", nhan: "Luyện tập", laActive: (path) => path === "/practice" },
 ];
 
@@ -29,10 +34,10 @@ function BoCuc() {
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
-  // Khách chỉ thấy tab Lộ trình: bộ từ mẫu nằm trong lộ trình, không có trong "Bộ từ"
+  // Khách chỉ thấy tab Khoá học: bộ từ mẫu nằm trong lộ trình, không có trong "Bộ từ"
   const dsTab = isAuthenticated
     ? DS_TAB_DIEU_HUONG
-    : DS_TAB_DIEU_HUONG.filter((tab) => tab.to === "/roadmap");
+    : DS_TAB_DIEU_HUONG.filter((tab) => tab.to === "/khoa-hoc");
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {

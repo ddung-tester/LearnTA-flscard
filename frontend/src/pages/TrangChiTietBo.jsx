@@ -18,6 +18,7 @@ import {
   docBoLocTuUrl,
 } from "../utils/locTuVung";
 import { cheTuTrongCau } from "../utils/phienHoc";
+import { layNoiChuaBo } from "../utils/nguonBoTu";
 import { layDeckTheoId } from "../services/deckApi";
 import { getUserStats } from "../services/userApi";
 import {
@@ -303,12 +304,17 @@ function TrangChiTietBo() {
     setTimeout(() => setSuccessInfo({ open: false, message: "" }), 1200);
   }
 
-  function coQuyenQuanLyBo() {
+  function laChuBo() {
     return (
       isAuthenticated &&
       bo?.user_id !== null &&
       String(bo?.user_id) === String(user?.id)
     );
+  }
+
+  // Bộ từ của khoá học chỉ đọc (do script nhập quản lý); chủ khoá vẫn thả tim được
+  function coQuyenQuanLyBo() {
+    return laChuBo() && bo?.source !== "course";
   }
 
   function yeuCauQuyenChinhSua() {
@@ -768,7 +774,7 @@ function TrangChiTietBo() {
   }
 
   async function toggleYeuThich(the) {
-    if (!yeuCauQuyenChinhSua()) return;
+    if (!laChuBo() && !yeuCauQuyenChinhSua()) return;
 
     const yeuThichMoi = !laTuYeuThich(the);
 
@@ -860,18 +866,23 @@ function TrangChiTietBo() {
   const queryHoc = `?filter=${filterTu}&sort=${sortTu}${tuKhoaHienTai ? `&q=${encodeURIComponent(tuKhoaHienTai)}` : ""}`;
   const streak = userStreak;
   const coTheQuanLy = coQuyenQuanLyBo();
+  const laChuBoTu = laChuBo();
   const dangBatChinhSua = dangChinhSua && coTheQuanLy;
   // Chỉ cho kéo thứ tự khi đang ở chế độ sắp xếp mặc định
   const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh" && !dangLoc;
+  // Bộ của khoá học / lộ trình quay lại đúng buổi / chặng chứa nó
+  const noiQuayLai = layNoiChuaBo(bo) ?? (isAuthenticated
+    ? { to: "/dashboard", nhan: "Dashboard" }
+    : { to: "/decks", nhan: "Bộ từ vựng" });
 
   return (
     <div className="ui-page-stack ui-page-stack--deck-detail">
       <div className="ui-deck-detail-top">
         <Link
-          to={isAuthenticated ? "/dashboard" : "/decks"}
+          to={noiQuayLai.to}
           className="ui-back-link ui-back-link--quiet ui-deck-detail-top__back"
         >
-          ← {isAuthenticated ? "Dashboard" : "Bộ từ vựng"}
+          ← {noiQuayLai.nhan}
         </Link>
         <h2 className="ui-deck-detail-top__heading">
           {bo.title}
@@ -1211,7 +1222,7 @@ function TrangChiTietBo() {
                         </span>
                       </div>
                     </div>
-                    {coTheQuanLy && (
+                    {laChuBoTu && (
                       <div
                         className={`ui-word-actions ${dangBatChinhSua ? "ui-word-actions--editing" : ""}`}
                       >

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useLayoutEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import VideoBackground from "./components/VideoBackground";
@@ -21,7 +21,6 @@ const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
 const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
 const TrangNoiTu = lazy(() => import("./pages/TrangNoiTu"));
 const TrangLuyenTap = lazy(() => import("./pages/TrangLuyenTap"));
-const TrangLoTrinh = lazy(() => import("./pages/TrangLoTrinh"));
 const TrangChiTietLoTrinh = lazy(() => import("./pages/TrangChiTietLoTrinh"));
 const TrangTuSai = lazy(() => import("./pages/TrangTuSai"));
 const TrangOnTapHomNay = lazy(() => import("./pages/TrangOnTapHomNay"));
@@ -76,7 +75,9 @@ function UngDung() {
           <Route path="/decks" element={<TrangDanhSachBo />} />
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route path="/practice" element={<TrangLuyenTap />} />
-          <Route path="/roadmap" element={<TrangLoTrinh />} />
+          <Route path="/khoa-hoc" element={<TrangKhoaHoc />} />
+          {/* Trang lộ trình cũ đã gộp vào trang Khoá học */}
+          <Route path="/roadmap" element={<Navigate to="/khoa-hoc" replace />} />
           <Route path="/roadmap/:slug" element={<TrangChiTietLoTrinh />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />
@@ -85,7 +86,6 @@ function UngDung() {
             <Route path="/stats" element={<TrangThongKe />} />
             <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
             <Route path="/cai-dat" element={<TrangCaiDat />} />
-            <Route path="/khoa-hoc" element={<TrangKhoaHoc />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai" element={<TrangBaiHoc />} />
           </Route>
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />

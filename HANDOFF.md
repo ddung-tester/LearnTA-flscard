@@ -24,11 +24,12 @@ Ngôn ngữ giao tiếp với người dùng: **tiếng Việt**. Giữ phong c�
 Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vite build` OK. Lint frontend không có lỗi mới (còn lỗi cũ, xem mục 6).
 
 | 7 | **Khoá học riêng (48 buổi)** — 2026-09-27 | Tài liệu PDF là khoá học trả phí độc quyền của bên khác → người dùng chọn **chỉ mình họ học**: mọi thứ gắn `user_id` chủ khoá, người khác nhận 404; nội dung nằm ở `backend/database/private-content/` (`.gitignore`, KHÔNG commit). Migration 010 (4 bảng `course*`), `utils/khoaHoc.js` + `scripts/nhap-khoa-hoc.js`, API `/courses`, `/course-questions/:id/explain` (Gemini, cache, tự chuyển model lite khi model chính 503). FE `/khoa-hoc`, `/khoa-hoc/:courseId/bai/:soBai` (Lý thuyết · Từ vựng · Bài tập; trả lời xong AI giải thích ngay dưới), lối vào ở Dashboard. |
+| 8 | **Sắp lại cấu trúc: mỗi bộ từ có đúng 1 nguồn** — 2026-09-27 | `deckController` trả `source` (`user`/`sample`/`course`/`roadmap`, suy ra từ `roadmap_decks`/`course_lessons`) + `parent`. Tab **"Khoá học"** (`/khoa-hoc`, public) gộp khoá riêng + lộ trình; `/roadmap` chuyển hướng về đó, `TrangLoTrinh.jsx` bị xoá. **"Bộ từ"** khi đăng nhập chỉ còn bộ tự tạo (bỏ bộ khoá học, bộ mẫu, bộ public của người khác — đúng `CLAUDE.md`). `/practice` dùng `GET /decks?scope=learnable`, ô chọn nhóm theo nguồn (bỏ mẹo chèn bộ `?bo=`). Bộ khoá học **chỉ đọc** (403 khi sửa/xoá/thêm từ), chủ khoá vẫn thả tim được. Trang chi tiết bộ: nút quay lại về đúng buổi / chặng (`utils/nguonBoTu.js`). **Cần deploy backend** — FE mới gọi backend cũ thì /practice mất các bộ lộ trình. |
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
 ### 3.0 Khoá học riêng
-- **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. **Chưa deploy backend** (người dùng tự deploy) → trước khi deploy, trang `/khoa-hoc` trên production sẽ báo lỗi tải.
+- **Đã chạy** migration 010 trên Cloud SQL và nhập bài 13 cho `ddung.tester@gmail.com`. **Chưa deploy backend** (người dùng tự deploy) → trước khi deploy, trang `/khoa-hoc` trên production báo "Không tải được khoá học của bạn" (phần lộ trình vẫn hiện) và `/practice` không có bộ lộ trình (backend cũ bỏ qua `scope=learnable`). Không cần migration mới cho bước 8.
 - 47 bài còn lại: người dùng trích bằng ChatGPT theo định dạng 3 file của bài 13 (xem `docs/khoa-hoc-48-ngay.md`), chép vào `private-content/khoa-hoc-48-ngay/bai-XX/`, rồi chạy `npm run nhap:khoa-hoc -- --email=... --apply`. Đừng để người dùng push file nội dung lên GitHub (bài 13 từng bị push vào `docs/48day/`, đã gỡ khỏi git nhưng vẫn còn trong lịch sử commit `b89f435`).
 - Bài 13: 23/43 câu (Quiz, Practice) có đáp án do ChatGPT tự suy ra vì tài liệu không có đáp án → nên soát lại.
 - Chưa có 40–50 câu bài tập thêm mỗi bài (có thể sinh bằng Gemini từ lý thuyết đã nhập). Chưa lưu tiến độ làm bài (điểm mỗi lần làm chỉ ở trình duyệt).
@@ -94,9 +95,9 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 
 ```powershell
 # Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
-cd backend; npm ci; npm test            # node --test, kỳ vọng 38 pass
+cd backend; npm ci; npm test            # node --test, kỳ vọng 57 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 69 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 79 pass
 npx vite build; npx eslint <file>
 ```
 Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).

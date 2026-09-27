@@ -20,7 +20,15 @@ function deckWithStatsSql() {
     qr.correct AS latest_quiz_correct,
     qr.review AS latest_quiz_review,
     qr.total AS latest_quiz_total,
-    qr.created_at AS latest_quiz_created_at
+    qr.created_at AS latest_quiz_created_at,
+    rd.id AS roadmap_deck_id,
+    r.slug AS roadmap_slug,
+    r.title AS roadmap_title,
+    cl.id AS course_lesson_id,
+    cl.course_id AS course_id,
+    cl.lesson_number AS course_lesson_number,
+    cl.title AS course_lesson_title,
+    co.title AS course_title
   FROM decks d
   LEFT JOIN (
     SELECT deck_id, COUNT(*) AS card_count
@@ -35,7 +43,37 @@ function deckWithStatsSql() {
     ORDER BY latest.created_at DESC, latest.id DESC
     LIMIT 1
   )
+  LEFT JOIN roadmap_decks rd ON rd.deck_id = d.id
+  LEFT JOIN roadmaps r ON r.id = rd.roadmap_id
+  LEFT JOIN course_lessons cl ON cl.id = (
+    SELECT MIN(lesson.id) FROM course_lessons lesson WHERE lesson.deck_id = d.id
+  )
+  LEFT JOIN courses co ON co.id = cl.course_id
 `;
+}
+
+// Mỗi bộ từ thuộc đúng một nguồn, suy ra từ bảng nối (không lưu thêm cột):
+// "course" = từ vựng một buổi của khoá học riêng, "roadmap" = chặng của lộ trình,
+// "user" = bộ người dùng tự tạo, "sample" = bộ mẫu cũ (user_id NULL, ngoài lộ trình).
+function nguonCuaBo(row) {
+  if (row.course_lesson_id) return "course";
+  if (row.roadmap_deck_id) return "roadmap";
+  return row.user_id === null ? "sample" : "user";
+}
+
+function boChaCuaBo(row) {
+  if (row.course_lesson_id) {
+    return {
+      course_id: row.course_id,
+      course_title: row.course_title,
+      lesson_number: row.course_lesson_number,
+      lesson_title: row.course_lesson_title,
+    };
+  }
+  if (row.roadmap_deck_id) {
+    return { slug: row.roadmap_slug, title: row.roadmap_title };
+  }
+  return null;
 }
 
 function normalizeDeck(row) {
@@ -46,6 +84,8 @@ function normalizeDeck(row) {
   return {
     id: row.id,
     user_id: row.user_id === null ? null : row.user_id,
+    source: nguonCuaBo(row),
+    parent: boChaCuaBo(row),
     title: row.title,
     description: row.description || "",
     icon: row.icon,
@@ -88,8 +128,14 @@ function canReadDeck(deck, userId) {
   return deck.user_id === null || deck.is_public || sameId(deck.user_id, userId);
 }
 
-function canWriteDeck(deck, userId) {
+function isDeckOwner(deck, userId) {
   return deck.user_id !== null && sameId(deck.user_id, userId);
+}
+
+// Bộ từ của khoá học do script nhập quản lý: sửa/xoá tay sẽ bị lần nhập sau ghi đè,
+// xoá bộ còn mất luôn tiến độ SRS → chỉ đọc, kể cả với chủ khoá
+function canWriteDeck(deck, userId) {
+  return deck.source !== "course" && isDeckOwner(deck, userId);
 }
 
 function assertDeckReadable(deck, userId) {
@@ -99,8 +145,11 @@ function assertDeckReadable(deck, userId) {
 }
 
 function assertDeckWritable(deck, userId) {
-  if (!canWriteDeck(deck, userId)) {
+  if (!isDeckOwner(deck, userId)) {
     throw createHttpError(403, "Chi co the sua bo tu cua ban");
+  }
+  if (!canWriteDeck(deck, userId)) {
+    throw createHttpError(403, "Bo tu cua khoa hoc chi doc, khong sua duoc");
   }
 }
 
@@ -136,17 +185,38 @@ async function assertUniqueDeckTitle(userId, title, excludeDeckId = null) {
   }
 }
 
-// Bộ từ thuộc lộ trình chỉ hiện ở trang Lộ trình, không lẫn vào danh sách bộ từ
-const KHONG_THUOC_LO_TRINH =
-  "NOT EXISTS (SELECT 1 FROM roadmap_decks rd WHERE rd.deck_id = d.id)";
+// Bộ từ thuộc lộ trình / khoá học chỉ hiện ở trang Khoá học, không lẫn vào "Bộ từ"
+const KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC = "rd.id IS NULL AND cl.id IS NULL";
+
+// scope=learnable (trang Luyện tập): mọi bộ học được — nội dung chung (user_id NULL) và bộ của mình,
+// xếp theo nhóm nguồn: bộ tự tạo, bộ mẫu, khoá học (theo buổi), lộ trình (theo chặng)
+async function listLearnableDecks(req, res) {
+  const userId = currentUserId(req);
+  const [rows] = await pool.query(
+    `${deckWithStatsSql()}
+     WHERE d.user_id IS NULL OR d.user_id = ?
+     ORDER BY
+       CASE WHEN cl.id IS NOT NULL THEN 2 WHEN rd.id IS NOT NULL THEN 3 WHEN d.user_id IS NULL THEN 1 ELSE 0 END,
+       cl.course_id, cl.lesson_number, r.sort_order, r.id, rd.sort_order,
+       d.updated_at DESC, d.id DESC`,
+    [userId, userId]
+  );
+
+  res.json(rows.map(normalizeDeck));
+}
 
 async function listDecks(req, res) {
+  if (req.query?.scope === "learnable") {
+    await listLearnableDecks(req, res);
+    return;
+  }
+
   const userId = currentUserId(req);
 
   if (userId === null) {
     const [rows] = await pool.query(
       `${deckWithStatsSql()}
-       WHERE (d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH}
+       WHERE (d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC}
        ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
       [userId]
     );
@@ -155,9 +225,10 @@ async function listDecks(req, res) {
     return;
   }
 
+  // Đã đăng nhập: "Bộ từ" chỉ gồm bộ tự tạo của chính mình
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH}
+     WHERE d.user_id = ? AND ${KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC}
      ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
     [userId, userId]
   );
@@ -323,6 +394,7 @@ module.exports = {
   currentUserId,
   canReadDeck,
   canWriteDeck,
+  isDeckOwner,
   assertDeckReadable,
   assertDeckWritable,
 };

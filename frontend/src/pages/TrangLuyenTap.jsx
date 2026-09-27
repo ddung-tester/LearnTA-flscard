@@ -4,9 +4,10 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { layTheoBoId } from "../data/duLieuMau";
 import { layCardsTheoDeck } from "../services/cardApi";
-import { layDanhSachDeck, layDeckTheoId } from "../services/deckApi";
+import { layDanhSachDeck } from "../services/deckApi";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { apDungBoLoc, demTheoFilter, SO_LUONG_TU, taoQueryBoLoc } from "../utils/locTuVung";
+import { nhomBoTuTheoNguon } from "../utils/nguonBoTu";
 import { cheTuTrongCau } from "../utils/phienHoc";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 
@@ -61,7 +62,7 @@ function TrangLuyenTap() {
   const { isAuthenticated } = useAuth();
   const { setPageDataLoading } = usePageTransition();
   const [searchParams] = useSearchParams();
-  // ?bo=<id>: mở sẵn một bộ từ (vd. chặng trong lộ trình, không có trong danh sách "Bộ từ")
+  // ?bo=<id>: mở sẵn một bộ từ (vd. từ buổi học hoặc chặng lộ trình)
   const boTuUrl = Number(searchParams.get("bo")) || null;
   const [caiDat, setCaiDat] = useState(() => {
     const daLuu = docCaiDatHocTap(KHOA_CAI_DAT);
@@ -80,25 +81,19 @@ function TrangLuyenTap() {
   useEffect(() => {
     let conHieuLuc = true;
 
-    async function taiDanhSachBo() {
-      try {
-        const danhSach = await layDanhSachDeck();
-        // Bộ từ mở từ URL mà không có trong danh sách (bộ thuộc lộ trình) thì thêm vào đầu
-        if (boTuUrl && !danhSach.some((bo) => bo.id === boTuUrl)) {
-          const boThem = await layDeckTheoId(boTuUrl).catch(() => null);
-          if (boThem) danhSach.unshift(boThem);
-        }
+    // Mọi bộ học được: tự tạo + khoá học + lộ trình, đã xếp theo nhóm nguồn
+    layDanhSachDeck({ scope: "learnable" })
+      .then((danhSach) => {
         if (conHieuLuc) setDsBo({ xong: true, danhSach, loi: "" });
-      } catch (error) {
+      })
+      .catch((error) => {
         if (conHieuLuc) setDsBo({ xong: true, danhSach: [], loi: error.message });
-      }
-    }
+      });
 
-    taiDanhSachBo();
     return () => {
       conHieuLuc = false;
     };
-  }, [boTuUrl]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;
@@ -190,10 +185,14 @@ function TrangLuyenTap() {
                   className="ui-word-sort__select practice-select"
                   disabled={!dsBo.xong}
                 >
-                  {dsBo.danhSach.map((bo) => (
-                    <option key={bo.id} value={bo.id}>
-                      {bo.title} ({bo.card_count ?? 0} từ)
-                    </option>
+                  {nhomBoTuTheoNguon(dsBo.danhSach).map((nhom) => (
+                    <optgroup key={nhom.khoa} label={nhom.nhan}>
+                      {nhom.danhSach.map((bo) => (
+                        <option key={bo.id} value={bo.id}>
+                          {bo.title} ({bo.card_count ?? 0} từ)
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </label>
