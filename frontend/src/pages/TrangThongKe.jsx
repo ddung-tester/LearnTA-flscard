@@ -9,6 +9,8 @@ import { layTatCaSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layTatCaTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layTienDoDeck } from "../utils/tienDoHocTap";
 import { layStudySessionSummary } from "../services/studySessionApi";
+import { layDanhSachKhoaHoc } from "../services/courseApi";
+import { tongHopKhoaHoc } from "../utils/baiTapKhoaHoc";
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -143,6 +145,31 @@ function DeckStatRow({ deck, srsList, mistakeList }) {
   );
 }
 
+// Tiến độ khoá học riêng, tính trên các buổi đã có nội dung
+function CourseStatRow({ khoa }) {
+  const t = tongHopKhoaHoc(khoa);
+  const tong = t.tongTu + t.tongCau;
+  const pct = tong > 0 ? Math.round(((t.tuDaHoc + t.cauDung) / tong) * 100) : 0;
+  return (
+    <Link to="/khoa-hoc" className="tk-deck-row">
+      <div className="tk-deck-row__header">
+        <span className="tk-deck-row__title">{khoa.title}</span>
+        <span className="tk-deck-row__date">{t.soBuoiXong}/{t.soBuoi} buổi đã xong</span>
+      </div>
+      <div className="tk-deck-row__chips">
+        <span className="tk-chip">{t.tuDaHoc}/{t.tongTu} từ đã học</span>
+        {t.tuDaThuoc > 0 && <span className="tk-chip tk-chip--master">{t.tuDaThuoc} từ thành thạo</span>}
+        <span className="tk-chip">{t.cauDung}/{t.tongCau} câu đúng</span>
+        {t.cauCanOn > 0 && <span className="tk-chip tk-chip--due">{t.cauCanOn} câu cần ôn</span>}
+      </div>
+      <div className="tk-deck-row__bar-wrap" aria-label={pct + "% hoàn thành"}>
+        <div className="tk-deck-row__bar-fill" style={{ width: pct + "%" }} />
+      </div>
+      <span className="tk-deck-row__pct-label">{pct}% hoàn thành (các buổi đã có nội dung)</span>
+    </Link>
+  );
+}
+
 function DifficultWordRow({ entry }) {
   return (
     <div className="tk-word-row">
@@ -239,6 +266,8 @@ function TrangThongKe() {
   const [userStats, setUserStats] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
   const [dangTai, setDangTai] = useState(true);
+  // Tải riêng: lỗi khoá học không làm hỏng phần thống kê từ vựng
+  const [khoaHoc, setKhoaHoc] = useState([]);
 
   const [srsList, setSrsList] = useState(() => layTatCaSRS());
   const [mistakeList, setMistakeList] = useState(() => layTatCaTuSai());
@@ -278,6 +307,18 @@ function TrangThongKe() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    layDanhSachKhoaHoc()
+      .then((ds) => {
+        if (active) setKhoaHoc(ds);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // Báo cho PageTransitionContext biết trang đang tải dữ liệu
   useLayoutEffect(() => {
     setPageDataLoading("thong-ke", dangTai);
@@ -291,6 +332,7 @@ function TrangThongKe() {
   const modeBreakdown = sessionSummary?.mode_breakdown ?? [];
   const recentSessions = sessionSummary?.recent_sessions ?? [];
   const hasStudyHistory = Number(sessionSummary?.total_sessions || 0) > 0;
+  const soCauCanOn = khoaHoc.reduce((tong, khoa) => tong + tongHopKhoaHoc(khoa).cauCanOn, 0);
 
   return (
     <div className="tk-page">
@@ -308,6 +350,11 @@ function TrangThongKe() {
           {mistakeStats.active > 0 && (
             <Link to="/tu-sai" className="tk-cta-btn tk-cta-btn--secondary" id="tk-btn-tusai">
               Từ sai ({mistakeStats.active})
+            </Link>
+          )}
+          {soCauCanOn > 0 && (
+            <Link to="/khoa-hoc/on-tap" className="tk-cta-btn tk-cta-btn--secondary">
+              Câu bài tập cần ôn ({soCauCanOn})
             </Link>
           )}
         </div>
@@ -336,6 +383,20 @@ function TrangThongKe() {
             sub={(sessionSummary?.average_accuracy ?? 0) + "% đúng trung bình"} />
         </div>
       </section>
+
+      {khoaHoc.length > 0 && (
+        <section className="tk-section">
+          <div className="tk-section__header">
+            <h2 className="tk-section__title">Khoá học</h2>
+            <Link to="/khoa-hoc" className="tk-section__link">Xem khoá học →</Link>
+          </div>
+          <div className="tk-deck-list">
+            {khoaHoc.map((khoa) => (
+              <CourseStatRow key={khoa.id} khoa={khoa} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="tk-section">
         <h2 className="tk-section__title">Lịch sử học tập</h2>

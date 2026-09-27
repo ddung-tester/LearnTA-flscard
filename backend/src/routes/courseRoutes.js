@@ -21,6 +21,7 @@ router.get(
   requireAuth,
   asyncHandler(courseController.getLesson)
 );
+router.get("/course-questions/due", requireAuth, asyncHandler(courseController.listDueQuestions));
 router.post(
   "/course-questions/:questionId/answer",
   requireAuth,

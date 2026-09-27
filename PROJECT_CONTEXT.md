@@ -127,6 +127,7 @@ LearnTA-flscard/
 /decks/:deckId/add-word   TrangThemTu         can dang nhap
 /cai-dat                  TrangCaiDat         can dang nhap
 /khoa-hoc/:courseId/bai/:soBai  TrangBaiHoc   can dang nhap (?tab=ly-thuyet|tu-vung|bai-tap)
+/khoa-hoc/on-tap          TrangOnCauHoi       can dang nhap (on cau bai tap den han cua moi buoi, SRS)
 ```
 
 `/`, `/login`, `/register` dung video background "immersive" va khong hien ChatbotWidget. Cac trang con lai dung nen phang + ChatbotWidget.
@@ -169,7 +170,8 @@ DELETE /reviews/by-card/:cardId
 GET /user/stats, GET|PATCH /user/settings               auth
 
 GET  /courses | /courses/:courseId/lessons/:lessonNumber auth, chi chu khoa (courses.user_id); khoa cua nguoi khac tra 404; kem tien do: moi buoi learned/mastered_count (card_progress tren bo tu cua buoi), answered/correct_count; chi tiet buoi: words[].mastery_level, questions[].last_correct
-POST /course-questions/:questionId/answer               auth; body {answer}; server tu cham, ghi ket qua LAN GAN NHAT vao course_question_progress, tra {correct}
+POST /course-questions/:questionId/answer               auth; body {answer}; server tu cham, ghi ket qua LAN GAN NHAT + lich on SRS (chi cau tung sai) vao course_question_progress, tra {correct, mastery_level, next_review_at}
+GET  /course-questions/due                              auth; cau den han on (next_review_at <= now) cua moi khoa thuoc user, toi da 100, kem lesson_number/course_id; GET /courses tra them due_count moi buoi
 POST /course-questions/:questionId/explain              auth, rate limit 60 req/5 phut; body {answer: chu cai | cau da go}; Gemini giai thich, cache theo (cau, dap an)
 
 POST /chat                                              optional auth, rate limit 20 req/phut
@@ -233,7 +235,7 @@ Schema day du: `backend/database/schema.sql`. Bang:
 | `user_settings` | cai dat hoc (+ `email_reminders`, xem luu y duoi) |
 | `roadmaps`, `roadmap_decks` | lo trinh hoc va cac bo tu mau (`user_id NULL`) theo thu tu; `deck_key` de nap lai khong trung (migration 009) |
 | `courses`, `course_lessons`, `course_questions`, `course_question_explanations` | khoa hoc RIENG cua mot user (migration 010): bai hoc (ly thuyet JSON + bo tu rieng `deck_id`), cau hoi (trac nghiem / dien tu), cache giai thich AI |
-| `course_question_progress` | ket qua lan tra loi gan nhat cua moi cau bai tap khoa hoc, UNIQUE (user_id, question_id) (migration 011). Buoi "xong" = hoc het tu + moi cau dung (khong tinh cau luyen them `source = 'extra'`); FE `utils/baiTapKhoaHoc.js` (`tienDoBuoiHoc`, `timBuoiTiepTheo`, `layCauBaiChinh`) |
+| `course_question_progress` | ket qua lan tra loi gan nhat cua moi cau bai tap khoa hoc, UNIQUE (user_id, question_id) (migration 011); `mastery_level` + `next_review_at` = lich on SRS, NULL = khong nam trong lich on (migration 012, chi cau tung tra loi sai; luat `utils/khoaHoc.lichOnCauHoi`). Buoi "xong" = hoc het tu + moi cau dung (khong tinh cau luyen them `source = 'extra'`); FE `utils/baiTapKhoaHoc.js` (`tienDoBuoiHoc`, `timBuoiTiepTheo`, `layCauBaiChinh`) |
 
 Luu y: `schema.sql` CHUA co 2 cot duoc them bang script rieng:
 

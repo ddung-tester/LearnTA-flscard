@@ -5,6 +5,7 @@
 // (người học có thể đã có tiến độ SRS trên các từ đó).
 
 const { cauChuaTu } = require("./noiDungLoTrinh");
+const { scheduleAnswer } = require("./srs");
 
 const MA_CAU_HOP_LE = /^[a-z0-9_-]{1,80}$/i;
 // image_based_fill_blank: vẫn là điền từ, ảnh gốc chỉ còn mô tả
@@ -35,6 +36,18 @@ function chuanHoaTraLoi(text) {
     .trim()
     .replace(/[.!?]+$/, "")
     .trim();
+}
+
+/**
+ * Lịch ôn của một câu bài tập sau khi trả lời, cùng luật SRS với từ vựng (utils/srs.js).
+ * Chỉ câu từng làm SAI mới vào lịch ôn: làm đúng ngay thì không bị hỏi lại.
+ * @param hienTai dòng course_question_progress hiện có ({ mastery_level, next_review_at }) hoặc undefined
+ * @returns {{ level: number, nextReviewAt: Date | null }} nextReviewAt null = không nằm trong lịch ôn
+ */
+function lichOnCauHoi(hienTai, dung, now = new Date()) {
+  const dangOn = Boolean(hienTai?.next_review_at);
+  if (dung && !dangOn) return { level: hienTai?.mastery_level || 0, nextReviewAt: null };
+  return scheduleAnswer(dangOn ? hienTai.mastery_level : 0, dung, now);
 }
 
 function laTraLoiDung(cauHoi, traLoi) {
@@ -436,6 +449,7 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
 module.exports = {
   chuanHoaTraLoi,
   laTraLoiDung,
+  lichOnCauHoi,
   chuanHoaBaiHoc,
   kiemTraBaiHoc,
   taoBaiLuyenThem,

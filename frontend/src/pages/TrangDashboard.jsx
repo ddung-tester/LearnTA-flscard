@@ -8,7 +8,7 @@ import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
-import { tienDoBuoiHoc, timBuoiTiepTheo } from "../utils/baiTapKhoaHoc";
+import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc } from "../utils/baiTapKhoaHoc";
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -179,6 +179,7 @@ function TrangDashboard() {
   const tongTu = decks ? decks.reduce((sum, d) => sum + (d.total_words ?? 0), 0) : 0;
   const deckDeNghi = decks ? layDeckDeNghiTiepTuc(decks) : null;
   const dsBo = decks ? decks.slice(0, 5) : [];
+  const soCauCanOn = khoaHoc.reduce((tong, khoa) => tong + tongHopKhoaHoc(khoa).cauCanOn, 0);
   const todayActivity = (sessionSummary?.last_7_days_activity ?? []).find(
     (item) => String(item.date).slice(0, 10) === formatNgayKey()
   );
@@ -428,6 +429,15 @@ function TrangDashboard() {
                 <span className="dash-review-cta__body">
                   <strong>{srsStats.duHomNay} từ cần ôn hôm nay</strong>
                   <span>Bắt đầu ôn tập ngay</span>
+                </span>
+                <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
+              </Link>
+            )}
+            {soCauCanOn > 0 && (
+              <Link to="/khoa-hoc/on-tap" className="dash-review-cta">
+                <span className="dash-review-cta__body">
+                  <strong>{soCauCanOn} câu bài tập cần ôn</strong>
+                  <span>Các câu từng làm sai trong khoá học, nay đến lịch ôn lại</span>
                 </span>
                 <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
               </Link>

@@ -5,6 +5,7 @@ const {
   chuanHoaTraLoi,
   gopBaiLuyenThem,
   kiemTraBaiHoc,
+  lichOnCauHoi,
   taoBaiLuyenThem,
   laTraLoiDung,
   napBaiHoc,
@@ -342,4 +343,18 @@ test("gopBaiLuyenThem appends extra questions so they pass the same checks and i
   });
   // Không sửa file gốc
   assert.equal(files.exercises.questions.length, 2);
+});
+
+test("lichOnCauHoi only schedules questions that were answered wrong, with the word SRS rule", () => {
+  const now = new Date("2026-09-27T03:00:00Z"); // 10:00 giờ VN
+  const ngayMai = new Date("2026-09-27T17:00:00Z"); // 00:00 giờ VN ngày 28
+
+  // Chưa từng sai, trả lời đúng: không vào lịch ôn
+  assert.deepEqual(lichOnCauHoi(undefined, true, now), { level: 0, nextReviewAt: null });
+  assert.deepEqual(lichOnCauHoi({ mastery_level: 0, next_review_at: null }, true, now), { level: 0, nextReviewAt: null });
+  // Sai: vào lịch ở Lv0, ôn lại ngay
+  assert.deepEqual(lichOnCauHoi(undefined, false, now), { level: 0, nextReviewAt: now });
+  // Đang trong lịch: đúng lên 1 cấp (Lv1 → đến hạn 00:00 ngày mai), sai xuống 1 cấp
+  assert.deepEqual(lichOnCauHoi({ mastery_level: 0, next_review_at: now }, true, now), { level: 1, nextReviewAt: ngayMai });
+  assert.deepEqual(lichOnCauHoi({ mastery_level: 3, next_review_at: now }, false, now), { level: 2, nextReviewAt: now });
 });

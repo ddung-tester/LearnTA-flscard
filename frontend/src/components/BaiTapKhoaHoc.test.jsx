@@ -52,6 +52,18 @@ describe("BaiTapKhoaHoc", () => {
     expect(html).not.toContain("Câu luyện thêm");
   });
 
+  it("review mode runs every due question, extra ones included, labelled with its lesson", () => {
+    const denHan = [
+      { ...cau(1, "Câu một"), lesson_number: 13 },
+      { ...cau(201, "Câu luyện thêm"), source: "extra", section: "ngu_phap", lesson_number: 14 },
+    ];
+    const html = render(<BaiTapKhoaHoc cauHoi={denHan} onTap />);
+
+    expect(html).not.toContain("kh-bt__phan");
+    expect(html).toContain("Câu <strong>1</strong> / 2");
+    expect(html).toContain('<span class="kh-cau__nguon">Buổi 13 · </span>');
+  });
+
   it("offers the full set again once every question is correct", () => {
     const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{ 1: true, 2: true, 3: true }} />);
 

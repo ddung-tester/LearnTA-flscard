@@ -31,6 +31,8 @@ import {
   taiSRSDongBo,
 } from "../utils/srsReview";
 import { luuStudySessionHoanThanh } from "../services/studySessionApi";
+import { layDanhSachKhoaHoc } from "../services/courseApi";
+import { tongHopKhoaHoc } from "../utils/baiTapKhoaHoc";
 import {
   CHE_DO_THEO_LEVEL_MAC_DINH,
   docCaiDatHocTap,
@@ -553,6 +555,8 @@ function TrangOnTapHomNay() {
     () => docCaiDatHocTap("onTap").cheDoTheoLevel ?? CHE_DO_THEO_LEVEL_MAC_DINH
   );
   const [entryOverrides, setEntryOverrides] = useState({});
+  // Câu bài tập khoá học đến hạn ôn nằm ở trang riêng (/khoa-hoc/on-tap); ở đây chỉ báo số lượng
+  const [soCauCanOn, setSoCauCanOn] = useState(0);
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
   const actionLockRef = useRef(false);
@@ -566,6 +570,18 @@ function TrangOnTapHomNay() {
       setPageDataLoading(loadingKey, false);
     };
   }, [dangTai, setPageDataLoading]);
+
+  useEffect(() => {
+    let conHieuLuc = true;
+    layDanhSachKhoaHoc()
+      .then((khoaHoc) => {
+        if (conHieuLuc) setSoCauCanOn(khoaHoc.reduce((tong, khoa) => tong + tongHopKhoaHoc(khoa).cauCanOn, 0));
+      })
+      .catch(() => {});
+    return () => {
+      conHieuLuc = false;
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -810,6 +826,11 @@ function TrangOnTapHomNay() {
           <Link to="/tu-sai" className="review-nav-btn">
             Sổ từ sai
           </Link>
+          {soCauCanOn > 0 && (
+            <Link to="/khoa-hoc/on-tap" className="review-nav-btn">
+              Ôn {soCauCanOn} câu bài tập
+            </Link>
+          )}
         </div>
       </div>
 

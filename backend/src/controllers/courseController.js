@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 const aiService = require("../services/aiService");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
-const { chuanHoaTraLoi, laTraLoiDung } = require("../utils/khoaHoc");
+const { chuanHoaTraLoi, laTraLoiDung, lichOnCauHoi } = require("../utils/khoaHoc");
 
 // Khoá học riêng (tài liệu cá nhân): chỉ chủ khoá (courses.user_id) đọc được.
 // Mọi truy vấn đều lọc theo user trong token; khoá của người khác trả 404 như không tồn tại.
@@ -72,7 +72,12 @@ async function listCourses(req, res) {
        (SELECT COUNT(*)
         FROM course_questions q
         JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
-        WHERE q.lesson_id = l.id AND q.source <> 'extra' AND p.is_correct = TRUE) AS correct_count
+        WHERE q.lesson_id = l.id AND q.source <> 'extra' AND p.is_correct = TRUE) AS correct_count,
+       -- Câu đến hạn ôn (kể cả câu luyện thêm): từng làm sai, tới lịch ôn lại
+       (SELECT COUNT(*)
+        FROM course_questions q
+        JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
+        WHERE q.lesson_id = l.id AND p.next_review_at <= CURRENT_TIMESTAMP) AS due_count
      FROM courses c
      LEFT JOIN course_lessons l ON l.course_id = c.id
      WHERE c.user_id = ?
@@ -101,6 +106,7 @@ async function listCourses(req, res) {
         mastered_count: soNguyen(row.mastered_count),
         answered_count: soNguyen(row.answered_count),
         correct_count: soNguyen(row.correct_count),
+        due_count: soNguyen(row.due_count),
       });
     }
   }
@@ -204,17 +210,55 @@ async function docCauTraLoi(req) {
   return { questionId, answer, row, question, isMultipleChoice, answerNorm };
 }
 
-// Ghi kết quả lần trả lời gần nhất (server tự chấm) để tiến độ bài tập còn sau khi tải lại trang
+// Ghi kết quả lần trả lời gần nhất (server tự chấm) + lịch ôn SRS nếu câu từng làm sai
 async function answerQuestion(req, res) {
   const { questionId, question, answerNorm } = await docCauTraLoi(req);
   const correct = laTraLoiDung(question, answerNorm);
 
-  await pool.query(
-    `INSERT INTO course_question_progress (user_id, question_id, is_correct) VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE is_correct = VALUES(is_correct)`,
-    [req.user.id, questionId, correct]
+  const [hienTai] = await pool.query(
+    `SELECT mastery_level, next_review_at
+     FROM course_question_progress
+     WHERE user_id = ? AND question_id = ?
+     LIMIT 1`,
+    [req.user.id, questionId]
   );
-  res.json({ correct });
+  const lich = lichOnCauHoi(hienTai[0], correct);
+
+  await pool.query(
+    `INSERT INTO course_question_progress (user_id, question_id, is_correct, mastery_level, next_review_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       is_correct = VALUES(is_correct),
+       mastery_level = VALUES(mastery_level),
+       next_review_at = VALUES(next_review_at)`,
+    [req.user.id, questionId, correct, lich.level, lich.nextReviewAt]
+  );
+  res.json({ correct, mastery_level: lich.level, next_review_at: lich.nextReviewAt });
+}
+
+const SO_CAU_ON_TOI_DA = 100;
+
+// Câu bài tập đến hạn ôn của mọi khoá thuộc người dùng, câu đến hạn sớm nhất trước
+async function listDueQuestions(req, res) {
+  const [rows] = await pool.query(
+    `SELECT q.*, p.is_correct AS last_correct, l.lesson_number, c.id AS course_id
+     FROM course_question_progress p
+     JOIN course_questions q ON q.id = p.question_id
+     JOIN course_lessons l ON l.id = q.lesson_id
+     JOIN courses c ON c.id = l.course_id
+     WHERE p.user_id = ? AND c.user_id = ? AND p.next_review_at <= CURRENT_TIMESTAMP
+     ORDER BY p.next_review_at ASC, l.lesson_number ASC, q.sort_order ASC
+     LIMIT ${SO_CAU_ON_TOI_DA}`,
+    [req.user.id, req.user.id]
+  );
+
+  res.json(
+    rows.map((row) => ({
+      ...normalizeQuestion(row),
+      lesson_number: row.lesson_number,
+      course_id: row.course_id,
+    }))
+  );
 }
 
 async function explainQuestion(req, res) {
@@ -257,5 +301,6 @@ module.exports = {
   listCourses,
   getLesson,
   answerQuestion,
+  listDueQuestions,
   explainQuestion,
 };

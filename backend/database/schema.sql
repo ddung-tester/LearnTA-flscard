@@ -445,11 +445,14 @@ CREATE TABLE IF NOT EXISTS course_question_explanations (
 ) ENGINE=InnoDB;
 
 -- Kết quả lần trả lời gần nhất của người học cho mỗi câu bài tập khoá học (migration 011)
+-- + lịch ôn SRS cho câu từng làm sai (migration 012; next_review_at NULL = không nằm trong lịch ôn)
 CREATE TABLE IF NOT EXISTS course_question_progress (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   question_id BIGINT UNSIGNED NOT NULL,
   is_correct BOOLEAN NOT NULL,
+  mastery_level TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  next_review_at TIMESTAMP NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -462,5 +465,6 @@ CREATE TABLE IF NOT EXISTS course_question_progress (
     FOREIGN KEY (question_id) REFERENCES course_questions(id)
     ON DELETE CASCADE,
 
-  UNIQUE KEY unique_course_question_progress (user_id, question_id)
+  UNIQUE KEY unique_course_question_progress (user_id, question_id),
+  INDEX idx_course_question_progress_due (user_id, next_review_at)
 ) ENGINE=InnoDB;

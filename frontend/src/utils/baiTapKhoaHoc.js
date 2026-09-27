@@ -101,6 +101,23 @@ export function tienDoBuoiHoc(bai) {
   };
 }
 
+/** Tổng hợp tiến độ cả khoá (trang Thống kê, Dashboard): cộng dồn tiến độ các buổi đã có nội dung */
+export function tongHopKhoaHoc(khoa) {
+  const tong = { soBuoi: 0, soBuoiXong: 0, tuDaHoc: 0, tongTu: 0, tuDaThuoc: 0, cauDung: 0, tongCau: 0, cauCanOn: 0 };
+  for (const bai of khoa.lessons || []) {
+    const tienDo = tienDoBuoiHoc(bai);
+    tong.soBuoi += 1;
+    tong.soBuoiXong += tienDo.xong ? 1 : 0;
+    tong.tuDaHoc += tienDo.tuDaHoc;
+    tong.tongTu += tienDo.tongTu;
+    tong.tuDaThuoc += Math.min(bai.mastered_count || 0, tienDo.tongTu);
+    tong.cauDung += tienDo.cauDung;
+    tong.tongCau += tienDo.tongCau;
+    tong.cauCanOn += bai.due_count || 0;
+  }
+  return tong;
+}
+
 /**
  * Buổi nên học tiếp: buổi gần nhất đã bắt đầu nếu chưa xong, không thì buổi kế sau nó;
  * chưa học buổi nào thì buổi đầu tiên. null khi đã xong mọi buổi hiện có.

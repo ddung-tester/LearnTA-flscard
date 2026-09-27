@@ -9,6 +9,7 @@ import {
   tongSoBuoiKhoaHoc,
   tienDoBuoiHoc,
   timBuoiTiepTheo,
+  tongHopKhoaHoc,
   nhomPhanBaiTap,
   phanBaiTap,
 } from "./baiTapKhoaHoc";
@@ -130,6 +131,18 @@ describe("tiến độ khoá học", () => {
     expect(tienDoBuoiHoc(buoi(1, { answered_count: 3 })).daBatDau).toBe(true);
     // Buổi chưa có từ lẫn câu hỏi không bao giờ "xong"
     expect(tienDoBuoiHoc(buoi(1, { word_count: 0, question_count: 0 })).xong).toBe(false);
+  });
+
+  it("cộng dồn tiến độ cả khoá, kể cả số câu cần ôn", () => {
+    expect(
+      tongHopKhoaHoc({
+        lessons: [
+          buoi(12, { ...XONG, mastered_count: 4, due_count: 0 }),
+          buoi(13, { learned_count: 3, mastered_count: 1, answered_count: 8, correct_count: 6, due_count: 2 }),
+        ],
+      })
+    ).toEqual({ soBuoi: 2, soBuoiXong: 1, tuDaHoc: 13, tongTu: 20, tuDaThuoc: 5, cauDung: 26, tongCau: 40, cauCanOn: 2 });
+    expect(tongHopKhoaHoc({ lessons: [] }).soBuoi).toBe(0);
   });
 
   it("chọn buổi học tiếp theo từ chỗ đang học dở", () => {

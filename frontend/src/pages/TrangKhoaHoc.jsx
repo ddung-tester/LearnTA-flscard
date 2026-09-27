@@ -5,7 +5,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
 import { layDanhSachLoTrinh } from "../services/roadmapApi";
-import { tienDoBuoiHoc, timBuoiTiepTheo, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
+import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import "./KhoaHoc.css";
 
 function LichBuoiHoc({ khoa, buoiTiep }) {
@@ -77,6 +77,7 @@ function TheBuoiHoc({ khoaId, bai }) {
 
 function KhoaHocRieng({ khoa }) {
   const buoiTiep = timBuoiTiepTheo(khoa.lessons);
+  const { cauCanOn } = tongHopKhoaHoc(khoa);
 
   return (
     <section className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
@@ -85,13 +86,22 @@ function KhoaHocRieng({ khoa }) {
         <p className="kh-khoa__mo-ta">
           Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
         </p>
-        {buoiTiep && (
-          <Link
-            to={`/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}`}
-            className="ui-button ui-button--primary kh-khoa__tiep px-5 py-2.5"
-          >
-            {tienDoBuoiHoc(buoiTiep).daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
-          </Link>
+        {(buoiTiep || cauCanOn > 0) && (
+          <div className="kh-khoa__nut">
+            {buoiTiep && (
+              <Link
+                to={`/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}`}
+                className="ui-button ui-button--primary px-5 py-2.5"
+              >
+                {tienDoBuoiHoc(buoiTiep).daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
+              </Link>
+            )}
+            {cauCanOn > 0 && (
+              <Link to="/khoa-hoc/on-tap" className="ui-button ui-button--ghost px-5 py-2.5">
+                Ôn {cauCanOn} câu sai
+              </Link>
+            )}
+          </div>
         )}
       </header>
 

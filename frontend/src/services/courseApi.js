@@ -12,6 +12,12 @@ export async function layBaiHoc(courseId, soBai) {
   return response.data;
 }
 
+/** Câu bài tập đến hạn ôn (từng làm sai) của mọi khoá, mỗi câu kèm lesson_number và course_id */
+export async function layCauHoiCanOn() {
+  const response = await api.get("/course-questions/due");
+  return response.data;
+}
+
 /** Lưu kết quả lần trả lời gần nhất (server tự chấm) để tiến độ bài tập còn sau khi tải lại trang */
 export async function luuTraLoiCauHoi(questionId, answer) {
   const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/answer`, {

@@ -30,6 +30,7 @@ const TrangCaiDat = lazy(() => import("./pages/TrangCaiDat"));
 const TrangThongKe = lazy(() => import("./pages/TrangThongKe"));
 const TrangKhoaHoc = lazy(() => import("./pages/TrangKhoaHoc"));
 const TrangBaiHoc = lazy(() => import("./pages/TrangBaiHoc"));
+const TrangOnCauHoi = lazy(() => import("./pages/TrangOnCauHoi"));
 
 function AuthReadyGate({ children }) {
   const { isAuthReady } = useAuth();
@@ -86,6 +87,7 @@ function UngDung() {
             <Route path="/stats" element={<TrangThongKe />} />
             <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
             <Route path="/cai-dat" element={<TrangCaiDat />} />
+            <Route path="/khoa-hoc/on-tap" element={<TrangOnCauHoi />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai" element={<TrangBaiHoc />} />
           </Route>
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />

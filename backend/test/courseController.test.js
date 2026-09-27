@@ -5,7 +5,13 @@ const assert = require("node:assert/strict");
 Object.assign(process.env, { DB_HOST: "127.0.0.1", DB_USER: "test", DB_NAME: "test" });
 const pool = require("../src/config/db");
 const aiService = require("../src/services/aiService");
-const { answerQuestion, explainQuestion, getLesson, listCourses } = require("../src/controllers/courseController");
+const {
+  answerQuestion,
+  explainQuestion,
+  getLesson,
+  listCourses,
+  listDueQuestions,
+} = require("../src/controllers/courseController");
 
 function fakePool(ketQuaTheoLan) {
   const calls = [];
@@ -159,6 +165,7 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
         mastered_count: "1",
         answered_count: "20",
         correct_count: "17",
+        due_count: "2",
       },
     ],
   ]);
@@ -180,28 +187,51 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
     mastered_count: 1,
     answered_count: 20,
     correct_count: 17,
+    due_count: 2,
   });
 });
 
 test("answerQuestion grades on the server and stores the latest result", async () => {
-  const calls = fakePool([[CAU_TRAC_NGHIEM], {}]);
+  // Câu chưa từng làm, trả lời đúng → không vào lịch ôn
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}]);
   const res = fakeRes();
 
   await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "a" } }, res);
 
   assert.deepEqual(calls[0].params, [5, 7]);
-  assert.match(calls[1].sql, /INSERT INTO course_question_progress[\s\S]*ON DUPLICATE KEY UPDATE is_correct/);
-  assert.deepEqual(calls[1].params, [7, 5, true]);
-  assert.deepEqual(res.body, { correct: true });
+  assert.deepEqual(calls[1].params, [7, 5]);
+  assert.match(calls[2].sql, /INSERT INTO course_question_progress[\s\S]*ON DUPLICATE KEY UPDATE[\s\S]*next_review_at = VALUES/);
+  assert.deepEqual(calls[2].params, [7, 5, true, 0, null]);
+  assert.deepEqual(res.body, { correct: true, mastery_level: 0, next_review_at: null });
 
-  const callsDienTu = fakePool([[{ ...CAU_TRAC_NGHIEM, type: "fill_blank", options: null, answer_key: null, accepted_answers: ["was not", "wasn’t"] }], {}]);
+  const callsDienTu = fakePool([[{ ...CAU_TRAC_NGHIEM, type: "fill_blank", options: null, answer_key: null, accepted_answers: ["was not", "wasn’t"] }], [], {}]);
   const resDienTu = fakeRes();
   await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "Wasn't." } }, resDienTu);
-  assert.deepEqual(callsDienTu[1].params, [7, 5, true]);
+  assert.equal(callsDienTu[2].params[2], true);
 
-  const callsSai = fakePool([[CAU_TRAC_NGHIEM], {}]);
+  // Trả lời sai → vào lịch ôn ở Lv0, đến hạn ngay
+  const callsSai = fakePool([[CAU_TRAC_NGHIEM], [], {}]);
+  const truoc = Date.now();
   await answerQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, fakeRes());
-  assert.deepEqual(callsSai[1].params, [7, 5, false]);
+  const [, , sai, level, denHan] = callsSai[2].params;
+  assert.deepEqual([sai, level], [false, 0]);
+  assert.ok(denHan instanceof Date && denHan.getTime() >= truoc && denHan.getTime() <= Date.now());
+});
+
+test("listDueQuestions returns the owner's due questions with their lesson", async () => {
+  const calls = fakePool([[{ ...CAU_TRAC_NGHIEM, last_correct: 0, lesson_number: 13, course_id: 1 }]]);
+  const res = fakeRes();
+
+  await listDueQuestions({ user: { id: 7 } }, res);
+
+  assert.deepEqual(calls[0].params, [7, 7]);
+  assert.match(calls[0].sql, /p\.next_review_at <= CURRENT_TIMESTAMP/);
+  assert.match(calls[0].sql, /c\.user_id = \?/);
+  assert.equal(res.body[0].id, 5);
+  assert.equal(res.body[0].lesson_number, 13);
+  assert.equal(res.body[0].course_id, 1);
+  assert.equal(res.body[0].last_correct, false);
+  assert.equal(res.body[0].lesson_content, undefined);
 });
 
 test("answerQuestion does not store anything for another user's question", async () => {

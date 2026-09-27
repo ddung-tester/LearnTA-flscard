@@ -1239,8 +1239,10 @@
   outline-offset: 3px;
 }
 
-.kh-khoa__tiep {
-  justify-self: start;
+.kh-khoa__nut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
   margin-top: 0.35rem;
 }
 

@@ -173,11 +173,12 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
  * Phím tắt: 1–4 hoặc A–D chọn đáp án, Enter sang câu tiếp.
  *
  * ketQuaGanNhat: { [questionId]: đúng/sai lần trả lời gần nhất }; onGhiNhan(questionId, dung) báo lên trang.
+ * onTap: ôn câu đến hạn của nhiều buổi (trang Ôn câu bài tập) — làm hết các câu, không chia phần.
  */
-export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan }) {
+export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, onTap = false }) {
   const { speak, isPlaying } = useTTS();
   // "Tất cả" / "Còn lại" chỉ gồm câu của tài liệu; câu luyện thêm (AI) chọn riêng ở nhóm "Luyện thêm"
-  const cauChinh = layCauBaiChinh(cauHoi);
+  const cauChinh = onTap ? cauHoi : layCauBaiChinh(cauHoi);
   const cauConLai = cauChinh.filter((c) => ketQuaGanNhat[c.id] !== true);
   // Chỉ có ý nghĩa khi đã làm một phần: chưa làm câu nào hoặc sai hết thì "Còn lại" = "Tất cả"
   const coPhanConLai = cauConLai.length > 0 && cauConLai.length < cauChinh.length;
@@ -276,7 +277,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan })
     return <p className="kh-trong">Buổi này chưa có bài tập.</p>;
   }
 
-  const boChonPhan = (
+  const boChonPhan = onTap ? null : (
     <div className="kh-bt__phan" role="group" aria-label="Chọn phần bài tập">
       <button type="button" className="kh-chip" aria-pressed={phan === TAT_CA} onClick={() => chonPhan(TAT_CA)}>
         Tất cả <span className="kh-chip__so">{cauChinh.length}</span>
@@ -352,6 +353,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan })
 
       <section className="kh-cau" aria-labelledby="kh-de-bai">
         <p className="kh-cau__phan">
+          {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
         </p>
         {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}

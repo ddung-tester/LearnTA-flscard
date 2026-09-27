@@ -28,6 +28,7 @@ Test lúc bàn giao: frontend 67/67 (vitest), backend 38/38 (`node --test`), `vi
 | 9 | **Tiến độ theo buổi (khoá học)** — 2026-09-27 | Migration **011** (`course_question_progress`, **đã chạy** trên Cloud SQL): mỗi câu trả lời gửi `POST /course-questions/:id/answer`, server tự chấm và lưu kết quả lần gần nhất. `GET /courses` trả thêm từ đã học/đã thuộc + câu đã làm/đúng mỗi buổi. Trang Khoá học: nút "Học tiếp / Bắt đầu Buổi X" (buổi gần nhất đang học dở, xong thì buổi kế), lịch 48 ô tô xanh buổi đã xong + khoanh đỏ buổi học tiếp, thẻ buổi có tiến độ. Trang buổi: bước Từ vựng / Bài tập hiện "x/y"; bài tập mở sẵn phần **"Còn lại"** (câu chưa đúng) khi đã làm dở. Dashboard dẫn thẳng tới buổi học tiếp. |
 | 10 | **Nội dung khoá: câu ví dụ + soát đáp án** — 2026-09-27 | `lesson.json` nhận `vocabulary[].example` (không bắt buộc, phải chứa chính từ) → `cards.example_sentence`, mở được chế độ Ngữ cảnh. Bài 13: đã thêm 11 câu ví dụ tự soạn và **nhập lại** lên Cloud SQL. Nhập lại giờ chỉ xoá lời giải thích AI của câu đổi nội dung (trước xoá cả bài). Đã soát 23 câu đáp án ChatGPT tự suy ra ở bài 13: **đúng cả 23**. Đoạn prompt bổ sung cho ChatGPT ở `docs/khoa-hoc-48-ngay.md`. |
 | 11 | **Bài luyện thêm do AI sinh** — 2026-09-27 | `npm run sinh:luyen-them -- --bai=XX` (Gemini, model chính 503 thì tự chuyển lite) → `bai-XX/extra.json` để soát; importer nhập kèm nếu có (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Câu luyện thêm **không** tính vào tiến độ buổi, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: đã sinh 40 câu, soát từng câu (đúng cả 40). Thư mục dùng chung cho 2 script: `scripts/thuMucKhoaHoc.js`. |
+| 12 | **Ôn câu bài tập theo SRS + thống kê khoá học** — 2026-09-27 | Migration **012** (**đã chạy**): `course_question_progress.mastery_level`, `next_review_at`. Câu vào lịch ôn khi trả lời **sai** (`utils/khoaHoc.lichOnCauHoi`, cùng luật `srs.js` với từ vựng); làm đúng ngay lần đầu thì không bị hỏi lại. `GET /course-questions/due` (tối đa 100 câu), `GET /courses` thêm `due_count` mỗi buổi. Trang **`/khoa-hoc/on-tap`** (`TrangOnCauHoi`, dùng `BaiTapKhoaHoc onTap`). Lối vào: nút "Ôn N câu sai" ở trang Khoá học, mục trên Dashboard, nút trên `/review`, nút + khối **Khoá học** ở `/stats`. Câu ôn không gộp chung hàng đợi thẻ của `/review` (trang đó ~900 dòng chỉ xử lý thẻ từ). |
 
 ## 3. CHƯA làm / việc treo — ưu tiên từ trên xuống
 
@@ -99,9 +100,9 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 
 ```powershell
 # Backend (cần backend/.env + Cloud SQL proxy cho DB thật; test không cần DB)
-cd backend; npm ci; npm test            # node --test, kỳ vọng 65 pass
+cd backend; npm ci; npm test            # node --test, kỳ vọng 67 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 86 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 88 pass
 npx vite build; npx eslint <file>
 ```
 Mẹo môi trường (Windows): file repo dùng LF trong working copy nhưng Git cảnh báo CRLF; khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng. Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash).
