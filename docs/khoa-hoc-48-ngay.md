@@ -1,4 +1,7 @@
-# Khoá 48 buổi — trích xuất PDF bằng ChatGPT
+# Khoá 48 buổi — trích xuất PDF
+
+> **Cập nhật 2026-09-28: đã có đủ bài 13–48** (bài 14–48 trích bằng script, không qua ChatGPT — xem mục cuối).
+> Bài 1–12 chưa nhập (người dùng bắt đầu từ bài 13).
 
 > Tài liệu gốc có bản quyền, chỉ nhập vào **tài khoản cá nhân** (người khác không xem được).
 > File JSON đặt trong `backend/database/private-content/khoa-hoc-48-ngay/` — thư mục đã `.gitignore`, **không commit**.
@@ -18,7 +21,15 @@ backend/database/private-content/khoa-hoc-48-ngay/
                      có image_description_vi — bị importer tự bỏ, không cần trích)
     answers.json     lesson_number, answers[{question_id, answer (chữ cái) | accepted_answers[], explanation_vi, provenance}]
     extra.json       (không bắt buộc) bài luyện thêm do Gemini sinh: lesson_number, questions[], answers[] — cùng dạng 2 file trên
+    audio/*.mp3      (bài nghe) file nghe của đề thi; câu hỏi trỏ tới bằng "audio": "audio/mp31.mp3"
 ```
+
+Câu nghe có thêm 2 trường không bắt buộc trong `exercises.json`:
+- `audio`: file trong `audio/` của bài → DB `course_questions.audio_path = bai-XX/audio/…`. File phải được tải lên bucket
+  **riêng tư** `gs://flash-card-499907-course-audio/khoa-hoc-48-ngay/bai-XX/audio/…` (chặn public; tài khoản dịch vụ Cloud Run
+  có `roles/storage.objectViewer`). Backend phát qua `GET /api/course-questions/:id/audio`, chỉ cho chủ khoá.
+- `listen_text`: lời thoại (Quiz nghe trong tài liệu học có script nhưng không có file) — trình duyệt đọc bằng giọng máy.
+
 
 47 bài còn lại cứ giữ **đúng định dạng của bài 13** (cùng prompt đã tạo ra bài 13), **thêm câu ví dụ** cho từ vựng: dán đoạn dưới vào cuối prompt đó.
 
@@ -216,3 +227,18 @@ Bắt đầu với Bước 0.
 3. Script nhập (chạy lại an toàn): mỗi buổi tạo 1 bộ từ riêng của bạn → học được bằng mọi chế độ hiện có + SRS.
 4. Giao diện: trang khoá học (48 buổi + tiến độ) → trang buổi học: Lý thuyết · Từ vựng · Bài tập.
 5. Bài tập: trả lời xong mỗi câu, AI (Gemini) giải thích ngay bên dưới, dựa trên đề, đáp án và `giai_thich` có sẵn; lời giải thích được lưu lại để lần sau không gọi AI nữa.
+
+## Bài 14–48: trích bằng script (2026-09-28)
+
+Nguồn: 3 file zip (TÀI LIỆU HỌC TRÊN VIDEO, BÀI TẬP kèm MP3, ĐÁP ÁN) giải nén vào `private-content/khoa-hoc-48-ngay/_nguon/` (gitignore). PDF lý thuyết và bài tập có chữ; file đáp án là ảnh chụp trang thi online (có cả lời thoại bài nghe).
+
+Các script (cũng nằm trong `_nguon/`, không commit vì đi kèm nội dung):
+1. `trich_van_ban.py` → `van-ban/XX-ly-thuyet.txt`, `XX-bai-tap.txt` (bỏ dòng tiêu đề lặp).
+2. `tach_cau.py` → `nhap/XX.json`: tách Quiz/PRACTICE (tài liệu học) và các phần bài thi thành câu + lựa chọn.
+3. `cat_anh.py` → `cat/XX-n.png`: cắt ảnh đáp án thành đoạn đọc được; đáp án đọc từ ảnh rồi ghi vào `soan/bai_XX.py`.
+4. `soan/bai_XX.py`: phần soạn tay mỗi bài — tiêu đề, lý thuyết, câu ví dụ, đáp án, sửa lỗi gõ của tài liệu, phần nghe (`_chung.py`: `chon`, `dien`, `doan`, `gio`…).
+5. `dung_bai.py [số bài…]` → `bai-XX/{lesson,exercises,answers}.json` + `audio/`; tự kiểm tra thiếu đáp án / câu ví dụ / loại từ.
+
+Quy ước khi soạn: bỏ câu theo tranh; bảng tick (✔) và "chọn từ trong khung" đổi thành trắc nghiệm; Đúng/Sai thành trắc nghiệm True/False; bài "đọc to" / tự ghi chép / nghe không có lời thoại thì bỏ. Đáp án bài thi lấy từ ảnh đáp án (`answer_pdf`); Quiz/PRACTICE tự giải theo ngữ pháp của bài (tài liệu không có đáp án). Bài 36: file đáp án là bản sao của bài 37 nên đáp án bài thi tự giải.
+
+Nạp: `npm run nhap:khoa-hoc` (kiểm tra) rồi `npm run nhap:khoa-hoc -- --email=ddung.tester@gmail.com --apply`.

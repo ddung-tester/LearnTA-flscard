@@ -8,6 +8,9 @@ const { cauChuaTu } = require("./noiDungLoTrinh");
 const { scheduleAnswer } = require("./srs");
 
 const MA_CAU_HOP_LE = /^[a-z0-9_-]{1,80}$/i;
+// File nghe nằm trong thư mục audio/ của bài (tải lên bucket Cloud Storage riêng tư, xem docs/khoa-hoc-48-ngay.md)
+const FILE_AUDIO_HOP_LE = /^audio\/[a-z0-9_.-]+\.mp3$/i;
+const DO_DAI_LOI_THOAI_TOI_DA = 2000;
 const LOAI_CAU = {
   multiple_choice: "multiple_choice",
   fill_blank: "fill_blank",
@@ -71,7 +74,8 @@ function chuanHoaNguPhap(muc) {
   };
 }
 
-function chuanHoaCauHoi(cau, dapAn, index) {
+function chuanHoaCauHoi(cau, dapAn, index, lessonNumber) {
+  const audio = chuoi(cau?.audio);
   const type = LOAI_CAU[cau?.type] || null;
   const options = (Array.isArray(cau?.options) ? cau.options : []).map((luaChon) => ({
     key: chuoi(luaChon?.key).toUpperCase(),
@@ -92,6 +96,10 @@ function chuanHoaCauHoi(cau, dapAn, index) {
       type === "fill_blank" ? (accepted.length ? accepted : mangChuoi([dapAn?.answer])) : null,
     explanation: chuoi(dapAn?.explanation_vi) || null,
     answer_source: chuoi(dapAn?.provenance) || null,
+    // Đường dẫn trong thư mục khoá: bai-29/audio/mp31.mp3 (object: <slug khoá>/<audio_path>)
+    audio_path: audio ? `bai-${String(lessonNumber).padStart(2, "0")}/${audio}` : null,
+    audio_file: audio || null,
+    listen_text: chuoi(cau?.listen_text) || null,
     sort_order: index,
   };
 }
@@ -123,7 +131,7 @@ function chuanHoaBaiHoc({ lesson, exercises, answers }) {
       example_sentence: chuoi(tu?.example) || null,
     })),
     questions: (Array.isArray(exercises?.questions) ? exercises.questions : []).map((cau, index) =>
-      chuanHoaCauHoi(cau, dapAnTheoCau.get(chuoi(cau?.id)), index)
+      chuanHoaCauHoi(cau, dapAnTheoCau.get(chuoi(cau?.id)), index, Number(lesson?.lesson_number))
     ),
   };
 }
@@ -289,6 +297,12 @@ function kiemTraBaiHoc(files, soBai) {
     if (cau.type === "fill_blank" && cau.accepted_answers.length === 0) {
       loi.push(`${noi}: thiếu đáp án (accepted_answers)`);
     }
+    if (cau.audio_file && !FILE_AUDIO_HOP_LE.test(cau.audio_file)) {
+      loi.push(`${noi}: audio phải có dạng audio/<tên>.mp3`);
+    }
+    if ((cau.listen_text || "").length > DO_DAI_LOI_THOAI_TOI_DA) {
+      loi.push(`${noi}: listen_text quá ${DO_DAI_LOI_THOAI_TOI_DA} ký tự`);
+    }
   });
 
   const cacCauHoi = new Set(bai.questions.map((cau) => cau.question_key));
@@ -367,6 +381,7 @@ function noiDungGiaiThich(cau) {
     cau.type,
     cau.instruction || null,
     cau.prompt,
+    cau.listen_text || null,
     cau.explanation || null,
     mang(cau.options).map((luaChon) => [luaChon.key, luaChon.text]),
     cau.answer_key || null,
@@ -377,7 +392,7 @@ function noiDungGiaiThich(cau) {
 async function napCauHoi(connection, lessonId, questions, thongKe) {
   // Chỉ bỏ lời giải thích AI đã lưu của câu có nội dung đổi; câu giữ nguyên thì dùng lại (đỡ gọi Gemini)
   const [cauCu] = await connection.query(
-    `SELECT id, question_key, type, instruction, prompt, explanation,
+    `SELECT id, question_key, type, instruction, prompt, listen_text, explanation,
             options, answer_key, accepted_answers
      FROM course_questions
      WHERE lesson_id = ?`,
@@ -396,14 +411,14 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
     await connection.execute(
       `INSERT INTO course_questions
          (lesson_id, question_key, source, section, type, instruction, prompt, options, answer_key,
-          accepted_answers, explanation, answer_source, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          accepted_answers, explanation, answer_source, audio_path, listen_text, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          source = VALUES(source), section = VALUES(section), type = VALUES(type),
          instruction = VALUES(instruction), prompt = VALUES(prompt), options = VALUES(options),
          answer_key = VALUES(answer_key), accepted_answers = VALUES(accepted_answers),
          explanation = VALUES(explanation), answer_source = VALUES(answer_source),
-         sort_order = VALUES(sort_order)`,
+         audio_path = VALUES(audio_path), listen_text = VALUES(listen_text), sort_order = VALUES(sort_order)`,
       [
         lessonId,
         cau.question_key,
@@ -417,6 +432,8 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
         cau.accepted_answers ? JSON.stringify(cau.accepted_answers) : null,
         cau.explanation,
         cau.answer_source,
+        cau.audio_path,
+        cau.listen_text,
         cau.sort_order,
       ]
     );

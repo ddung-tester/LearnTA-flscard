@@ -419,6 +419,9 @@ CREATE TABLE IF NOT EXISTS course_questions (
   explanation TEXT NULL,
   answer_source VARCHAR(60) NULL,
   image_description VARCHAR(500) NULL,
+  -- Bài nghe: file audio private trên Cloud Storage (<slug khoá>/<audio_path>) hoặc lời thoại cho trình duyệt đọc
+  audio_path VARCHAR(255) NULL,
+  listen_text TEXT NULL,
   sort_order INT NOT NULL DEFAULT 0,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

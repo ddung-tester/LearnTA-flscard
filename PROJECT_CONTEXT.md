@@ -184,6 +184,7 @@ GET  /courses                                           auth, chi khoa cua user 
 GET  /courses/:courseId/lessons/:lessonNumber           auth; khoa cua nguoi khac tra 404; words[].mastery_level, questions[].last_correct
 POST /course-questions/:questionId/answer               auth; body {answer}; server tu cham, ghi ket qua LAN GAN NHAT + lich on SRS (chi cau tung sai), tra {correct, mastery_level, next_review_at}
 GET  /course-questions/due                              auth; cau den han on (next_review_at <= now) cua moi khoa thuoc user, toi da 100, kem lesson_number/course_id
+GET  /course-questions/:questionId/audio                auth; chi chu khoa; phat file nghe tu bucket rieng tu (audio_path), Cache-Control private
 POST /course-questions/:questionId/explain              auth, rate limit 60 req/5 phut; body {answer: chu cai | cau da go}; Gemini giai thich, cache theo (cau, dap an)
 
 POST /chat                                              optional auth, rate limit 20 req/phut

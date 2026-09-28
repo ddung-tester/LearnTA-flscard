@@ -47,11 +47,14 @@ Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **
 | 14 | **Sửa UI/UX người dùng báo** | Trang chủ: xấp thẻ giữ nguyên thứ tự DOM (chồng bằng `zIndex`), thẻ đang bay ra không nhận kéo/nút "Thẻ khác" nữa (tránh kẹt lưng chừng). Chatbot trên điện thoại (≤480px): khung toàn màn hình theo `visualViewport` (co theo bàn phím), ẩn bong bóng khi mở, ô nhập 16px (iOS không tự zoom), chỉ tự focus khi có chuột. Bộ lọc: `locFilterCoIch` ẩn lọc rỗng/trùng "Tất cả", `soLuongCoIch` ẩn mức lớn hơn số từ; trang chi tiết bộ chuyển hàng lọc lên trên các chế độ học. **Chưa thử kéo thẻ bằng tay/cảm ứng thật** (ô Browser ẩn thì animation không chạy). |
 | 15 | **Bỏ câu hỏi theo tranh** | App không hiện được tranh của tài liệu → importer bỏ câu `image_based_fill_blank` / `picture_answers` / có `image_description_vi` (`boCauTheoTranh`, in số câu bỏ). Bỏ `image_description` khỏi importer, API, prompt AI và giao diện (cột DB `course_questions.image_description` còn nhưng không dùng). Bài 13 đã nhập lại: xoá 5 câu "Theo tranh" (còn 38 câu chính + 40 luyện thêm). |
 | 16 | **Bố cục lấy khoá 48 ngày làm trục** | Menu mới (mục 2). Dashboard (`TrangDashboard`): thẻ Hôm nay = buổi học tiếp (3 bước Từ vựng/Lý thuyết/Bài tập, nút vào đúng bước còn dở) + lưới 48 buổi; "Cần ôn hôm nay" (từ đến hạn, câu làm sai, từ hay nhầm); Từ vựng theo buổi (4 buổi quanh buổi đang học); Bộ của tôi; Tổng quan. Trang Từ vựng: tab Theo buổi hiện đủ mọi buổi (không khoá; buổi trống liền nhau gộp một dòng, `chiaDongBuoi`), mỗi buổi mở bộ từ/Flashcard/Luyện tập. `GET /courses` trả thêm `deck_id` mỗi buổi. Lưới lộ trình tách thành `components/deck/DanhSachLoTrinh`. Đã xem bằng API giả (desktop + 375px); **chưa bấm trên tài khoản thật**. |
+| 17 | **Khoá học bài 14–48 + bài nghe** | 35 buổi trích bằng script (mục 4.1). Migration 013: `course_questions.audio_path`, `listen_text`. File nghe ở bucket riêng tư `flash-card-499907-course-audio` (chặn public, SA Cloud Run chỉ đọc); `GET /api/course-questions/:id/audio` chỉ phát cho chủ khoá (`services/audioStorage.js`, máy dev dùng file ADC của gcloud). FE `NgheAudioCauHoi` (tải blob một lần/file) + nút đọc `listen_text` bằng giọng máy; đề dài hiện dạng đoạn văn. Prompt AI giải thích có lời thoại. |
 
 ## 4. Việc treo / chưa làm — ưu tiên từ trên xuống
 
-### 4.1 Nội dung khoá 48 ngày — CHỜ NGƯỜI DÙNG
-Mới có **bài 13** (tài khoản `ddung.tester@gmail.com`). Người dùng trích 47 bài còn lại bằng ChatGPT theo đúng prompt đã tạo bài 13 + đoạn "BỔ SUNG" câu ví dụ trong `docs/khoa-hoc-48-ngay.md`, chép vào `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/`. Khi có bài mới, quy trình (trong `backend/`, cần proxy Cloud SQL):
+### 4.1 Nội dung khoá 48 ngày — ĐÃ CÓ BÀI 13–48 (2026-09-28)
+Bài 14–48 trích từ PDF + MP3 bằng script (quy trình mới ở cuối `docs/khoa-hoc-48-ngay.md`). Bài 1–12 chưa nhập. Mô tả cũ bên dưới (ChatGPT) chỉ còn giá trị tham khảo.
+
+Trước đây chỉ có **bài 13** (tài khoản `ddung.tester@gmail.com`). Người dùng trích 47 bài còn lại bằng ChatGPT theo đúng prompt đã tạo bài 13 + đoạn "BỔ SUNG" câu ví dụ trong `docs/khoa-hoc-48-ngay.md`, chép vào `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/`. Khi có bài mới, quy trình (trong `backend/`, cần proxy Cloud SQL):
 1. `npm run nhap:khoa-hoc -- --bai=XX` — kiểm tra file (không đụng DB); sửa lỗi nếu có.
 2. **Soát** các câu có `provenance` khác `answer_pdf` (ChatGPT tự suy ra đáp án; importer in số lượng).
 3. `npm run sinh:luyen-them -- --bai=XX` → soát `bai-XX/extra.json` (đáp án + giải thích).
@@ -81,7 +84,7 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 ## 5. Deploy & migration
 
 - **Push lên `main` tự deploy cả hai**: frontend qua Vercel, backend qua trigger Cloud Build `^main$` → Cloud Run `flashcard-backend` (trigger cấu hình trên GCP, không nằm trong repo). Kiểm tra: `gcloud builds list --limit 2 --format="table(createTime,status,substitutions.COMMIT_SHA)"`, rồi `curl <url>/api/health`. CI GitHub Actions (test + lint + build) chạy song song, không chặn deploy.
-- **Migration KHÔNG tự chạy** — chạy tay lên Cloud SQL **trước** khi push code cần bảng/cột mới. Đã chạy trên production: **001 → 012** (007/008/009 ngày 2026-09-26; 010/011/012 ngày 2026-09-27).
+- **Migration KHÔNG tự chạy** — chạy tay lên Cloud SQL **trước** khi push code cần bảng/cột mới. Đã chạy trên production: **001 → 013** (007/008/009 ngày 2026-09-26; 010/011/012 ngày 2026-09-27; 013 ngày 2026-09-28).
 - Proxy: `cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307` (ADC của gcloud đã có trên máy) hoặc cấu hình `cloud-sql-proxy` trong `.claude/launch.json`. Chạy file SQL bằng client MySQL hoặc script Node dùng `mysql2` + `DB_*` trong `backend/.env` (mẫu kết nối: `scripts/run-migration.js`, file này chỉ chạy đúng 1 lệnh cũ). File migration nhiều câu lệnh thì chạy lần lượt từng câu (pool mặc định không bật `multipleStatements`).
 - **Cẩn thận**: backend local đọc `backend/.env` → **DB production** qua proxy. Bấm thử ở chế độ khách vẫn ghi phiên học khách vào DB thật (2026-09-27 có 1 phiên khách thử ở bộ "TOEIC · Họp & liên lạc"). Muốn thử giao diện khi đăng nhập mà không đụng dữ liệu thật: chạy một API giả (Node `http`) ở cổng 8080 trả dữ liệu tự soạn, đặt `localStorage["hocTA.authToken"]` bất kỳ, xong nhớ xoá.
 
@@ -99,9 +102,9 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 
 ```powershell
 # Backend (test không cần DB; chạy server cần backend/.env + proxy → DB production, xem mục 5)
-cd backend; npm ci; npm test            # node --test, kỳ vọng 68 pass
+cd backend; npm ci; npm test            # node --test, kỳ vọng 70 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 93 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 94 pass
 npx vite build; npm run lint            # lint: 0 lỗi (còn cảnh báo, mục 8)
 ```
 Mẹo môi trường (Windows): khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng của file (có file LF, có file CRLF trong working copy). Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash; heredoc có thể biến `\n` trong chuỗi thành xuống dòng thật).

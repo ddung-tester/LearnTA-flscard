@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const aiService = require("../services/aiService");
+const audioStorage = require("../services/audioStorage");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
 const { chuanHoaTraLoi, laTraLoiDung, lichOnCauHoi } = require("../utils/khoaHoc");
 
@@ -32,6 +33,10 @@ function normalizeQuestion(row) {
     accepted_answers: docJson(row.accepted_answers, null),
     explanation: row.explanation || null,
     answer_source: row.answer_source || null,
+    // Bài nghe: file audio private (phát qua GET /course-questions/:id/audio) hoặc lời thoại để trình duyệt đọc
+    // audio_key: nhiều câu dùng chung một file; client dùng để khỏi tải lại
+    audio_key: row.audio_path || null,
+    listen_text: row.listen_text || null,
     // Kết quả lần trả lời gần nhất của người học: null = chưa làm
     last_correct:
       row.last_correct === null || row.last_correct === undefined ? null : Boolean(row.last_correct),
@@ -263,6 +268,36 @@ async function listDueQuestions(req, res) {
   );
 }
 
+// Phát file audio của câu bài nghe; chỉ chủ khoá, object Cloud Storage không bao giờ public
+async function getQuestionAudio(req, res) {
+  const questionId = parsePositiveInt(req.params.questionId, "questionId");
+  const [rows] = await pool.query(
+    `SELECT q.audio_path, c.slug
+     FROM course_questions q
+     JOIN course_lessons l ON l.id = q.lesson_id
+     JOIN courses c ON c.id = l.course_id
+     WHERE q.id = ? AND c.user_id = ?
+     LIMIT 1`,
+    [questionId, req.user.id]
+  );
+  const row = rows[0];
+  if (!row || !row.audio_path) {
+    throw createHttpError(404, "Khong tim thay audio");
+  }
+
+  const audio = await audioStorage.moAudio(audioStorage.tenObjectAudio(row.slug, row.audio_path));
+  if (!audio) {
+    throw createHttpError(404, "Khong tim thay audio");
+  }
+  res.set({
+    "Content-Type": audio.contentType,
+    // File không đổi theo thời gian; private để proxy/CDN không lưu nội dung riêng tư
+    "Cache-Control": "private, max-age=86400",
+    ...(audio.size ? { "Content-Length": String(audio.size) } : {}),
+  });
+  audio.stream.pipe(res);
+}
+
 async function explainQuestion(req, res) {
   const { questionId, answer, row, question, isMultipleChoice, answerNorm } = await docCauTraLoi(req);
 
@@ -304,5 +339,6 @@ module.exports = {
   getLesson,
   answerQuestion,
   listDueQuestions,
+  getQuestionAudio,
   explainQuestion,
 };

@@ -218,7 +218,7 @@ ${focus || "- (không có)"}
 
 Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
 ${question.prompt}
-Các lựa chọn:
+${question.listen_text ? `Lời thoại người học được nghe: ${question.listen_text}\n` : ""}Các lựa chọn:
 ${options}
 
 Đáp án đúng: ${correct}

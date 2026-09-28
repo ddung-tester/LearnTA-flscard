@@ -692,6 +692,38 @@
 }
 
 /* Đề bài chỉ nhận focus bằng code (tabIndex -1) để trình đọc màn hình đọc câu mới, không bấm được */
+/* Đề dài (đoạn văn, hội thoại điền nhiều chỗ): chữ thường, giữ xuống dòng */
+.kh-cau__de-chu--dai {
+  font-family: inherit;
+  font-size: 1.02rem;
+  font-weight: 500;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+/* Bài nghe: trình phát file riêng tư hoặc nút đọc lời thoại */
+.kh-nghe {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.kh-nghe__nut {
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+}
+
+.kh-nghe__trinh-phat {
+  width: min(100%, 26rem);
+  height: 2.75rem;
+}
+
+.kh-nghe__loi {
+  font-size: 0.875rem;
+  color: var(--mau-loi);
+}
+
 .kh-cau .kh-cau__de-chu:focus {
   outline: none;
   box-shadow: none;

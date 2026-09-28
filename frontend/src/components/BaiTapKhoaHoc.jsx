@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import useTTS from "../hooks/useTTS";
+import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
   laTraLoiDung,
@@ -254,6 +255,13 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     }
   }
 
+  // Câu nghe có lời thoại (không có file): tự đọc khi sang câu, bấm loa để nghe lại
+  const loiThoai = cau && !daTraLoi ? cau.listen_text : null;
+  useEffect(() => {
+    if (loiThoai) speak(loiThoai, "en-US");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ đọc khi sang câu mới
+  }, [cau?.id]);
+
   useEffect(() => {
     function xuLyPhim(event) {
       if (!cau || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -399,8 +407,26 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
         </p>
         {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
+        {cau.audio_key && <NgheAudioCauHoi cau={cau} />}
+        {cau.listen_text && (
+          <div className="kh-nghe">
+            <button
+              type="button"
+              className="ui-button ui-button--primary kh-nghe__nut"
+              onClick={() => speak(cau.listen_text, "en-US")}
+            >
+              {isPlaying ? "Đang đọc..." : "▶ Nghe lại"}
+            </button>
+          </div>
+        )}
         <div className="kh-cau__de">
-          <p id="kh-de-bai" ref={deBaiRef} tabIndex={-1} className="kh-cau__de-chu" lang="en">
+          <p
+            id="kh-de-bai"
+            ref={deBaiRef}
+            tabIndex={-1}
+            className={`kh-cau__de-chu${cau.prompt.length > 90 || cau.prompt.includes("\n") ? " kh-cau__de-chu--dai" : ""}`}
+            lang="en"
+          >
             {cau.prompt}
           </p>
           <button
@@ -492,6 +518,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
           {!daTraLoi.dung && (
             <p className="kh-phan-hoi__dap-an">
               Đáp án đúng: <strong lang="en">{dapAnDung}</strong>
+            </p>
+          )}
+          {cau.listen_text && (
+            <p className="kh-phan-hoi__goi-y" lang="en">
+              Lời thoại: {cau.listen_text}
             </p>
           )}
           {cau.explanation && <p className="kh-phan-hoi__goi-y">{cau.explanation}</p>}

@@ -5,10 +5,12 @@ const assert = require("node:assert/strict");
 Object.assign(process.env, { DB_HOST: "127.0.0.1", DB_USER: "test", DB_NAME: "test" });
 const pool = require("../src/config/db");
 const aiService = require("../src/services/aiService");
+const audioStorage = require("../src/services/audioStorage");
 const {
   answerQuestion,
   explainQuestion,
   getLesson,
+  getQuestionAudio,
   listCourses,
   listDueQuestions,
 } = require("../src/controllers/courseController");
@@ -267,4 +269,47 @@ test("parseExtraPracticeResponse reads plain or fenced JSON", () => {
   assert.deepEqual(aiService.parseExtraPracticeResponse('```json\n{"cau_hoi":[]}\n```'), []);
   assert.deepEqual(aiService.parseExtraPracticeResponse(JSON.stringify([cau])), [cau]);
   assert.throws(() => aiService.parseExtraPracticeResponse("không phải JSON"));
+});
+
+test("getQuestionAudio streams the owner's private audio and hides it from everyone else", async () => {
+  const { Readable, Writable } = require("node:stream");
+  const moAudioGoc = audioStorage.moAudio;
+  const daMo = [];
+  audioStorage.moAudio = async (ten) => {
+    daMo.push(ten);
+    return { stream: Readable.from([Buffer.from("mp3")]), contentType: "audio/mpeg", size: 3 };
+  };
+
+  try {
+    const calls = fakePool([[{ audio_path: "bai-29/audio/mp31.mp3", slug: "khoa-hoc-48-ngay" }]]);
+    const chunks = [];
+    const res = new Writable({
+      write(chunk, _encoding, done) {
+        chunks.push(chunk);
+        done();
+      },
+    });
+    res.set = (headers) => {
+      res.headers = headers;
+    };
+    await getQuestionAudio({ user: { id: 7 }, params: { questionId: "9" } }, res);
+    await new Promise((resolve) => res.on("finish", resolve));
+
+    assert.deepEqual(calls[0].params, [9, 7]);
+    assert.match(calls[0].sql, /c.user_id = ?/);
+    assert.deepEqual(daMo, ["khoa-hoc-48-ngay/bai-29/audio/mp31.mp3"]);
+    assert.equal(res.headers["Content-Type"], "audio/mpeg");
+    assert.match(res.headers["Cache-Control"], /^private/);
+    assert.equal(Buffer.concat(chunks).toString(), "mp3");
+
+    // Câu của người khác (hoặc câu không có audio): 404, không chạm tới Cloud Storage
+    fakePool([[]]);
+    await assert.rejects(
+      getQuestionAudio({ user: { id: 8 }, params: { questionId: "9" } }, fakeRes()),
+      (error) => error.statusCode === 404
+    );
+    assert.equal(daMo.length, 1);
+  } finally {
+    audioStorage.moAudio = moAudioGoc;
+  }
 });

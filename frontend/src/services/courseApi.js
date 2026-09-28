@@ -18,6 +18,14 @@ export async function layCauHoiCanOn() {
   return response.data;
 }
 
+/** File nghe riêng tư của câu bài tập (cần đăng nhập) → Blob để phát bằng object URL */
+export async function layAudioCauHoi(questionId) {
+  const response = await api.get(`/course-questions/${encodeURIComponent(questionId)}/audio`, {
+    responseType: "blob",
+  });
+  return response.data;
+}
+
 /** Lưu kết quả lần trả lời gần nhất (server tự chấm) để tiến độ bài tập còn sau khi tải lại trang */
 export async function luuTraLoiCauHoi(questionId, answer) {
   const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/answer`, {

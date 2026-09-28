@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import BaiTapKhoaHoc from "./BaiTapKhoaHoc";
 
-vi.mock("../services/courseApi", () => ({ giaiThichCauHoi: vi.fn(), luuTraLoiCauHoi: vi.fn() }));
+vi.mock("../services/courseApi", () => ({
+  giaiThichCauHoi: vi.fn(),
+  layAudioCauHoi: vi.fn(),
+  luuTraLoiCauHoi: vi.fn(),
+}));
 
 // React SSR chèn <!-- --> giữa chữ và biểu thức
 function render(node) {
@@ -83,5 +87,18 @@ describe("BaiTapKhoaHoc", () => {
 
     expect(html).not.toContain("Còn lại");
     expect(html).toContain("Câu <strong>1</strong> / 3");
+  });
+
+  it("listening questions offer the private audio or a replay of the transcript", () => {
+    const coFile = { ...cau(1, "Where is Jack?"), source: "exam", section: "phan_1", audio_key: "bai-33/audio/mp31.mp3" };
+    const coLoiThoai = { ...cau(2, "Name: _____ Walker"), listen_text: "J. I. L. L." };
+
+    const htmlFile = render(<BaiTapKhoaHoc cauHoi={[coFile]} ketQuaGanNhat={{}} />);
+    expect(htmlFile).toContain("▶ Nghe bài");
+
+    const htmlLoiThoai = render(<BaiTapKhoaHoc cauHoi={[coLoiThoai]} ketQuaGanNhat={{}} />);
+    expect(htmlLoiThoai).toContain("▶ Nghe lại");
+    // Lời thoại chỉ hiện sau khi trả lời
+    expect(htmlLoiThoai).not.toContain("J. I. L. L.");
   });
 });

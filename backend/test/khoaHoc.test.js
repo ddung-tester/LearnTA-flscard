@@ -112,6 +112,9 @@ test("chuanHoaBaiHoc merges answers into questions and keeps only usable theory"
     accepted_answers: null,
     explanation: "Chủ ngữ số ít dùng is.",
     answer_source: "answer_pdf",
+    audio_path: null,
+    audio_file: null,
+    listen_text: null,
     sort_order: 0,
   });
   assert.equal(bai.questions[1].type, "fill_blank");
@@ -138,6 +141,20 @@ test("boCauTheoTranh drops picture questions and their answers", () => {
   assert.deepEqual(kiemTraBaiHoc(daBo, 3), []);
   // Loại câu theo tranh không còn được hỗ trợ nếu lọt qua
   assert.ok(kiemTraBaiHoc(files, 3).some((dong) => dong.includes('"exam_picture_01": type không hỗ trợ')));
+});
+
+test("listening questions keep their audio file under the lesson folder and their transcript", () => {
+  const files = taoBai();
+  Object.assign(files.exercises.questions[0], { audio: "audio/mp31.mp3", listen_text: "The lamp is on." });
+
+  const bai = chuanHoaBaiHoc(files);
+
+  assert.equal(bai.questions[0].audio_path, "bai-03/audio/mp31.mp3");
+  assert.equal(bai.questions[0].listen_text, "The lamp is on.");
+  assert.deepEqual(kiemTraBaiHoc(files, 3), []);
+
+  files.exercises.questions[0].audio = "../secret.mp3";
+  assert.ok(kiemTraBaiHoc(files, 3).some((dong) => dong.includes("audio phải có dạng audio/<tên>.mp3")));
 });
 
 test("kiemTraBaiHoc accepts valid content", () => {
@@ -358,6 +375,9 @@ test("gopBaiLuyenThem appends extra questions so they pass the same checks and i
     accepted_answers: null,
     explanation: null,
     answer_source: "ai_generated",
+    audio_path: null,
+    audio_file: null,
+    listen_text: null,
     sort_order: 2,
   });
   // Không sửa file gốc
