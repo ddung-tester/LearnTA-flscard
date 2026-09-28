@@ -17,6 +17,10 @@ function timChangHocTiep(decks) {
 function TrangChiTietLoTrinh() {
   const { slug } = useParams();
   const { isAuthenticated } = useAuth();
+  // Đã đăng nhập: lộ trình nằm ở Từ vựng → Lộ trình; khách xem lộ trình ở trang Khoá học
+  const noiQuayLai = isAuthenticated
+    ? { to: "/decks?tab=lo-trinh", nhan: "Từ vựng" }
+    : { to: "/khoa-hoc", nhan: "Khoá học" };
   const { setPageDataLoading } = usePageTransition();
   const [trangThai, setTrangThai] = useState({ slug: null, loTrinh: null, loi: "" });
   const dangTai = trangThai.slug !== slug;
@@ -46,7 +50,7 @@ function TrangChiTietLoTrinh() {
   if (!loTrinh) {
     return (
       <div className="ui-page-stack">
-        <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
+        <Link to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</Link>
         <p className="text-sm text-[var(--mau-chu-phu)]">Không tìm thấy lộ trình này.</p>
       </div>
     );
@@ -64,7 +68,7 @@ function TrangChiTietLoTrinh() {
 
   return (
     <div className="ui-page-stack">
-      <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
+      <Link to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</Link>
 
       <div className="ui-page-header">
         <div className="ui-page-header__title">

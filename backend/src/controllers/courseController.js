@@ -54,6 +54,7 @@ async function listCourses(req, res) {
        c.description,
        l.lesson_number,
        l.title AS lesson_title,
+       l.deck_id,
        (SELECT COUNT(*) FROM course_questions q WHERE q.lesson_id = l.id AND q.source <> 'extra') AS question_count,
        (SELECT COUNT(*) FROM cards cd WHERE cd.deck_id = l.deck_id) AS word_count,
        (SELECT COUNT(*)
@@ -99,6 +100,8 @@ async function listCourses(req, res) {
       courses.get(row.course_id).lessons.push({
         lesson_number: row.lesson_number,
         title: row.lesson_title,
+        // Bộ từ vựng riêng của buổi (trang Từ vựng → tab Theo buổi mở thẳng bộ này)
+        deck_id: row.deck_id ?? null,
         question_count: soNguyen(row.question_count),
         word_count: soNguyen(row.word_count),
         learned_count: soNguyen(row.learned_count),

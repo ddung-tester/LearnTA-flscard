@@ -153,7 +153,15 @@ function TrangDanhSachBo() {
   useEffect(() => {
     if (isAuthReady && isAuthenticated && searchParams.get("create") === "1") {
       setDangMoForm(true);
-      setSearchParams({}, { replace: true });
+      // Chỉ bỏ ?create, giữ ?tab của trang Từ vựng bọc ngoài
+      setSearchParams(
+        (hienTai) => {
+          const moi = new URLSearchParams(hienTai);
+          moi.delete("create");
+          return moi;
+        },
+        { replace: true }
+      );
     }
   }, [isAuthReady, isAuthenticated, searchParams, setSearchParams]);
 

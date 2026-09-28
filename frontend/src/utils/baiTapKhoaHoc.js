@@ -135,6 +135,22 @@ export function tongSoBuoiKhoaHoc(tenKhoa, soBuoiLonNhat) {
   return Math.max(khop ? Number(khop[1]) : 0, soBuoiLonNhat || 0);
 }
 
+/**
+ * Chia các buổi 1..tongBuoi thành dòng: buổi có nội dung là một dòng riêng,
+ * các buổi trống liền nhau gộp một dòng ("Buổi 1–10") để không đẩy buổi đang học xuống quá xa.
+ */
+export function chiaDongBuoi(theoSo, tongBuoi) {
+  const dong = [];
+  for (let so = 1; so <= tongBuoi; so += 1) {
+    const bai = theoSo.get(so);
+    const truoc = dong.at(-1);
+    if (bai?.deck_id) dong.push({ bai, tu: so, den: so });
+    else if (truoc && !truoc.bai) truoc.den = so;
+    else dong.push({ bai: null, tu: so, den: so });
+  }
+  return dong;
+}
+
 // Chỗ trống trong công thức: S, O, V, N, V2, V-ing, "V nguyên mẫu", Adj, Adv, "..."
 const LA_CHO_TRONG = /^(?:[SOVN](?:[\s\d/-]|$)|adj\b|adv\b|\.{2,}|…)/i;
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  chiaDongBuoi,
   chuanHoaTraLoi,
   laTraLoiDung,
   layCauBaiChinh,
@@ -161,5 +162,25 @@ describe("layCauBaiChinh", () => {
     const luyenThem = { id: 2, source: "extra" };
     expect(layCauBaiChinh([trongBai, luyenThem])).toEqual([trongBai]);
     expect(layCauBaiChinh([luyenThem])).toEqual([luyenThem]);
+  });
+});
+
+describe("chiaDongBuoi", () => {
+  it("keeps every lesson with content on its own row and merges runs of empty lessons", () => {
+    const theoSo = new Map([
+      [3, { lesson_number: 3, deck_id: 30 }],
+      [4, { lesson_number: 4, deck_id: 40 }],
+      [6, { lesson_number: 6, deck_id: null }],
+    ]);
+
+    const dong = chiaDongBuoi(theoSo, 8).map(({ bai, tu, den }) => [bai ? bai.lesson_number : null, tu, den]);
+
+    // Buổi chưa có bộ từ (deck_id null) cũng tính là trống
+    expect(dong).toEqual([
+      [null, 1, 2],
+      [3, 3, 3],
+      [4, 4, 4],
+      [null, 5, 8],
+    ]);
   });
 });

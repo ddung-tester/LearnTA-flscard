@@ -874,7 +874,7 @@ function TrangChiTietBo() {
   const dangChoMoveTu = dangBatChinhSua && sortTu === "mac-dinh" && !dangLoc;
   // Bộ của khoá học / lộ trình quay lại đúng buổi / chặng chứa nó
   const noiQuayLai = layNoiChuaBo(bo) ?? (isAuthenticated
-    ? { to: "/dashboard", nhan: "Dashboard" }
+    ? { to: "/decks?tab=cua-toi", nhan: "Bộ của tôi" }
     : { to: "/decks", nhan: "Bộ từ vựng" });
 
   return (

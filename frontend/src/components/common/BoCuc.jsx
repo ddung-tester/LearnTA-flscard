@@ -3,17 +3,34 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
+import { layThongKeSRS } from "../../utils/srsReview";
 
+const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
+
+// Khoá 48 ngày là trục chính; Từ vựng gom mọi bộ từ (theo buổi, tự tạo, lộ trình) + Luyện tập
 const DS_TAB_DIEU_HUONG = [
-  { to: "/dashboard", nhan: "Dashboard", laActive: (path) => path === "/dashboard" },
-  // Khoá học = nội dung có sẵn (khoá riêng + lộ trình); Bộ từ = bộ tự tạo
+  { to: "/dashboard", nhan: "Hôm nay", laActive: (path) => path === "/dashboard" },
+  {
+    to: "/khoa-hoc",
+    nhan: "Khoá 48 ngày",
+    nhanNgan: "Khoá học",
+    laActive: (path) => path.startsWith("/khoa-hoc") && !laTrangOnTap(path),
+  },
+  {
+    to: "/decks",
+    nhan: "Từ vựng",
+    laActive: (path) => path.startsWith("/decks") || path === "/practice" || path.startsWith("/roadmap"),
+  },
+  { to: "/review", nhan: "Ôn tập", laActive: laTrangOnTap, coSoDenHan: true },
+];
+
+// Khách chỉ có lộ trình mẫu (nằm ở /khoa-hoc)
+const TAB_KHACH = [
   {
     to: "/khoa-hoc",
     nhan: "Khoá học",
     laActive: (path) => path.startsWith("/khoa-hoc") || path.startsWith("/roadmap"),
   },
-  { to: "/decks", nhan: "Bộ từ", laActive: (path) => path.startsWith("/decks") },
-  { to: "/practice", nhan: "Luyện tập", laActive: (path) => path === "/practice" },
 ];
 
 /**
@@ -34,10 +51,9 @@ function BoCuc() {
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
-  // Khách chỉ thấy tab Khoá học: bộ từ mẫu nằm trong lộ trình, không có trong "Bộ từ"
-  const dsTab = isAuthenticated
-    ? DS_TAB_DIEU_HUONG
-    : DS_TAB_DIEU_HUONG.filter((tab) => tab.to === "/khoa-hoc");
+  const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
+  // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), tính lại mỗi lần đổi trang
+  const soTuDenHan = isAuthenticated ? layThongKeSRS().duHomNay : 0;
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {
@@ -107,7 +123,19 @@ function BoCuc() {
                     aria-current={dangActive ? "page" : undefined}
                     className={`dash-nav__link${dangActive ? " dash-nav__link--active" : ""}`}
                   >
-                    {tab.nhan}
+                    {tab.nhanNgan ? (
+                      <>
+                        <span className="dash-nav__nhan-dai">{tab.nhan}</span>
+                        <span className="dash-nav__nhan-ngan" aria-hidden="true">{tab.nhanNgan}</span>
+                      </>
+                    ) : (
+                      tab.nhan
+                    )}
+                    {tab.coSoDenHan && soTuDenHan > 0 && (
+                      <span className="dash-nav__so" aria-label={`${soTuDenHan} từ đến hạn ôn`}>
+                        {soTuDenHan > 99 ? "99+" : soTuDenHan}
+                      </span>
+                    )}
                     {dangActive && (
                       <motion.span
                         layoutId="dash-nav-gach-chan"

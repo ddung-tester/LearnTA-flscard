@@ -158,6 +158,7 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
         description: null,
         lesson_number: 13,
         lesson_title: "Bài 13",
+        deck_id: 42,
         question_count: 43,
         word_count: 11,
         learned_count: "5",
@@ -180,6 +181,7 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
   assert.deepEqual(res.body[0].lessons[0], {
     lesson_number: 13,
     title: "Bài 13",
+    deck_id: 42,
     question_count: 43,
     word_count: 11,
     learned_count: 5,

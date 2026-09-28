@@ -12,7 +12,7 @@ import {
 } from "./contexts/PageTransitionContext";
 
 const TrangChu = lazy(() => import("./pages/TrangChu"));
-const TrangDanhSachBo = lazy(() => import("./pages/TrangDanhSachBo"));
+const TrangTuVung = lazy(() => import("./pages/TrangTuVung"));
 const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
 const TrangChiTietBo = lazy(() => import("./pages/TrangChiTietBo"));
 const TrangThemTu = lazy(() => import("./pages/TrangThemTu"));
@@ -73,7 +73,7 @@ function UngDung() {
           <Route path="/" element={<TrangChu />} />
           <Route path="/login" element={<TrangDangNhap />} />
           <Route path="/register" element={<TrangDangKy />} />
-          <Route path="/decks" element={<TrangDanhSachBo />} />
+          <Route path="/decks" element={<TrangTuVung />} />
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route path="/practice" element={<TrangLuyenTap />} />
           <Route path="/khoa-hoc" element={<TrangKhoaHoc />} />

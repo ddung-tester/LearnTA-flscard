@@ -8,7 +8,7 @@ import { layThongKeTuSai, taiTuSaiDongBo } from "../utils/mistakeNotebook";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
 import { layStudySessionSummary } from "../services/studySessionApi";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
-import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc } from "../utils/baiTapKhoaHoc";
+import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -64,17 +64,34 @@ function StatRow({ label, value, caption, accent, icon }) {
   );
 }
 
-function QuickAction({ to, label, sub, accent, icon }) {
+function BuocBuoi({ ten, xong = false, chiTiet }) {
   return (
-    <Link to={to} className={`dash-quick-action${accent ? " dash-quick-action--accent" : ""}`}>
-      {icon && <DashIcon name={icon} size={16} className="dash-quick-action__icon" />}
-      <span className="dash-quick-action__text">
-        <span className="dash-quick-action__label">{label}</span>
-        {sub && <span className="dash-quick-action__sub">{sub}</span>}
+    <li className={`dash-buoc__muc${xong ? " dash-buoc__muc--xong" : ""}`}>
+      <span className="dash-buoc__dau" aria-hidden="true">{xong ? "✓" : ""}</span>
+      <span className="dash-buoc__ten">{ten}</span>
+      <span className="dash-buoc__chi-tiet">
+        {chiTiet}
+        {xong && <span className="sr-only"> (xong)</span>}
       </span>
-      <span className="dash-quick-action__arrow" aria-hidden="true">→</span>
+    </li>
+  );
+}
+
+function TheViec({ to, so, donVi, nhan }) {
+  return (
+    <Link to={to} className={`dash-viec__the${so > 0 ? " dash-viec__the--co" : ""}`}>
+      <span className="dash-viec__so">{so > 0 ? `${so} ${donVi}` : "Không có"}</span>
+      <span className="dash-viec__nhan">{nhan}</span>
     </Link>
   );
+}
+
+/** Tối đa 4 buổi có nội dung quanh buổi đang học: 1 buổi trước, buổi đang học và các buổi sau */
+function buoiGanDay(lessons, buoiTiep) {
+  const theoSo = [...lessons].sort((a, b) => a.lesson_number - b.lesson_number);
+  const viTri = Math.max(0, theoSo.indexOf(buoiTiep));
+  const batDau = Math.max(0, Math.min(viTri - 1, theoSo.length - 4));
+  return theoSo.slice(batDau, batDau + 4);
 }
 
 function DeckMiniCard({ deck }) {
@@ -190,161 +207,173 @@ function TrangDashboard() {
   const longestStreak = stats?.longest_streak ?? 0;
   const todaySessions = todayActivity?.session_count ?? 0;
 
+  // Khoá học là trục chính: buổi cần học tiếp của khoá đầu tiên
+  const khoaChinh = khoaHoc[0] ?? null;
+  const buoiTiep = khoaChinh ? timBuoiTiepTheo(khoaChinh.lessons) : null;
+  const tienDoBuoi = buoiTiep ? tienDoBuoiHoc(buoiTiep) : null;
+  const tongBuoi = khoaChinh
+    ? tongSoBuoiKhoaHoc(khoaChinh.title, Math.max(0, ...khoaChinh.lessons.map((bai) => bai.lesson_number)))
+    : 0;
+  const soBuoiXong = khoaChinh ? khoaChinh.lessons.filter((bai) => tienDoBuoiHoc(bai).xong).length : 0;
+  // Vào đúng bước còn dở: chưa học hết từ thì Từ vựng, rồi mới tới Bài tập
+  const buocTiep = tienDoBuoi && tienDoBuoi.tuDaHoc < tienDoBuoi.tongTu ? "tu-vung" : "bai-tap";
+
   return (
     <>
       <div className="ui-content-enter ui-page-stack dash-page">
 
-      {/* ── A. Hero ── */}
-      <section className="dash-welcome" aria-label="Tổng quan học tập">
-        <div className="dash-welcome__left">
-          <h1 className="dash-welcome__greeting">
-            {chao}, <span className="dash-welcome__name">{ten}</span>
-          </h1>
-          <p className="dash-welcome__sub">
-            {currentStreak > 0
-              ? "Sẵn sàng ôn lại một chút hôm nay chưa?"
-              : "Bắt đầu ngày học mới của bạn."}
-          </p>
-
-          {/* Streak chips */}
-          <div className="dash-welcome__chips" role="list">
-            <span className="dash-welcome__chip" role="listitem">
-              <DashIcon name="flame" size={13} />
-              Streak {currentStreak} ngày
-            </span>
-            {longestStreak > 0 && (
-              <span className="dash-welcome__chip dash-welcome__chip--muted" role="listitem">
-                Dài nhất {longestStreak} ngày
-              </span>
-            )}
-            {todaySessions > 0 && (
-              <span className="dash-welcome__chip dash-welcome__chip--muted" role="listitem">
-                <DashIcon name="review" size={13} />
-                {todaySessions} phiên hôm nay
-              </span>
-            )}
-          </div>
-
-          {/* CTAs */}
-          <div className="dash-welcome__actions">
-            {deckDeNghi ? (
+      {/* ── A. Hôm nay: buổi học tiếp theo của khoá ── */}
+      {khoaChinh ? (
+        <section className="dash-hom-nay" aria-labelledby="dash-buoi-tiep">
+          <div className="dash-hom-nay__chinh">
+            <p className="dash-hom-nay__eyebrow">
+              {chao}, {ten} · {khoaChinh.title}
+              {currentStreak > 0 && (
+                <span className="dash-hom-nay__streak">
+                  <DashIcon name="flame" size={13} /> {currentStreak} ngày
+                </span>
+              )}
+            </p>
+            {buoiTiep ? (
               <>
+                <h1 id="dash-buoi-tiep" className="dash-hom-nay__tieu-de">
+                  <span className="dash-hom-nay__so-buoi">Buổi {buoiTiep.lesson_number}</span>
+                  {buoiTiep.title}
+                </h1>
+                <ol className="dash-buoc" aria-label="Các bước của buổi">
+                  <BuocBuoi
+                    ten="Từ vựng"
+                    xong={tienDoBuoi.tongTu > 0 && tienDoBuoi.tuDaHoc >= tienDoBuoi.tongTu}
+                    chiTiet={`${tienDoBuoi.tuDaHoc}/${tienDoBuoi.tongTu} từ đã học`}
+                  />
+                  <BuocBuoi ten="Lý thuyết" chiTiet="Đọc trước khi làm bài" />
+                  <BuocBuoi
+                    ten="Bài tập"
+                    xong={tienDoBuoi.tongCau > 0 && tienDoBuoi.cauDung >= tienDoBuoi.tongCau}
+                    chiTiet={`${tienDoBuoi.cauDung}/${tienDoBuoi.tongCau} câu đúng`}
+                  />
+                </ol>
                 <Link
-                  to={`/decks/${deckDeNghi.id}`}
+                  to={`/khoa-hoc/${khoaChinh.id}/bai/${buoiTiep.lesson_number}?tab=${buocTiep}`}
                   className="ui-button ui-button--primary dash-cta-primary"
                 >
-                  Tiếp tục học
-                </Link>
-                <Link
-                  to="/decks"
-                  className="ui-button ui-button--ghost dash-cta-secondary"
-                >
-                  Xem bộ từ
+                  {tienDoBuoi.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
                 </Link>
               </>
             ) : (
-              <Link
-                to="/decks"
-                className="ui-button ui-button--primary dash-cta-primary"
-              >
-                Xem bộ từ
-              </Link>
+              <>
+                <h1 id="dash-buoi-tiep" className="dash-hom-nay__tieu-de">
+                  Đã xong {khoaChinh.lessons.length} buổi hiện có
+                </h1>
+                <Link to="/khoa-hoc" className="ui-button ui-button--primary dash-cta-primary">
+                  Xem khoá học
+                </Link>
+              </>
             )}
           </div>
-        </div>
 
-        {/* Today focus panel */}
-        <div className="dash-welcome__right" aria-label="Ôn tập hôm nay">
-          <p className="dash-welcome__focus-label">Hôm nay nên ôn</p>
-          <p className="dash-welcome__focus-value">
-            {srsStats.duHomNay > 0 ? `${srsStats.duHomNay} từ` : "Không có"}
-          </p>
-          <p className="dash-welcome__focus-status">
-            {srsStats.duHomNay > 0 ? "Cần ôn hôm nay" : "Bạn đang ổn"}
-          </p>
-          {srsStats.duHomNay > 0 && (
-            <Link to="/review" className="dash-welcome__focus-cta">
-              Ôn ngay →
+          <div className="dash-hom-nay__lich">
+            <p className="dash-hom-nay__lich-nhan">
+              {tongBuoi} buổi · xong {soBuoiXong}
+            </p>
+            <ol className="dash-lich" aria-label={`${tongBuoi} buổi của khoá, xong ${soBuoiXong} buổi`}>
+              {Array.from({ length: tongBuoi }, (_, i) => {
+                const bai = khoaChinh.lessons.find((muc) => muc.lesson_number === i + 1);
+                const trangThai = !bai
+                  ? ""
+                  : tienDoBuoiHoc(bai).xong
+                    ? " dash-lich__o--xong"
+                    : bai === buoiTiep
+                      ? " dash-lich__o--tiep"
+                      : " dash-lich__o--co";
+                return (
+                  <li key={i}>
+                    {bai ? (
+                      <Link
+                        to={`/khoa-hoc/${khoaChinh.id}/bai/${bai.lesson_number}`}
+                        className={`dash-lich__o${trangThai}`}
+                        title={`Buổi ${i + 1}: ${bai.title}`}
+                      >
+                        <span className="sr-only">Buổi {i + 1}</span>
+                      </Link>
+                    ) : (
+                      <span className="dash-lich__o" title={`Buổi ${i + 1}: chưa có nội dung`} />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+      ) : (
+        <section className="dash-hom-nay" aria-labelledby="dash-chao">
+          <div className="dash-hom-nay__chinh">
+            <p className="dash-hom-nay__eyebrow">
+              Streak {currentStreak} ngày{todaySessions > 0 ? ` · ${todaySessions} phiên hôm nay` : ""}
+            </p>
+            <h1 id="dash-chao" className="dash-hom-nay__tieu-de">
+              {chao}, {ten}
+            </h1>
+            <Link
+              to={deckDeNghi ? `/decks/${deckDeNghi.id}` : "/decks"}
+              className="ui-button ui-button--primary dash-cta-primary"
+            >
+              {deckDeNghi ? `Học tiếp: ${deckDeNghi.title}` : "Xem từ vựng"}
             </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ── B. Việc cần làm hôm nay ── */}
+      <section aria-labelledby="dash-viec-can-lam">
+        <h2 id="dash-viec-can-lam" className="dash-section__title">Cần ôn hôm nay</h2>
+        <div className="dash-viec">
+          <TheViec to="/review" so={srsStats.duHomNay} donVi="từ" nhan="Từ đến hạn ôn" />
+          {khoaChinh && (
+            <TheViec to="/khoa-hoc/on-tap" so={soCauCanOn} donVi="câu" nhan="Câu bài tập làm sai" />
           )}
+          <TheViec to="/tu-sai" so={mistakeStats.active} donVi="từ" nhan="Từ hay nhầm" />
         </div>
       </section>
 
       {/* ── Body grid ── */}
       <div className="dash-body-grid">
-
-        {/* ── Left column ── */}
         <div className="dash-body-main">
-
-          {/* ── B. Continue learning ── */}
-          {!khongCoBo && (
+          {/* ── C. Từ vựng theo buổi ── */}
+          {khoaChinh && (
             <section className="dash-section">
-              <h2 className="dash-section__title">Tiếp tục học</h2>
-              {dangTai ? (
-                <div className="dash-continue-card dash-continue-card--loading">
-                  <div className="skeleton-shimmer" style={{ height: "0.75rem", width: "35%", marginBottom: "0.625rem" }} />
-                  <div className="skeleton-shimmer" style={{ height: "1.5rem", width: "60%", marginBottom: "0.5rem" }} />
-                  <div className="skeleton-shimmer" style={{ height: "0.85rem", width: "80%", marginBottom: "1.25rem" }} />
-                  <div className="skeleton-shimmer" style={{ height: "2.5rem", width: "9rem", borderRadius: "0.5rem" }} />
-                </div>
-              ) : deckDeNghi ? (
-                <div className="dash-continue-card">
-                  <p className="dash-continue-card__eyebrow">Bài học tiếp theo</p>
-                  <div className="dash-continue-card__meta">
-                    <p className="dash-continue-card__name">{deckDeNghi.title}</p>
-                    {deckDeNghi.total_words > 0 && (
-                      <span className="dash-continue-card__count">
-                        {deckDeNghi.total_words} từ
-                      </span>
-                    )}
-                  </div>
-                  <p className="dash-continue-card__desc">
-                    {deckDeNghi.description || "Bắt đầu với Flashcard hoặc kiểm tra nhanh bằng Quiz."}
-                  </p>
-                  {(() => {
-                    const pct = phanTramTienDo(deckDeNghi);
-                    return pct !== null ? (
-                      <div className="dash-continue-card__progress">
-                        <div className="dash-continue-card__progress-bar">
-                          <div
-                            className="dash-continue-card__progress-fill"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="dash-continue-card__progress-label">{pct}%</span>
-                      </div>
-                    ) : null;
-                  })()}
-                  <div className="dash-continue-card__actions">
-                    <Link
-                      to={`/decks/${deckDeNghi.id}/flashcard`}
-                      className="ui-button ui-button--primary"
-                    >
-                      Học Flashcard
-                    </Link>
-                    <Link
-                      to={`/decks/${deckDeNghi.id}/quiz`}
-                      className="ui-button ui-button--ghost"
-                    >
-                      Làm Quiz
-                    </Link>
-                  </div>
-                  <Link
-                    to={`/decks/${deckDeNghi.id}`}
-                    className="dash-continue-card__detail-link"
-                  >
-                    Xem chi tiết bộ từ
-                  </Link>
-                </div>
-              ) : null}
+              <div className="dash-section__header">
+                <h2 className="dash-section__title">Từ vựng theo buổi</h2>
+                <Link to="/decks?tab=buoi" className="dash-xem-them">Xem cả {tongBuoi} buổi →</Link>
+              </div>
+              <ul className="dash-tu-buoi">
+                {buoiGanDay(khoaChinh.lessons, buoiTiep).map((bai) => {
+                  const tienDo = tienDoBuoiHoc(bai);
+                  const phanTram = tienDo.tongTu > 0 ? Math.round((tienDo.tuDaHoc / tienDo.tongTu) * 100) : 0;
+                  return (
+                    <li key={bai.lesson_number}>
+                      <Link to={bai.deck_id ? `/decks/${bai.deck_id}` : "/decks?tab=buoi"} className="dash-tu-buoi__dong">
+                        <span className="dash-tu-buoi__so">Buổi {bai.lesson_number}</span>
+                        <span className="dash-tu-buoi__ten">{bai.title}</span>
+                        <span className="dash-tu-buoi__thanh" aria-hidden="true">
+                          <span style={{ width: `${phanTram}%` }} />
+                        </span>
+                        <span className="dash-tu-buoi__dem">
+                          {tienDo.tuDaHoc}/{tienDo.tongTu} từ
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
           )}
 
-          {/* ── C. Deck list ── */}
+          {/* ── D. Bộ của tôi ── */}
           <section className="dash-section">
             <div className="dash-section__header">
-              <h2 className="dash-section__title">Bộ từ của bạn</h2>
-              <Link to="/decks?create=1" className="ui-button ui-button--primary rounded-lg px-3.5 py-1.5 text-sm font-semibold">+ Thêm bộ từ</Link>
+              <h2 className="dash-section__title">Bộ từ của tôi</h2>
+              <Link to="/decks?tab=cua-toi&create=1" className="dash-xem-them">+ Thêm bộ từ</Link>
             </div>
 
             {dangTai ? (
@@ -361,9 +390,9 @@ function TrangDashboard() {
               <EmptyState
                 icon="deck"
                 title="Chưa có bộ từ nào"
-                description="Tạo bộ từ đầu tiên để bắt đầu học."
+                description="Tự tạo bộ từ cho những từ bạn gặp ngoài khoá học."
                 action="Tạo bộ từ"
-                onAction={() => navigateWithLoading("/decks?create=1")}
+                onAction={() => navigateWithLoading("/decks?tab=cua-toi&create=1")}
               />
             ) : (
               <div className="dash-deck-grid">
@@ -375,16 +404,14 @@ function TrangDashboard() {
           </section>
         </div>
 
-        {/* ── Right column (sidebar) ── */}
+        {/* ── E. Tổng quan ── */}
         <div className="dash-body-side">
-
-          {/* ── D. Overview panel ── */}
           <section className="dash-section">
             <div className="dash-overview-card">
-              <p className="dash-overview-card__title">Tổng quan học tập</p>
+              <p className="dash-overview-card__title">Tổng quan</p>
               {dangTai ? (
                 <div className="dash-overview-card__body">
-                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                  {[0, 1, 2, 3].map((i) => (
                     <div key={i} className="dash-stat-row dash-stat-row--loading">
                       <div className="skeleton-shimmer" style={{ width: "3rem", height: "1.125rem" }} />
                       <div className="skeleton-shimmer" style={{ width: "5rem", height: "0.7rem" }} />
@@ -393,8 +420,6 @@ function TrangDashboard() {
                 </div>
               ) : (
                 <div className="dash-overview-card__body">
-                  <StatRow icon="decks" label="Bộ từ" value={decks.length} caption="Đang học" />
-                  <StatRow icon="vocab" label="Tổng từ" value={tongTu} caption="Trong thư viện" />
                   <StatRow
                     icon="flame"
                     label="Streak"
@@ -402,91 +427,22 @@ function TrangDashboard() {
                     caption={longestStreak > 0 ? `Dài nhất ${longestStreak} ngày` : "Bắt đầu chuỗi mới"}
                     accent={currentStreak > 0}
                   />
-                  <StatRow icon="star" label="XP" value={stats?.total_xp ?? 0} caption="Tổng tích lũy" />
-                  <StatRow
-                    icon="review"
-                    label="Ôn tập"
-                    value={`${srsStats.duHomNay} từ`}
-                    caption={srsStats.duHomNay > 0 ? "Cần ôn hôm nay" : "Hôm nay bạn đang ổn"}
-                    accent={srsStats.duHomNay > 0}
-                  />
-                  <StatRow
-                    icon="mastered"
-                    label="Thành thạo"
-                    value={`${srsStats.mastered} từ`}
-                    caption={srsStats.mastered > 0 ? "Đã mastered" : "Tiếp tục học để mở khóa"}
-                  />
+                  {khoaChinh && (
+                    <StatRow
+                      icon="calendar"
+                      label="Khoá học"
+                      value={`${soBuoiXong}/${tongBuoi}`}
+                      caption="Buổi đã xong"
+                    />
+                  )}
+                  <StatRow icon="mastered" label="Đã thuộc" value={`${srsStats.mastered} từ`} caption="Mọi nguồn từ vựng" />
+                  <StatRow icon="vocab" label="Bộ của tôi" value={`${tongTu} từ`} caption={`${decks.length} bộ`} />
+                  <StatRow icon="star" label="XP" value={stats?.total_xp ?? 0} caption="Tổng tích luỹ" />
                 </div>
               )}
+              <Link to="/stats" className="dash-xem-them dash-overview-card__link">Xem thống kê →</Link>
             </div>
           </section>
-
-          {/* ── E. Quick actions ── */}
-          <section className="dash-section">
-            <h2 className="dash-section__title">Truy cập nhanh</h2>
-            {srsStats.duHomNay > 0 && (
-              <Link to="/review" className="dash-review-cta" id="dash-review-cta">
-                <span className="dash-review-cta__body">
-                  <strong>{srsStats.duHomNay} từ cần ôn hôm nay</strong>
-                  <span>Bắt đầu ôn tập ngay</span>
-                </span>
-                <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
-              </Link>
-            )}
-            {soCauCanOn > 0 && (
-              <Link to="/khoa-hoc/on-tap" className="dash-review-cta">
-                <span className="dash-review-cta__body">
-                  <strong>{soCauCanOn} câu bài tập cần ôn</strong>
-                  <span>Các câu từng làm sai trong khoá học, nay đến lịch ôn lại</span>
-                </span>
-                <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
-              </Link>
-            )}
-            {khoaHoc.map((khoa) => {
-              // Dẫn thẳng tới buổi cần học tiếp; xong hết các buổi hiện có thì về trang khoá học
-              const buoiTiep = timBuoiTiepTheo(khoa.lessons);
-              const tienDo = buoiTiep && tienDoBuoiHoc(buoiTiep);
-              return (
-                <Link
-                  key={khoa.id}
-                  to={buoiTiep ? `/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}` : "/khoa-hoc"}
-                  className="dash-review-cta"
-                >
-                  <span className="dash-review-cta__body">
-                    <strong>
-                      {buoiTiep
-                        ? `${tienDo.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi ${buoiTiep.lesson_number} · ${khoa.title}`
-                        : khoa.title}
-                    </strong>
-                    <span>
-                      {buoiTiep
-                        ? `Từ vựng ${tienDo.tuDaHoc}/${tienDo.tongTu} · Bài tập ${tienDo.cauDung}/${tienDo.tongCau} câu đúng`
-                        : `Đã xong ${khoa.lessons.length} buổi hiện có`}
-                    </span>
-                  </span>
-                  <span className="dash-review-cta__arrow" aria-hidden="true">→</span>
-                </Link>
-              );
-            })}
-            <div className="dash-quick-grid">
-              <QuickAction icon="decks" to="/decks" label="Quản lý bộ từ" sub="Xem và chỉnh sửa các bộ từ" />
-              <QuickAction
-                icon="notebook"
-                to="/tu-sai"
-                label={mistakeStats.active > 0 ? `Sổ từ sai (${mistakeStats.active})` : "Sổ từ sai"}
-                sub="Xem lại những từ bạn hay nhầm"
-              />
-              <QuickAction
-                icon="review"
-                to="/review"
-                label={srsStats.duHomNay > 0 ? `Ôn tập (${srsStats.duHomNay})` : "Ôn tập hôm nay"}
-                sub="Luyện các từ đang đến hạn"
-                accent={srsStats.duHomNay > 0}
-              />
-              <QuickAction icon="stats" to="/stats" label="Thống kê" sub="Xem tiến độ học tập" />
-            </div>
-          </section>
-
         </div>
       </div>
 

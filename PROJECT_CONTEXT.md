@@ -113,7 +113,7 @@ LearnTA-flscard/
 
 ## 5. Routes frontend
 
-Tab header khi dang nhap: Dashboard (`/dashboard`) · Khoa hoc (`/khoa-hoc`) · Bo tu (`/decks`) · Luyen tap (`/practice`). Khach chi thay tab Khoa hoc.
+Tab header khi dang nhap: Hom nay (`/dashboard`) · Khoa 48 ngay (`/khoa-hoc`) · Tu vung (`/decks`, gom ca `/practice`, `/roadmap`) · On tap (`/review`, kem so tu den han). Khach chi thay tab Khoa hoc.
 
 ```txt
 /                         TrangChu            public
@@ -121,7 +121,7 @@ Tab header khi dang nhap: Dashboard (`/dashboard`) · Khoa hoc (`/khoa-hoc`) · 
 /khoa-hoc                 TrangKhoaHoc        public (khoa hoc rieng cua user khi dang nhap: lich 48 o, "Hoc tiep Buoi X", "On N cau sai", tien do tung buoi; + danh sach lo trinh)
 /roadmap                  -> chuyen huong /khoa-hoc
 /roadmap/:slug            TrangChiTietLoTrinh public (cac chang theo thu tu + tien do)
-/decks                    TrangDanhSachBo     public ("Bo tu": khi dang nhap chi bo tu tao)
+/decks                    TrangTuVung         public (khi dang nhap: tab ?tab=buoi (tu vung tung buoi cua khoa) | cua-toi (TrangDanhSachBo, bo tu tao) | lo-trinh; khach: TrangDanhSachBo)
 /practice                 TrangLuyenTap       public (chon bo tu (GET /decks?scope=learnable, nhom theo nguon), bo loc, thu tu, so luong roi chon che do; ?bo=<id> mo san mot bo)
 /decks/:deckId            TrangChiTietBo      public (nut quay lai ve buoi hoc / chang lo trinh neu bo thuoc do)
 /decks/:deckId/flashcard  TrangFlashcard      public

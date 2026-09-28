@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
-import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
+import DanhSachLoTrinh from "../components/deck/DanhSachLoTrinh";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
 import { layDanhSachLoTrinh } from "../services/roadmapApi";
 import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
@@ -160,6 +160,7 @@ function TrangKhoaHoc() {
   }, [isAuthenticated]);
 
   if (!trangThai.xong) return null;
+  const coKhoaRieng = trangThai.khoaHoc.length > 0;
 
   return (
     <div className="ui-page-stack kh-trang">
@@ -171,48 +172,23 @@ function TrangKhoaHoc() {
         <KhoaHocRieng key={khoa.id} khoa={khoa} />
       ))}
 
-      <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">
-        <div className="ui-page-header">
-          <div className="ui-page-header__title">
-            <h2 id="lo-trinh-tieu-de" className="text-2xl font-semibold text-[var(--mau-chu)]">
-              Lộ trình từ vựng
-            </h2>
-            <p className="text-sm text-[var(--mau-chu-phu)]">
-              Học theo thứ tự từ cơ bản đến nâng cao, không phải đoán nên học gì tiếp theo.
-            </p>
-          </div>
-        </div>
-
-        {trangThai.loTrinh.length === 0 && (
-          <p className="text-sm text-[var(--mau-chu-phu)]">
-            {trangThai.loiLoTrinh ? "Không tải được lộ trình. Thử lại sau." : "Chưa có lộ trình nào."}
-          </p>
-        )}
-
-        <div className="roadmap-grid">
-          {trangThai.loTrinh.map((loTrinh) => (
-            <Link key={loTrinh.slug} to={`/roadmap/${loTrinh.slug}`} className="roadmap-card">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="roadmap-card__title">{loTrinh.title}</h3>
-                {loTrinh.level_label && (
-                  <span className="ui-chip ui-chip--small ui-chip--primary">{loTrinh.level_label}</span>
-                )}
-              </div>
-              {loTrinh.description && <p className="roadmap-card__desc">{loTrinh.description}</p>}
-              <p className="roadmap-card__meta">
-                {loTrinh.deck_count} chặng · {loTrinh.word_count} từ
+      {/* Đã có khoá riêng: lộ trình nằm ở Từ vựng → Lộ trình để trang này chỉ còn khoá học */}
+      {!coKhoaRieng && (
+        <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">
+          <div className="ui-page-header">
+            <div className="ui-page-header__title">
+              <h2 id="lo-trinh-tieu-de" className="text-2xl font-semibold text-[var(--mau-chu)]">
+                Lộ trình từ vựng
+              </h2>
+              <p className="text-sm text-[var(--mau-chu-phu)]">
+                Học theo thứ tự từ cơ bản đến nâng cao, không phải đoán nên học gì tiếp theo.
               </p>
-              {isAuthenticated && (
-                <ThanhTienDoLoTrinh
-                  tongSo={loTrinh.word_count}
-                  daHoc={loTrinh.learned_count}
-                  daThuoc={loTrinh.mastered_count}
-                />
-              )}
-            </Link>
-          ))}
-        </div>
-      </section>
+            </div>
+          </div>
+
+          <DanhSachLoTrinh loTrinh={trangThai.loTrinh} coLoi={trangThai.loiLoTrinh} hienTienDo={isAuthenticated} />
+        </section>
+      )}
     </div>
   );
 }

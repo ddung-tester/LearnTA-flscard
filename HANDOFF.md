@@ -18,12 +18,12 @@ Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **
 
 | Nguồn (`source`) | Là gì | Hiện ở | Sửa được |
 |---|---|---|---|
-| `course` | từ vựng 1 buổi của khoá học riêng (`course_lessons.deck_id`) | tab **Khoá học** → buổi học | **Không** (script nhập quản lý); chủ khoá vẫn thả tim |
-| `roadmap` | chặng của lộ trình công khai (`roadmap_decks`) | tab **Khoá học** → lộ trình | Không (bộ mẫu `user_id NULL`) |
-| `user` | bộ người dùng tự tạo | tab **Bộ từ** | Chủ bộ |
+| `course` | từ vựng 1 buổi của khoá học riêng (`course_lessons.deck_id`) | **Khoá 48 ngày** → buổi học; **Từ vựng → Theo buổi** | **Không** (script nhập quản lý); chủ khoá vẫn thả tim |
+| `roadmap` | chặng của lộ trình công khai (`roadmap_decks`) | **Từ vựng → Lộ trình** (khách: trang Khoá học) | Không (bộ mẫu `user_id NULL`) |
+| `user` | bộ người dùng tự tạo | **Từ vựng → Bộ của tôi** | Chủ bộ |
 | `sample` | bộ mẫu cũ ngoài lộ trình | — (production không còn) | Không |
 
-- Header khi đăng nhập: **Dashboard · Khoá học · Bộ từ · Luyện tập** (khách: chỉ Khoá học). `/roadmap` chuyển hướng về `/khoa-hoc`.
+- Header khi đăng nhập (2026-09-28): **Hôm nay** (`/dashboard`) · **Khoá 48 ngày** (`/khoa-hoc`) · **Từ vựng** (`/decks`, `TrangTuVung`: tab `?tab=buoi|cua-toi|lo-trinh`, nút Luyện tập) · **Ôn tập** (`/review`, số từ đến hạn). Khách: chỉ Khoá học (lộ trình). `/roadmap` chuyển hướng về `/khoa-hoc`; khi đã có khoá riêng, trang Khoá học không hiện lộ trình nữa.
 - **Luyện tập** (`/practice`) và **Ôn tập** (`/review`, SRS) dùng chung cho mọi nguồn; ô chọn bộ ở `/practice` nhóm theo nguồn.
 - Khoá học: trang khoá (lịch 48 ô, "Học tiếp Buổi X", "Ôn N câu sai") → buổi học (Từ vựng · Lý thuyết · Bài tập có AI giải thích) → ôn câu sai theo SRS (`/khoa-hoc/on-tap`). Tiến độ buổi = từ đã học + câu đang đúng; câu **luyện thêm** do AI sinh là tuỳ chọn, không tính vào tiến độ.
 
@@ -46,6 +46,7 @@ Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **
 | 13 | **Sửa lỗi đã biết + dọn nợ** | Khách không còn gọi `/user/stats`, `/mistakes/bulk` (hết 401). Chatbot chỉ biết thẻ **sau khi trả lời** ở Quiz / Tự luận / Ôn tập, Nối từ không báo thẻ (hết lộ đáp án). `/practice` hiện đủ tên bộ dài dưới ô chọn trên màn < 480px. `schema.sql` đủ cột; gỡ `resend`; sửa khoá trùng `teach` trong `tenseExamples.js`. Lint 0 lỗi, CI chặn lint (mục 8). |
 | 14 | **Sửa UI/UX người dùng báo** | Trang chủ: xấp thẻ giữ nguyên thứ tự DOM (chồng bằng `zIndex`), thẻ đang bay ra không nhận kéo/nút "Thẻ khác" nữa (tránh kẹt lưng chừng). Chatbot trên điện thoại (≤480px): khung toàn màn hình theo `visualViewport` (co theo bàn phím), ẩn bong bóng khi mở, ô nhập 16px (iOS không tự zoom), chỉ tự focus khi có chuột. Bộ lọc: `locFilterCoIch` ẩn lọc rỗng/trùng "Tất cả", `soLuongCoIch` ẩn mức lớn hơn số từ; trang chi tiết bộ chuyển hàng lọc lên trên các chế độ học. **Chưa thử kéo thẻ bằng tay/cảm ứng thật** (ô Browser ẩn thì animation không chạy). |
 | 15 | **Bỏ câu hỏi theo tranh** | App không hiện được tranh của tài liệu → importer bỏ câu `image_based_fill_blank` / `picture_answers` / có `image_description_vi` (`boCauTheoTranh`, in số câu bỏ). Bỏ `image_description` khỏi importer, API, prompt AI và giao diện (cột DB `course_questions.image_description` còn nhưng không dùng). Bài 13 đã nhập lại: xoá 5 câu "Theo tranh" (còn 38 câu chính + 40 luyện thêm). |
+| 16 | **Bố cục lấy khoá 48 ngày làm trục** | Menu mới (mục 2). Dashboard (`TrangDashboard`): thẻ Hôm nay = buổi học tiếp (3 bước Từ vựng/Lý thuyết/Bài tập, nút vào đúng bước còn dở) + lưới 48 buổi; "Cần ôn hôm nay" (từ đến hạn, câu làm sai, từ hay nhầm); Từ vựng theo buổi (4 buổi quanh buổi đang học); Bộ của tôi; Tổng quan. Trang Từ vựng: tab Theo buổi hiện đủ mọi buổi (không khoá; buổi trống liền nhau gộp một dòng, `chiaDongBuoi`), mỗi buổi mở bộ từ/Flashcard/Luyện tập. `GET /courses` trả thêm `deck_id` mỗi buổi. Lưới lộ trình tách thành `components/deck/DanhSachLoTrinh`. Đã xem bằng API giả (desktop + 375px); **chưa bấm trên tài khoản thật**. |
 
 ## 4. Việc treo / chưa làm — ưu tiên từ trên xuống
 
@@ -100,7 +101,7 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 # Backend (test không cần DB; chạy server cần backend/.env + proxy → DB production, xem mục 5)
 cd backend; npm ci; npm test            # node --test, kỳ vọng 68 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 92 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 93 pass
 npx vite build; npm run lint            # lint: 0 lỗi (còn cảnh báo, mục 8)
 ```
 Mẹo môi trường (Windows): khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng của file (có file LF, có file CRLF trong working copy). Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash; heredoc có thể biến `\n` trong chuỗi thành xuống dòng thật).
