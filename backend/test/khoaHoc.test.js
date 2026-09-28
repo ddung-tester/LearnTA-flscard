@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   chuanHoaBaiHoc,
   chuanHoaTraLoi,
+  boCauTheoTranh,
   gopBaiLuyenThem,
   kiemTraBaiHoc,
   lichOnCauHoi,
@@ -47,13 +48,12 @@ function taoBai() {
           ],
         },
         {
-          id: "exam_picture_01",
+          id: "exam_fill_01",
           source: "exam",
-          section: "picture_answers",
-          type: "image_based_fill_blank",
+          section: "fill_verbs",
+          type: "fill_blank",
           instruction: "Chỉ điền phần còn thiếu.",
           prompt: "Is it a lamp? — Yes, it _____.",
-          image_description_vi: "Một cái đèn bàn.",
         },
       ],
     },
@@ -61,7 +61,7 @@ function taoBai() {
       lesson_number: 3,
       answers: [
         { question_id: "quiz_1_01", answer: "a", explanation_vi: "Chủ ngữ số ít dùng is.", provenance: "answer_pdf" },
-        { question_id: "exam_picture_01", accepted_answers: ["is"], provenance: "answer_pdf" },
+        { question_id: "exam_fill_01", accepted_answers: ["is"], provenance: "answer_pdf" },
       ],
     },
   };
@@ -112,12 +112,32 @@ test("chuanHoaBaiHoc merges answers into questions and keeps only usable theory"
     accepted_answers: null,
     explanation: "Chủ ngữ số ít dùng is.",
     answer_source: "answer_pdf",
-    image_description: null,
     sort_order: 0,
   });
   assert.equal(bai.questions[1].type, "fill_blank");
   assert.deepEqual(bai.questions[1].accepted_answers, ["is"]);
-  assert.equal(bai.questions[1].image_description, "Một cái đèn bàn.");
+});
+
+test("boCauTheoTranh drops picture questions and their answers", () => {
+  const files = taoBai();
+  files.exercises.questions.push({
+    id: "exam_picture_01",
+    source: "exam",
+    section: "picture_answers",
+    type: "image_based_fill_blank",
+    prompt: "Was it on? — Yes, it _____.",
+    image_description_vi: "Một cái đèn đang bật.",
+  });
+  files.answers.answers.push({ question_id: "exam_picture_01", accepted_answers: ["was"] });
+
+  const { files: daBo, soCauBo } = boCauTheoTranh(files);
+
+  assert.equal(soCauBo, 1);
+  assert.deepEqual(daBo.exercises.questions.map((cau) => cau.id), ["quiz_1_01", "exam_fill_01"]);
+  assert.deepEqual(daBo.answers.answers.map((dapAn) => dapAn.question_id), ["quiz_1_01", "exam_fill_01"]);
+  assert.deepEqual(kiemTraBaiHoc(daBo, 3), []);
+  // Loại câu theo tranh không còn được hỗ trợ nếu lọt qua
+  assert.ok(kiemTraBaiHoc(files, 3).some((dong) => dong.includes('"exam_picture_01": type không hỗ trợ')));
 });
 
 test("kiemTraBaiHoc accepts valid content", () => {
@@ -139,7 +159,7 @@ test("kiemTraBaiHoc reports broken answers, ids and lesson numbers", () => {
   assert.ok(loi.some((dong) => dong.startsWith("exercises.json: lesson_number không khớp")));
   assert.ok(loi.some((dong) => dong.includes('"quiz_1_01": đáp án không nằm trong các lựa chọn')));
   assert.ok(loi.some((dong) => dong.includes('"quiz_1_01": id bị trùng')));
-  assert.ok(loi.some((dong) => dong.includes('"exam_picture_01": thiếu đáp án')));
+  assert.ok(loi.some((dong) => dong.includes('"exam_fill_01": thiếu đáp án')));
   assert.ok(loi.some((dong) => dong.includes('"khong_ton_tai" không có câu hỏi tương ứng')));
   assert.ok(loi.some((dong) => dong.includes('"Lamp": bị trùng')));
 });
@@ -214,9 +234,9 @@ function taoDbGia() {
         return [{}];
       }
       if (sql.startsWith("INSERT INTO course_questions")) {
-        const [lesson_id, question_key, , , type, instruction, prompt, options, answer_key, accepted_answers, explanation, , image_description] =
+        const [lesson_id, question_key, , , type, instruction, prompt, options, answer_key, accepted_answers, explanation] =
           params;
-        const noiDung = { type, instruction, prompt, options, answer_key, accepted_answers, explanation, image_description };
+        const noiDung = { type, instruction, prompt, options, answer_key, accepted_answers, explanation };
         const hienCo = db.course_questions.find(
           (row) => row.lesson_id === lesson_id && row.question_key === question_key
         );
@@ -338,7 +358,6 @@ test("gopBaiLuyenThem appends extra questions so they pass the same checks and i
     accepted_answers: null,
     explanation: null,
     answer_source: "ai_generated",
-    image_description: null,
     sort_order: 2,
   });
   // Không sửa file gốc

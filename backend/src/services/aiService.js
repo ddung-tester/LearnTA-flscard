@@ -218,7 +218,7 @@ ${focus || "- (không có)"}
 
 Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
 ${question.prompt}
-${question.image_description ? `Hình minh hoạ trong tài liệu: ${question.image_description}\n` : ""}Các lựa chọn:
+Các lựa chọn:
 ${options}
 
 Đáp án đúng: ${correct}

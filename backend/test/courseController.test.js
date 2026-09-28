@@ -47,7 +47,6 @@ const CAU_TRAC_NGHIEM = {
   accepted_answers: null,
   explanation: "Chủ ngữ số ít dùng is.",
   answer_source: "answer_pdf",
-  image_description: null,
   lesson_title: "Bài giả định",
   lesson_content: { grammar: [{ title: "To be", pattern: "S + is" }], notes: [] },
 };

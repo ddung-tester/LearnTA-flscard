@@ -41,7 +41,6 @@ const TEN_NGUON = { lesson: "Trong bài", exam: "Bài thi", extra: "Luyện thê
 const TEN_PHAN = {
   practice: "Practice",
   fill_verbs: "Điền động từ",
-  picture_answers: "Theo tranh",
   multiple_choice: "Trắc nghiệm",
   ngu_phap: "Ngữ pháp",
   tu_vung: "Từ vựng",

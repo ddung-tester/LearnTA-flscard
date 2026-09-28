@@ -32,7 +32,6 @@ function normalizeQuestion(row) {
     accepted_answers: docJson(row.accepted_answers, null),
     explanation: row.explanation || null,
     answer_source: row.answer_source || null,
-    image_description: row.image_description || null,
     // Kết quả lần trả lời gần nhất của người học: null = chưa làm
     last_correct:
       row.last_correct === null || row.last_correct === undefined ? null : Boolean(row.last_correct),

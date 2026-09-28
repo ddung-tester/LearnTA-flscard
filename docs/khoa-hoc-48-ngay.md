@@ -13,7 +13,9 @@ backend/database/private-content/khoa-hoc-48-ngay/
     lesson.json      lesson_number, title, vocabulary[{word, part_of_speech, meaning_vi, pronunciation, example?}],
                      grammar[{id, title, pattern, rules[], examples[{en, vi}]}], learning_notes_vi[]
     exercises.json   lesson_number, questions[{id, source, section, type, prompt, options[{key, text}],
-                     instruction?, image_description_vi?}]   type: multiple_choice | fill_blank | image_based_fill_blank
+                     instruction?}]   type: multiple_choice | fill_blank
+                     (app không hiện tranh: câu hỏi theo tranh — image_based_fill_blank, section picture_answers,
+                     có image_description_vi — bị importer tự bỏ, không cần trích)
     answers.json     lesson_number, answers[{question_id, answer (chữ cái) | accepted_answers[], explanation_vi, provenance}]
     extra.json       (không bắt buộc) bài luyện thêm do Gemini sinh: lesson_number, questions[], answers[] — cùng dạng 2 file trên
 ```

@@ -674,27 +674,6 @@
   color: var(--mau-chu-phu);
 }
 
-.kh-cau__tranh {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-  border-radius: 0.6rem;
-  background: var(--mau-mat-2);
-  padding: 0.5rem 0.7rem;
-  font-size: 0.875rem;
-  line-height: 1.45;
-  color: var(--mau-chu-phu);
-}
-
-.kh-cau__tranh-icon {
-  flex-shrink: 0;
-  width: 1.1rem;
-  height: 1.1rem;
-  margin-top: 0.1rem;
-  color: var(--mau-nhan);
-}
-
 .kh-cau__de {
   display: flex;
   align-items: flex-start;

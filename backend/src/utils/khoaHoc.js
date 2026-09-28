@@ -8,11 +8,9 @@ const { cauChuaTu } = require("./noiDungLoTrinh");
 const { scheduleAnswer } = require("./srs");
 
 const MA_CAU_HOP_LE = /^[a-z0-9_-]{1,80}$/i;
-// image_based_fill_blank: vẫn là điền từ, ảnh gốc chỉ còn mô tả
 const LOAI_CAU = {
   multiple_choice: "multiple_choice",
   fill_blank: "fill_blank",
-  image_based_fill_blank: "fill_blank",
 };
 const GIOI_HAN_TU = { term_en: 255, meaning_vi: 255, pronunciation: 255, part_of_speech: 50 };
 
@@ -94,7 +92,6 @@ function chuanHoaCauHoi(cau, dapAn, index) {
       type === "fill_blank" ? (accepted.length ? accepted : mangChuoi([dapAn?.answer])) : null,
     explanation: chuoi(dapAn?.explanation_vi) || null,
     answer_source: chuoi(dapAn?.provenance) || null,
-    image_description: chuoi(cau?.image_description_vi) || null,
     sort_order: index,
   };
 }
@@ -182,6 +179,36 @@ function taoBaiLuyenThem(cauTho, { lessonNumber, deBaiDaCo = [] }) {
   }
 
   return { extra: { lesson_number: lessonNumber, questions, answers }, soCauBo };
+}
+
+// App không hiện được tranh của tài liệu nên bỏ hẳn câu hỏi theo tranh
+function laCauTheoTranh(cau) {
+  return (
+    cau?.type === "image_based_fill_blank" ||
+    cau?.section === "picture_answers" ||
+    Boolean(chuoi(cau?.image_description_vi))
+  );
+}
+
+/**
+ * Bỏ câu hỏi theo tranh (và đáp án của chúng) khỏi 3 file của bài trước khi kiểm tra / nạp.
+ * @returns {{ files, soCauBo: number }}
+ */
+function boCauTheoTranh(files) {
+  const cauHoi = Array.isArray(files.exercises?.questions) ? files.exercises.questions : [];
+  const maBo = new Set(cauHoi.filter(laCauTheoTranh).map((cau) => chuoi(cau?.id)));
+  if (maBo.size === 0) return { files, soCauBo: 0 };
+  return {
+    files: {
+      ...files,
+      exercises: { ...files.exercises, questions: cauHoi.filter((cau) => !laCauTheoTranh(cau)) },
+      answers: {
+        ...files.answers,
+        answers: (files.answers?.answers || []).filter((dapAn) => !maBo.has(chuoi(dapAn?.question_id))),
+      },
+    },
+    soCauBo: maBo.size,
+  };
 }
 
 /** Gộp bài luyện thêm (extra.json, nếu có) vào 3 file của bài trước khi kiểm tra / nạp */
@@ -340,7 +367,6 @@ function noiDungGiaiThich(cau) {
     cau.type,
     cau.instruction || null,
     cau.prompt,
-    cau.image_description || null,
     cau.explanation || null,
     mang(cau.options).map((luaChon) => [luaChon.key, luaChon.text]),
     cau.answer_key || null,
@@ -351,7 +377,7 @@ function noiDungGiaiThich(cau) {
 async function napCauHoi(connection, lessonId, questions, thongKe) {
   // Chỉ bỏ lời giải thích AI đã lưu của câu có nội dung đổi; câu giữ nguyên thì dùng lại (đỡ gọi Gemini)
   const [cauCu] = await connection.query(
-    `SELECT id, question_key, type, instruction, prompt, image_description, explanation,
+    `SELECT id, question_key, type, instruction, prompt, explanation,
             options, answer_key, accepted_answers
      FROM course_questions
      WHERE lesson_id = ?`,
@@ -370,14 +396,14 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
     await connection.execute(
       `INSERT INTO course_questions
          (lesson_id, question_key, source, section, type, instruction, prompt, options, answer_key,
-          accepted_answers, explanation, answer_source, image_description, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          accepted_answers, explanation, answer_source, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
          source = VALUES(source), section = VALUES(section), type = VALUES(type),
          instruction = VALUES(instruction), prompt = VALUES(prompt), options = VALUES(options),
          answer_key = VALUES(answer_key), accepted_answers = VALUES(accepted_answers),
          explanation = VALUES(explanation), answer_source = VALUES(answer_source),
-         image_description = VALUES(image_description), sort_order = VALUES(sort_order)`,
+         sort_order = VALUES(sort_order)`,
       [
         lessonId,
         cau.question_key,
@@ -391,7 +417,6 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
         cau.accepted_answers ? JSON.stringify(cau.accepted_answers) : null,
         cau.explanation,
         cau.answer_source,
-        cau.image_description,
         cau.sort_order,
       ]
     );
@@ -454,5 +479,6 @@ module.exports = {
   kiemTraBaiHoc,
   taoBaiLuyenThem,
   gopBaiLuyenThem,
+  boCauTheoTranh,
   napBaiHoc,
 };

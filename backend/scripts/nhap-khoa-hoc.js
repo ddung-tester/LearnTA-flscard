@@ -9,7 +9,13 @@
  * Chỉ một bài:                   thêm --bai=13
  */
 require("dotenv/config");
-const { chuanHoaBaiHoc, gopBaiLuyenThem, kiemTraBaiHoc, napBaiHoc } = require("../src/utils/khoaHoc");
+const {
+  boCauTheoTranh,
+  chuanHoaBaiHoc,
+  gopBaiLuyenThem,
+  kiemTraBaiHoc,
+  napBaiHoc,
+} = require("../src/utils/khoaHoc");
 const { THU_MUC, docFileBai, docThamSo, timCacBai } = require("./thuMucKhoaHoc");
 
 const KHOA_HOC = {
@@ -36,7 +42,9 @@ async function main() {
       if (doc.extra && Number(doc.extra.lesson_number) !== soBai) {
         throw new Error("extra.json: lesson_number không khớp số bài");
       }
-      files = gopBaiLuyenThem(doc.files, doc.extra);
+      const { files: khongTranh, soCauBo } = boCauTheoTranh(gopBaiLuyenThem(doc.files, doc.extra));
+      files = khongTranh;
+      if (soCauBo > 0) console.log(`ℹ️  Bài ${soBai}: bỏ ${soCauBo} câu theo tranh (app không hiện tranh)`);
     } catch (error) {
       console.error(`❌ Bài ${soBai}: không đọc được file (${error.message})`);
       coLoi = true;

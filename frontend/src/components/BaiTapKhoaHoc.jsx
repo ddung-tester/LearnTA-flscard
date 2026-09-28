@@ -32,13 +32,6 @@ const IconLoa = (props) => (
     <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
   </Icon>
 );
-const IconTranh = (props) => (
-  <Icon {...props}>
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <circle cx="9" cy="9" r="2" />
-    <path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21" />
-  </Icon>
-);
 const IconGiaiThich = (props) => (
   <Icon {...props}>
     <path d="M9 18h6M10 22h4" />
@@ -406,12 +399,6 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
         </p>
         {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
-        {cau.image_description && (
-          <p className="kh-cau__tranh">
-            <IconTranh className="kh-cau__tranh-icon" />
-            <span>Tranh trong tài liệu: {cau.image_description}</span>
-          </p>
-        )}
         <div className="kh-cau__de">
           <p id="kh-de-bai" ref={deBaiRef} tabIndex={-1} className="kh-cau__de-chu" lang="en">
             {cau.prompt}
