@@ -1160,10 +1160,38 @@
 }
 
 /* ── Chuyển buổi ── */
+.kh-thanh-tren {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
 .kh-chuyen-buoi {
   display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.25rem;
+}
+
+.kh-chuyen-buoi__lien-ket {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  border-radius: 0.6rem;
+  padding: 0 0.7rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--mau-chu-phu);
+}
+
+.kh-chuyen-buoi__lien-ket:hover {
+  background: var(--mau-mat-hover);
+  color: var(--mau-chinh);
+}
+
+.kh-chuyen-buoi__lien-ket:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
 }
 
 /* ── Trang khoá học: lịch 48 buổi + các buổi đã có ── */

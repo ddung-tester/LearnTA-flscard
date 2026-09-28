@@ -245,7 +245,24 @@ function TrangBaiHoc() {
 
   return (
     <div className="ui-page-stack kh-trang">
-      <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</Link>
+      {/* Đổi buổi nằm ở dòng trên cùng, tách khỏi phần làm bài để không lẫn với điều hướng câu hỏi */}
+      <div className="kh-thanh-tren">
+        <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</Link>
+        {(bai.prev_lesson || bai.next_lesson) && (
+          <nav className="kh-chuyen-buoi" aria-label="Chuyển buổi">
+            {bai.prev_lesson && (
+              <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.prev_lesson}`} className="kh-chuyen-buoi__lien-ket">
+                &lsaquo; Buổi {bai.prev_lesson}
+              </Link>
+            )}
+            {bai.next_lesson && (
+              <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`} className="kh-chuyen-buoi__lien-ket">
+                Buổi {bai.next_lesson} &rsaquo;
+              </Link>
+            )}
+          </nav>
+        )}
+      </div>
 
       <header className="kh-dau-bai">
         <p className="kh-dau-bai__so" aria-hidden="true">{soBuoi}</p>
@@ -298,23 +315,6 @@ function TrangBaiHoc() {
           />
         )}
       </div>
-
-      {(bai.prev_lesson || bai.next_lesson) && (
-        <nav className="kh-chuyen-buoi" aria-label="Chuyển buổi">
-          {bai.prev_lesson ? (
-            <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.prev_lesson}`} className="ui-button ui-button--ghost px-4 py-2.5">
-              Buổi {bai.prev_lesson}
-            </Link>
-          ) : (
-            <span />
-          )}
-          {bai.next_lesson && (
-            <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`} className="ui-button ui-button--ghost px-4 py-2.5">
-              Buổi {bai.next_lesson}
-            </Link>
-          )}
-        </nav>
-      )}
     </div>
   );
 }
