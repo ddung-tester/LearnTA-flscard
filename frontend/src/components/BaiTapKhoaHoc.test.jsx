@@ -27,6 +27,9 @@ describe("BaiTapKhoaHoc", () => {
   it("starts from the first question when nothing has been answered yet", () => {
     const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{}} />);
 
+    // Mọi câu cùng một nhóm: không lặp tab "Trong bài" trùng với "Tất cả"
+    expect(html).not.toContain("<span>Trong bài</span>");
+
     expect(html).not.toContain("Còn lại");
     expect(html).toContain("Câu một");
     expect(html).toContain("Câu <strong>1</strong> / 3");
@@ -35,7 +38,7 @@ describe("BaiTapKhoaHoc", () => {
   it("resumes with the questions that are not correct yet", () => {
     const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{ 1: true, 2: false }} />);
 
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Còn lại <span class="kh-chip__so">2<\/span>/);
+    expect(html).toContain('aria-pressed="true"><span>Còn lại</span><span class="ui-filter-tab__count">2</span>');
     expect(html).toContain("Câu hai");
     expect(html).not.toContain("Câu một");
     expect(html).toContain("Câu <strong>1</strong> / 2");
@@ -45,10 +48,12 @@ describe("BaiTapKhoaHoc", () => {
     const luyenThem = { ...cau(201, "Câu luyện thêm"), source: "extra", section: "ngu_phap" };
     const html = render(<BaiTapKhoaHoc cauHoi={[...CAU_HOI, luyenThem]} ketQuaGanNhat={{ 1: true }} />);
 
-    expect(html).toContain('Tất cả <span class="kh-chip__so">3</span>');
-    expect(html).toMatch(/aria-pressed="true"[^>]*>Còn lại <span class="kh-chip__so">2<\/span>/);
-    expect(html).toContain('<span class="kh-bt__nhom-ten">Luyện thêm</span>');
-    expect(html).toContain('Ngữ pháp <span class="kh-chip__so">1</span>');
+    expect(html).toContain('<span>Tất cả</span><span class="ui-filter-tab__count">3</span>');
+    expect(html).toContain('aria-pressed="true"><span>Còn lại</span><span class="ui-filter-tab__count">2</span>');
+    expect(html).toContain('<span>Luyện thêm</span><span class="ui-filter-tab__count">1</span>');
+    // Hàng chọn phần chỉ hiện khi đã chọn một nhóm
+    expect(html).not.toContain("kh-bt__phan");
+    expect(html).not.toContain("<span>Trong bài</span>");
     expect(html).not.toContain("Câu luyện thêm");
   });
 
@@ -59,9 +64,18 @@ describe("BaiTapKhoaHoc", () => {
     ];
     const html = render(<BaiTapKhoaHoc cauHoi={denHan} onTap />);
 
-    expect(html).not.toContain("kh-bt__phan");
+    expect(html).not.toContain("kh-bt__loc");
     expect(html).toContain("Câu <strong>1</strong> / 2");
     expect(html).toContain('<span class="kh-cau__nguon">Buổi 13 · </span>');
+  });
+
+  it("shows the parts of the only group under \"Tất cả\"", () => {
+    const baiThi = [1, 2].map((id) => ({ ...cau(id, "Câu " + id), source: "exam", section: "quiz_" + id }));
+    const html = render(<BaiTapKhoaHoc cauHoi={baiThi} ketQuaGanNhat={{}} />);
+
+    expect(html).toMatch(/aria-pressed="true">Tất cả phần</);
+    expect(html).toContain('Quiz 1 <span class="kh-chip__so">1</span>');
+    expect(html).toContain('Quiz 2 <span class="kh-chip__so">1</span>');
   });
 
   it("offers the full set again once every question is correct", () => {

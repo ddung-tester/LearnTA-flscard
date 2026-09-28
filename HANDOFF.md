@@ -99,7 +99,7 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 # Backend (test không cần DB; chạy server cần backend/.env + proxy → DB production, xem mục 5)
 cd backend; npm ci; npm test            # node --test, kỳ vọng 67 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 91 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 92 pass
 npx vite build; npm run lint            # lint: 0 lỗi (còn cảnh báo, mục 8)
 ```
 Mẹo môi trường (Windows): khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng của file (có file LF, có file CRLF trong working copy). Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash; heredoc có thể biến `\n` trong chuỗi thành xuống dòng thật).

@@ -523,46 +523,44 @@
   gap: 1rem;
 }
 
+.kh-bt__loc {
+  display: grid;
+  gap: 0.55rem;
+}
+
+/* Hàng phụ: chọn một phần trong nhóm, nhỏ và nhẹ hơn hàng nhóm phía trên */
 .kh-bt__phan {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem 0.9rem;
-}
-
-.kh-bt__nhom {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 0.4rem;
+  padding-left: 0.35rem;
 }
 
-.kh-bt__nhom-ten {
+.kh-bt__phan .kh-chip {
+  min-height: 2.5rem;
+  padding: 0.25rem 0.75rem;
   font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--mau-chu-mo);
 }
 
-/* Màn hẹp: hàng chip cuộn ngang để câu hỏi không bị đẩy xuống quá thấp */
-@media (max-width: 560px) {
-  .kh-bt__phan,
-  .kh-bt__nhom {
-    flex-wrap: nowrap;
-  }
+.kh-bt__phan .kh-chip[aria-pressed="true"] {
+  border-color: var(--mau-chinh);
+  background: oklch(55% 0.080 52/ 0.12);
+  color: var(--mau-chinh);
+}
 
+/* Màn hẹp: hai hàng lọc cuộn ngang để câu hỏi không bị đẩy xuống quá thấp */
+@media (max-width: 560px) {
   .kh-bt__phan {
+    flex-wrap: nowrap;
     overflow-x: auto;
     margin: 0 -1rem;
-    padding: 0.15rem 1rem 0.4rem;
+    padding: 0.1rem 1rem 0.3rem;
     scrollbar-width: none;
   }
 
   .kh-bt__phan::-webkit-scrollbar {
     display: none;
-  }
-
-  .kh-bt__nhom-ten {
-    white-space: nowrap;
   }
 }
 

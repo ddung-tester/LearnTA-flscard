@@ -40,21 +40,20 @@ function NhomChip({ nhan, luaChon, giaTri, onChon }) {
   return (
     <div className="practice-field">
       <p className="practice-field__label">{nhan}</p>
-      <div className="ui-chip-row" role="group" aria-label={nhan}>
-        {luaChon.map((muc) => {
-          const dangChon = muc.giaTri === giaTri;
-          return (
-            <button
-              key={String(muc.giaTri)}
-              type="button"
-              onClick={() => onChon(muc.giaTri)}
-              aria-pressed={dangChon}
-              className={`ui-chip ui-chip--interactive${dangChon ? " ui-chip--primary" : ""}`}
-            >
-              {muc.nhan}
-            </button>
-          );
-        })}
+      {/* Cùng kiểu segmented control với bộ lọc ở trang chi tiết bộ và bài tập khoá học */}
+      <div className="ui-filter-tabs ui-filter-tabs--deck" role="group" aria-label={nhan}>
+        {luaChon.map((muc) => (
+          <button
+            key={String(muc.giaTri)}
+            type="button"
+            onClick={() => onChon(muc.giaTri)}
+            aria-pressed={muc.giaTri === giaTri}
+            className="ui-filter-tab"
+          >
+            <span>{muc.nhan}</span>
+            {muc.so !== undefined && <span className="ui-filter-tab__count">{muc.so}</span>}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -220,7 +219,8 @@ function TrangLuyenTap() {
                   onChon={(filter) => capNhat({ filter })}
                   luaChon={boLocCoIch.map((muc) => ({
                     giaTri: muc.key,
-                    nhan: `${muc.label} (${demFilter[muc.key] ?? 0})`,
+                    nhan: muc.label,
+                    so: demFilter[muc.key] ?? 0,
                   }))}
                 />
               )}
