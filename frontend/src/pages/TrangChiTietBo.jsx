@@ -16,6 +16,7 @@ import {
   apDungBoLoc,
   demTheoFilter,
   docBoLocTuUrl,
+  locFilterCoIch,
 } from "../utils/locTuVung";
 import { cheTuTrongCau } from "../utils/phienHoc";
 import { layNoiChuaBo } from "../utils/nguonBoTu";
@@ -856,6 +857,7 @@ function TrangChiTietBo() {
   const soTuYeuThich = soTuTheoFilter["yeu-thich"];
   const soTuChuaHoc = soTuTheoFilter["chua-hoc-filter"];
   const soTuDaHoc = soTuTheoFilter["da-hoc"];
+  const filterCoIch = locFilterCoIch(FILTER_TU, soTuTheoFilter, filterTu);
   const dangLoc = filterTu !== "tat-ca" || tuKhoaHienTai !== "";
   const soTuSeHoc = danhSachDaLoc.length;
   // Chế độ Ngữ cảnh chỉ dùng được từ có câu ví dụ chứa chính từ đó
@@ -924,6 +926,29 @@ function TrangChiTietBo() {
       </div>
 
       <section className="ui-study-launch" aria-labelledby="study-launch-scope">
+        {/* Bộ lọc quyết định học những từ nào nên nằm ngay trên các chế độ học.
+            Chỉ hiện lọc có tác dụng; bộ mới chưa học thì ẩn cả hàng. */}
+        {filterCoIch.length > 1 && (
+          <div
+            ref={filterTabsRef}
+            className={`ui-filter-tabs ui-filter-tabs--deck${filterConTheCuonPhai ? " ui-filter-tabs--co-the-cuon-phai" : ""}`}
+            role="group"
+            aria-label="Lọc từ vựng"
+          >
+            {filterCoIch.map((filter) => (
+              <button
+                key={filter.key}
+                type="button"
+                onClick={() => capNhatBoLoc({ filter: filter.key })}
+                aria-pressed={filterTu === filter.key}
+                className="ui-filter-tab"
+              >
+                <span>{filter.label}</span>
+                <span className="ui-filter-tab__count">{soTuTheoFilter[filter.key]}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <p id="study-launch-scope" className="ui-study-launch__scope" aria-live="polite">
           {soTuSeHoc === 0
             ? "Không có từ nào để học với bộ lọc này"
@@ -1024,27 +1049,6 @@ function TrangChiTietBo() {
               )
             )}
           </div>
-        </div>
-
-        {/* ---- Toolbar row 2: filter tabs (cuộn ngang trên mobile) ---- */}
-        <div
-          ref={filterTabsRef}
-          className={`ui-filter-tabs ui-filter-tabs--deck${filterConTheCuonPhai ? " ui-filter-tabs--co-the-cuon-phai" : ""}`}
-          role="group"
-          aria-label="Lọc từ vựng"
-        >
-          {FILTER_TU.map((filter) => (
-            <button
-              key={filter.key}
-              type="button"
-              onClick={() => capNhatBoLoc({ filter: filter.key })}
-              aria-pressed={filterTu === filter.key}
-              className="ui-filter-tab"
-            >
-              <span>{filter.label}</span>
-              <span className="ui-filter-tab__count">{soTuTheoFilter[filter.key]}</span>
-            </button>
-          ))}
         </div>
 
         {/* ---- Toolbar row 3: tìm kiếm + sắp xếp ---- */}

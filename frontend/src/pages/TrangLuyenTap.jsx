@@ -6,7 +6,13 @@ import { layTheoBoId } from "../data/duLieuMau";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { layDanhSachDeck } from "../services/deckApi";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
-import { apDungBoLoc, demTheoFilter, SO_LUONG_TU, taoQueryBoLoc } from "../utils/locTuVung";
+import {
+  apDungBoLoc,
+  demTheoFilter,
+  locFilterCoIch,
+  soLuongCoIch,
+  taoQueryBoLoc,
+} from "../utils/locTuVung";
 import { nhomBoTuTheoNguon } from "../utils/nguonBoTu";
 import { cheTuTrongCau } from "../utils/phienHoc";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
@@ -135,6 +141,9 @@ function TrangLuyenTap() {
   );
   const soTuSanSang =
     caiDat.soLuong > 0 ? Math.min(caiDat.soLuong, danhSachLoc.length) : danhSachLoc.length;
+  // Chỉ hiện lựa chọn có tác dụng; bộ mới chưa học từ nào thì không cần hàng "Bộ lọc"
+  const boLocCoIch = locFilterCoIch(BO_LOC, demFilter, caiDat.filter);
+  const soLuongHien = soLuongCoIch(danhSachLoc.length, caiDat.soLuong);
   const coNguCanh = danhSachLoc.some((the) => cheTuTrongCau(the.example_sentence, the.term_en));
   // Luôn gửi filter tường minh (kể cả "tat-ca") để trang học không rơi về cài đặt
   // "chỉ học yêu thích" đã lưu, giống trang chi tiết bộ từ.
@@ -204,15 +213,17 @@ function TrangLuyenTap() {
                 )}
               </label>
 
-              <NhomChip
-                nhan="Bộ lọc"
-                giaTri={caiDat.filter}
-                onChon={(filter) => capNhat({ filter })}
-                luaChon={BO_LOC.map((muc) => ({
-                  giaTri: muc.key,
-                  nhan: dangTaiThe ? muc.label : `${muc.label} (${demFilter[muc.key] ?? 0})`,
-                }))}
-              />
+              {!dangTaiThe && boLocCoIch.length > 1 && (
+                <NhomChip
+                  nhan="Bộ lọc"
+                  giaTri={caiDat.filter}
+                  onChon={(filter) => capNhat({ filter })}
+                  luaChon={boLocCoIch.map((muc) => ({
+                    giaTri: muc.key,
+                    nhan: `${muc.label} (${demFilter[muc.key] ?? 0})`,
+                  }))}
+                />
+              )}
               <NhomChip
                 nhan="Thứ tự"
                 giaTri={caiDat.ngauNhien}
@@ -222,15 +233,17 @@ function TrangLuyenTap() {
                   { giaTri: false, nhan: "Theo thứ tự" },
                 ]}
               />
-              <NhomChip
-                nhan="Số lượng"
-                giaTri={caiDat.soLuong}
-                onChon={(soLuong) => capNhat({ soLuong })}
-                luaChon={SO_LUONG_TU.map((so) => ({
-                  giaTri: so,
-                  nhan: so === 0 ? "Tất cả" : `${so} từ`,
-                }))}
-              />
+              {!dangTaiThe && soLuongHien.length > 1 && (
+                <NhomChip
+                  nhan="Số lượng"
+                  giaTri={caiDat.soLuong}
+                  onChon={(soLuong) => capNhat({ soLuong })}
+                  luaChon={soLuongHien.map((so) => ({
+                    giaTri: so,
+                    nhan: so === 0 ? "Tất cả" : `${so} từ`,
+                  }))}
+                />
+              )}
 
               <p className="practice-ready" aria-live="polite">
                 {dangTaiThe ? "Đang tải từ vựng..." : <><strong>{soTuSanSang}</strong> từ sẵn sàng</>}

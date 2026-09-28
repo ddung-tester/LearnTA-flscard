@@ -3,6 +3,9 @@ import {
   apDungBoLoc,
   demTheoFilter,
   docBoLocTuUrl,
+  FILTER_TU,
+  locFilterCoIch,
+  soLuongCoIch,
   laTuMoiThem,
   locTheoFilter,
   taoQueryBoLoc,
@@ -75,5 +78,27 @@ describe("số lượng và thứ tự ngẫu nhiên trên URL", () => {
     );
     expect(taoQueryBoLoc({ soLuong: 0, ngauNhien: null })).toBe("");
     expect(taoQueryBoLoc({ ngauNhien: false })).toBe("?random=0");
+  });
+});
+
+describe("bộ lọc có tác dụng", () => {
+  const keys = (ds) => ds.map((f) => f.key);
+
+  it("hides empty filters and filters equal to all", () => {
+    const dem = { "tat-ca": 20, "yeu-thich": 0, "moi-them": 20, "chua-hoc-filter": 15, "da-hoc": 5 };
+    expect(keys(locFilterCoIch(FILTER_TU, dem, "tat-ca"))).toEqual(["tat-ca", "chua-hoc-filter", "da-hoc"]);
+  });
+
+  it("keeps the active filter even when it has no effect", () => {
+    const dem = { "tat-ca": 20, "yeu-thich": 0, "moi-them": 20, "chua-hoc-filter": 20, "da-hoc": 0 };
+    expect(keys(locFilterCoIch(FILTER_TU, dem, "tat-ca"))).toEqual(["tat-ca"]);
+    expect(keys(locFilterCoIch(FILTER_TU, dem, "yeu-thich"))).toEqual(["tat-ca", "yeu-thich"]);
+  });
+
+  it("offers only amounts smaller than the word count", () => {
+    expect(soLuongCoIch(20, 20)).toEqual([10, 20, 0]);
+    expect(soLuongCoIch(20, 0)).toEqual([10, 0]);
+    expect(soLuongCoIch(8, 0)).toEqual([0]);
+    expect(soLuongCoIch(500, 0)).toEqual([10, 20, 50, 100, 200, 0]);
   });
 });

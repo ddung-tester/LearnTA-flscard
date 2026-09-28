@@ -61,6 +61,7 @@ export default function ChatbotWidget() {
 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const panelWrapperRef = useRef(null);
 
   // Ngữ cảnh học: server tự đọc nội dung từ DB theo id và kiểm tra quyền
   const { pathname } = useLocation();
@@ -80,12 +81,32 @@ export default function ChatbotWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Focus textarea khi mở
+  // Focus textarea khi mở — chỉ khi có chuột: trên điện thoại bàn phím bật lên sẽ che khung chat
   useEffect(() => {
     if (open) {
-      setTimeout(() => textareaRef.current?.focus(), 150);
+      if (window.matchMedia?.("(pointer: fine)").matches) {
+        setTimeout(() => textareaRef.current?.focus(), 150);
+      }
       setHasUnread(false);
     }
+  }, [open]);
+
+  // Điện thoại: khung chat toàn màn hình, co theo vùng nhìn thấy khi bàn phím mở
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const wrapper = panelWrapperRef.current;
+    if (!open || !vv || !wrapper) return undefined;
+    const capNhat = () => {
+      wrapper.style.setProperty("--chatbot-vh", `${vv.height}px`);
+      wrapper.style.setProperty("--chatbot-top", `${vv.offsetTop}px`);
+    };
+    capNhat();
+    vv.addEventListener("resize", capNhat);
+    vv.addEventListener("scroll", capNhat);
+    return () => {
+      vv.removeEventListener("resize", capNhat);
+      vv.removeEventListener("scroll", capNhat);
+    };
   }, [open]);
 
   const sendMessage = useCallback(
@@ -148,7 +169,7 @@ export default function ChatbotWidget() {
     <>
       {/* Floating bubble */}
       <button
-        className="chatbot-bubble"
+        className={`chatbot-bubble${open ? " is-open" : ""}`}
         onClick={() => setOpen((v) => !v)}
         title="Hỏi đáp tiếng Anh"
         aria-label="Mở chatbot tiếng Anh"
@@ -171,6 +192,7 @@ export default function ChatbotWidget() {
 
       {/* Chat panel — always mounted, shown/hidden via CSS transition to avoid jank */}
       <div
+        ref={panelWrapperRef}
         className={`chatbot-panel-wrapper${open ? " is-open" : ""}`}
         role="dialog"
         aria-label="Chatbot tiếng Anh"

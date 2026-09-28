@@ -340,14 +340,26 @@
 .chatbot-send-btn svg { width: 18px; height: 18px; }
 
 /* --- Responsive --- */
+/* Điện thoại: khung chat phủ toàn màn hình (chiều cao theo vùng nhìn thấy, trừ bàn phím) */
 @media (max-width: 480px) {
   .chatbot-panel-wrapper {
-    right: 8px;
-    bottom: 82px;
+    top: var(--chatbot-top, 0px);
+    right: 0;
+    bottom: auto;
+    left: 0;
+    transform-origin: bottom center;
   }
   .chatbot-panel {
-    width: calc(100vw - 16px);
-    height: 75vh;
+    width: 100%;
+    height: var(--chatbot-vh, 100dvh);
+    border: none;
+    border-radius: 0;
   }
   .chatbot-bubble { bottom: 18px; right: 18px; }
+  /* Khung đã có nút đóng riêng; bong bóng nằm đè lên ô nhập */
+  .chatbot-bubble.is-open { display: none; }
+  /* iOS tự phóng to trang khi ô nhập có chữ nhỏ hơn 16px */
+  .chatbot-textarea { font-size: 16px; }
+  .chatbot-close-btn { width: 36px; height: 36px; }
+  .chatbot-suggestion-btn { white-space: normal; text-align: left; }
 }

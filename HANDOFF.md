@@ -44,6 +44,7 @@ Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **
 | 11 | **Bài luyện thêm do AI sinh** | `npm run sinh:luyen-them -- --bai=XX` (Gemini) → `bai-XX/extra.json` để soát; importer nhập kèm (`source = 'extra'`, section `ngu_phap`/`tu_vung`). Không tính vào tiến độ, không nằm trong "Tất cả"/"Còn lại" (FE `layCauBaiChinh`). Bài 13: 40 câu, đã soát từng câu (đúng cả 40). |
 | 12 | **Ôn câu bài tập theo SRS + thống kê** | Migration 012: `course_question_progress.mastery_level`, `next_review_at`. Câu vào lịch ôn khi trả lời **sai** (`utils/khoaHoc.lichOnCauHoi`, cùng luật `srs.js`); đúng ngay lần đầu thì không bị hỏi lại. `GET /course-questions/due`, `due_count` mỗi buổi. Trang `/khoa-hoc/on-tap` (`TrangOnCauHoi`, `BaiTapKhoaHoc onTap`). Lối vào: trang khoá, Dashboard, `/review`, `/stats` (có thêm khối Khoá học). Câu ôn **không** gộp vào hàng đợi thẻ của `/review`. |
 | 13 | **Sửa lỗi đã biết + dọn nợ** | Khách không còn gọi `/user/stats`, `/mistakes/bulk` (hết 401). Chatbot chỉ biết thẻ **sau khi trả lời** ở Quiz / Tự luận / Ôn tập, Nối từ không báo thẻ (hết lộ đáp án). `/practice` hiện đủ tên bộ dài dưới ô chọn trên màn < 480px. `schema.sql` đủ cột; gỡ `resend`; sửa khoá trùng `teach` trong `tenseExamples.js`. Lint 0 lỗi, CI chặn lint (mục 8). |
+| 14 | **Sửa UI/UX người dùng báo** | Trang chủ: xấp thẻ giữ nguyên thứ tự DOM (chồng bằng `zIndex`), thẻ đang bay ra không nhận kéo/nút "Thẻ khác" nữa (tránh kẹt lưng chừng). Chatbot trên điện thoại (≤480px): khung toàn màn hình theo `visualViewport` (co theo bàn phím), ẩn bong bóng khi mở, ô nhập 16px (iOS không tự zoom), chỉ tự focus khi có chuột. Bộ lọc: `locFilterCoIch` ẩn lọc rỗng/trùng "Tất cả", `soLuongCoIch` ẩn mức lớn hơn số từ; trang chi tiết bộ chuyển hàng lọc lên trên các chế độ học. **Chưa thử kéo thẻ bằng tay/cảm ứng thật** (ô Browser ẩn thì animation không chạy). |
 
 ## 4. Việc treo / chưa làm — ưu tiên từ trên xuống
 
@@ -98,7 +99,7 @@ Luyentu giữ chân bằng: **coin** (Flashcard +5, Trắc nghiệm/Nối/Gõ +1
 # Backend (test không cần DB; chạy server cần backend/.env + proxy → DB production, xem mục 5)
 cd backend; npm ci; npm test            # node --test, kỳ vọng 67 pass
 # Frontend
-cd frontend; npm ci; npx vitest run     # kỳ vọng 88 pass
+cd frontend; npm ci; npx vitest run     # kỳ vọng 91 pass
 npx vite build; npm run lint            # lint: 0 lỗi (còn cảnh báo, mục 8)
 ```
 Mẹo môi trường (Windows): khi sửa hàng loạt bằng script hãy giữ nguyên kiểu xuống dòng của file (có file LF, có file CRLF trong working copy). Script sửa nhiều chỗ nên ghi ra file rồi chạy (chuỗi dài trong `node -e` dễ vỡ quote trên bash; heredoc có thể biến `\n` trong chuỗi thành xuống dòng thật).

@@ -70,6 +70,17 @@ export function demTheoFilter(danhSach) {
   return ketQua;
 }
 
+// Chỉ hiện bộ lọc có tác dụng: bỏ lọc rỗng hoặc trùng "Tất cả" (vẫn giữ lọc đang chọn).
+// Trả về mảng 1 phần tử ("Tất cả") nghĩa là không cần hiện hàng lọc.
+export function locFilterCoIch(danhSachFilter, dem, dangChon) {
+  return danhSachFilter.filter(
+    ({ key }) =>
+      key === "tat-ca" ||
+      key === dangChon ||
+      ((dem[key] ?? 0) > 0 && dem[key] < dem["tat-ca"])
+  );
+}
+
 // Bỏ dấu tiếng Việt + chữ thường để "qua tao" tìm được "quả táo".
 export function chuanHoaTimKiem(chuoi) {
   return String(chuoi || "")
@@ -117,6 +128,11 @@ export function apDungBoLoc(danhSach, { filter = "tat-ca", sort = "mac-dinh", tu
 // Số lượng từ mỗi phiên cho trang Luyện tập (0 = tất cả).
 export const SO_LUONG_TU = [10, 20, 50, 100, 200, 0];
 const SO_LUONG_TOI_DA = 1000;
+
+// Chỉ hiện mức số lượng nhỏ hơn số từ đang có (mức lớn hơn cũng ra "Tất cả"), giữ mức đang chọn.
+export function soLuongCoIch(tongTu, dangChon) {
+  return SO_LUONG_TU.filter((so) => so === 0 || so === dangChon || so < tongTu);
+}
 
 function docSoLuong(giaTri) {
   const so = Number(giaTri);

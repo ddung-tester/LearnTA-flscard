@@ -46,11 +46,25 @@ const NGUONG_NEM = 90;
  * TheMau — một thẻ trong xấp demo ở trang chủ.
  * Lớp ngoài giữ vị trí tầng trong xấp, lớp trong nhận thao tác kéo.
  */
-function TheMau({ the, tang, soThe, daLat, onLat, onNem, giam, daChiaXong, onChiaXong }) {
+function TheMau({
+  the,
+  tang,
+  soThe,
+  daLat,
+  onLat,
+  dangNem,
+  onBatDauNem,
+  onNem,
+  giam,
+  daChiaXong,
+  onChiaXong,
+}) {
   const x = useMotionValue(0);
   const nghieng = useTransform(x, [-300, 0, 300], [-16, 0, 16]);
   const daKeoRef = useRef(false);
   const laTrenCung = tang === 0;
+  // Thẻ đang bay ra không nhận thao tác nữa, để không bị giữ lại lưng chừng
+  const dangBay = laTrenCung && dangNem;
   const viTri = VI_TRI_TANG[tang] ?? VI_TRI_TANG[VI_TRI_TANG.length - 1];
 
   // Thẻ vừa bị ném xuống đáy xấp: trượt từ ngoài vào lại dưới xấp
@@ -72,6 +86,7 @@ function TheMau({ the, tang, soThe, daLat, onLat, onNem, giam, daChiaXong, onChi
       return;
     }
 
+    onBatDauNem();
     animate(x, huong * 460, giam ? { duration: 0 } : { duration: 0.28, ease: [0.4, 0, 0.7, 0.2] })
       .then(onNem);
   }
@@ -79,7 +94,7 @@ function TheMau({ the, tang, soThe, daLat, onLat, onNem, giam, daChiaXong, onChi
   return (
     <motion.div
       className="home-the"
-      style={{ zIndex: soThe - tang }}
+      style={{ zIndex: soThe - tang, pointerEvents: dangBay ? "none" : undefined }}
       initial={giam ? false : { y: 320, rotate: 0, scale: 0.9, opacity: 0 }}
       animate={{ ...viTri, opacity: 1 }}
       transition={
@@ -98,7 +113,7 @@ function TheMau({ the, tang, soThe, daLat, onLat, onNem, giam, daChiaXong, onChi
       <motion.div
         className="home-the__keo"
         style={{ x, rotate: giam ? 0 : nghieng }}
-        drag={laTrenCung ? "x" : false}
+        drag={laTrenCung && !dangBay ? "x" : false}
         dragMomentum={false}
         whileDrag={giam ? undefined : { scale: 1.03 }}
         onPointerDown={() => {
@@ -156,6 +171,7 @@ function TrangChu() {
   const [thuTu, setThuTu] = useState(() => THE_MAU.map((_, i) => i));
   const [daLat, setDaLat] = useState(false);
   const [daChiaXong, setDaChiaXong] = useState(false);
+  const [dangNem, setDangNem] = useState(false);
 
   const startPath = isAuthenticated ? "/dashboard" : "/login";
   const startState = isAuthenticated ? undefined : { from: { pathname: "/decks" } };
@@ -163,6 +179,7 @@ function TrangChu() {
   function chuyenTheTrenCungXuongDay() {
     setThuTu((hienTai) => [...hienTai.slice(1), hienTai[0]]);
     setDaLat(false);
+    setDangNem(false);
   }
 
   return (
@@ -200,22 +217,23 @@ function TrangChu() {
 
         <div className="home-xap">
           <div className="home-xap__khung">
-            {thuTu
-              .map((chiSoThe, tang) => (
-                <TheMau
-                  key={THE_MAU[chiSoThe].en}
-                  the={THE_MAU[chiSoThe]}
-                  tang={tang}
-                  soThe={THE_MAU.length}
-                  daLat={daLat}
-                  onLat={() => setDaLat((dangLat) => !dangLat)}
-                  onNem={chuyenTheTrenCungXuongDay}
-                  giam={giam}
-                  daChiaXong={daChiaXong}
-                  onChiaXong={() => setDaChiaXong(true)}
-                />
-              ))
-              .reverse()}
+            {/* Giữ nguyên thứ tự DOM (chồng thẻ bằng zIndex): đổi chỗ node giữa chừng làm hỏng thao tác kéo */}
+            {THE_MAU.map((the, chiSoThe) => (
+              <TheMau
+                key={the.en}
+                the={the}
+                tang={thuTu.indexOf(chiSoThe)}
+                soThe={THE_MAU.length}
+                daLat={daLat}
+                onLat={() => setDaLat((dangLat) => !dangLat)}
+                dangNem={dangNem}
+                onBatDauNem={() => setDangNem(true)}
+                onNem={chuyenTheTrenCungXuongDay}
+                giam={giam}
+                daChiaXong={daChiaXong}
+                onChiaXong={() => setDaChiaXong(true)}
+              />
+            ))}
           </div>
           <div className="home-xap__goi-y">
             <span>Nhấn để lật thẻ, kéo sang bên để đổi thẻ.</span>
@@ -223,6 +241,7 @@ function TrangChu() {
               type="button"
               className="home-xap__doi"
               onClick={chuyenTheTrenCungXuongDay}
+              disabled={dangNem}
             >
               Thẻ khác
             </button>
