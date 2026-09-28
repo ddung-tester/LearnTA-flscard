@@ -172,6 +172,7 @@ const TEN_LOAI_TU = {
   adjective: "tính từ",
   adverb: "trạng từ",
   pronoun: "đại từ",
+  possessive: "tính từ sở hữu",
   number: "số",
   letter: "chữ cái",
   "phrasal verb": "cụm động từ",

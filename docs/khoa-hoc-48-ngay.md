@@ -228,7 +228,7 @@ Bắt đầu với Bước 0.
 4. Giao diện: trang khoá học (48 buổi + tiến độ) → trang buổi học: Lý thuyết · Từ vựng · Bài tập.
 5. Bài tập: trả lời xong mỗi câu, AI (Gemini) giải thích ngay bên dưới, dựa trên đề, đáp án và `giai_thich` có sẵn; lời giải thích được lưu lại để lần sau không gọi AI nữa.
 
-## Bài 14–48: trích bằng script (2026-09-28)
+## Bài 1–12 và 14–48: trích bằng script (2026-09-28)
 
 Nguồn: 3 file zip (TÀI LIỆU HỌC TRÊN VIDEO, BÀI TẬP kèm MP3, ĐÁP ÁN) giải nén vào `private-content/khoa-hoc-48-ngay/_nguon/` (gitignore). PDF lý thuyết và bài tập có chữ; file đáp án là ảnh chụp trang thi online (có cả lời thoại bài nghe).
 
@@ -238,6 +238,8 @@ Các script (cũng nằm trong `_nguon/`, không commit vì đi kèm nội dung)
 3. `cat_anh.py` → `cat/XX-n.png`: cắt ảnh đáp án thành đoạn đọc được; đáp án đọc từ ảnh rồi ghi vào `soan/bai_XX.py`.
 4. `soan/bai_XX.py`: phần soạn tay mỗi bài — tiêu đề, lý thuyết, câu ví dụ, đáp án, sửa lỗi gõ của tài liệu, phần nghe (`_chung.py`: `chon`, `dien`, `doan`, `gio`…).
 5. `dung_bai.py [số bài…]` → `bai-XX/{lesson,exercises,answers}.json` + `audio/`; tự kiểm tra thiếu đáp án / câu ví dụ / loại từ.
+
+Sửa lỗi gõ trong lựa chọn: `"sua_lc": {"thi:phan_1": {10: ["help", "helps"]}}`. Câu ví dụ phải chứa đúng dạng gốc của từ (importer kiểm tra), nên động từ bất quy tắc ghi dạng "begin – began: …". Cụm ví dụ ngữ pháp bị script nhận nhầm là từ vựng thì loại bằng `bo_tu`.
 
 Quy ước khi soạn: bỏ câu theo tranh; bảng tick (✔) và "chọn từ trong khung" đổi thành trắc nghiệm; Đúng/Sai thành trắc nghiệm True/False; bài "đọc to" / tự ghi chép / nghe không có lời thoại thì bỏ. Đáp án bài thi lấy từ ảnh đáp án (`answer_pdf`); Quiz/PRACTICE tự giải theo ngữ pháp của bài (tài liệu không có đáp án). Bài 36: file đáp án là bản sao của bài 37 nên đáp án bài thi tự giải.
 
