@@ -12,6 +12,7 @@ import useLuuKetQuaPhien from "../hooks/useLuuKetQuaPhien";
 import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useSoundEffect from "../hooks/useSoundEffect";
 import useTTS from "../hooks/useTTS";
+import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import {
@@ -30,12 +31,12 @@ const KHOA_CAI_DAT = "noiTu";
 const SO_CAP_MOI_VONG = 5;
 const THOI_GIAN_NHAY_SAI = 500;
 
-function NutGhep({ noiDung, lang, daGhep, dangChon, dangSai, onChon }) {
+function NutGhep({ noiDung, lang, thuTu, daGhep, dangChon, dangSai, onChon }) {
   let lopTrangThai =
     "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
   if (daGhep) lopTrangThai = "ui-answer-correct text-[var(--mau-chu)] opacity-60";
   else if (dangSai) lopTrangThai = "ui-answer-wrong text-[var(--mau-chu)]";
-  else if (dangChon) lopTrangThai = "border-[var(--mau-chinh)] bg-[var(--mau-mat-hover)] text-[var(--mau-chu)] ring-2 ring-[var(--mau-chinh)]";
+  else if (dangChon) lopTrangThai = "ui-noi-tu-dang-chon border-[var(--mau-chinh)] bg-[var(--mau-mat-hover)] text-[var(--mau-chu)] ring-2 ring-[var(--mau-chinh)]";
 
   return (
     <button
@@ -44,7 +45,8 @@ function NutGhep({ noiDung, lang, daGhep, dangChon, dangSai, onChon }) {
       onClick={onChon}
       disabled={daGhep}
       aria-pressed={dangChon}
-      className={`ui-reading-card min-h-12 w-full rounded-lg border px-3 py-3 text-left break-words transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${lopTrangThai}`}
+      style={{ "--thu-tu": thuTu }}
+      className={`ui-reading-card ui-dap-an-3d min-h-12 w-full rounded-lg border px-3 py-3 text-left break-words transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${lopTrangThai}`}
     >
       {noiDung}
     </button>
@@ -202,7 +204,7 @@ function TrangNoiTu() {
 
   useEffect(() => xoaTimerCapSai, []);
 
-  function chon(ben, the) {
+  function chon(ben, the, nut) {
     if (capSai || phanThuong.dangBan || daHoanThanh) return;
     if ((ben === "trai" ? daGhepTrai : daGhepPhai).has(the.id)) return;
 
@@ -221,6 +223,8 @@ function TrangNoiTu() {
       setDaGhepTrai((prev) => new Set(prev).add(theTrai.id));
       setDaGhepPhai((prev) => new Set(prev).add(thePhai.id));
       phatAmThanhDung();
+      banPhaoGiay(nut);
+      rungMay("dung");
       incrementCombo();
       phanThuong.ghiNhanCauDung(soDaGhepMoi);
       if (ben === "phai") ttsSpeak(theTrai.term_en, "en-US");
@@ -228,6 +232,7 @@ function TrangNoiTu() {
     }
 
     // Ghép sai: tính sai cho thẻ được chọn trước (người học đang tìm cặp cho nó)
+    rungMay("sai");
     resetCombo();
     setTapCardSai((prev) => new Set(prev).add(dangChon.the.id));
     setCapSai({ trai: theTrai.id, phai: thePhai.id });
@@ -489,15 +494,16 @@ function TrangNoiTu() {
                 <p className="text-xs font-bold uppercase tracking-widest text-[var(--mau-chu-phu)]">
                   Tiếng Anh
                 </p>
-                {cotTrai.map((the) => (
+                {cotTrai.map((the, i) => (
                   <NutGhep
                     key={the.id}
                     lang="en"
+                    thuTu={i}
                     noiDung={the.term_en}
                     daGhep={daGhepTrai.has(the.id)}
                     dangChon={dangChon?.ben === "trai" && dangChon.the.id === the.id}
                     dangSai={capSai?.trai === the.id}
-                    onChon={() => chon("trai", the)}
+                    onChon={(e) => chon("trai", the, e.currentTarget)}
                   />
                 ))}
               </div>
@@ -505,15 +511,16 @@ function TrangNoiTu() {
                 <p className="text-xs font-bold uppercase tracking-widest text-[var(--mau-chu-phu)]">
                   Tiếng Việt
                 </p>
-                {cotPhai.map((the) => (
+                {cotPhai.map((the, i) => (
                   <NutGhep
                     key={the.id}
                     lang="vi"
+                    thuTu={i + 1}
                     noiDung={the.meaning_vi}
                     daGhep={daGhepPhai.has(the.id)}
                     dangChon={dangChon?.ben === "phai" && dangChon.the.id === the.id}
                     dangSai={capSai?.phai === the.id}
-                    onChon={() => chon("phai", the)}
+                    onChon={(e) => chon("phai", the, e.currentTarget)}
                   />
                 ))}
               </div>

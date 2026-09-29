@@ -54,12 +54,16 @@ function docTatCa() {
   }
 }
 
+// Phát mỗi lần bản SRS local đổi, để badge "Ôn tập" trên menu cập nhật ngay
+export const SU_KIEN_SRS_DOI = "srs-thay-doi";
+
 function ghiTatCa(data) {
   try {
     localStorage.setItem(KHO_SRS, JSON.stringify(data));
   } catch {
     // localStorage full — bỏ qua
   }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(SU_KIEN_SRS_DOI));
 }
 
 function chuanHoaLevel(level) {

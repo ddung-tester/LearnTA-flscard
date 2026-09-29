@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
-import { layThongKeSRS } from "../../utils/srsReview";
+import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
 
 const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
 
@@ -37,6 +37,16 @@ const TAB_KHACH = [
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
  * Gom header va main content area.
  */
+// Badge "Ôn tập": nghe bản SRS local đổi (cùng tab) và localStorage đổi ở tab khác
+function theoDoiSRS(baoDoi) {
+  window.addEventListener(SU_KIEN_SRS_DOI, baoDoi);
+  window.addEventListener("storage", baoDoi);
+  return () => {
+    window.removeEventListener(SU_KIEN_SRS_DOI, baoDoi);
+    window.removeEventListener("storage", baoDoi);
+  };
+}
+
 function BoCuc() {
   const viTri = useLocation();
   const { navigateWithLoading } = usePageTransition();
@@ -52,8 +62,9 @@ function BoCuc() {
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
   const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
-  // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), tính lại mỗi lần đổi trang
-  const soTuDenHan = isAuthenticated ? layThongKeSRS().duHomNay : 0;
+  // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), cập nhật mỗi lần SRS đổi
+  const soTuDenHanLocal = useSyncExternalStore(theoDoiSRS, () => layThongKeSRS().duHomNay);
+  const soTuDenHan = isAuthenticated ? soTuDenHanLocal : 0;
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {

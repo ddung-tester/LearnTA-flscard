@@ -18,6 +18,7 @@ import useLuuKetQuaPhien from "../hooks/useLuuKetQuaPhien";
 import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
+import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { ganLoaiCauHonHop } from "../utils/cauHoiTracNghiem";
@@ -1000,6 +1001,18 @@ function TrangTuLuan({ loai }) {
     luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich: moi, batRandom, soCauDungNhanThuong });
     batDauLai();
   }
+
+  // Phản hồi câu gõ đáp án: đúng thì pháo giấy từ ô nhập, sai thì rung.
+  // Câu trắc nghiệm (Hỗn hợp) đã có phản hồi trong DanhSachDapAn.
+  useEffect(() => {
+    if (!daKiemTra || luaChon !== null) return;
+    if (ketQuaDung) {
+      banPhaoGiay(inputRef.current);
+      rungMay("dung");
+    } else {
+      rungMay("sai");
+    }
+  }, [daKiemTra, ketQuaDung, luaChon, shakeKey]);
 
   if (dangTaiDuLieu) return <TheTrangThaiPhien tieuDe="Đang tải dữ liệu..." />;
 

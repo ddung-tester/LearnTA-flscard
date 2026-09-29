@@ -23,6 +23,7 @@ import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import "./TrangOnTapHomNay.css";
+import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,
@@ -357,7 +358,10 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
       inputRef.current?.focus();
       return;
     }
-    setKetQua(chuanHoaDapAn(nhap) === chuanHoaDapAn(entry.word) ? "dung" : "sai");
+    const dung = chuanHoaDapAn(nhap) === chuanHoaDapAn(entry.word);
+    setKetQua(dung ? "dung" : "sai");
+    if (dung) banPhaoGiay(inputRef.current);
+    rungMay(dung ? "dung" : "sai");
   }
 
   return (
@@ -465,7 +469,10 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
           <div className="review-card__rating-row">
             <button
               type="button"
-              onClick={() => handleRate("wrong")}
+              onClick={() => {
+                rungMay("sai");
+                handleRate("wrong");
+              }}
               disabled={isLoading}
               className="review-btn review-btn--again"
               id="btn-rate-wrong"
@@ -475,7 +482,11 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             </button>
             <button
               type="button"
-              onClick={() => handleRate("correct")}
+              onClick={(e) => {
+                banPhaoGiay(e.currentTarget);
+                rungMay("dung");
+                handleRate("correct");
+              }}
               disabled={isLoading}
               className="review-btn review-btn--easy"
               id="btn-rate-correct"
@@ -514,9 +525,18 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
 // ── CompletionScreen ──────────────────────────────────────────────────────────
 
 function CompletionScreen({ total }) {
+  useEffect(() => {
+    banPhaoGiay(null, "lon");
+    rungMay("xong");
+  }, []);
+
   return (
     <div className="review-done ui-content-enter">
-      <div className="review-done__emoji">🎉</div>
+      <div className="review-done__huy-hieu" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
+      </div>
       <h2 className="review-done__title">Xong rồi!</h2>
       <p className="review-done__msg">
         Bạn đã ôn xong <strong>{total}</strong> từ hôm nay. Quay lại ngày mai để tiếp tục.

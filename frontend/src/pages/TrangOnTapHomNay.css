@@ -455,9 +455,21 @@
   text-align: center;
 }
 
-.review-done__emoji {
-  font-size: 2rem;
-  line-height: 1;
+.review-done__huy-hieu {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  margin-inline: auto;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--mau-thanh-cong);
+  color: var(--mau-chu-tren-chinh);
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--mau-thanh-cong) 22%, transparent);
+}
+
+.review-done__huy-hieu svg {
+  width: 2rem;
+  height: 2rem;
 }
 
 .review-done__title {
