@@ -1,7 +1,10 @@
-import _LottieModule from "lottie-react";
+import { lazy, Suspense } from "react";
 
+// lottie-web ~280 KB: chỉ tải khi thật sự vẽ lửa (thẻ full-card), không kéo vào chunk trang.
 // lottie-react là CJS module; Vite đôi khi wrap thành { default: Fn }.
-const Lottie = _LottieModule?.default ?? _LottieModule;
+const Lottie = lazy(() =>
+  import("lottie-react").then((m) => ({ default: m.default?.default ?? m.default }))
+);
 
 /**
  * StreakBadge — Thẻ hiển thị ngày học liên tục.
@@ -89,13 +92,15 @@ function StreakBadge({
           className={`streak-badge__fire--cover${frozen ? " streak-badge__fire--cover--frozen" : ""}`}
           aria-hidden="true"
         >
-          <Lottie
-            path="/animation/Fire.json"
-            loop={!firePaused}
-            autoplay={!firePaused}
-            style={{ width: "100%", height: "100%", display: "block" }}
-            rendererSettings={{ preserveAspectRatio: "xMidYMid slice" }}
-          />
+          <Suspense fallback={null}>
+            <Lottie
+              path="/animation/Fire.json"
+              loop={!firePaused}
+              autoplay={!firePaused}
+              style={{ width: "100%", height: "100%", display: "block" }}
+              rendererSettings={{ preserveAspectRatio: "xMidYMid slice" }}
+            />
+          </Suspense>
         </div>
       )}
 

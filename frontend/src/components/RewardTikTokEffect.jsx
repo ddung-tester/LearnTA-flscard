@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import RewardMagicOverlay from "./RewardMagicOverlay";
+
+// Overlay thưởng kéo theo GSAP (~70 KB): tách chunk riêng, tải trước lúc trình duyệt rảnh
+// để khi đạt mốc thưởng không phải chờ tải.
+const taiRewardMagicOverlay = () => import("./RewardMagicOverlay");
+const RewardMagicOverlay = lazy(taiRewardMagicOverlay);
 import "./RewardTikTokEffect.css";
 
 export const CAU_HINH_REWARD_QUIZ = { // eslint-disable-line react-refresh/only-export-components
@@ -38,6 +42,15 @@ function RewardTikTokEffect({
   const [danhSachVideo, setDanhSachVideo] = useState([]);
   const [loiVideo, setLoiVideo] = useState(false);
   const [daDoViewport, setDaDoViewport] = useState(false);
+
+  useEffect(() => {
+    const henTaiTruoc = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 1500));
+    const huyTaiTruoc = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = henTaiTruoc(() => {
+      taiRewardMagicOverlay().catch(() => {});
+    });
+    return () => huyTaiTruoc(id);
+  }, []);
   const [coTheHienThi, setCoTheHienThi] = useState(false);
   const [giamChuyenDong, setGiamChuyenDong] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
@@ -629,20 +642,22 @@ function RewardTikTokEffect({
         />
       )}
       {dangRenderReward && (
-        <RewardMagicOverlay
-          active={dangRenderReward}
-          sequenceKey={lanKichHoat}
-          fadeOut={dangFadeOut}
-          hasError={giamChuyenDong || loiVideo || !videoSrc}
-          videoSrc={videoSrc}
-          videoReady={giamChuyenDong || videoSanSang || loiVideo || !videoSrc}
-          originRect={originRect}
-          canvasRefs={canvasRefs}
-          onPortalOpen={giamChuyenDong ? undefined : batDauPhatVideo}
-          compact={!coTheHienThi}
-          combo={combo}
-          tenseExamples={tenseExamples}
-        />
+        <Suspense fallback={null}>
+          <RewardMagicOverlay
+            active={dangRenderReward}
+            sequenceKey={lanKichHoat}
+            fadeOut={dangFadeOut}
+            hasError={giamChuyenDong || loiVideo || !videoSrc}
+            videoSrc={videoSrc}
+            videoReady={giamChuyenDong || videoSanSang || loiVideo || !videoSrc}
+            originRect={originRect}
+            canvasRefs={canvasRefs}
+            onPortalOpen={giamChuyenDong ? undefined : batDauPhatVideo}
+            compact={!coTheHienThi}
+            combo={combo}
+            tenseExamples={tenseExamples}
+          />
+        </Suspense>
       )}
       {/* Nút bật/tắt âm thanh tinh tế khi video đang phát */}
       {!loiVideo && videoSrc && choPhepPhatVideo && (
