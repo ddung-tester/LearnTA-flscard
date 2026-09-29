@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import { chuanBiGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
@@ -126,6 +127,7 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
     if (danhSach.length > 0 && soDung / danhSach.length >= 0.8) {
       banPhaoGiay(null, "lon");
       rungMay("xong");
+      phatAm("xong");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mở tổng kết
   }, []);
@@ -251,8 +253,10 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     if (daTraLoi.dung) {
       banPhaoGiay(cauRef.current?.querySelector(".kh-lua-chon__nut--dung, .kh-dien__o"));
       rungMay("dung");
+      phatAm("dung");
     } else {
       rungMay("sai");
+      phatAm("sai");
     }
   }, [daTraLoi]);
 

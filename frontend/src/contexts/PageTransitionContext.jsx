@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageLoadingOverlay from "../components/PageLoadingOverlay";
+import { phatAm } from "../utils/amThanh";
 import TheMoRong from "../components/TheMoRong";
 
 const PageTransitionContext = createContext(null);
@@ -139,6 +140,7 @@ export function PageTransitionProvider({ children }) {
       if (khung) {
         setPageDataLoading("__mo-rong__", true);
         setKhungMoRong(khung);
+        phatAm("giay");
         // Trang cũ còn nằm dưới tờ giấy lúc nó bắt đầu nở; đổi trang khi giấy đã phủ gần kín
         window.setTimeout(chuyenTrang, TRE_DOI_TRANG_KHI_MO_RONG_MS);
       } else {

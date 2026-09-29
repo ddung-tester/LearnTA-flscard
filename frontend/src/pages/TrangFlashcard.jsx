@@ -21,6 +21,7 @@ import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useTTS from "../hooks/useTTS";
 import useNghieng3D from "../hooks/useNghieng3D";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { phatAm } from "../utils/amThanh";
 import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { layDeckTheoId } from "../services/deckApi";
@@ -452,6 +453,7 @@ function TrangFlashcard() {
     if (e && e.target && e.target.closest(".tts-speaker-btn")) {
       return;
     }
+    phatAm("lat");
     setDaLat((dangLat) => {
       const seLatMatSau = !dangLat;
       if (seLatMatSau) {
@@ -964,6 +966,7 @@ function TrangFlashcard() {
             type="button"
             onClick={() => {
               rungMay("sai");
+              phatAm("sai");
               xuLyChuaNho();
             }}
             className="fc-rate-btn fc-rate-btn--fail"
@@ -977,6 +980,7 @@ function TrangFlashcard() {
             onClick={(e) => {
               banPhaoGiay(e.currentTarget);
               rungMay("dung");
+              phatAm("dung");
               xuLyDaNho();
             }}
             className="fc-rate-btn fc-rate-btn--pass"

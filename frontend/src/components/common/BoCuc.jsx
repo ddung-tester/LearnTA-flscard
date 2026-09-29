@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
+import NutAmThanh from "./NutAmThanh";
 
 const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
 
@@ -194,6 +195,7 @@ function BoCuc() {
             </nav>
           )}
           <div className="dash-nav__links dash-nav__account">
+            {!laTrangAuth && <NutAmThanh />}
             {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">
                 <button

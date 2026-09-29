@@ -13,6 +13,7 @@ import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useSoundEffect from "../hooks/useSoundEffect";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import {
@@ -233,6 +234,7 @@ function TrangNoiTu() {
 
     // Ghép sai: tính sai cho thẻ được chọn trước (người học đang tìm cặp cho nó)
     rungMay("sai");
+    phatAm("sai");
     resetCombo();
     setTapCardSai((prev) => new Set(prev).add(dangChon.the.id));
     setCapSai({ trai: theTrai.id, phai: thePhai.id });

@@ -13,6 +13,7 @@ import {
 } from "../utils/mistakeNotebook";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import GachVeTay from "../components/common/GachVeTay";
+import { phatAm } from "../utils/amThanh";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -311,6 +312,7 @@ function TrangTuSai() {
   async function handleMarkReviewed(id) {
     await danhDauDaOnDongBo(id);
     setVuaOn((truoc) => new Set(truoc).add(id));
+    phatAm("dongDau");
     setAllEntries(layTatCaTuSai());
     toast.success("Đã đánh dấu đã ôn!");
   }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { amThanhDangBat } from "../utils/amThanh";
 
 function taoAudioContext() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -83,6 +84,7 @@ function useSoundEffect(src, { volume = 0.9 } = {}) {
   }, [src, volume]);
 
   return useCallback(() => {
+    if (!amThanhDangBat()) return;
     const ctx = audioCtxRef.current;
     const buffer = bufferRef.current;
 

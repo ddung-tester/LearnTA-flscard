@@ -2,6 +2,7 @@ import { lazy, Suspense, useLayoutEffect } from "react";
 import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
+import TuongTacNho from "./components/common/TuongTacNho";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
@@ -107,6 +108,7 @@ function UngDung() {
       variant="flat"
       mode={laTrangAuth ? "immersive" : "app"}
     >
+      <TuongTacNho />
       <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
       {!laTrangImmersive && (
         <Suspense fallback={null}>

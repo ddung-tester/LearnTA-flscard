@@ -26,6 +26,7 @@ import {
   moTaKhoangOn,
 } from "../../utils/srsReview";
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
+import { phatAm } from "../../utils/amThanh";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -223,6 +224,7 @@ function StudyResult({
     const timer = window.setTimeout(() => {
       banPhaoGiay(null, "lon");
       rungMay("xong");
+      phatAm("xong");
     }, 650);
     return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps

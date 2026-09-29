@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
+import { phatAm } from "../../utils/amThanh";
 import { chiSoTuPhim } from "../../utils/phienHoc";
 import useNetBut from "../../hooks/useNetBut";
 
@@ -33,6 +34,8 @@ export default function DanhSachDapAn({
   onChon,
   dangRoiDi = false,
   khoa,
+  // Trang cha chưa tự phát tiếng "đúng" (Quiz/Tự luận đã có tiếng riêng)
+  coAmDung = false,
 }) {
   const daTraLoi = dapAnDaChon !== null;
   const nutDungRef = useRef(null);
@@ -58,10 +61,12 @@ export default function DanhSachDapAn({
     if (dapAnDaChon === dapAnDung) {
       banPhaoGiay(nutDungRef.current, "nho");
       rungMay("dung");
+      if (coAmDung) phatAm("dung");
     } else {
       rungMay("sai");
+      phatAm("sai");
     }
-  }, [daTraLoi, dapAnDaChon, dapAnDung]);
+  }, [daTraLoi, dapAnDaChon, dapAnDung, coAmDung]);
 
   return (
     <div

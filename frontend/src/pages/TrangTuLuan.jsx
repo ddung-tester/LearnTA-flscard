@@ -19,6 +19,7 @@ import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { ganLoaiCauHonHop } from "../utils/cauHoiTracNghiem";
@@ -1011,6 +1012,7 @@ function TrangTuLuan({ loai }) {
       rungMay("dung");
     } else {
       rungMay("sai");
+      phatAm("sai");
     }
   }, [daKiemTra, ketQuaDung, luaChon, shakeKey]);
 

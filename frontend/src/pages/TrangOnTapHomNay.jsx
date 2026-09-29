@@ -24,6 +24,7 @@ import EmptyState from "../components/common/EmptyState";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import "./TrangOnTapHomNay.css";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { phatAm } from "../utils/amThanh";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,
@@ -321,6 +322,7 @@ function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) 
           dapAnDung={entry.meaning}
           dapAnDaChon={daChon}
           onChon={setDaChon}
+          coAmDung
         />
         {daChon !== null &&
           (dung ? (
@@ -363,6 +365,7 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
     setKetQua(dung ? "dung" : "sai");
     if (dung) banPhaoGiay(inputRef.current);
     rungMay(dung ? "dung" : "sai");
+    phatAm(dung ? "dung" : "sai");
   }
 
   return (
@@ -472,6 +475,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
               type="button"
               onClick={() => {
                 rungMay("sai");
+                phatAm("sai");
                 handleRate("wrong");
               }}
               disabled={isLoading}
@@ -486,6 +490,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
               onClick={(e) => {
                 banPhaoGiay(e.currentTarget);
                 rungMay("dung");
+                phatAm("dung");
                 handleRate("correct");
               }}
               disabled={isLoading}
@@ -529,6 +534,7 @@ function CompletionScreen({ total }) {
   useEffect(() => {
     banPhaoGiay(null, "lon");
     rungMay("xong");
+    phatAm("xong");
   }, []);
 
   return (
