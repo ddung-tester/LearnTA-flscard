@@ -10,6 +10,10 @@ const router = express.Router();
 
 const MAX_HISTORY_MESSAGES = 20;
 
+// Model chính quá tải (503) hoặc hết lượt (429) thì chuyển sang bản lite, giống AI giải thích bài tập
+const CHAT_MODELS = ["gemini-3.6-flash", "gemini-flash-lite-latest"];
+const LOI_TAM_THOI = new Set([429, 500, 503]);
+
 const chatLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 20,
@@ -49,6 +53,20 @@ Your role:
 - Use emoji occasionally to be friendly 😊
 - If asked about unrelated topics, politely redirect to English learning`;
 
+async function traLoiChat(genAI, { systemInstruction, history, text }) {
+  let loiCuoi;
+  for (const modelName of CHAT_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      const result = await model.startChat({ history }).sendMessage(text);
+      return result.response.text();
+    } catch (error) {
+      loiCuoi = error;
+    }
+  }
+  throw loiCuoi;
+}
+
 /**
  * POST /api/chat
  * Body: { messages: [{ role: "user"|"model", parts: [{ text }] }], context?: { deckId?, cardId? } }
@@ -79,19 +97,24 @@ router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
       cardId: context.cardId,
     });
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3.6-flash",
-      systemInstruction: SYSTEM_INSTRUCTION + learnerContext,
-    });
-
     // Tách tin nhắn cuối (user) và lịch sử trước đó
     const history = messages.slice(0, -1);
     const lastMessage = messages[messages.length - 1];
 
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.parts[0].text);
-    const reply = result.response.text();
+    let reply;
+    try {
+      reply = await traLoiChat(new GoogleGenerativeAI(apiKey), {
+        systemInstruction: SYSTEM_INSTRUCTION + learnerContext,
+        history,
+        text: lastMessage.parts[0].text,
+      });
+    } catch (error) {
+      // Mọi model đều quá tải: báo rõ để người dùng thử lại, không phải lỗi 500 chung chung
+      if (LOI_TAM_THOI.has(error.status)) {
+        return res.status(503).json({ message: "LearnBot đang bận một chút, bạn thử lại sau vài giây nhé." });
+      }
+      throw error;
+    }
 
     res.json({ reply });
   } catch (err) {
@@ -100,3 +123,5 @@ router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
 });
 
 module.exports = router;
+module.exports.traLoiChat = traLoiChat;
+module.exports.CHAT_MODELS = CHAT_MODELS;

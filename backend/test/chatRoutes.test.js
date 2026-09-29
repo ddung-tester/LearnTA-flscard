@@ -49,3 +49,39 @@ test("accepts history starting with the welcome message", async () => {
   const response = await postChat({ messages: [WELCOME, QUESTION], context: { deckId: "3", cardId: null } });
   assert.equal(response.status, 503);
 });
+
+// Giả lập genAI: mỗi model trả lời hoặc ném lỗi theo cấu hình
+function genAIGia(hanhVi) {
+  const daGoi = [];
+  return {
+    daGoi,
+    getGenerativeModel: ({ model }) => ({
+      startChat: () => ({
+        sendMessage: async () => {
+          daGoi.push(model);
+          const kq = hanhVi[model];
+          if (kq instanceof Error) throw kq;
+          return { response: { text: () => kq } };
+        },
+      }),
+    }),
+  };
+}
+
+function loiGemini(status) {
+  return Object.assign(new Error(`[${status}] quá tải`), { status });
+}
+
+test("falls back to the lite model when the main model is overloaded", async () => {
+  const { traLoiChat, CHAT_MODELS } = require("../src/routes/chatRoutes");
+  const genAI = genAIGia({ [CHAT_MODELS[0]]: loiGemini(503), [CHAT_MODELS[1]]: "Chào bạn" });
+  const reply = await traLoiChat(genAI, { systemInstruction: "x", history: [], text: "hi" });
+  assert.equal(reply, "Chào bạn");
+  assert.deepEqual(genAI.daGoi, CHAT_MODELS);
+});
+
+test("throws the last error when every model fails", async () => {
+  const { traLoiChat, CHAT_MODELS } = require("../src/routes/chatRoutes");
+  const genAI = genAIGia(Object.fromEntries(CHAT_MODELS.map((m) => [m, loiGemini(503)])));
+  await assert.rejects(traLoiChat(genAI, { systemInstruction: "x", history: [], text: "hi" }), { status: 503 });
+});

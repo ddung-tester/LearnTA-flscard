@@ -5,6 +5,19 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheDangHoc } from "../contexts/ChatbotContext";
 import "./ChatbotWidget.css";
 
+// Dấu chân mèo: đệm chân + 4 đệm ngón (avatar của LearnBot)
+function ChanMeo({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" aria-hidden="true">
+      <path className="chan-meo__dem" d="M32 58c-9.5 0-17.5-5-17.5-12.2C14.5 37.5 23 29 32 29s17.5 8.5 17.5 16.8C49.5 53 41.5 58 32 58z" />
+      <ellipse className="chan-meo__ngon" cx="13.5" cy="27" rx="6" ry="7.8" transform="rotate(-22 13.5 27)" />
+      <ellipse className="chan-meo__ngon" cx="24.5" cy="14.5" rx="6.3" ry="8.4" transform="rotate(-8 24.5 14.5)" />
+      <ellipse className="chan-meo__ngon" cx="39.5" cy="14.5" rx="6.3" ry="8.4" transform="rotate(8 39.5 14.5)" />
+      <ellipse className="chan-meo__ngon" cx="50.5" cy="27" rx="6" ry="7.8" transform="rotate(22 50.5 27)" />
+    </svg>
+  );
+}
+
 // ---- Markdown renderer cơ bản (không cần thư viện ngoài) ----
 function renderMarkdown(text) {
   return text
@@ -13,6 +26,8 @@ function renderMarkdown(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
+    // gạch đầu dòng "- " / "* " → dấu chấm tròn (trước khi xử lý *italic*)
+    .replace(/^[ \t]*[-*][ \t]+/gm, "• ")
     // **bold**
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     // *italic*
@@ -47,7 +62,7 @@ const WELCOME = {
   role: "model",
   parts: [
     {
-      text: "Xin chào! Mình là **LearnBot** 🤖\nMình có thể giải thích ngữ pháp, từ vựng, hoặc bất kỳ câu hỏi tiếng Anh nào của bạn!\n\nBạn muốn hỏi gì nào? 😊",
+      text: "Xin chào! Mình là **LearnBot** 🐾\nMình có thể giải thích ngữ pháp, từ vựng, hoặc bất kỳ câu hỏi tiếng Anh nào của bạn!\n\nBạn muốn hỏi gì nào? 😊",
     },
   ],
 };
@@ -122,9 +137,10 @@ export default function ChatbotWidget() {
       setLoading(true);
 
       try {
-        // Gửi 20 tin gần nhất (bao gồm message mới vừa thêm) — server giới hạn history
+        // Gửi 20 tin gần nhất (bao gồm message mới vừa thêm) — server giới hạn history.
+        // Bỏ tin báo lỗi: không phải lời thật của bot, và có thể làm hai tin "model" đứng liền nhau
         const { data } = await api.post("/chat", {
-          messages: updatedMessages.slice(-20),
+          messages: updatedMessages.filter((tin) => !tin.laLoi).slice(-20),
           context: { deckId, cardId },
         });
 
@@ -135,16 +151,14 @@ export default function ChatbotWidget() {
 
         // Nếu panel đóng → hiện badge unread
         if (!open) setHasUnread(true);
-      } catch {
+      } catch (error) {
+        // Server trả lời rõ lý do (vd. AI đang bận) qua error.message
         setMessages((prev) => [
           ...prev,
           {
             role: "model",
-            parts: [
-              {
-                text: "❌ Có lỗi xảy ra. Hãy thử lại nhé!",
-              },
-            ],
+            laLoi: true,
+            parts: [{ text: error.message || "Có lỗi xảy ra. Bạn thử lại nhé!" }],
           },
         ]);
       } finally {
@@ -182,10 +196,7 @@ export default function ChatbotWidget() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         ) : (
-          // Chat icon
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <ChanMeo className="chan-meo chatbot-bubble__chan" />
         )}
         {hasUnread && !open && <span className="chatbot-badge">1</span>}
       </button>
@@ -202,7 +213,9 @@ export default function ChatbotWidget() {
         <div className="chatbot-panel">
           {/* Header */}
           <div className="chatbot-header">
-            <div className="chatbot-header-avatar">🤖</div>
+            <div className="chatbot-header-avatar" aria-hidden="true">
+              <ChanMeo className="chan-meo" />
+            </div>
             <div className="chatbot-header-info">
               <div className="chatbot-header-name">LearnBot</div>
               <div className="chatbot-header-status">
@@ -235,7 +248,7 @@ export default function ChatbotWidget() {
           {/* Messages */}
           <div className="chatbot-messages" role="log" aria-live="polite">
             {messages.map((msg, i) => (
-              <div key={i} className={`chatbot-msg ${msg.role}`}>
+              <div key={i} className={`chatbot-msg ${msg.role}${msg.laLoi ? " is-loi" : ""}`}>
                 <div
                   className="chatbot-bubble-text"
                   dangerouslySetInnerHTML={{
@@ -245,8 +258,10 @@ export default function ChatbotWidget() {
               </div>
             ))}
             {loading && (
-              <div className="chatbot-typing" aria-label="LearnBot đang trả lời">
-                <span /><span /><span />
+              <div className="chatbot-typing" role="status" aria-label="LearnBot đang trả lời">
+                <ChanMeo className="chan-meo" />
+                <ChanMeo className="chan-meo" />
+                <ChanMeo className="chan-meo" />
               </div>
             )}
             <div ref={messagesEndRef} />
