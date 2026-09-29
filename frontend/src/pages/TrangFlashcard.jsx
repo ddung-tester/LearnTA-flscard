@@ -19,6 +19,8 @@ import RewardTikTokEffect, {
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import useTTS from "../hooks/useTTS";
+import useNghieng3D from "../hooks/useNghieng3D";
+import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { layDeckTheoId } from "../services/deckApi";
@@ -616,6 +618,8 @@ function TrangFlashcard() {
     progressSegmentsPayload,
   ]);
 
+  const { nghiengRef: theRef, onPointerMove: nghiengThe, onPointerLeave: thoiNghiengThe } = useNghieng3D({ doNghieng: 7 });
+
   if (dangTaiDuLieu) {
     return (
       <div className="ui-study-empty-wrap">
@@ -880,7 +884,10 @@ function TrangFlashcard() {
                 }
               }}
               aria-pressed={daLat}
-              className="ui-card-interactive ui-flashcard-card relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
+              ref={theRef}
+              onPointerMove={nghiengThe}
+              onPointerLeave={thoiNghiengThe}
+              className="ui-card-interactive ui-flashcard-card ui-nghieng-3d relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
             >
               <motion.div
                 className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
@@ -944,7 +951,10 @@ function TrangFlashcard() {
         <div className="fc-rate-row ui-content-enter">
           <button
             type="button"
-            onClick={xuLyChuaNho}
+            onClick={() => {
+              rungMay("sai");
+              xuLyChuaNho();
+            }}
             className="fc-rate-btn fc-rate-btn--fail"
             id="btn-flashcard-chua-nho"
           >
@@ -953,7 +963,11 @@ function TrangFlashcard() {
           </button>
           <button
             type="button"
-            onClick={xuLyDaNho}
+            onClick={(e) => {
+              banPhaoGiay(e.currentTarget);
+              rungMay("dung");
+              xuLyDaNho();
+            }}
             className="fc-rate-btn fc-rate-btn--pass"
             id="btn-flashcard-da-nho"
           >

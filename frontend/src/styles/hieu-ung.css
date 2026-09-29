@@ -1,0 +1,356 @@
+/* =========================================================
+   Hiệu ứng 3D & phản hồi khi học (Giai đoạn 2 UI/UX)
+   - .ui-nghieng-3d: thẻ nghiêng theo con trỏ (hook useNghieng3D)
+   - .ui-dap-an-3d: nút đáp án vào lần lượt, nổi khi hover, bật khi đúng, lắc khi sai
+   - .ui-the-cau-hoi: thẻ câu hỏi lật vào/ra theo trục X
+   Tất cả tắt khi prefers-reduced-motion (cuối file).
+   ========================================================= */
+
+:root {
+  --hu-lo-xo: cubic-bezier(0.2, 0.9, 0.25, 1.25);
+  --hu-mem: cubic-bezier(0.16, 1, 0.3, 1);
+  --hu-mau-dung: oklch(62% 0.16 150);
+  --hu-mau-sai: oklch(58% 0.21 25);
+}
+
+/* ---------- Thẻ nghiêng 3D ---------- */
+/* :hover/:active để thắng các rule hover transform sẵn có (vd. .ui-flashcard-card:hover) */
+.ui-nghieng-3d,
+.ui-nghieng-3d:hover,
+.ui-nghieng-3d:active {
+  position: relative;
+  transform: perspective(1100px) rotateX(var(--nghieng-x, 0deg)) rotateY(var(--nghieng-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 650ms var(--hu-mem);
+  will-change: transform;
+}
+
+.ui-nghieng-3d[data-dang-nghieng] {
+  transition-duration: 140ms;
+}
+
+/* Vệt sáng chạy theo con trỏ */
+.ui-nghieng-3d::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: var(--nghieng-bo-goc, 1rem);
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--sang-x, 50%) var(--sang-y, 50%),
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0) 55%
+  );
+  mix-blend-mode: soft-light;
+  opacity: var(--sang-o, 0);
+  transition: opacity 400ms ease;
+}
+
+/* ---------- Nút đáp án ---------- */
+.ui-dap-an-3d {
+  position: relative;
+  transform-origin: 50% 0%;
+  /* backwards: không giữ transform sau khi chạy xong, để hover còn tác dụng */
+  animation: hu-dap-an-vao 460ms var(--hu-lo-xo) backwards;
+  animation-delay: calc(var(--thu-tu, 0) * 60ms);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-dap-an-3d:not(:disabled):hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 14px 26px rgba(110, 55, 10, 0.14),
+      0 3px 8px rgba(110, 55, 10, 0.08);
+  }
+
+  .ui-dap-an-3d:not(:disabled):hover .ui-answer-phim {
+    transform: scale(1.12) rotate(-6deg);
+    background: var(--mau-chinh);
+    color: var(--mau-chu-tren-chinh);
+    border-color: var(--mau-chinh);
+  }
+}
+
+.ui-dap-an-3d .ui-answer-phim {
+  transition: transform 220ms var(--hu-lo-xo), background-color 160ms ease, color 160ms ease;
+}
+
+.ui-dap-an-3d:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: 60ms;
+}
+
+/* Đúng: bật lên + vòng sáng lan ra */
+.ui-dap-an-3d.ui-answer-correct {
+  animation: hu-dap-an-dung 620ms var(--hu-lo-xo) both;
+}
+
+.ui-dap-an-3d.ui-answer-correct::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--hu-mau-dung) 70%, transparent);
+  animation: hu-vong-sang 900ms ease-out 80ms both;
+}
+
+.ui-dap-an-3d.ui-answer-correct .ui-answer-dau {
+  animation: hu-dau-bat 520ms var(--hu-lo-xo) 120ms both;
+}
+
+/* Sai: lắc mạnh + chớp đỏ */
+.ui-dap-an-3d.ui-answer-wrong {
+  animation: hu-dap-an-sai 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.ui-dap-an-3d.ui-answer-wrong .ui-answer-dau {
+  animation: hu-dau-bat 420ms var(--hu-lo-xo) 60ms both;
+}
+
+/* Đáp án còn lại lùi ra sau */
+.ui-dap-an-3d:disabled:not(.ui-answer-correct):not(.ui-answer-wrong) {
+  transform: scale(0.97);
+  filter: saturate(0.6);
+  transition: transform 360ms var(--hu-mem), opacity 360ms ease, filter 360ms ease;
+}
+
+/* ---------- Thẻ câu hỏi lật 3D ---------- */
+.ui-the-cau-hoi.ui-question-flow {
+  transform-origin: 50% 100%;
+  animation: hu-the-lat-vao 560ms var(--hu-lo-xo) both;
+}
+
+.ui-the-cau-hoi.ui-question-flow--leaving {
+  animation: hu-the-lat-ra 260ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes hu-dap-an-vao {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) translateY(18px) rotateX(-40deg) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-dap-an-dung {
+  0% {
+    transform: scale(1);
+  }
+
+  28% {
+    transform: scale(1.06) translateY(-4px);
+  }
+
+  55% {
+    transform: scale(0.985) translateY(0);
+  }
+
+  78% {
+    transform: scale(1.025);
+  }
+
+  100% {
+    transform: scale(1.015);
+  }
+}
+
+@keyframes hu-vong-sang {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--hu-mau-dung) 65%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 16px color-mix(in oklch, var(--hu-mau-dung) 0%, transparent);
+  }
+}
+
+@keyframes hu-dap-an-sai {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+
+  12% {
+    transform: translateX(-10px) rotate(-1.2deg);
+  }
+
+  26% {
+    transform: translateX(9px) rotate(1deg);
+  }
+
+  40% {
+    transform: translateX(-7px) rotate(-0.6deg);
+  }
+
+  54% {
+    transform: translateX(5px) rotate(0.4deg);
+  }
+
+  70% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes hu-dau-bat {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-45deg);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.35) rotate(8deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes hu-the-lat-vao {
+  0% {
+    opacity: 0;
+    transform: perspective(900px) translateY(16px) rotateX(24deg) scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-the-lat-ra {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+
+  100% {
+    opacity: 0;
+    transform: perspective(900px) translateY(-14px) rotateX(-20deg) scale(0.96);
+  }
+}
+
+/* ---------- Giảm chuyển động ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .ui-nghieng-3d {
+    transform: none !important;
+    transition: none;
+  }
+
+  .ui-nghieng-3d::after {
+    display: none;
+  }
+
+  .ui-dap-an-3d,
+  .ui-dap-an-3d.ui-answer-correct,
+  .ui-dap-an-3d.ui-answer-wrong,
+  .ui-dap-an-3d .ui-answer-dau,
+  .ui-dap-an-3d.ui-answer-correct::after,
+  .ui-the-cau-hoi.ui-question-flow,
+  .ui-the-cau-hoi.ui-question-flow--leaving {
+    animation: none !important;
+  }
+
+  .ui-dap-an-3d,
+  .ui-dap-an-3d .ui-answer-phim {
+    transform: none !important;
+  }
+}
+
+/* ---------- Trang chủ: xấp thẻ bồng bềnh ---------- */
+.ui-nghieng-3d--khong-sang::after {
+  display: none;
+}
+
+.home-xap {
+  animation: hu-bong-benh 6.5s ease-in-out infinite;
+}
+
+@keyframes hu-bong-benh {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-xap {
+    animation: none;
+  }
+}
+
+/* ---------- Màn kết quả: thẻ rơi vào 3D, ô thống kê lần lượt ---------- */
+.study-result__card {
+  transform-origin: 50% 0%;
+  animation: hu-ket-qua-vao 700ms var(--hu-lo-xo) both;
+}
+
+.study-result__card .ui-stat-card {
+  animation: hu-o-thong-ke 520ms var(--hu-lo-xo) backwards;
+}
+
+.study-result__card .ui-stat-card:nth-child(1) { animation-delay: 380ms; }
+.study-result__card .ui-stat-card:nth-child(2) { animation-delay: 460ms; }
+.study-result__card .ui-stat-card:nth-child(3) { animation-delay: 540ms; }
+.study-result__card .ui-stat-card:nth-child(4) { animation-delay: 620ms; }
+
+.study-result__ring-wrap {
+  animation: hu-vong-diem-noi 900ms var(--hu-lo-xo) 150ms backwards;
+}
+
+@keyframes hu-ket-qua-vao {
+  0% {
+    opacity: 0;
+    transform: perspective(1200px) translateY(-24px) rotateX(-18deg) scale(0.96);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-o-thong-ke {
+  0% {
+    opacity: 0;
+    transform: perspective(600px) translateY(20px) rotateX(-50deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-vong-diem-noi {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-30deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .study-result__card,
+  .study-result__card .ui-stat-card,
+  .study-result__ring-wrap {
+    animation: none;
+  }
+}

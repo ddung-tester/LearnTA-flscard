@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToString } from "react-dom/server";
 import DanhSachDapAn from "./DanhSachDapAn";
+import { chiSoTuPhim } from "../../utils/phienHoc";
 import TheCauHoiPhien from "./TheCauHoiPhien";
 
 // React SSR chèn <!-- --> giữa chữ và biểu thức
@@ -43,5 +44,19 @@ describe("DanhSachDapAn", () => {
     expect(html).toContain("ui-answer-wrong");
     expect(html).toContain("Đáp án bạn chọn, chưa đúng");
     expect(html.match(/disabled=""/g)).toHaveLength(4);
+  });
+});
+
+describe("chiSoTuPhim", () => {
+  it("maps number keys to answer indexes within range", () => {
+    expect(chiSoTuPhim("1", 4)).toBe(0);
+    expect(chiSoTuPhim("4", 4)).toBe(3);
+  });
+
+  it("ignores keys outside the answer list or non-digit keys", () => {
+    expect(chiSoTuPhim("5", 4)).toBe(-1);
+    expect(chiSoTuPhim("0", 4)).toBe(-1);
+    expect(chiSoTuPhim("a", 4)).toBe(-1);
+    expect(chiSoTuPhim("Enter", 4)).toBe(-1);
   });
 });

@@ -1,3 +1,5 @@
+import useNghieng3D from "../../hooks/useNghieng3D";
+
 const KIEU_NHAN_HOI_LAI = {
   position: "absolute",
   top: "0.6rem",
@@ -47,6 +49,9 @@ export default function TheCauHoiPhien({
   cauHoiNho = false,
   className = "",
 }) {
+  // Nghiêng theo con trỏ ở lớp bọc ngoài, để không đè animation lật vào/ra của thẻ
+  const { nghiengRef, onPointerMove, onPointerLeave } = useNghieng3D({ doNghieng: 6, tat: dangRoiDi });
+
   function doc(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -54,8 +59,15 @@ export default function TheCauHoiPhien({
   }
 
   return (
+    <div
+      ref={nghiengRef}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      className="ui-nghieng-3d"
+      style={{ "--nghieng-bo-goc": "0.75rem" }}
+    >
     <section
-      className={`ui-question-flow ui-the-cau-hoi relative text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] ${className} ${dangRoiDi ? "ui-question-flow--leaving" : ""}`}
+      className={`ui-question-flow ui-the-cau-hoi relative text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] ${laCauHoiLai ? "ui-the-cau-hoi--hoi-lai" : ""} ${className} ${dangRoiDi ? "ui-question-flow--leaving" : ""}`}
     >
       {laCauHoiLai && <span style={KIEU_NHAN_HOI_LAI}>⚠ Lỗi sai trước đây</span>}
       {cheDoNghe ? (
@@ -96,5 +108,6 @@ export default function TheCauHoiPhien({
         </>
       )}
     </section>
+    </div>
   );
 }

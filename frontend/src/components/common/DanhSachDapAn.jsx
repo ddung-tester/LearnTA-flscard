@@ -1,6 +1,15 @@
+import { useEffect, useRef } from "react";
+import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
+import { chiSoTuPhim } from "../../utils/phienHoc";
+
+function laVungNhapLieu(el) {
+  return Boolean(el?.closest?.("input, textarea, select, [contenteditable='true']"));
+}
+
 /**
  * DanhSachDapAn — các nút đáp án trắc nghiệm dùng chung (Trắc nghiệm, Ngữ cảnh, Hỗn hợp).
  * Sau khi chọn: tô đáp án đúng, đánh dấu đáp án đã chọn nếu sai, làm mờ phần còn lại.
+ * Phím 1–N chọn đáp án. Đúng: pháo giấy bắn từ nút + rung nhẹ; sai: rung.
  */
 export default function DanhSachDapAn({
   danhSachDapAn,
@@ -11,6 +20,33 @@ export default function DanhSachDapAn({
   khoa,
 }) {
   const daTraLoi = dapAnDaChon !== null;
+  const nutDungRef = useRef(null);
+
+  useEffect(() => {
+    if (daTraLoi || dangRoiDi) return undefined;
+
+    function xuLyPhim(event) {
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (laVungNhapLieu(event.target)) return;
+      const chiSo = chiSoTuPhim(event.key, danhSachDapAn.length);
+      if (chiSo < 0) return;
+      event.preventDefault();
+      onChon(danhSachDapAn[chiSo]);
+    }
+
+    window.addEventListener("keydown", xuLyPhim);
+    return () => window.removeEventListener("keydown", xuLyPhim);
+  }, [daTraLoi, dangRoiDi, danhSachDapAn, onChon]);
+
+  useEffect(() => {
+    if (!daTraLoi) return;
+    if (dapAnDaChon === dapAnDung) {
+      banPhaoGiay(nutDungRef.current, "nho");
+      rungMay("dung");
+    } else {
+      rungMay("sai");
+    }
+  }, [daTraLoi, dapAnDaChon, dapAnDung]);
 
   return (
     <div
@@ -36,10 +72,12 @@ export default function DanhSachDapAn({
         return (
           <button
             key={`${khoa}-${index}-${dapAn}`}
+            ref={laDapAnDung ? nutDungRef : undefined}
+            style={{ "--thu-tu": index }}
             type="button"
             onClick={() => onChon(dapAn)}
             disabled={daTraLoi}
-            className={`ui-reading-card min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
+            className={`ui-reading-card ui-dap-an-3d min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
           >
             <kbd className="ui-answer-phim" aria-hidden="true">
               {index + 1}

@@ -25,6 +25,7 @@ import {
   levelSauKetQua,
   moTaKhoangOn,
 } from "../../utils/srsReview";
+import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -158,7 +159,7 @@ function ScoreRing({ percent, size = 100, strokeWidth = 8 }) {
         fontWeight="700"
         fontFamily="var(--font-display)"
       >
-        {Math.round(percent)}%
+        <AnimatedNumber value={Math.round(percent)} duration={1100} />%
       </text>
     </svg>
   );
@@ -215,6 +216,17 @@ function StudyResult({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // chỉ chạy 1 lần khi mount
+
+  // Ăn mừng khi đạt kết quả tốt: pháo giấy lớn sau khi vòng điểm chạy xong
+  useEffect(() => {
+    if (tiLeDung < 80) return undefined;
+    const timer = window.setTimeout(() => {
+      banPhaoGiay(null, "lon");
+      rungMay("xong");
+    }, 650);
+    return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loiKhen =
     tiLeDung === 100

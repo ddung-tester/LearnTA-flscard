@@ -1397,6 +1397,12 @@ body.is-page-loading .page-transition-root {
   padding-block: clamp(1.15rem, 3.2dvh, 2rem) !important;
 }
 
+/* Nhãn "Lỗi sai trước đây" nằm góc trên: chừa chỗ để không đè lên câu hỏi */
+.ui-the-cau-hoi--hoi-lai,
+.ui-quiz-question-card.ui-the-cau-hoi--hoi-lai {
+  padding-top: 2.75rem !important;
+}
+
 .ui-quiz-question-card h2 {
   font-size: clamp(1.45rem, 4.5dvh, 2.15rem);
   line-height: 1.18;
@@ -4753,6 +4759,7 @@ body.is-page-loading .page-transition-root {
 @media (min-width: 640px) {
   .study-result__actions {
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
   }
 }
@@ -4765,9 +4772,15 @@ body.is-page-loading .page-transition-root {
 }
 
 @media (min-width: 640px) {
+  /* Khung kết quả hẹp: nút đầu (hành động chính) một hàng, các nút còn lại chia đều hàng dưới */
   .study-result__btn {
-    width: auto;
-    min-width: 10rem;
+    flex: 1 1 8rem;
+    min-width: 0;
+    padding-inline: 0.75rem;
+  }
+
+  .study-result__btn:first-child {
+    flex-basis: 100%;
   }
 }
 

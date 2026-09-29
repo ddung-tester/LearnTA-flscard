@@ -8,6 +8,7 @@ import {
   useTransform,
 } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
+import useNghieng3D from "../hooks/useNghieng3D";
 
 const THE_MAU = [
   {
@@ -168,6 +169,7 @@ function TheMau({
 function TrangChu() {
   const { isAuthenticated } = useAuth();
   const giam = useReducedMotion();
+  const { nghiengRef: xapRef, onPointerMove: nghiengXap, onPointerLeave: thoiNghiengXap } = useNghieng3D({ doNghieng: 9 });
   const [thuTu, setThuTu] = useState(() => THE_MAU.map((_, i) => i));
   const [daLat, setDaLat] = useState(false);
   const [daChiaXong, setDaChiaXong] = useState(false);
@@ -216,7 +218,12 @@ function TrangChu() {
         </div>
 
         <div className="home-xap">
-          <div className="home-xap__khung">
+          <div
+            ref={xapRef}
+            onPointerMove={nghiengXap}
+            onPointerLeave={thoiNghiengXap}
+            className="home-xap__khung ui-nghieng-3d ui-nghieng-3d--khong-sang"
+          >
             {/* Giữ nguyên thứ tự DOM (chồng thẻ bằng zIndex): đổi chỗ node giữa chừng làm hỏng thao tác kéo */}
             {THE_MAU.map((the, chiSoThe) => (
               <TheMau

@@ -247,3 +247,10 @@ export function tachKetQuaPhien(danhSachThePhien, tapCardSai) {
 
   return { danhSachCardDung, danhSachCardSai };
 }
+
+/** Phím 1–9 → chỉ số đáp án (0-based), hoặc -1 nếu không phải phím chọn đáp án. */
+export function chiSoTuPhim(key, soDapAn) {
+  if (!/^[1-9]$/.test(key)) return -1;
+  const chiSo = Number(key) - 1;
+  return chiSo < soDapAn ? chiSo : -1;
+}
