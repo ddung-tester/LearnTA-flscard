@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   animate,
@@ -9,6 +9,21 @@ import {
 } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import useNghieng3D from "../hooks/useNghieng3D";
+
+// Hero WebGL (three.js, chunk riêng): chỉ tải khi máy vẽ được WebGL và người dùng không hạn chế chuyển động/dữ liệu
+const CanhThe3D = lazy(() => import("../components/home/CanhThe3D"));
+
+function coTheDung3D() {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+  if (navigator.connection?.saveData) return false;
+  try {
+    const cv = document.createElement("canvas");
+    return Boolean(cv.getContext("webgl2") || cv.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
 
 const THE_MAU = [
   {
@@ -87,7 +102,7 @@ function TheMau({
       return;
     }
 
-    onBatDauNem();
+    onBatDauNem(huong);
     animate(x, huong * 460, giam ? { duration: 0 } : { duration: 0.28, ease: [0.4, 0, 0.7, 0.2] })
       .then(onNem);
   }
@@ -174,6 +189,13 @@ function TrangChu() {
   const [daLat, setDaLat] = useState(false);
   const [daChiaXong, setDaChiaXong] = useState(false);
   const [dangNem, setDangNem] = useState(false);
+  const [dung3D] = useState(coTheDung3D);
+  // Mỗi lần ném thẻ: một cơn gió thổi đàn thẻ 3D theo hướng ném
+  const [gio, setGio] = useState({ huong: 1, lan: 0 });
+
+  function thoiGio(huong) {
+    setGio((truoc) => ({ huong, lan: truoc.lan + 1 }));
+  }
 
   const startPath = isAuthenticated ? "/dashboard" : "/login";
   const startState = isAuthenticated ? undefined : { from: { pathname: "/decks" } };
@@ -186,6 +208,11 @@ function TrangChu() {
 
   return (
     <main className="home-trang">
+      {dung3D && (
+        <Suspense fallback={null}>
+          <CanhThe3D gio={gio} />
+        </Suspense>
+      )}
       <header className="home-dau">
         <span className="dash-nav__brand">
           <span className="dash-nav__brand-mark" aria-hidden="true" />
@@ -234,7 +261,10 @@ function TrangChu() {
                 daLat={daLat}
                 onLat={() => setDaLat((dangLat) => !dangLat)}
                 dangNem={dangNem}
-                onBatDauNem={() => setDangNem(true)}
+                onBatDauNem={(huong) => {
+                  setDangNem(true);
+                  thoiGio(huong);
+                }}
                 onNem={chuyenTheTrenCungXuongDay}
                 giam={giam}
                 daChiaXong={daChiaXong}
@@ -247,7 +277,10 @@ function TrangChu() {
             <button
               type="button"
               className="home-xap__doi"
-              onClick={chuyenTheTrenCungXuongDay}
+              onClick={() => {
+                chuyenTheTrenCungXuongDay();
+                thoiGio(-1);
+              }}
               disabled={dangNem}
             >
               Thẻ khác

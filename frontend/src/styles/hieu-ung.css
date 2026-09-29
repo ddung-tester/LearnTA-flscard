@@ -1240,3 +1240,41 @@ body.has-video-background--app .roadmap-card {
     transition: none;
   }
 }
+
+/* =========================================================
+   Hero WebGL trang chủ (components/home/CanhThe3D)
+   Nằm dưới nội dung trong stacking context của .home-trang (z-index -1),
+   hiện dần sau khung hình đầu. Chỉ được tải khi không giảm chuyển động.
+   ========================================================= */
+.home-canh-3d {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s var(--hu-mem);
+}
+
+.home-canh-3d[data-da-ve="1"] {
+  opacity: 1;
+}
+
+/* Thẻ 3D chỉ còn mờ nhạt sau vùng chữ để lời giới thiệu luôn dễ đọc:
+   điện thoại chữ ở trên, máy tính chữ ở cột trái */
+.home-canh-3d {
+  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.16) 0%, rgb(0 0 0 / 0.16) 62%, #000 82%);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.16) 0%, rgb(0 0 0 / 0.16) 62%, #000 82%);
+}
+
+@media (min-width: 880px) {
+  .home-canh-3d {
+    -webkit-mask-image: linear-gradient(to right, rgb(0 0 0 / 0.14) 0%, rgb(0 0 0 / 0.2) 44%, #000 62%);
+    mask-image: linear-gradient(to right, rgb(0 0 0 / 0.14) 0%, rgb(0 0 0 / 0.2) 44%, #000 62%);
+  }
+}
+
+.home-canh-3d canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
