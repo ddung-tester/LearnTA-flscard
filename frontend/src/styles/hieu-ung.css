@@ -1010,3 +1010,107 @@ body.has-video-background--app .roadmap-card {
     transform: none;
   }
 }
+
+/* =========================================================
+   GĐ C — lộ trình thành bản đồ (DuongHanhTrinh)
+   Mốc (data-moc) nằm ở lề trái ngoài thẻ; SVG phía dưới nối các mốc:
+   nét chì đứt = cả chặng, nét mực đỏ = đoạn đã đi, vẽ dần khi trang hiện.
+   ========================================================= */
+.ui-hanh-trinh {
+  position: relative;
+}
+
+.ui-duong-hanh-trinh {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.ui-duong-hanh-trinh__chi {
+  stroke: var(--mau-chu-mo);
+  stroke-width: 2px;
+  stroke-dasharray: 1.5 7;
+  opacity: 0.55;
+}
+
+.ui-duong-hanh-trinh__muc {
+  stroke: var(--mau-le-do);
+  stroke-width: 3.2px;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.ui-route-transition--vao .ui-duong-hanh-trinh__muc {
+  animation: hu-ve-net var(--thoi-gian-ve, 900ms) cubic-bezier(0.65, 0, 0.35, 1) 250ms forwards;
+}
+
+/* Lộ trình: chừa lề trái cho mốc */
+.ui-hanh-trinh .roadmap-stages {
+  padding-left: 3rem;
+}
+
+.ui-hanh-trinh .roadmap-stage {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .ui-hanh-trinh .roadmap-stage {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.ui-hanh-trinh .roadmap-stage__number {
+  position: absolute;
+  top: 1rem;
+  left: -3rem;
+  z-index: 1;
+}
+
+/* ---------- Mốc: chưa tới / đã xong / đang học ---------- */
+.ui-moc {
+  border: 2px dashed var(--mau-vien-manh);
+  background: var(--mau-giay);
+  box-shadow: var(--bong-giay);
+}
+
+.ui-moc--xong {
+  border: 2px solid oklch(45% 0.13 150);
+  background: var(--mau-thanh-cong);
+  color: #fff;
+}
+
+.ui-moc--tiep {
+  border: 2px solid oklch(42% 0.17 30);
+  background: var(--mau-le-do);
+  color: #fff;
+  transform: scale(1.12);
+  animation: hu-moc-tho 2s ease-in-out 1s infinite;
+}
+
+@keyframes hu-moc-tho {
+  0%,
+  100% {
+    box-shadow: var(--bong-giay), 0 0 0 0 oklch(58% 0.19 30 / 0.45);
+  }
+
+  50% {
+    box-shadow: var(--bong-giay), 0 0 0 9px oklch(58% 0.19 30 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-duong-hanh-trinh__muc {
+    stroke-dashoffset: 0;
+    animation: none !important;
+  }
+
+  .ui-moc--tiep {
+    animation: none;
+  }
+}

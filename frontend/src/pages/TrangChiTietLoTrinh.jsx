@@ -5,6 +5,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
 import { layLoTrinh } from "../services/roadmapApi";
 import GachVeTay from "../components/common/GachVeTay";
+import DuongHanhTrinh from "../components/common/DuongHanhTrinh";
 
 // Chặng đầu tiên chưa học xong (theo số từ đã học) là chặng nên học tiếp
 function timChangHocTiep(decks) {
@@ -66,6 +67,8 @@ function TrangChiTietLoTrinh() {
     { tu: 0, hoc: 0, thuoc: 0 }
   );
   const changHocTiep = isAuthenticated ? timChangHocTiep(loTrinh.decks) : 0;
+  // Đường mực đi tới chặng đang học; học xong hết thì tới chặng cuối
+  const chiSoToi = changHocTiep ?? loTrinh.decks.length - 1;
 
   return (
     <div className="ui-page-stack">
@@ -94,45 +97,52 @@ function TrangChiTietLoTrinh() {
         </p>
       )}
 
-      <ol className="roadmap-stages">
-        {loTrinh.decks.map((bo, index) => {
-          const laHocTiep = index === changHocTiep;
-          return (
-            <li key={bo.id} className={`roadmap-stage${laHocTiep ? " roadmap-stage--next" : ""}`}>
-              <span className="roadmap-stage__number" aria-hidden="true">{index + 1}</span>
-              <div className="roadmap-stage__body">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="roadmap-stage__title">{bo.title}</h3>
-                  {laHocTiep && <span className="ui-chip ui-chip--small ui-chip--primary">Học tiếp</span>}
+      <div className="ui-hanh-trinh">
+        <DuongHanhTrinh chiSoToi={chiSoToi} />
+        <ol className="roadmap-stages">
+          {loTrinh.decks.map((bo, index) => {
+            const laHocTiep = index === changHocTiep;
+            const daXong = isAuthenticated && bo.word_count > 0 && bo.learned_count >= bo.word_count;
+            const trangThaiMoc = laHocTiep ? " ui-moc--tiep" : daXong ? " ui-moc--xong" : "";
+            return (
+              <li key={bo.id} className={`roadmap-stage${laHocTiep ? " roadmap-stage--next" : ""}`}>
+                <span className={`roadmap-stage__number ui-moc${trangThaiMoc}`} data-moc aria-hidden="true">
+                  {index + 1}
+                </span>
+                <div className="roadmap-stage__body">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="roadmap-stage__title">{bo.title}</h3>
+                    {laHocTiep && <span className="ui-chip ui-chip--small ui-chip--primary">Học tiếp</span>}
+                  </div>
+                  {bo.description && <p className="roadmap-card__desc">{bo.description}</p>}
+                  <p className="roadmap-card__meta">
+                    {bo.word_count} từ
+                    {isAuthenticated && bo.due_count > 0 && ` · ${bo.due_count} từ đến hạn ôn`}
+                  </p>
+                  {isAuthenticated && (
+                    <ThanhTienDoLoTrinh
+                      tongSo={bo.word_count}
+                      daHoc={bo.learned_count}
+                      daThuoc={bo.mastered_count}
+                    />
+                  )}
                 </div>
-                {bo.description && <p className="roadmap-card__desc">{bo.description}</p>}
-                <p className="roadmap-card__meta">
-                  {bo.word_count} từ
-                  {isAuthenticated && bo.due_count > 0 && ` · ${bo.due_count} từ đến hạn ôn`}
-                </p>
-                {isAuthenticated && (
-                  <ThanhTienDoLoTrinh
-                    tongSo={bo.word_count}
-                    daHoc={bo.learned_count}
-                    daThuoc={bo.mastered_count}
-                  />
-                )}
-              </div>
-              <div className="roadmap-stage__actions">
-                <Link to={`/decks/${bo.id}`} className="ui-button ui-button--ghost roadmap-stage__btn">
-                  Xem từ
-                </Link>
-                <Link
-                  to={`/practice?bo=${bo.id}`}
-                  className={`ui-button ${laHocTiep ? "ui-button--primary" : "ui-button--ghost"} roadmap-stage__btn`}
-                >
-                  Luyện tập
-                </Link>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
+                <div className="roadmap-stage__actions">
+                  <Link to={`/decks/${bo.id}`} className="ui-button ui-button--ghost roadmap-stage__btn">
+                    Xem từ
+                  </Link>
+                  <Link
+                    to={`/practice?bo=${bo.id}`}
+                    className={`ui-button ${laHocTiep ? "ui-button--primary" : "ui-button--ghost"} roadmap-stage__btn`}
+                  >
+                    Luyện tập
+                  </Link>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </div>
   );
 }
