@@ -894,3 +894,119 @@ a.tk-deck-row {
     transform: none !important;
   }
 }
+
+/* =========================================================
+   GĐ B — chất liệu sổ tay
+   ========================================================= */
+
+/* ---------- Gạch chân vẽ tay dưới tiêu đề trang (GachVeTay) ---------- */
+.ui-tieu-de-ve-tay {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  padding-bottom: 0.2em;
+}
+
+.ui-gach-ve-tay {
+  position: absolute;
+  left: -0.1em;
+  right: -0.15em;
+  bottom: -0.3em;
+  width: calc(100% + 0.25em);
+  height: 0.5em;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--mau-le-do);
+  stroke-linecap: round;
+  stroke-width: 2.4px;
+  opacity: 0.75;
+}
+
+.ui-gach-ve-tay path {
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.ui-gach-ve-tay path + path {
+  stroke-width: 1.4px;
+  opacity: 0.55;
+}
+
+/* Vẽ khi trang vừa hiện (TrangVao), không vẽ lúc còn nằm dưới màn chờ */
+.ui-route-transition--vao .ui-gach-ve-tay path {
+  animation: hu-ve-net 640ms cubic-bezier(0.65, 0, 0.35, 1) 260ms forwards;
+}
+
+.ui-route-transition--vao .ui-gach-ve-tay path + path {
+  animation-duration: 480ms;
+  animation-delay: 700ms;
+}
+
+@keyframes hu-ve-net {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------- Bút dạ tô từ đang học trong câu ví dụ (Flashcard) ---------- */
+.ui-but-da {
+  padding: 0 0.12em;
+  margin: 0 -0.12em;
+  border-radius: 0.2em 0.35em 0.25em 0.4em;
+  color: inherit;
+  font-style: inherit;
+  background-color: transparent;
+  background-image: linear-gradient(
+    100deg,
+    oklch(88% 0.15 95 / 0.2),
+    oklch(88% 0.16 95 / 0.85) 8%,
+    oklch(86% 0.16 92 / 0.75) 92%,
+    oklch(88% 0.15 95 / 0.25)
+  );
+  background-repeat: no-repeat;
+  background-position: 0 62%;
+  background-size: 0% 72%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.ui-but-da--to {
+  background-size: 100% 72%;
+  /* chờ thẻ lật xong mới tô */
+  transition: background-size 520ms cubic-bezier(0.65, 0, 0.35, 1) 380ms;
+}
+
+/* ---------- Thẻ lộ trình: xấp giấy xoè ra khi hover (giống thẻ bộ từ) ---------- */
+body.has-video-background--app .roadmap-card {
+  background: var(--mau-giay);
+  border-top: 3px solid var(--mau-le-do);
+  box-shadow: var(--chong-the);
+  transition:
+    transform 260ms var(--tuong-tac-ease),
+    box-shadow 260ms var(--tuong-tac-ease),
+    border-color 180ms var(--tuong-tac-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body.has-video-background--app .roadmap-card:hover {
+    transform: translate(-3px, -4px) rotate(-0.6deg);
+    box-shadow: var(--chong-the-xoe);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-gach-ve-tay path {
+    stroke-dashoffset: 0;
+    animation: none !important;
+  }
+
+  .ui-but-da--to {
+    transition: none;
+  }
+
+  body.has-video-background--app .roadmap-card:hover {
+    transform: none;
+  }
+}

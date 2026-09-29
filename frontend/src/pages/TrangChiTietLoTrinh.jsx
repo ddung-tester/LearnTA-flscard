@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
 import { layLoTrinh } from "../services/roadmapApi";
+import GachVeTay from "../components/common/GachVeTay";
 
 // Chặng đầu tiên chưa học xong (theo số từ đã học) là chặng nên học tiếp
 function timChangHocTiep(decks) {
@@ -73,7 +74,7 @@ function TrangChiTietLoTrinh() {
       <div className="ui-page-header">
         <div className="ui-page-header__title">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">{loTrinh.title}</h2>
+            <h2 className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">{loTrinh.title}<GachVeTay /></h2>
             {loTrinh.level_label && (
               <span className="ui-chip ui-chip--small ui-chip--primary">{loTrinh.level_label}</span>
             )}

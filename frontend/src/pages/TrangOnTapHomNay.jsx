@@ -41,6 +41,7 @@ import {
 } from "../utils/caiDatHocTap";
 import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
 import { chuanHoaDapAn, taoGoiY } from "../utils/phienHoc";
+import GachVeTay from "../components/common/GachVeTay";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -833,7 +834,7 @@ function TrangOnTapHomNay() {
       {/* Header */}
       <div className="review-header">
         <div>
-          <h1 className="review-title">Ôn tập hôm nay</h1>
+          <h1 className="review-title ui-tieu-de-ve-tay">Ôn tập hôm nay<GachVeTay /></h1>
           <p className="review-subtitle">
             {nothingDue
               ? "Không có từ nào phù hợp với bộ lọc hiện tại."

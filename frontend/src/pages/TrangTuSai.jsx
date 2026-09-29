@@ -11,6 +11,7 @@ import {
   taiTuSaiDongBo,
 } from "../utils/mistakeNotebook";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import GachVeTay from "../components/common/GachVeTay";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -323,7 +324,7 @@ function TrangTuSai() {
       {/* Header */}
       <div className="tu-sai-header">
         <div>
-          <h1 className="tu-sai-title">Sổ từ sai</h1>
+          <h1 className="tu-sai-title ui-tieu-de-ve-tay">Sổ từ sai<GachVeTay /></h1>
           <p className="tu-sai-subtitle">
             Những từ bạn đã trả lời sai trong Quiz và Tự luận — ôn lại để ghi nhớ tốt hơn.
           </p>

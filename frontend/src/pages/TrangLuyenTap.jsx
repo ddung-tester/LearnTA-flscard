@@ -16,6 +16,7 @@ import {
 import { nhomBoTuTheoNguon } from "../utils/nguonBoTu";
 import { cheTuTrongCau } from "../utils/phienHoc";
 import { layThongKeSRS, taiSRSDongBo } from "../utils/srsReview";
+import GachVeTay from "../components/common/GachVeTay";
 
 const KHOA_CAI_DAT = "luyenTap";
 const DANH_SACH_RONG = [];
@@ -169,7 +170,7 @@ function TrangLuyenTap() {
     <div className="ui-page-stack">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
-          <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">Luyện tập</h2>
+          <h2 className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">Luyện tập<GachVeTay /></h2>
         </div>
       </div>
 

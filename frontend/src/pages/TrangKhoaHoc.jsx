@@ -7,6 +7,7 @@ import { layDanhSachKhoaHoc } from "../services/courseApi";
 import { layDanhSachLoTrinh } from "../services/roadmapApi";
 import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import "./KhoaHoc.css";
+import GachVeTay from "../components/common/GachVeTay";
 
 function LichBuoiHoc({ khoa, buoiTiep }) {
   const theoSo = new Map(khoa.lessons.map((bai) => [bai.lesson_number, bai]));
@@ -83,7 +84,7 @@ function KhoaHocRieng({ khoa }) {
   return (
     <section className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
       <header className="kh-khoa__dau">
-        <h2 id={`khoa-${khoa.id}`} className="kh-khoa__ten">{khoa.title}</h2>
+        <h2 id={`khoa-${khoa.id}`} className="kh-khoa__ten ui-tieu-de-ve-tay">{khoa.title}<GachVeTay /></h2>
         <p className="kh-khoa__mo-ta">
           Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
         </p>
@@ -178,8 +179,9 @@ function TrangKhoaHoc() {
         <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">
           <div className="ui-page-header">
             <div className="ui-page-header__title">
-              <h2 id="lo-trinh-tieu-de" className="text-2xl font-semibold text-[var(--mau-chu)]">
+              <h2 id="lo-trinh-tieu-de" className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">
                 Lộ trình từ vựng
+                <GachVeTay />
               </h2>
               <p className="text-sm text-[var(--mau-chu-phu)]">
                 Học theo thứ tự từ cơ bản đến nâng cao, không phải đoán nên học gì tiếp theo.

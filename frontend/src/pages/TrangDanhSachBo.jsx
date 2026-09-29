@@ -13,6 +13,7 @@ import {
   taoDeck,
   xoaDeck,
 } from "../services/deckApi";
+import GachVeTay from "../components/common/GachVeTay";
 
 const FORM_BO_RONG = {
   name: "",
@@ -404,8 +405,9 @@ function TrangDanhSachBo() {
     <div className="ui-page-stack">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
-          <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">
+          <h2 className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">
             {tieuDeTrang}
+            <GachVeTay />
           </h2>
         </div>
         {isAuthenticated && (

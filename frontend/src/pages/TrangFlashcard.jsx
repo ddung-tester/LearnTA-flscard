@@ -31,7 +31,7 @@ import {
   getProgressColor,
 } from "../utils/progressColor";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
-import { chonTheChoPhien, taoHatGiong } from "../utils/phienHoc";
+import { chonTheChoPhien, tachCauMau, taoHatGiong } from "../utils/phienHoc";
 import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
 
 const DS_CHE_DO = [
@@ -917,7 +917,18 @@ function TrangFlashcard() {
                   {theHienTai?.example_sentence && (
                     <p className="mt-6 max-w-md break-words text-center text-sm text-[var(--mau-chu-phu)]" lang="en">
                       <span className="not-italic font-medium text-[var(--mau-chu)]">Ví dụ: </span>
-                      <span className="italic">{theHienTai.example_sentence}</span>
+                      <span className="italic">
+                        {/* Từ đang học được tô bút dạ khi lật sang mặt sau */}
+                        {tachCauMau(theHienTai.example_sentence, theHienTai.term_en).map((phan, i) =>
+                          phan.laTu ? (
+                            <mark key={i} className={`ui-but-da${daLat ? " ui-but-da--to" : ""}`}>
+                              {phan.text}
+                            </mark>
+                          ) : (
+                            phan.text
+                          )
+                        )}
+                      </span>
                     </p>
                   )}
                 </div>

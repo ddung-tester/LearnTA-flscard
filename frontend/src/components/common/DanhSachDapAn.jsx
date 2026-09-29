@@ -1,6 +1,21 @@
 import { useEffect, useRef } from "react";
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 import { chiSoTuPhim } from "../../utils/phienHoc";
+import useNetBut from "../../hooks/useNetBut";
+
+// Chọn sai: gạch đáp án đã chọn, khoanh đáp án đúng (sau khi nút lắc xong)
+const NET_DAP_AN_DUNG = { type: "circle", color: "#2f8a4c", treMs: 480, padding: 7 };
+const NET_DAP_AN_SAI = { type: "strike-through", color: "#c2412d", treMs: 380, padding: 2 };
+
+function ChuDapAn({ net, children }) {
+  const ref = useRef(null);
+  useNetBut(ref, Boolean(net), net ?? {});
+  return (
+    <span ref={ref} className="break-words">
+      {children}
+    </span>
+  );
+}
 
 function laVungNhapLieu(el) {
   return Boolean(el?.closest?.("input, textarea, select, [contenteditable='true']"));
@@ -9,7 +24,7 @@ function laVungNhapLieu(el) {
 /**
  * DanhSachDapAn — các nút đáp án trắc nghiệm dùng chung (Trắc nghiệm, Ngữ cảnh, Hỗn hợp).
  * Sau khi chọn: tô đáp án đúng, đánh dấu đáp án đã chọn nếu sai, làm mờ phần còn lại.
- * Phím 1–N chọn đáp án. Đúng: pháo giấy bắn từ nút + rung nhẹ; sai: rung.
+ * Phím 1–N chọn đáp án. Đúng: pháo giấy bắn từ nút + rung nhẹ; sai: rung + nét bút gạch/khoanh.
  */
 export default function DanhSachDapAn({
   danhSachDapAn,
@@ -82,7 +97,19 @@ export default function DanhSachDapAn({
             <kbd className="ui-answer-phim" aria-hidden="true">
               {index + 1}
             </kbd>
-            <span className="break-words">{dapAn}</span>
+            <ChuDapAn
+              net={
+                daTraLoi && dapAnDaChon !== dapAnDung
+                  ? laDapAnDung
+                    ? NET_DAP_AN_DUNG
+                    : laDapAnDaChon
+                      ? NET_DAP_AN_SAI
+                      : null
+                  : null
+              }
+            >
+              {dapAn}
+            </ChuDapAn>
             {daTraLoi && (laDapAnDung || laDapAnDaChon) && (
               <svg
                 className="ui-answer-dau"

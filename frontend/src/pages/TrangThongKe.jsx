@@ -15,6 +15,7 @@ import EmptyState from "../components/common/EmptyState";
 import SoChayDan from "../components/common/SoChayDan";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import GachVeTay from "../components/common/GachVeTay";
 
 function tinhPhanPhoiMastery(srsList) {
   const dist = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -339,7 +340,7 @@ function TrangThongKe() {
     <div className="tk-page">
       <section className="tk-header">
         <div className="tk-header__text">
-          <h1 className="tk-header__title">Thống kê học tập</h1>
+          <h1 className="tk-header__title ui-tieu-de-ve-tay">Thống kê học tập<GachVeTay /></h1>
           <p className="tk-header__sub">Tổng quan tiến độ từ vựng của bạn qua tất cả bộ từ</p>
         </div>
         <div className="tk-header__actions">

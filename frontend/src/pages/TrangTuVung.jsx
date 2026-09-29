@@ -13,6 +13,7 @@ import {
   tongSoBuoiKhoaHoc,
 } from "../utils/baiTapKhoaHoc";
 import TrangDanhSachBo from "./TrangDanhSachBo";
+import GachVeTay from "../components/common/GachVeTay";
 
 const CAC_TAB = [
   { key: "buoi", nhan: "Theo buổi" },
@@ -143,7 +144,7 @@ function TrangTuVung() {
     <div className="ui-page-stack">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
-          <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">Từ vựng</h2>
+          <h2 className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">Từ vựng<GachVeTay /></h2>
           <p className="text-sm text-[var(--mau-chu-phu)]">
             Từ của từng buổi học, bộ từ bạn tự tạo và các lộ trình có sẵn. Mọi từ đều vào chung lịch ôn tập.
           </p>
