@@ -1358,3 +1358,85 @@ body.has-video-background--app .roadmap-card {
     display: none;
   }
 }
+
+/* =========================================================
+   Sóng âm + chữ theo giọng đọc (SongAm, ChuTheoGiong)
+   ========================================================= */
+.ui-song-am {
+  display: block;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+
+/* Trên thẻ (Flashcard, thẻ câu hỏi): giữa mép trên, ngang hàng nút loa */
+.ui-song-am--dau-the {
+  position: absolute;
+  top: 1.05rem;
+  left: 50%;
+  z-index: 3;
+  width: min(9rem, 42%);
+  height: 2rem;
+  translate: -50% 0;
+}
+
+.ui-song-am--nghe {
+  width: 10rem;
+  height: 2.25rem;
+  margin: -0.25rem auto -0.5rem;
+}
+
+/* Âm tiết đang đọc nhấc lên + đổi màu mực; dùng top (không đổi bố cục dòng) */
+.ui-am-tiet {
+  position: relative;
+  top: 0;
+  transition:
+    top 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 200ms ease-out;
+}
+
+.ui-am-tiet--dang {
+  top: -0.14em;
+  color: var(--mau-le-do);
+}
+
+.ui-am-tiet--qua {
+  color: var(--mau-chinh);
+}
+
+/* Phiên âm IPA dưới từ tiếng Anh, sáng lên khi đang đọc */
+.fc-mat__phien-am {
+  margin-top: 0.35rem;
+  font-family: "Charis SIL", "Doulos SIL", "Segoe UI", system-ui, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--mau-chu-phu);
+  transition:
+    color 250ms ease-out,
+    text-shadow 250ms ease-out;
+}
+
+.fc-mat__phien-am--sang {
+  color: var(--mau-chinh);
+  text-shadow: 0 0 0.6em color-mix(in oklch, var(--mau-le-do) 45%, transparent);
+}
+
+/* Nút loa đang đọc: hai vòng sóng trên biểu tượng nhấp nháy lần lượt */
+@media (prefers-reduced-motion: no-preference) {
+  .tts-speaker-btn--active svg path {
+    animation: loa-song 0.9s ease-in-out infinite;
+  }
+
+  .tts-speaker-btn--active svg path:last-of-type {
+    animation-delay: 0.18s;
+  }
+}
+
+@keyframes loa-song {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}

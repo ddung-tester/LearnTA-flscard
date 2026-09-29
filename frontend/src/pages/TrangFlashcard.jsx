@@ -34,6 +34,8 @@ import {
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { chonTheChoPhien, tachCauMau, taoHatGiong } from "../utils/phienHoc";
 import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
+import SongAm from "../components/common/SongAm";
+import ChuTheoGiong from "../components/common/ChuTheoGiong";
 
 const DS_CHE_DO = [
   {
@@ -873,6 +875,7 @@ function TrangFlashcard() {
                 <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
               </svg>
             </button>
+            <SongAm className="ui-song-am--dau-the" />
             <div
               role="button"
               tabIndex={0}
@@ -902,8 +905,13 @@ function TrangFlashcard() {
                   className="fc-mat fc-mat--truoc absolute inset-0 flex flex-col items-center justify-center rounded-xl px-5 py-7 [backface-visibility:hidden] sm:px-8 sm:py-9"
                 >
                   <span className="fc-mat__tu max-w-full break-words text-center">
-                    {matTruoc}
+                    <ChuTheoGiong text={matTruoc} />
                   </span>
+                  {ngonNguMatTruoc === "en-US" && theHienTai?.pronunciation && (
+                    <span className={`fc-mat__phien-am${ttsDangDoc && !daLat ? " fc-mat__phien-am--sang" : ""}`}>
+                      {theHienTai.pronunciation}
+                    </span>
+                  )}
                   <span className="fc-mat__goi-y">
                     Nhấn để lật thẻ<span className="fc-mat__phim"> (phím Space)</span>.
                     Kéo sang trái để qua thẻ sau.
@@ -914,8 +922,13 @@ function TrangFlashcard() {
                   className="fc-mat fc-mat--sau absolute inset-0 flex flex-col items-center justify-center rounded-xl px-5 py-7 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9"
                 >
                   <span className="fc-mat__tu max-w-full break-words text-center">
-                    {matSau}
+                    <ChuTheoGiong text={matSau} />
                   </span>
+                  {ngonNguMatSau === "en-US" && theHienTai?.pronunciation && (
+                    <span className={`fc-mat__phien-am${ttsDangDoc && daLat ? " fc-mat__phien-am--sang" : ""}`}>
+                      {theHienTai.pronunciation}
+                    </span>
+                  )}
                   {theHienTai?.example_sentence && (
                     <p className="mt-6 max-w-md break-words text-center text-sm text-[var(--mau-chu-phu)]" lang="en">
                       <span className="not-italic font-medium text-[var(--mau-chu)]">Ví dụ: </span>

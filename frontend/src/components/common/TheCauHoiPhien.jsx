@@ -1,4 +1,6 @@
 import useNghieng3D from "../../hooks/useNghieng3D";
+import SongAm from "./SongAm";
+import ChuTheoGiong from "./ChuTheoGiong";
 
 const KIEU_NHAN_HOI_LAI = {
   position: "absolute",
@@ -83,6 +85,7 @@ export default function TheCauHoiPhien({
           >
             <IconLoa className="h-9 w-9" />
           </button>
+          <SongAm className="ui-song-am--nghe" />
           <p className="text-sm font-medium text-[var(--mau-chu-phu)]">
             Nghe và gõ từ tiếng Anh
           </p>
@@ -103,8 +106,9 @@ export default function TheCauHoiPhien({
           <h2
             className={`font-semibold text-[var(--mau-chu)] leading-snug ${cauHoiNho ? "text-xl sm:text-2xl" : "text-3xl sm:text-[2.25rem]"}`}
           >
-            {cauHoi}
+            <ChuTheoGiong text={cauHoi} />
           </h2>
+          <SongAm className="ui-song-am--dau-the" />
         </>
       )}
     </section>

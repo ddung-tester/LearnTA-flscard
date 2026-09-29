@@ -6,6 +6,27 @@
  * that calls POST /api/tts — no UI component changes needed.
  */
 
+// --------------- Trạng thái đọc (cho sóng âm / chữ nảy theo âm tiết) ---------------
+// { dangDoc, text, batDauLuc, kyTu, kyTuLuc } — kyTu: vị trí từ đang đọc (sự kiện boundary,
+// không phải giọng nào cũng có). Thời gian theo performance.now().
+
+let trangThaiDoc = { dangDoc: false, text: "", batDauLuc: 0, kyTu: -1, kyTuLuc: 0 };
+const nguoiNgheDoc = new Set();
+
+function capNhatDoc(moi) {
+  trangThaiDoc = { ...trangThaiDoc, ...moi };
+  nguoiNgheDoc.forEach((goiLai) => goiLai());
+}
+
+export function theoDoiDoc(goiLai) {
+  nguoiNgheDoc.add(goiLai);
+  return () => nguoiNgheDoc.delete(goiLai);
+}
+
+export function layTrangThaiDoc() {
+  return trangThaiDoc;
+}
+
 // --------------- Web Speech provider ---------------
 
 const VOICE_NAME_PRIORITY = ["google", "microsoft", "neural", "natural", "online"];
@@ -96,6 +117,7 @@ const webSpeechProvider = {
 
     this._clearTimers();
     this._utterance = null;
+    capNhatDoc({ dangDoc: false });
     if (this._onEndCallback) this._onEndCallback();
   },
 
@@ -116,6 +138,15 @@ const webSpeechProvider = {
     const preferred = findPreferredVoice(lang);
     if (preferred) utterance.voice = preferred;
 
+    utterance.onstart = () => {
+      if (this._utterance !== utterance) return;
+      const luc = performance.now();
+      capNhatDoc({ dangDoc: true, text, batDauLuc: luc, kyTu: 0, kyTuLuc: luc });
+    };
+    utterance.onboundary = (e) => {
+      if (this._utterance !== utterance || e.name === "sentence") return;
+      capNhatDoc({ kyTu: e.charIndex, kyTuLuc: performance.now() });
+    };
     utterance.onend = () => this._finish(utterance);
     utterance.onerror = () => this._finish(utterance);
 
@@ -152,6 +183,7 @@ const webSpeechProvider = {
     }
 
     this._utterance = null;
+    if (trangThaiDoc.dangDoc) capNhatDoc({ dangDoc: false });
   },
 
   onEnd(callback) {
