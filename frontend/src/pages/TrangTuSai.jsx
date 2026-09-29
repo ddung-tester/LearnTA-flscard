@@ -1,5 +1,6 @@
 import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import EmptyState from "../components/common/EmptyState";
 import AnimatedModal from "../components/common/AnimatedModal";
 import { useToast } from "../contexts/ToastContext";
@@ -176,11 +177,24 @@ function FilterBar({
   );
 }
 
-function MistakeCard({ entry, onMarkReviewed, onRemove }) {
+// Thẻ bị xoá văng ra, các thẻ còn lại trượt lên lấp chỗ (tắt khi giảm chuyển động nhờ MotionConfig)
+const THE_XOA_BAY_RA = { opacity: 0, x: -70, rotate: -5, scale: 0.92, transition: { duration: 0.28, ease: [0.4, 0, 1, 1] } };
+
+function MistakeCard({ entry, vuaOn, onMarkReviewed, onRemove }) {
   const isReviewed = entry.status === "reviewed";
 
   return (
-    <li className={`tu-sai-card ${isReviewed ? "tu-sai-card--reviewed" : ""}`}>
+    <motion.li
+      layout
+      exit={THE_XOA_BAY_RA}
+      transition={{ layout: { type: "spring", stiffness: 420, damping: 36 } }}
+      className={`tu-sai-card ${isReviewed ? "tu-sai-card--reviewed" : ""}`}
+    >
+      {isReviewed && (
+        <span className={`tu-sai-dau${vuaOn ? " tu-sai-dau--dong" : ""}`} aria-hidden="true">
+          Đã ôn
+        </span>
+      )}
       <div className="tu-sai-card__top">
         <div className="tu-sai-card__words">
           <span className="tu-sai-card__term">{entry.word}</span>
@@ -233,7 +247,7 @@ function MistakeCard({ entry, onMarkReviewed, onRemove }) {
           Xoá
         </button>
       </div>
-    </li>
+    </motion.li>
   );
 }
 
@@ -252,6 +266,8 @@ function TrangTuSai() {
   const [search, setSearch] = useState("");
   const [dangXacNhanXoaHet, setDangXacNhanXoaHet] = useState(false);
   const [sort, setSort] = useState("last_wrong");
+  // Thẻ vừa đánh dấu đã ôn trong lần xem này: con dấu "Đã ôn" đóng xuống có animation
+  const [vuaOn, setVuaOn] = useState(() => new Set());
 
   const refresh = useCallback(async () => {
     setDangTai(true);
@@ -294,6 +310,7 @@ function TrangTuSai() {
 
   async function handleMarkReviewed(id) {
     await danhDauDaOnDongBo(id);
+    setVuaOn((truoc) => new Set(truoc).add(id));
     setAllEntries(layTatCaTuSai());
     toast.success("Đã đánh dấu đã ôn!");
   }
@@ -382,14 +399,17 @@ function TrangTuSai() {
         </div>
       ) : (
         <ul className="tu-sai-list">
-          {filtered.map((entry) => (
-            <MistakeCard
-              key={entry.id}
-              entry={entry}
-              onMarkReviewed={handleMarkReviewed}
-              onRemove={handleRemove}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {filtered.map((entry) => (
+              <MistakeCard
+                key={entry.id}
+                entry={entry}
+                vuaOn={vuaOn.has(entry.id)}
+                onMarkReviewed={handleMarkReviewed}
+                onRemove={handleRemove}
+              />
+            ))}
+          </AnimatePresence>
         </ul>
       )}
 

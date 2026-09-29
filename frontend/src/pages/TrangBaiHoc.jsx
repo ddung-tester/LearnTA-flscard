@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useLayoutEffect, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
+import useHienKhiCuon from "../hooks/useHienKhiCuon";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
@@ -117,14 +118,16 @@ function CongThuc({ text }) {
 
 function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
   const { grammar = [], notes = [] } = content || {};
+  const voRef = useRef(null);
+  useHienKhiCuon(voRef);
   if (grammar.length === 0 && notes.length === 0) {
     return <p className="kh-trong">Buổi này chưa có lý thuyết.</p>;
   }
   return (
     <div className="kh-phan">
-      <article className="kh-vo">
+      <article ref={voRef} className="kh-vo">
         {grammar.map((muc, index) => (
-          <section key={muc.id || index} className="kh-vo__muc" aria-labelledby={`muc-${index}`}>
+          <section key={muc.id || index} className="kh-vo__muc" aria-labelledby={`muc-${index}`} data-hien-khi-cuon>
             <span className="kh-vo__so" aria-hidden="true">{index + 1}</span>
             <h3 id={`muc-${index}`} className="kh-vo__tieu-de">{muc.title}</h3>
             {muc.pattern && <CongThuc text={muc.pattern} />}
@@ -154,7 +157,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
           </section>
         ))}
         {notes.length > 0 && (
-          <aside className="kh-vo__ghi-nho" aria-labelledby="ghi-nho">
+          <aside className="kh-vo__ghi-nho" aria-labelledby="ghi-nho" data-hien-khi-cuon>
             <h3 id="ghi-nho" className="kh-vo__ghi-nho-tieu-de">Ghi nhớ</h3>
             <ul>
               {notes.map((ghiChu) => (

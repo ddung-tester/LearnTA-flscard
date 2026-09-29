@@ -1114,3 +1114,129 @@ body.has-video-background--app .roadmap-card {
     animation: none;
   }
 }
+
+/* =========================================================
+   GĐ D — các trang còn lại
+   ========================================================= */
+
+/* ---------- Thêm từ: thẻ vừa lưu bay xuống danh sách, số đếm nảy ---------- */
+.ui-the-bay-vao {
+  transform-origin: 50% 0%;
+  animation: hu-the-bay-vao 620ms var(--hu-lo-xo) backwards;
+}
+
+@keyframes hu-the-bay-vao {
+  0% {
+    opacity: 0;
+    transform: perspective(700px) translate3d(0, -90px, 0) rotateX(55deg) rotateZ(-3deg) scale(0.9);
+  }
+
+  60% {
+    opacity: 1;
+  }
+}
+
+.ui-so-nay {
+  display: inline-block;
+  animation: hu-so-nay 420ms var(--hu-lo-xo) backwards;
+}
+
+@keyframes hu-so-nay {
+  0% {
+    transform: scale(1.8);
+    color: var(--mau-le-do);
+  }
+}
+
+/* ---------- Sổ từ sai: con dấu "Đã ôn" ---------- */
+.tu-sai-card {
+  position: relative;
+}
+
+.tu-sai-dau {
+  position: absolute;
+  top: 50%;
+  right: 1.1rem;
+  z-index: 1;
+  padding: 0.2rem 0.6rem;
+  border: 2.5px solid oklch(50% 0.14 150 / 0.75);
+  border-radius: 0.4rem;
+  color: oklch(46% 0.14 150 / 0.8);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(-12deg);
+  mix-blend-mode: multiply;
+  opacity: 0.7;
+}
+
+.tu-sai-dau--dong {
+  animation: hu-dong-dau 520ms cubic-bezier(0.3, 1.5, 0.5, 1) backwards;
+}
+
+@keyframes hu-dong-dau {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) rotate(-24deg) scale(2.4);
+  }
+
+  55% {
+    opacity: 0.85;
+    transform: translateY(-50%) rotate(-10deg) scale(0.92);
+  }
+}
+
+/* ---------- Bài học lý thuyết: từng mục hiện dần khi cuộn tới (useHienKhiCuon) ---------- */
+.ui-hien-khi-cuon [data-hien-khi-cuon] {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) perspective(900px) rotateX(8deg);
+  transform-origin: 50% 0%;
+  transition:
+    opacity 520ms var(--hu-mem),
+    transform 620ms var(--hu-mem);
+}
+
+.ui-hien-khi-cuon [data-hien-khi-cuon="da-hien"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Công tắc: núm nảy có quán tính, co giãn khi nhấn ---------- */
+.ui-toggle-switch {
+  transition: background-color 260ms var(--hu-mem), border-color 260ms var(--hu-mem);
+}
+
+.ui-toggle-switch__thumb {
+  transition:
+    transform 460ms var(--hu-lo-xo),
+    width 180ms var(--hu-mem);
+}
+
+/* Công tắc riêng ở trang Cài đặt (Tailwind): cùng độ nảy */
+.ui-cong-tac-num {
+  transition: transform 460ms var(--hu-lo-xo);
+}
+
+.ui-toggle-switch:active .ui-toggle-switch__thumb {
+  width: calc(1.5rem + 1px);
+}
+
+.ui-toggle-switch--checked:active .ui-toggle-switch__thumb {
+  transform: translateX(calc(1.25rem - 8px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-the-bay-vao,
+  .ui-so-nay,
+  .tu-sai-dau--dong {
+    animation: none !important;
+  }
+
+  .ui-toggle-switch__thumb,
+  .ui-cong-tac-num {
+    transition: none;
+  }
+}

@@ -276,13 +276,13 @@ function TrangThemTu() {
       {danhSachDaLuu.length > 0 && (
         <div className="ui-content-enter ui-section-stack">
           <h3 className="text-sm font-mono uppercase tracking-wider text-[var(--mau-chu-phu)] mb-3">
-            Vừa thêm ({danhSachDaLuu.length})
+            Vừa thêm (<span key={danhSachDaLuu.length} className="ui-so-nay">{danhSachDaLuu.length}</span>)
           </h3>
           <ul className="ui-card-list">
             {danhSachDaLuu.map((tu) => (
               <li
                 key={tu.id}
-                className="ui-reading-card flex flex-wrap gap-x-2 gap-y-1 rounded-lg border border-[var(--mau-chinh)]/30 bg-[var(--mau-chinh)]/5 px-4 py-2"
+                className="ui-reading-card ui-the-bay-vao flex flex-wrap gap-x-2 gap-y-1 rounded-lg border border-[var(--mau-chinh)]/30 bg-[var(--mau-chinh)]/5 px-4 py-2"
               >
                 <span className="break-words font-semibold">{tu.term_en}</span>
                 <span className="mx-2 text-[var(--mau-vien)]">—</span>

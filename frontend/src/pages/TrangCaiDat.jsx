@@ -133,7 +133,7 @@ function TrangCaiDat() {
             >
               <span
                 className={[
-                  "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg",
+                  "ui-cong-tac-num pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg",
                   "transform transition-transform duration-200 ease-in-out",
                   settings?.email_reminders ? "translate-x-5" : "translate-x-0",
                 ].join(" ")}
