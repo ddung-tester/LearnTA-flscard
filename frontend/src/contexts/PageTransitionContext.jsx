@@ -176,9 +176,12 @@ export function PageTransitionProvider({ children }) {
     if (targetPath === currentPathRef.current) return;
 
     event.preventDefault();
+    // data-lat-trang="1|-1": trang đích lật một tờ giấy khi hiện (TrangBaiHoc → TrangLatQua)
+    const latTrang = Number(link.dataset.latTrang) || undefined;
     navigateWithLoading(targetPath, {
       replace: link.hasAttribute("data-replace"),
       tuPhanTu: link.closest("[data-mo-rong]"),
+      state: latTrang ? { latTrang } : undefined,
     });
   }
 

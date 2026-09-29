@@ -1475,3 +1475,39 @@
     transform: none;
   }
 }
+
+/* ── Lý thuyết: chọn cách xem (sổ tay lật trang / cuộn) ── */
+.kh-cach-xem {
+  display: inline-flex;
+  justify-self: start;
+  gap: 0.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-giay);
+  padding: 0.25rem;
+}
+
+.kh-cach-xem button {
+  min-height: 2.25rem;
+  border-radius: 999px;
+  padding: 0 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.kh-cach-xem button[aria-pressed="true"] {
+  background: var(--mau-chinh);
+  color: var(--mau-chu-tren-chinh);
+}
+
+/* Một trang của sổ: bỏ khung ngoài, để .so-tay__mat làm tờ giấy */
+.kh-vo--trang {
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, transparent var(--kh-le), color-mix(in srgb, var(--mau-le-do) 75%, transparent) var(--kh-le), color-mix(in srgb, var(--mau-le-do) 75%, transparent) calc(var(--kh-le) + 1.5px), transparent calc(var(--kh-le) + 1.5px));
+  min-height: 100%;
+  /* Trang ngắn không giãn các dòng ra cho bằng trang dài nhất */
+  align-content: start;
+}

@@ -1823,3 +1823,234 @@ body.has-video-background--app .roadmap-card {
     font-size: 0.75rem;
   }
 }
+
+/* =========================================================
+   Sổ tay lật trang (components/common/SoTayLatTrang)
+   ========================================================= */
+.so-tay {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.so-tay__khung {
+  position: relative;
+  perspective: 2200px;
+  margin-left: 14px;
+  /* Kéo ngang để lật, kéo dọc vẫn cuộn trang */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Gáy lò xo: các vòng thép nhỏ dọc mép trái */
+.so-tay__lo-xo {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: -14px;
+  z-index: 4;
+  width: 26px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 13px 50%, var(--mau-nen) 0 3.5px, transparent 4px) 0 0 / 26px 26px,
+    linear-gradient(90deg, transparent 5px, #8b7a66 5px, #d9d0c4 9px, #fff 12px, #b8aa98 15px, #6f604f 19px, transparent 19px) 0 0 / 26px 26px;
+  -webkit-mask: repeating-linear-gradient(to bottom, #000 0 9px, transparent 9px 26px);
+  mask: repeating-linear-gradient(to bottom, #000 0 9px, transparent 9px 26px);
+  filter: drop-shadow(1px 1px 1px rgb(0 0 0 / 0.3));
+}
+
+/* Mép các trang còn lại xếp chồng ở cạnh phải */
+.so-tay__mep {
+  position: absolute;
+  inset: 6px -6px -6px 6px;
+  border-radius: 0 1rem 1rem 0;
+  background: var(--mau-giay);
+  box-shadow:
+    inset 0 0 0 1px var(--mau-vien),
+    3px 3px 0 -1px var(--mau-giay),
+    3px 3px 0 0 var(--mau-vien),
+    var(--bong-card);
+}
+
+.so-tay__chong {
+  position: relative;
+  display: grid;
+  transform-style: preserve-3d;
+}
+
+.so-tay__trang {
+  position: relative;
+  grid-area: 1 / 1;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+}
+
+.so-tay__trang--an {
+  visibility: hidden;
+}
+
+.so-tay__trang--to {
+  z-index: 2;
+}
+
+.so-tay__trang--chay {
+  transition: transform 620ms cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+.so-tay__mat {
+  position: relative;
+  height: 100%;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0 1rem 1rem 0;
+  background: var(--mau-giay);
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.so-tay__mat--truoc {
+  display: flex;
+  flex-direction: column;
+}
+
+.so-tay__mat--truoc > :first-child {
+  flex: 1;
+}
+
+/* Mặt sau tờ giấy: dòng kẻ mờ, hơi ngả màu */
+.so-tay__mat--sau {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  border-radius: 1rem 0 0 1rem;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 27px, var(--mau-dong-ke) 27px 28px),
+    color-mix(in srgb, var(--mau-giay) 92%, #c9a878);
+}
+
+.so-tay__so-trang {
+  margin: 0;
+  padding: 0 1.25rem 0.8rem;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--mau-chu-mo);
+}
+
+/* Bóng trên tờ đang lật và trên trang nằm dưới (sát gáy) */
+.so-tay__bong-to,
+.so-tay__bong-duoi {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.so-tay__bong-to {
+  background: linear-gradient(90deg, rgb(60 35 15 / 0.35), transparent 55%);
+}
+
+.so-tay__bong-duoi {
+  z-index: 1;
+  border-radius: 0 1rem 1rem 0;
+  background: linear-gradient(90deg, rgb(60 35 15 / 0.45), rgb(60 35 15 / 0.08) 45%, transparent 70%);
+}
+
+.so-tay__dieu-khien {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.so-tay__nut {
+  min-height: 2.5rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.7rem;
+  background: var(--mau-giay);
+  padding: 0 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mau-chu);
+}
+
+.so-tay__nut:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.so-tay__cham {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.so-tay__cham-o {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--mau-vien-manh);
+  transition:
+    width 250ms var(--tuong-tac-ease),
+    background-color 250ms;
+}
+
+.so-tay__cham-o--dang {
+  width: 1.4rem;
+  background: var(--mau-chinh);
+}
+
+/* =========================================================
+   Lật sang buổi mới (components/common/TrangLatQua)
+   Tờ giấy kẻ dòng phủ vùng nội dung (dưới header) rồi lật đi quanh mép.
+   ========================================================= */
+.trang-lat-qua {
+  position: fixed;
+  inset: 56px 0 0;
+  z-index: 60;
+  perspective: 2400px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.trang-lat-qua__to {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 3.2rem, color-mix(in srgb, var(--mau-le-do) 70%, transparent) 3.2rem, color-mix(in srgb, var(--mau-le-do) 70%, transparent) calc(3.2rem + 1.5px), transparent calc(3.2rem + 1.5px)),
+    repeating-linear-gradient(to bottom, transparent 0 31px, var(--mau-dong-ke) 31px 32px),
+    var(--mau-giay);
+  backface-visibility: hidden;
+  box-shadow: 0 0 40px rgb(60 35 15 / 0.35);
+}
+
+.trang-lat-qua__to--toi {
+  transform-origin: left center;
+  animation: trang-lat-toi 760ms cubic-bezier(0.5, 0, 0.3, 1) 80ms both paused;
+}
+
+.trang-lat-qua__to--lui {
+  transform-origin: right center;
+  animation: trang-lat-lui 760ms cubic-bezier(0.5, 0, 0.3, 1) 80ms both paused;
+}
+
+/* Đứng yên phủ kín cho tới khi màn chờ tắt */
+.trang-lat-qua__to--chay {
+  animation-play-state: running;
+}
+
+@keyframes trang-lat-toi {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(-100deg);
+  }
+}
+
+@keyframes trang-lat-lui {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(100deg);
+  }
+}

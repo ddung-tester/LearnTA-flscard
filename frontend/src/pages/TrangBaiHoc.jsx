@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
 import useHienKhiCuon from "../hooks/useHienKhiCuon";
+import SoTayLatTrang from "../components/common/SoTayLatTrang";
+import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
@@ -116,57 +118,122 @@ function CongThuc({ text }) {
   );
 }
 
-function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
-  const { grammar = [], notes = [] } = content || {};
+function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false }) {
+  return (
+    <section className="kh-vo__muc" aria-labelledby={`muc-${index}`} data-hien-khi-cuon={hienKhiCuon || undefined}>
+      <span className="kh-vo__so" aria-hidden="true">{index + 1}</span>
+      <h3 id={`muc-${index}`} className="kh-vo__tieu-de">{muc.title}</h3>
+      {muc.pattern && <CongThuc text={muc.pattern} />}
+      {muc.rules?.length > 0 && (
+        <ul className="kh-vo__quy-tac">
+          {muc.rules.map((quyTac) => (
+            <li key={quyTac}>{quyTac}</li>
+          ))}
+        </ul>
+      )}
+      {muc.examples?.length > 0 && (
+        <ul className="kh-vo__vi-du">
+          {muc.examples.map((viDu) => (
+            <li key={viDu.en}>
+              <button type="button" className="kh-nut-loa" onClick={() => onDoc(viDu.en)} title="Nghe câu ví dụ">
+                <IconLoa />
+                <span className="sr-only">Nghe: {viDu.en}</span>
+              </button>
+              <span>
+                <span className="kh-vo__vi-du-en" lang="en">{viDu.en}</span>
+                {viDu.vi && <span className="kh-vo__vi-du-vi">{viDu.vi}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function GhiNho({ notes, hienKhiCuon = false }) {
+  return (
+    <aside className="kh-vo__ghi-nho" aria-labelledby="ghi-nho" data-hien-khi-cuon={hienKhiCuon || undefined}>
+      <h3 id="ghi-nho" className="kh-vo__ghi-nho-tieu-de">Ghi nhớ</h3>
+      <ul>
+        {notes.map((ghiChu) => (
+          <li key={ghiChu}>{ghiChu}</li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
+
+// Vở dạng cuộn: mọi mục nối nhau, hiện dần khi cuộn tới
+function VoCuon({ grammar, notes, onDoc }) {
   const voRef = useRef(null);
   useHienKhiCuon(voRef);
+  return (
+    <article ref={voRef} className="kh-vo">
+      {grammar.map((muc, index) => (
+        <MucNguPhap key={muc.id || index} muc={muc} index={index} onDoc={onDoc} hienKhiCuon />
+      ))}
+      {notes.length > 0 && <GhiNho notes={notes} hienKhiCuon />}
+    </article>
+  );
+}
+
+const KHO_CACH_XEM_LY_THUYET = "learnta_ly_thuyet_cach_xem";
+
+function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
+  const { grammar = [], notes = [] } = content || {};
+  const [cachXem, setCachXem] = useState(() => {
+    try {
+      return window.localStorage.getItem(KHO_CACH_XEM_LY_THUYET) === "cuon" ? "cuon" : "so-tay";
+    } catch {
+      return "so-tay";
+    }
+  });
   if (grammar.length === 0 && notes.length === 0) {
     return <p className="kh-trong">Buổi này chưa có lý thuyết.</p>;
   }
+
+  function doiCachXem(moi) {
+    setCachXem(moi);
+    try {
+      window.localStorage.setItem(KHO_CACH_XEM_LY_THUYET, moi);
+    } catch {
+      // Không lưu được thì chỉ đổi trong lần xem này
+    }
+  }
+
+  // Sổ tay: mỗi mục ngữ pháp một trang, "Ghi nhớ" là trang cuối
+  const cacTrang = [
+    ...grammar.map((muc, index) => (
+      <div key={muc.id || index} className="kh-vo kh-vo--trang">
+        <MucNguPhap muc={muc} index={index} onDoc={onDoc} />
+      </div>
+    )),
+    ...(notes.length > 0
+      ? [
+          <div key="ghi-nho" className="kh-vo kh-vo--trang">
+            <GhiNho notes={notes} />
+          </div>,
+        ]
+      : []),
+  ];
+
   return (
     <div className="kh-phan">
-      <article ref={voRef} className="kh-vo">
-        {grammar.map((muc, index) => (
-          <section key={muc.id || index} className="kh-vo__muc" aria-labelledby={`muc-${index}`} data-hien-khi-cuon>
-            <span className="kh-vo__so" aria-hidden="true">{index + 1}</span>
-            <h3 id={`muc-${index}`} className="kh-vo__tieu-de">{muc.title}</h3>
-            {muc.pattern && <CongThuc text={muc.pattern} />}
-            {muc.rules?.length > 0 && (
-              <ul className="kh-vo__quy-tac">
-                {muc.rules.map((quyTac) => (
-                  <li key={quyTac}>{quyTac}</li>
-                ))}
-              </ul>
-            )}
-            {muc.examples?.length > 0 && (
-              <ul className="kh-vo__vi-du">
-                {muc.examples.map((viDu) => (
-                  <li key={viDu.en}>
-                    <button type="button" className="kh-nut-loa" onClick={() => onDoc(viDu.en)} title="Nghe câu ví dụ">
-                      <IconLoa />
-                      <span className="sr-only">Nghe: {viDu.en}</span>
-                    </button>
-                    <span>
-                      <span className="kh-vo__vi-du-en" lang="en">{viDu.en}</span>
-                      {viDu.vi && <span className="kh-vo__vi-du-vi">{viDu.vi}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        ))}
-        {notes.length > 0 && (
-          <aside className="kh-vo__ghi-nho" aria-labelledby="ghi-nho" data-hien-khi-cuon>
-            <h3 id="ghi-nho" className="kh-vo__ghi-nho-tieu-de">Ghi nhớ</h3>
-            <ul>
-              {notes.map((ghiChu) => (
-                <li key={ghiChu}>{ghiChu}</li>
-              ))}
-            </ul>
-          </aside>
-        )}
-      </article>
+      <div className="kh-cach-xem" role="group" aria-label="Cách xem lý thuyết">
+        <button type="button" aria-pressed={cachXem === "so-tay"} onClick={() => doiCachXem("so-tay")}>
+          Sổ tay lật trang
+        </button>
+        <button type="button" aria-pressed={cachXem === "cuon"} onClick={() => doiCachXem("cuon")}>
+          Xem dạng cuộn
+        </button>
+      </div>
+
+      {cachXem === "so-tay" ? (
+        <SoTayLatTrang trang={cacTrang} nhan="Lý thuyết của buổi" />
+      ) : (
+        <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} />
+      )}
 
       {soCauBaiTap > 0 && (
         <NutSangBuoc buoc="bai-tap" onChon={onSangBuoc}>
@@ -184,6 +251,11 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
 function TrangBaiHoc() {
   const { courseId, soBai } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const viTri = useLocation();
+  const dieuHuong = useNavigate();
+  // Vừa bấm "Buổi trước/sau": lật một tờ giấy khi buổi mới hiện (link có data-lat-trang,
+  // PageTransitionContext chuyển thành state khi điều hướng)
+  const huongLat = viTri.state?.latTrang;
   const { setPageDataLoading } = usePageTransition();
   const { speak } = useTTS();
   const khoa = `${courseId}/${soBai}`;
@@ -248,18 +320,33 @@ function TrangBaiHoc() {
 
   return (
     <div className="ui-page-stack kh-trang">
+      {huongLat && (
+        <TrangLatQua
+          huong={huongLat}
+          // Xoá state để tải lại trang không lật lần nữa
+          onXong={() => dieuHuong(`${viTri.pathname}${viTri.search}`, { replace: true, state: null })}
+        />
+      )}
       {/* Đổi buổi nằm ở dòng trên cùng, tách khỏi phần làm bài để không lẫn với điều hướng câu hỏi */}
       <div className="kh-thanh-tren">
         <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</Link>
         {(bai.prev_lesson || bai.next_lesson) && (
           <nav className="kh-chuyen-buoi" aria-label="Chuyển buổi">
             {bai.prev_lesson && (
-              <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.prev_lesson}`} className="kh-chuyen-buoi__lien-ket">
+              <Link
+                to={`/khoa-hoc/${bai.course.id}/bai/${bai.prev_lesson}`}
+                data-lat-trang="-1"
+                className="kh-chuyen-buoi__lien-ket"
+              >
                 &lsaquo; Buổi {bai.prev_lesson}
               </Link>
             )}
             {bai.next_lesson && (
-              <Link to={`/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`} className="kh-chuyen-buoi__lien-ket">
+              <Link
+                to={`/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`}
+                data-lat-trang="1"
+                className="kh-chuyen-buoi__lien-ket"
+              >
                 Buổi {bai.next_lesson} &rsaquo;
               </Link>
             )}
