@@ -150,6 +150,82 @@ test("buildCourseExplanationPrompt states the right answer and whether the learn
   assert.match(prompt, /- To be: S \+ is/);
 });
 
+function fakeStreamRes() {
+  return {
+    headers: undefined,
+    chunks: [],
+    ended: false,
+    writeHead(status, headers) {
+      this.status = status;
+      this.headers = headers;
+    },
+    write(chunk) {
+      this.chunks.push(chunk);
+    },
+    end(chunk) {
+      if (chunk) this.chunks.push(chunk);
+      this.ended = true;
+    },
+  };
+}
+
+test("explainQuestion streams AI text chunk by chunk when stream=1 and caches the whole text", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}]);
+  aiService.explainCourseQuestion = async (_value, { onChunk }) => {
+    onChunk("Sai vì ");
+    onChunk("chủ ngữ số ít.");
+    return "Sai vì chủ ngữ số ít.";
+  };
+  const res = fakeStreamRes();
+
+  await explainQuestion(
+    { user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" }, query: { stream: "1" } },
+    res
+  );
+
+  assert.match(res.headers["Content-Type"], /text\/plain/);
+  assert.deepEqual(res.chunks, ["Sai vì ", "chủ ngữ số ít."]);
+  assert.equal(res.ended, true);
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì chủ ngữ số ít."]);
+});
+
+test("explainQuestion falls back to the question's own hint when AI fails", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], []]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("503 quá tải");
+  };
+  const res = fakeRes();
+
+  await explainQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, res);
+
+  assert.deepEqual(res.body, { explanation: "Chủ ngữ số ít dùng is.", cached: false, fallback: true });
+  // Gợi ý dự phòng không được lưu vào cache (lần sau vẫn thử AI)
+  assert.equal(calls.length, 2);
+});
+
+test("buildCourseExplanationPrompt asks for a short fixed format", () => {
+  const sai = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [],
+    question: CAU_TRAC_NGHIEM,
+    learnerAnswer: "B",
+    isCorrect: false,
+  });
+  assert.match(sai, /Sai vì:/);
+  assert.match(sai, /Đúng vì:/);
+  assert.match(sai, /Nhớ:/);
+
+  const dung = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [],
+    question: CAU_TRAC_NGHIEM,
+    learnerAnswer: "A",
+    isCorrect: true,
+  });
+  assert.match(dung, /Đúng rồi:/);
+  assert.doesNotMatch(dung, /Sai vì:/);
+});
+
 test("listCourses returns lesson progress counts of the course owner as numbers", async () => {
   const calls = fakePool([
     [

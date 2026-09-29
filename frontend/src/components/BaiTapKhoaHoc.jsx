@@ -245,7 +245,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
 
   function hoiAI(cauHienTai, traLoi) {
     setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
-    giaiThichCauHoi(cauHienTai.id, traLoi)
+    giaiThichCauHoi(cauHienTai.id, traLoi, {
+      // Chữ hiện dần ngay khi AI viết ra
+      onChunk: (text) =>
+        setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text, loi: "" } })),
+    })
       .then((data) =>
         setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text: data.explanation, loi: "" } }))
       )

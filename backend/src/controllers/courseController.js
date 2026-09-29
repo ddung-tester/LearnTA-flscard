@@ -305,25 +305,71 @@ async function explainQuestion(req, res) {
     "SELECT explanation FROM course_question_explanations WHERE question_id = ? AND answer_norm = ? LIMIT 1",
     [questionId, answerNorm]
   );
+  // ?stream=1: trả chữ thuần, gửi dần từng đoạn ngay khi AI viết ra (người học thấy chữ sau ~1s).
+  // Header chỉ gửi khi đã có chữ đầu tiên, để lỗi trước đó vẫn trả được mã lỗi đúng.
+  const guiDan = req.query?.stream === "1";
+  let daMoLuong = false;
+  function moLuong() {
+    if (daMoLuong) return;
+    daMoLuong = true;
+    res.writeHead(200, {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+      "X-Accel-Buffering": "no",
+    });
+  }
+  function traVe(explanation, extra) {
+    if (!guiDan) {
+      res.json({ explanation, ...extra });
+      return;
+    }
+    moLuong();
+    res.end(explanation);
+  }
+
   if (cached[0]) {
-    res.json({ explanation: cached[0].explanation, cached: true });
+    traVe(cached[0].explanation, { cached: true });
     return;
   }
 
   let explanation;
   try {
-    explanation = await aiService.explainCourseQuestion({
-      lessonTitle: row.lesson_title,
-      grammar: docJson(row.lesson_content, {}).grammar || [],
-      question,
-      learnerAnswer: isMultipleChoice ? answerNorm : answer,
-      isCorrect: laTraLoiDung(question, answerNorm),
-    });
+    explanation = await aiService.explainCourseQuestion(
+      {
+        lessonTitle: row.lesson_title,
+        grammar: docJson(row.lesson_content, {}).grammar || [],
+        question,
+        learnerAnswer: isMultipleChoice ? answerNorm : answer,
+        isCorrect: laTraLoiDung(question, answerNorm),
+      },
+      guiDan
+        ? {
+            onChunk: (doan) => {
+              moLuong();
+              res.write(doan);
+            },
+          }
+        : {}
+    );
   } catch (error) {
     console.error("explainCourseQuestion failed:", error.message);
+    if (daMoLuong) {
+      // Đã gửi một phần chữ: kết thúc luồng, không lưu cache bản dở
+      res.end();
+      return;
+    }
+    // AI lỗi/quá hạn: dùng gợi ý có sẵn của câu hỏi (không lưu cache để lần sau vẫn thử AI)
+    if (question.explanation) {
+      traVe(question.explanation, { cached: false, fallback: true });
+      return;
+    }
     throw createHttpError(502, "AI chua giai thich duoc, thu lai sau");
   }
   if (!explanation) {
+    if (daMoLuong) {
+      res.end();
+      return;
+    }
     throw createHttpError(502, "AI chua giai thich duoc, thu lai sau");
   }
 
@@ -331,6 +377,10 @@ async function explainQuestion(req, res) {
     "INSERT IGNORE INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)",
     [questionId, answerNorm, explanation]
   );
+  if (guiDan) {
+    res.end();
+    return;
+  }
   res.json({ explanation, cached: false });
 }
 

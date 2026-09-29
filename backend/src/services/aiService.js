@@ -224,18 +224,35 @@ ${options}
 Đáp án đúng: ${correct}
 Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
 ${question.explanation ? `Gợi ý có sẵn: ${question.explanation}\n` : ""}
-Yêu cầu:
-- Viết bằng tiếng Việt, 3–5 câu ngắn, thân thiện, dễ hiểu với người mất gốc.
-- Nếu người học SAI: nói rõ vì sao câu trả lời của họ sai trước, rồi vì sao đáp án đúng.
-- Nếu người học ĐÚNG: khen ngắn một câu, rồi nhắc lại quy tắc để nhớ lâu.
-- Nêu quy tắc hoặc công thức liên quan và 1 câu ví dụ mới tương tự, kèm nghĩa tiếng Việt.
-- Chỉ viết đoạn văn thuần, được **in đậm** từ khoá; không dùng in nghiêng hay định dạng markdown khác; không tiêu đề, không lời chào, không chép lại đề bài.`;
+Trả lời bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "2" : "3"} dòng theo mẫu:
+${isCorrect ? MAU_GIAI_THICH_DUNG : MAU_GIAI_THICH_SAI}
+Được **in đậm** từ khoá; không dùng định dạng markdown khác, không lời chào, không chép lại đề bài.`;
 }
+
+const MAU_NHO = "Nhớ: <quy tắc hoặc công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)";
+const MAU_GIAI_THICH_DUNG = `Đúng rồi: <1 câu vì sao đáp án này đúng>
+${MAU_NHO}`;
+const MAU_GIAI_THICH_SAI = `Sai vì: <1 câu vì sao câu trả lời của người học sai>
+Đúng vì: <1 câu vì sao đáp án đúng là đúng>
+${MAU_NHO}`;
 
 // Model chính giống chatbot LearnBot (chất lượng hơn); quá tải (503) hoặc hết lượt thì dùng bản lite
 const COURSE_EXPLANATION_MODELS = ["gemini-3.6-flash", "gemini-flash-lite-latest"];
 
-async function explainCourseQuestion(input) {
+// Giải thích lúc đang học cần nhanh (đo 2026-09-29): flash-lite ~1.3s và không "suy nghĩ";
+// 3.6-flash mặc định có lúc quá tải 40s+, nên chỉ làm dự phòng với thinking "minimal" (~2s)
+const MODEL_GIAI_THICH_NHANH = [
+  { model: "gemini-flash-lite-latest" },
+  { model: "gemini-3.6-flash", generationConfig: { thinkingConfig: { thinkingLevel: "minimal" } } },
+];
+const THOI_HAN_GIAI_THICH_MS = 8000;
+const TOKEN_GIAI_THICH_TOI_DA = 260;
+
+/**
+ * Giải thích một câu bài tập. onChunk (tuỳ chọn): nhận từng đoạn chữ ngay khi AI viết ra.
+ * Mỗi model chờ tối đa THOI_HAN_GIAI_THICH_MS; chỉ chuyển model khi chưa gửi chữ nào đi.
+ */
+async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH_NHANH } = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
 
@@ -243,12 +260,30 @@ async function explainCourseQuestion(input) {
   const prompt = buildCourseExplanationPrompt(input);
   let lastError;
 
-  for (const modelName of COURSE_EXPLANATION_MODELS) {
+  for (const { model: modelName, generationConfig = {} } of models) {
+    let daGui = false;
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      return result.response.text().trim();
+      const model = genAI.getGenerativeModel(
+        { model: modelName, generationConfig: { maxOutputTokens: TOKEN_GIAI_THICH_TOI_DA, ...generationConfig } },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      if (!onChunk) {
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+      }
+      const { stream } = await model.generateContentStream(prompt);
+      let text = "";
+      for await (const chunk of stream) {
+        const doan = chunk.text();
+        if (!doan) continue;
+        text += doan;
+        daGui = true;
+        onChunk(doan);
+      }
+      return text.trim();
     } catch (error) {
+      // Đã gửi một phần chữ cho người học thì không đổi model giữa chừng
+      if (daGui) throw error;
       lastError = error;
     }
   }
