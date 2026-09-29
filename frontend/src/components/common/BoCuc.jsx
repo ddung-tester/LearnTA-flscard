@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { motion, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
 import NutAmThanh from "./NutAmThanh";
+
+const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
 const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
 
@@ -81,6 +83,12 @@ function BoCuc() {
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
+  // Mèo học cùng: mọi màn có câu hỏi / thẻ để trả lời
+  const coMeoHocCung =
+    laPhienHoc ||
+    viTri.pathname === "/review" ||
+    viTri.pathname === "/khoa-hoc/on-tap" ||
+    /^\/khoa-hoc\/[^/]+\/bai\//.test(viTri.pathname);
   const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
   // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), cập nhật mỗi lần SRS đổi
   const soTuDenHanLocal = useSyncExternalStore(theoDoiSRS, () => layThongKeSRS().duHomNay);
@@ -306,6 +314,11 @@ function BoCuc() {
           {noiDungTrang}
         </TrangVao>
       </main>
+      {coMeoHocCung && (
+        <Suspense fallback={null}>
+          <MeoHocCung />
+        </Suspense>
+      )}
     </div>
   );
 }

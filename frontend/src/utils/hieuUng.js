@@ -52,8 +52,15 @@ const KIEU_RUNG = {
   xong: [20, 40, 20, 40, 60],
 };
 
-/** Rung máy nhẹ trên điện thoại (bỏ qua nếu trình duyệt không hỗ trợ). */
+export const SU_KIEN_PHAN_HOI_HOC = "learnta:phan-hoi-hoc";
+
+/**
+ * Rung máy nhẹ trên điện thoại (bỏ qua nếu trình duyệt không hỗ trợ).
+ * Mọi màn học gọi hàm này đúng lúc trả lời đúng/sai/xong phiên, nên đây cũng là nơi báo
+ * sự kiện `SU_KIEN_PHAN_HOI_HOC` (detail: kieu) cho mèo học cùng (MeoHocCung) — kể cả khi giảm chuyển động.
+ */
 export function rungMay(kieu = "dung") {
+  window.dispatchEvent(new CustomEvent(SU_KIEN_PHAN_HOI_HOC, { detail: kieu }));
   if (nguoiDungGiamChuyenDong()) return;
   try {
     navigator.vibrate?.(KIEU_RUNG[kieu] ?? KIEU_RUNG.dung);
