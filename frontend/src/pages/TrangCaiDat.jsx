@@ -146,6 +146,22 @@ function TrangCaiDat() {
           </p>
         </section>
 
+        <p className="px-1 text-xs text-[var(--mau-chu-mo)]">
+          Hình minh hoạ từ vựng:{" "}
+          <a
+            href="https://googlefonts.github.io/noto-emoji-animation/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            Noto Emoji Animation
+          </a>{" "}
+          © Google, giấy phép{" "}
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="underline">
+            CC BY 4.0
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

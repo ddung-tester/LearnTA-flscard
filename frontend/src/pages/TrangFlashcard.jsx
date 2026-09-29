@@ -36,6 +36,8 @@ import { chonTheChoPhien, tachCauMau, taoHatGiong } from "../utils/phienHoc";
 import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
 import SongAm from "../components/common/SongAm";
 import ChuTheoGiong from "../components/common/ChuTheoGiong";
+import EmojiDong from "../components/common/EmojiDong";
+import { taiTruocEmoji } from "../utils/taiEmoji";
 
 const DS_CHE_DO = [
   {
@@ -574,6 +576,12 @@ function TrangFlashcard() {
     return () => window.removeEventListener("keydown", xuLyPhim);
   });
 
+  // Tải sẵn emoji minh hoạ của thẻ đang hiện để lật ra là có ngay
+  const tuDangHoc = danhSachTheoTienTrinh[chiSo]?.term_en;
+  useEffect(() => {
+    taiTruocEmoji(tuDangHoc);
+  }, [tuDangHoc]);
+
   // Auto-play TTS on card change or flip (only for English terms)
   useEffect(() => {
     const targetCard = danhSach[chiSo];
@@ -921,6 +929,8 @@ function TrangFlashcard() {
                 <div
                   className="fc-mat fc-mat--sau absolute inset-0 flex flex-col items-center justify-center rounded-xl px-5 py-7 [backface-visibility:hidden] [transform:rotateY(180deg)] sm:px-8 sm:py-9"
                 >
+                  {/* Hình minh hoạ chỉ gắn khi đã lật: nảy ra cùng đáp án, không chạy ngầm ở mặt khuất */}
+                  {daLat && <EmojiDong tu={theHienTai?.term_en} className="fc-mat__emoji" />}
                   <span className="fc-mat__tu max-w-full break-words text-center">
                     <ChuTheoGiong text={matSau} />
                   </span>

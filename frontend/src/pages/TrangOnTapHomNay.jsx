@@ -25,6 +25,8 @@ import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSa
 import "./TrangOnTapHomNay.css";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
+import EmojiDong from "../components/common/EmojiDong";
+import { taiTruocEmoji } from "../utils/taiEmoji";
 import {
   layTatCaSRS,
   capNhatKetQuaOnDongBo,
@@ -426,6 +428,10 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
 function ReviewCard({ entry, onRate, onRemove, isLoading }) {
   const [revealed, setRevealed] = useState(false);
 
+  useEffect(() => {
+    taiTruocEmoji(entry.word);
+  }, [entry.word]);
+
   function handleReveal() {
     setRevealed(true);
   }
@@ -458,6 +464,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
           </button>
         ) : (
           <div className="review-card__reveal ui-content-enter">
+            <EmojiDong tu={entry.word} className="review-card__emoji" />
             <p className="review-card__meaning">{entry.meaning}</p>
             {entry.example && (
               <p className="review-card__example">{entry.example}</p>
