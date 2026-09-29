@@ -5,6 +5,7 @@
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { chuanHoaTraLoi, laTraLoiDung } = require("../utils/khoaHoc");
+const { ghiNhanLoi, xepTheoLuot } = require("./luotGemini");
 
 const TENSES = [
   { key: "present_simple",     formula: "S + V(s/es)" },
@@ -240,11 +241,15 @@ ${MAU_NHO}`;
 // Model chính giống chatbot LearnBot (chất lượng hơn); quá tải (503) hoặc hết lượt thì dùng bản lite
 const COURSE_EXPLANATION_MODELS = ["gemini-3.6-flash", "gemini-flash-lite-latest"];
 
-// Giải thích lúc đang học cần nhanh (đo 2026-09-29): flash-lite ~1.3s và không "suy nghĩ";
-// 3.6-flash mặc định có lúc quá tải 40s+, nên chỉ làm dự phòng với thinking "minimal" (~2s)
+// Giải thích lúc đang học cần nhanh (đo 2026-09-29): flash-lite ~1.3–1.8s và không "suy nghĩ";
+// 3.6-flash mặc định có lúc quá tải 40s+, nên các bản flash chỉ dùng thinking "minimal" (~1.5–2s).
+// Gói miễn phí tính hạn mức riêng từng model → xếp nhiều model để model này hết lượt thì dùng model kia.
+const THINKING_TOI_THIEU = { thinkingConfig: { thinkingLevel: "minimal" } };
 const MODEL_GIAI_THICH_NHANH = [
   { model: "gemini-flash-lite-latest" },
-  { model: "gemini-3.6-flash", generationConfig: { thinkingConfig: { thinkingLevel: "minimal" } } },
+  { model: "gemini-3.5-flash", generationConfig: THINKING_TOI_THIEU },
+  { model: "gemini-3.1-flash-lite" },
+  { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
 ];
 // Tạo sẵn hàng loạt (scripts/sinh-giai-thich.js): cùng thứ tự với khi học — flash-lite chất lượng đủ tốt,
 // nhanh hơn ~5 lần, và 3.6-flash có hạn mức theo ngày thấp (hết 429 sau ~80 lượt ngày 2026-09-29)
@@ -264,7 +269,8 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
   const prompt = buildCourseExplanationPrompt(input);
   let lastError;
 
-  for (const { model: modelName, generationConfig = {} } of models) {
+  for (const mucModel of xepTheoLuot(models)) {
+    const { model: modelName, generationConfig = {} } = mucModel;
     let daGui = false;
     try {
       const model = genAI.getGenerativeModel(
@@ -286,6 +292,7 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
       }
       return text.trim();
     } catch (error) {
+      ghiNhanLoi(mucModel, error);
       // Đã gửi một phần chữ cho người học thì không đổi model giữa chừng
       if (daGui) throw error;
       lastError = error;
@@ -345,7 +352,8 @@ async function doanLoiThuongGap(input) {
   if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
   const genAI = new GoogleGenerativeAI(apiKey);
   let lastError;
-  for (const { model: modelName, generationConfig = {} } of MODEL_GIAI_THICH_SINH_SAN) {
+  for (const mucModel of xepTheoLuot(MODEL_GIAI_THICH_SINH_SAN)) {
+    const { model: modelName, generationConfig = {} } = mucModel;
     try {
       const model = genAI.getGenerativeModel(
         { model: modelName, generationConfig: { maxOutputTokens: 120, ...generationConfig } },
@@ -354,6 +362,7 @@ async function doanLoiThuongGap(input) {
       const result = await model.generateContent(buildLoiThuongGapPrompt(input));
       return parseLoiThuongGap(result.response.text(), input.question);
     } catch (error) {
+      ghiNhanLoi(mucModel, error);
       lastError = error;
     }
   }
@@ -443,6 +452,7 @@ module.exports = {
   buildCourseExplanationPrompt,
   explainCourseQuestion,
   MODEL_GIAI_THICH_SINH_SAN,
+  THINKING_TOI_THIEU,
   parseLoiThuongGap,
   doanLoiThuongGap,
   buildExtraPracticePrompt,

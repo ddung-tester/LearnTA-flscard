@@ -244,3 +244,60 @@ Sửa lỗi gõ trong lựa chọn: `"sua_lc": {"thi:phan_1": {10: ["help", "hel
 Quy ước khi soạn: bỏ câu theo tranh; bảng tick (✔) và "chọn từ trong khung" đổi thành trắc nghiệm; Đúng/Sai thành trắc nghiệm True/False; bài "đọc to" / tự ghi chép / nghe không có lời thoại thì bỏ. Đáp án bài thi lấy từ ảnh đáp án (`answer_pdf`); Quiz/PRACTICE tự giải theo ngữ pháp của bài (tài liệu không có đáp án). Bài 36: file đáp án là bản sao của bài 37 nên đáp án bài thi tự giải.
 
 Nạp: `npm run nhap:khoa-hoc` (kiểm tra) rồi `npm run nhap:khoa-hoc -- --email=ddung.tester@gmail.com --apply`.
+
+## Prompt tạo sẵn lời giải thích (ChatGPT, 2026-09-29)
+
+Mục đích: khi học, lời giải thích hiện ngay (không chờ AI, không tốn hạn mức Gemini). Mỗi buổi, ChatGPT soạn sẵn lời giải thích cho **mọi lựa chọn trắc nghiệm** (đúng lẫn sai), **đáp án đúng của câu điền từ** và **3–4 đáp án sai hay gặp** của câu điền từ.
+
+Cách làm cho mỗi buổi:
+1. Mở một cuộc trò chuyện ChatGPT mới, tải lên `lesson.json`, `exercises.json`, `answers.json` (và `extra.json` nếu có) của `bai-XX`, rồi dán prompt bên dưới (sửa số buổi).
+2. Tải các file `giai-thich-1.json`, `giai-thich-2.json`, … ChatGPT tạo ra, đặt vào `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/` (thư mục này nằm trong `.gitignore`, **không push**).
+3. Trong `backend/` (cần proxy Cloud SQL):
+   - `npm run sinh:giai-thich -- --email=<chủ khoá> --bai=XX --tu-file` → kiểm tra: số lời hợp lệ, dòng bị bỏ (sai id, sai lựa chọn, ChatGPT ghi nhầm đúng/sai), còn thiếu gì.
+   - Nếu thiếu nhiều: bảo ChatGPT "Còn thiếu: <dán danh sách thiếu>. Soạn tiếp vào file giai-thich-N.json".
+   - Ổn thì thêm `--apply` để ghi DB. Chỗ còn thiếu vẫn có AI giải thích khi học (chậm hơn).
+
+```text
+Bạn là giáo viên tiếng Anh cho người Việt mất gốc (A1–B1). Tôi tải lên các file JSON của BUỔI XX:
+- lesson.json: ngữ pháp trọng tâm của buổi (content.grammar)
+- exercises.json (+ extra.json nếu có, phần "questions"): các câu bài tập, mỗi câu có "id"
+- answers.json (+ extra.json, phần "answers"): đáp án đúng theo "question_id" ("answer" là chữ cái
+  với câu trắc nghiệm, là đáp án điền từ với câu fill_blank; có thể có nhiều cách viết đúng)
+
+NHIỆM VỤ: soạn sẵn lời giải thích ngắn cho từng câu trả lời có thể có.
+- Câu "multiple_choice": MỖI lựa chọn (A, B, C, D… đúng như trong "options") một dòng, cả đáp án đúng lẫn sai.
+- Câu "fill_blank": một dòng cho đáp án đúng, cộng thêm 3–4 đáp án SAI mà người Việt hay gõ nhất
+  (chia sai thì, thiếu/thừa đuôi -s/-ed/-ing, sai trợ động từ, sai chính tả phổ biến, dịch từng chữ…).
+  Đáp án sai phải thật sự sai, viết đúng như người học sẽ gõ.
+
+ĐỊNH DẠNG MỖI LỜI GIẢI THÍCH (tiếng Việt, tối đa 60 từ, xuống dòng bằng \n):
+- Trả lời SAI, đúng 3 dòng:
+  Sai vì: <1 câu vì sao câu trả lời này sai>
+  Đúng vì: <1 câu vì sao đáp án đúng là đúng>
+  Nhớ: <quy tắc/công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)
+- Trả lời ĐÚNG, đúng 2 dòng:
+  Đúng rồi: <1 câu vì sao đúng>
+  Nhớ: <quy tắc/công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)
+- Được **in đậm** từ khoá bằng **...**; không dùng markdown khác, không lời chào, không chép lại đề bài.
+- Giải thích đúng vào LỖI của chính câu trả lời đó (vd. chọn "rained" sau "didn't" → sai vì sau didn't dùng
+  động từ nguyên mẫu), không viết chung chung giống nhau cho mọi lựa chọn.
+
+FILE KẾT QUẢ: JSON thuần, dạng một mảng phẳng, mỗi phần tử:
+{"question_id": "<id câu, giữ nguyên>", "tra_loi": "<chữ cái lựa chọn, hoặc chữ đã gõ>", "dung": true|false, "giai_thich": "<lời giải thích>"}
+
+Ví dụ:
+[
+  {"question_id": "lesson_quiz_1_01", "tra_loi": "A", "dung": false, "giai_thich": "Sai vì: **weren't** dùng cho chủ ngữ số nhiều, còn **Tom** là số ít.\nĐúng vì: chủ ngữ số ít đi với **wasn't**.\nNhớ: **I/he/she/it + was**, **you/we/they + were** — ví dụ: She **wasn't** at home. (Cô ấy đã không ở nhà.)"},
+  {"question_id": "lesson_quiz_1_01", "tra_loi": "B", "dung": true, "giai_thich": "Đúng rồi: **Tom** là chủ ngữ số ít nên dùng **wasn't**.\nNhớ: **I/he/she/it + was** — ví dụ: He **wasn't** late. (Anh ấy đã không trễ.)"},
+  {"question_id": "exam_fill_01", "tra_loi": "didn't pay", "dung": true, "giai_thich": "Đúng rồi: ..."},
+  {"question_id": "exam_fill_01", "tra_loi": "didn't paid", "dung": false, "giai_thich": "Sai vì: sau **didn't** không chia quá khứ nữa.\nĐúng vì: ..."}
+]
+
+CÁCH LÀM (quan trọng, file rất dài):
+1. Dùng công cụ Python để đọc các file và ghi kết quả ra file tải về; KHÔNG in toàn bộ JSON vào khung chat.
+2. Chia theo nhóm khoảng 30 câu hỏi; mỗi nhóm ghi một file giai-thich-1.json, giai-thich-2.json, … cho đến hết
+   (gồm cả câu trong extra.json nếu có). Sau mỗi file, báo ngắn: đã làm câu nào đến câu nào, còn lại bao nhiêu.
+3. Trước khi xuất mỗi file, tự kiểm tra: JSON hợp lệ; mọi lựa chọn của mọi câu trắc nghiệm đều có mặt;
+   "dung" khớp đáp án trong answers.json; mỗi câu fill_blank có đáp án đúng + 3–4 đáp án sai.
+4. Làm xong tất cả thì đưa link tải từng file.
+```

@@ -74,14 +74,15 @@ function loiGemini(status) {
 
 test("falls back to the lite model when the main model is overloaded", async () => {
   const { traLoiChat, CHAT_MODELS } = require("../src/routes/chatRoutes");
-  const genAI = genAIGia({ [CHAT_MODELS[0]]: loiGemini(503), [CHAT_MODELS[1]]: "Chào bạn" });
+  const [chinh, duPhong] = CHAT_MODELS.map((muc) => muc.model);
+  const genAI = genAIGia({ [chinh]: loiGemini(503), [duPhong]: "Chào bạn" });
   const reply = await traLoiChat(genAI, { systemInstruction: "x", history: [], text: "hi" });
   assert.equal(reply, "Chào bạn");
-  assert.deepEqual(genAI.daGoi, CHAT_MODELS);
+  assert.deepEqual(genAI.daGoi, [chinh, duPhong]);
 });
 
 test("throws the last error when every model fails", async () => {
   const { traLoiChat, CHAT_MODELS } = require("../src/routes/chatRoutes");
-  const genAI = genAIGia(Object.fromEntries(CHAT_MODELS.map((m) => [m, loiGemini(503)])));
+  const genAI = genAIGia(Object.fromEntries(CHAT_MODELS.map((muc) => [muc.model, loiGemini(503)])));
   await assert.rejects(traLoiChat(genAI, { systemInstruction: "x", history: [], text: "hi" }), { status: 503 });
 });

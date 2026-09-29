@@ -5,13 +5,24 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const pool = require("../config/db");
 const { optionalAuth } = require("../middleware/authMiddleware");
 const { buildChatContext } = require("../services/chatContextService");
+const { THINKING_TOI_THIEU } = require("../services/aiService");
+const { ghiNhanLoi, xepTheoLuot } = require("../services/luotGemini");
 
 const router = express.Router();
 
 const MAX_HISTORY_MESSAGES = 20;
 
-// Model chính quá tải (503) hoặc hết lượt (429) thì chuyển sang bản lite, giống AI giải thích bài tập
-const CHAT_MODELS = ["gemini-3.6-flash", "gemini-flash-lite-latest"];
+// Model quá tải (503), hết lượt (429) hoặc chậm quá THOI_HAN_CHAT_MS thì chuyển model kế tiếp;
+// mỗi model có hạn mức miễn phí riêng. Đo 2026-09-29: flash-lite ~1.3s ổn định, còn các bản flash
+// ở gói miễn phí lúc 1.5s lúc 26s → flash-lite trước, flash (thinking "minimal") làm dự phòng.
+const TOKEN_CHAT_TOI_DA = 600;
+const CHAT_MODELS = [
+  { model: "gemini-flash-lite-latest" },
+  { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
+  { model: "gemini-3.5-flash", generationConfig: THINKING_TOI_THIEU },
+  { model: "gemini-3.1-flash-lite" },
+];
+const THOI_HAN_CHAT_MS = 10000;
 const LOI_TAM_THOI = new Set([429, 500, 503]);
 
 const chatLimiter = rateLimit({
@@ -55,12 +66,20 @@ Your role:
 
 async function traLoiChat(genAI, { systemInstruction, history, text }) {
   let loiCuoi;
-  for (const modelName of CHAT_MODELS) {
+  for (const mucModel of xepTheoLuot(CHAT_MODELS)) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+      const model = genAI.getGenerativeModel(
+        {
+          model: mucModel.model,
+          generationConfig: { maxOutputTokens: TOKEN_CHAT_TOI_DA, ...mucModel.generationConfig },
+          systemInstruction,
+        },
+        { timeout: THOI_HAN_CHAT_MS }
+      );
       const result = await model.startChat({ history }).sendMessage(text);
       return result.response.text();
     } catch (error) {
+      ghiNhanLoi(mucModel, error);
       loiCuoi = error;
     }
   }

@@ -428,3 +428,31 @@ test("parseLoiThuongGap reads fenced JSON, drops correct/duplicate/empty guesses
   assert.deepEqual(aiService.parseLoiThuongGap(text, cau), ["goed", "go", "gone", "goes"]);
   assert.deepEqual(aiService.parseLoiThuongGap("không phải JSON", cau), []);
 });
+
+test("kiemTraFileGiaiThich keeps valid items and rejects wrong ids, options and mis-graded answers", () => {
+  const { kiemTraFileGiaiThich } = require("../src/utils/khoaHoc");
+  const cauTheoKey = new Map([
+    ["q_mc", { id: 11, type: "multiple_choice", options: [{ key: "A" }, { key: "B" }], answer_key: "B" }],
+    ["q_fill", { id: 12, type: "fill_blank", accepted_answers: ["went"] }],
+  ]);
+  const { hopLe, loi } = kiemTraFileGiaiThich(
+    [
+      { question_id: "q_mc", tra_loi: "a", dung: false, giai_thich: "Sai vì: ..." },
+      { question_id: "q_mc", tra_loi: "B", dung: true, giai_thich: "Đúng rồi: ..." },
+      { question_id: "q_mc", tra_loi: "C", dung: false, giai_thich: "x" }, // không có lựa chọn C
+      { question_id: "q_fill", tra_loi: "Went.", dung: true, giai_thich: "Đúng rồi: ..." },
+      { question_id: "q_fill", tra_loi: "goed", dung: false, giai_thich: "Sai vì: ..." },
+      { question_id: "q_fill", tra_loi: "gone", dung: true, giai_thich: "x" }, // ChatGPT chấm nhầm
+      { question_id: "khong_co", tra_loi: "A", dung: false, giai_thich: "x" },
+      { question_id: "q_mc", tra_loi: "A", dung: false, giai_thich: "" }, // trống
+    ],
+    cauTheoKey
+  );
+  assert.deepEqual(hopLe, [
+    { questionId: 11, answerNorm: "A", explanation: "Sai vì: ..." },
+    { questionId: 11, answerNorm: "B", explanation: "Đúng rồi: ..." },
+    { questionId: 12, answerNorm: "went", explanation: "Đúng rồi: ..." },
+    { questionId: 12, answerNorm: "goed", explanation: "Sai vì: ..." },
+  ]);
+  assert.equal(loi.length, 4);
+});

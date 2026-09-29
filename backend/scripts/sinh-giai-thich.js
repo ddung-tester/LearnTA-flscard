@@ -11,14 +11,18 @@
  *   (vd. sau khi đổi prompt); --bai=tat-ca cho mọi buổi. Bị ngắt giữa chừng thì chạy lại: phần đã xong được bỏ qua.
  *   --moi-phut=10 (mặc định): số lượt gọi AI tối đa mỗi phút. Gói miễn phí của Gemini chỉ cho 15 lượt/phút/model
  *   và DÙNG CHUNG với website đang chạy, nên để thấp hơn 15; gói trả phí có thể đặt cao (vd. 300).
+ *   --tu-file: KHÔNG gọi AI — nạp các file bai-XX/giai-thich*.json do ChatGPT soạn theo prompt ở
+ *   docs/khoa-hoc-48-ngay.md (mục "Prompt tạo sẵn lời giải thích"); không --apply thì chỉ kiểm tra file.
  *   --loi-thuong-gap: câu điền từ còn được AI đoán trước 4 đáp án SAI hay gặp và tạo sẵn lời giải thích cho chúng.
  *   Dừng sớm khi AI lỗi liên tiếp (thường là hết hạn mức API) để không đốt lượt gọi.
  */
 require("dotenv/config");
+const fs = require("fs");
+const path = require("path");
 const pool = require("../src/config/db");
 const { doanLoiThuongGap, explainCourseQuestion, MODEL_GIAI_THICH_SINH_SAN } = require("../src/services/aiService");
-const { cacTraLoiCanGiaiThich, chuanHoaTraLoi } = require("../src/utils/khoaHoc");
-const { docThamSo } = require("./thuMucKhoaHoc");
+const { cacTraLoiCanGiaiThich, chuanHoaTraLoi, kiemTraFileGiaiThich } = require("../src/utils/khoaHoc");
+const { docJson: docFileJson, docThamSo, timCacBai } = require("./thuMucKhoaHoc");
 
 const SO_LUONG_SONG_SONG = 4;
 const SO_LAN_THU = 4;
@@ -62,6 +66,67 @@ async function coThuLai(lam) {
 
 const giaiThichCoThuLai = (input) =>
   coThuLai(() => explainCourseQuestion(input, { models: MODEL_GIAI_THICH_SINH_SAN }));
+
+function chuanHoaCau(dong) {
+  return {
+    id: dong.id,
+    type: dong.type,
+    instruction: dong.instruction || null,
+    prompt: dong.prompt,
+    options: docJson(dong.options, null),
+    answer_key: dong.answer_key || null,
+    accepted_answers: docJson(dong.accepted_answers, null),
+    explanation: dong.explanation || null,
+    listen_text: dong.listen_text || null,
+  };
+}
+
+const LUU_GIAI_THICH = `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
+  ON DUPLICATE KEY UPDATE explanation = VALUES(explanation), created_at = CURRENT_TIMESTAMP`;
+
+// --tu-file: nạp lời giải thích ChatGPT đã soạn (bai-XX/giai-thich*.json), kiểm tra kỹ trước khi ghi
+async function napTuFile(cauHoi, soBai, apply) {
+  let tongGhi = 0;
+  for (const { soBai: so, thuMuc } of timCacBai(soBai)) {
+    const cacFile = fs.readdirSync(thuMuc).filter((ten) => /^giai-thich.*\.json$/.test(ten)).sort();
+    if (cacFile.length === 0) continue;
+
+    const cauCuaBai = cauHoi.filter((dong) => dong.lesson_number === so);
+    const cauTheoKey = new Map(cauCuaBai.map((dong) => [dong.question_key, chuanHoaCau(dong)]));
+    const items = cacFile.flatMap((ten) => {
+      const duLieu = docFileJson(path.join(thuMuc, ten));
+      return Array.isArray(duLieu) ? duLieu : duLieu.items || [];
+    });
+    const { hopLe, loi } = kiemTraFileGiaiThich(items, cauTheoKey);
+
+    // Độ phủ: mọi lựa chọn trắc nghiệm + đáp án đúng của câu điền từ phải có lời giải thích
+    const daCo = new Set(hopLe.map((muc) => `${muc.questionId}|${muc.answerNorm}`));
+    const thieu = [...cauTheoKey.entries()].flatMap(([key, cau]) =>
+      cacTraLoiCanGiaiThich(cau)
+        .filter((traLoi) => !daCo.has(`${cau.id}|${traLoi.answerNorm}`))
+        .map((traLoi) => `${key}/${traLoi.answerNorm}`)
+    );
+    const soLoiThuongGap = hopLe.filter((muc) => {
+      const cau = [...cauTheoKey.values()].find((c) => c.id === muc.questionId);
+      return cau.type !== "multiple_choice" && !cacTraLoiCanGiaiThich(cau).some((t) => t.answerNorm === muc.answerNorm);
+    }).length;
+
+    console.log(
+      `Bài ${so} (${cacFile.join(", ")}): ${hopLe.length} lời hợp lệ (${soLoiThuongGap} cho lỗi hay gặp), ` +
+        `${loi.length} dòng bị bỏ, còn thiếu ${thieu.length}`
+    );
+    loi.slice(0, 8).forEach((dong) => console.log(`   ⚠ ${dong}`));
+    if (thieu.length) console.log(`   thiếu: ${thieu.slice(0, 10).join(", ")}${thieu.length > 10 ? ", ..." : ""}`);
+
+    if (apply) {
+      for (const muc of hopLe) {
+        await pool.query(LUU_GIAI_THICH, [muc.questionId, muc.answerNorm, muc.explanation]);
+      }
+      tongGhi += hopLe.length;
+    }
+  }
+  console.log(apply ? `✅ Đã ghi ${tongGhi} lời giải thích từ file` : "Chỉ kiểm tra. Thêm --apply để ghi DB.");
+}
 
 /** Chạy lam(mục) cho cả danh sách với SO_LUONG_SONG_SONG luồng; dừng sớm khi lỗi liên tiếp quá nhiều. */
 async function chaySongSong(danhSach, lam, nhan) {
@@ -121,6 +186,11 @@ async function main() {
   );
   if (cauHoi.length === 0) throw new Error(`không có câu bài tập nào cho --bai=${bai}`);
 
+  if (process.argv.includes("--tu-file")) {
+    await napTuFile(cauHoi, bai === "tat-ca" ? undefined : Number(bai), apply);
+    return;
+  }
+
   const [daCo] = await pool.query(
     `SELECT question_id, answer_norm, created_at FROM course_question_explanations WHERE question_id IN (?)`,
     [cauHoi.map((cau) => cau.id)]
@@ -135,16 +205,7 @@ async function main() {
   const viec = [];
   const cauDienTu = [];
   for (const dong of cauHoi) {
-    const question = {
-      type: dong.type,
-      instruction: dong.instruction || null,
-      prompt: dong.prompt,
-      options: docJson(dong.options, null),
-      answer_key: dong.answer_key || null,
-      accepted_answers: docJson(dong.accepted_answers, null),
-      explanation: dong.explanation || null,
-      listen_text: dong.listen_text || null,
-    };
+    const question = chuanHoaCau(dong);
     const nguCanh = { lessonTitle: dong.lesson_title, grammar: docJson(dong.lesson_content, {}).grammar || [], question };
     if (question.type !== "multiple_choice") cauDienTu.push({ questionId: dong.id, soBai: dong.lesson_number, nguCanh });
     for (const traLoi of cacTraLoiCanGiaiThich(question)) {
@@ -205,11 +266,7 @@ async function main() {
     async (mot) => {
       const text = await giaiThichCoThuLai(mot.input);
       if (!text) throw new Error("AI trả về rỗng");
-      await pool.query(
-        `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE explanation = VALUES(explanation), created_at = CURRENT_TIMESTAMP`,
-        [mot.questionId, mot.answerNorm, text]
-      );
+      await pool.query(LUU_GIAI_THICH, [mot.questionId, mot.answerNorm, text]);
     },
     (mot) => `câu ${mot.questionId} "${mot.answerNorm}"`
   );

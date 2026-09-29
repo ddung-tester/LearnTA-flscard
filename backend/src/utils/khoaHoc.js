@@ -86,6 +86,37 @@ function cacTraLoiCanGiaiThich(cauHoi) {
   return ketQua;
 }
 
+const DO_DAI_GIAI_THICH_TOI_DA = 1200;
+
+/**
+ * Kiểm tra file giai-thich*.json do ChatGPT soạn (docs/khoa-hoc-48-ngay.md) trước khi nạp vào cache.
+ * cauTheoKey: Map question_key → câu hỏi trong DB ({ id, type, options, answer_key, accepted_answers }).
+ * Chấm lại bằng luật của server: dòng ghi "dung" sai sự thật, sai id, sai lựa chọn hay trống đều bị bỏ.
+ */
+function kiemTraFileGiaiThich(items, cauTheoKey) {
+  const hopLe = [];
+  const loi = [];
+  (Array.isArray(items) ? items : []).forEach((item, viTri) => {
+    const nhan = `dòng ${viTri + 1} (${item?.question_id ?? "?"} / ${item?.tra_loi ?? "?"})`;
+    const cau = cauTheoKey.get(chuoi(item?.question_id));
+    const traLoi = chuoi(item?.tra_loi);
+    const explanation = chuoi(item?.giai_thich).slice(0, DO_DAI_GIAI_THICH_TOI_DA);
+    if (!cau) return loi.push(`${nhan}: không có câu này trong buổi`);
+    if (!traLoi || !explanation) return loi.push(`${nhan}: thiếu câu trả lời hoặc lời giải thích`);
+
+    const laTracNghiem = cau.type === "multiple_choice";
+    const answerNorm = laTracNghiem ? traLoi.toUpperCase() : chuanHoaTraLoi(traLoi);
+    if (laTracNghiem && !(cau.options || []).some((option) => option.key === answerNorm)) {
+      return loi.push(`${nhan}: không có lựa chọn ${answerNorm}`);
+    }
+    if (Boolean(item.dung) !== laTraLoiDung(cau, traLoi)) {
+      return loi.push(`${nhan}: ghi "dung": ${Boolean(item.dung)} nhưng chấm thật là ${!item.dung}`);
+    }
+    hopLe.push({ questionId: cau.id, answerNorm, explanation });
+  });
+  return { hopLe, loi };
+}
+
 function chuanHoaNguPhap(muc) {
   return {
     id: chuoi(muc?.id),
@@ -514,6 +545,7 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
 
 module.exports = {
   cacTraLoiCanGiaiThich,
+  kiemTraFileGiaiThich,
   chuanHoaTraLoi,
   laTraLoiDung,
   lichOnCauHoi,
