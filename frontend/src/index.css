@@ -5011,57 +5011,6 @@ body.is-page-loading .page-transition-root {
   max-width: 72rem;
 }
 
-/* ── Lottie background layer ─────────────────────────────────────────── */
-
-/*
- * .dash-bg is rendered with position:fixed so it covers the full viewport
- * and lives outside the dash-page stacking context.
- * z-index: 0 → below z-index: 1 of the content, above body.
- */
-.dash-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  /*
-   * Vivid base gradient — visible even where Lottie is transparent.
-   * Lottie animation renders on top of this, wash tones it all down.
-   * Hue 170 = warm teal, Hue 68 = amber, gives the Streak Drop brand.
-   */
-  background:
-    radial-gradient(ellipse 65% 55% at 18% 22%, oklch(74% 0.10 55) 0%, transparent 100%),
-    radial-gradient(ellipse 50% 60% at 88% 80%, oklch(83% 0.06 68) 0%, transparent 100%),
-    radial-gradient(ellipse 40% 40% at 60% 10%, oklch(79% 0.10 61) 0%, transparent 100%),
-    oklch(90% 0.05 58);
-}
-
-.dash-bg__lottie {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  mix-blend-mode: multiply;
-}
-
-/*
- * Warm paper wash — softens the gradient+animation to a readable level.
- * At 0.28 opacity: 72% of the vivid background shows through.
- */
-.dash-bg__wash {
-  position: absolute;
-  inset: 0;
-  /* Balanced wash — smooths the animation without washing it out */
-  background: oklch(96% 0.008 77/ 0.18);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dash-bg__lottie {
-    /* Lottie JS is paused via useEffect in DashBackground component */
-    opacity: 0;
-  }
-}
-
 /* ── Dashboard page ──────────────────────────────────────────────────── */
 
 .dash-page {

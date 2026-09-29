@@ -1,12 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import {
-  BACKGROUND_DEFAULT_VIDEO,
-  BACKGROUND_QUIZ_VIDEO,
-} from "../constants/backgrounds";
+import { useLayoutEffect } from "react";
 import "./VideoBackground.css";
-
-const BACKGROUND_SOURCES = [BACKGROUND_DEFAULT_VIDEO, BACKGROUND_QUIZ_VIDEO];
 
 const BODY_MODE_CLASSES = [
   "has-video-background--immersive",
@@ -21,76 +14,15 @@ const BODY_VARIANT_CLASSES = [
   "has-video-background-variant--flat",
 ];
 
-function VideoLayer({ src, active }) {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const video = videoRef.current;
-    if (!video) return undefined;
-
-    // Đảm bảo tuyệt đối tuân thủ Autoplay Policy của mọi trình duyệt & iOS Low Power Mode
-    video.defaultMuted = true;
-    video.muted = true;
-    video.playsInline = true;
-    video.setAttribute("playsinline", "");
-    video.setAttribute("webkit-playsinline", "");
-
-    function applyMotionPref() {
-      if (mq.matches || !active) {
-        video?.pause();
-        return;
-      }
-      video.loop = true;
-      video.play().catch(() => {});
-    }
-
-    video.loop = true;
-    mq.addEventListener("change", applyMotionPref);
-    applyMotionPref();
-
-    return () => {
-      mq.removeEventListener("change", applyMotionPref);
-    };
-  }, [active, src]);
-
-  return (
-    <video
-      ref={(el) => {
-        videoRef.current = el;
-        if (el) {
-          el.defaultMuted = true;
-          el.muted = true;
-          el.playsInline = true;
-          el.setAttribute("playsinline", "");
-          el.setAttribute("webkit-playsinline", "");
-        }
-      }}
-      className={`video-bg__video ${active ? "video-bg__video--active" : ""}`}
-      src={src}
-      autoPlay={active}
-      muted
-      loop
-      preload="auto"
-      playsInline
-    />
-  );
-}
-
+/**
+ * VideoBackground — khung nền của app: gắn class mode/variant lên <body> (nhiều CSS dựa vào đó).
+ * Tên giữ từ thời có video nền; app hiện chỉ dùng nền phẳng (variant "flat"), đã bỏ lớp video.
+ */
 function VideoBackground({
-  src = BACKGROUND_QUIZ_VIDEO,
   variant = "default",
   mode = "app",
   children,
 }) {
-  const isFlat = variant === "flat";
-
-  // Flat variant: không cần video sources — tránh load file media thừa
-  const videoSources = useMemo(
-    () => (isFlat ? [] : [...new Set([...BACKGROUND_SOURCES, src])]),
-    [src, isFlat]
-  );
-
   useLayoutEffect(() => {
     document.body.classList.add("has-video-background");
 
@@ -111,35 +43,7 @@ function VideoBackground({
     document.body.classList.add(modeClass, variantClass);
   }, [mode, variant]);
 
-  return (
-    <>
-      {/* Flat variant: không render video hay overlay — chỉ dùng CSS body background */}
-      {!isFlat && (
-        <div className="video-bg" aria-hidden="true">
-          {videoSources.map((videoSrc) => (
-            <VideoLayer
-              key={videoSrc}
-              src={videoSrc}
-              active={videoSrc === src}
-            />
-          ))}
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={variant}
-              className={`video-bg__overlay video-bg__overlay--${variant}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            />
-          </AnimatePresence>
-        </div>
-      )}
-      <div className={`video-bg-content video-bg-content--${mode}`}>
-        {children}
-      </div>
-    </>
-  );
+  return <div className={`video-bg-content video-bg-content--${mode}`}>{children}</div>;
 }
 
 export default VideoBackground;
