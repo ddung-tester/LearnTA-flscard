@@ -2054,3 +2054,35 @@ body.has-video-background--app .roadmap-card {
     transform: rotateY(100deg);
   }
 }
+
+/* Trang chủ: màn đầu (hero) cao đúng một màn hình, phần kể chuyện nằm dưới */
+.home-man-dau {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.home-canh-3d[data-an="1"] {
+  opacity: 0;
+}
+
+/* Gợi ý cuộn xuống ở cuối hero */
+.home-cuon-xuong {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 1rem;
+  color: var(--mau-chu-mo);
+  font-size: 0.85rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-cuon-xuong span {
+    animation: cc-nhun 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes cc-nhun {
+  50% {
+    transform: translateY(6px);
+  }
+}

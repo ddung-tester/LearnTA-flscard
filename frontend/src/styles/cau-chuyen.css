@@ -1,0 +1,263 @@
+/* =========================================================
+   Trang chủ: kể chuyện theo cuộn (components/home/CauChuyenCuon)
+   Trạng thái mặc định (không JS / giảm chuyển động) là trạng thái cuối của mỗi chương.
+   ========================================================= */
+.cc {
+  --cc-xanh: oklch(56% 0.13 150);
+  position: relative;
+  display: grid;
+}
+
+.cc-chuong {
+  display: grid;
+  align-items: center;
+  gap: 2rem;
+  min-height: 100vh;
+  padding: 4rem 0;
+}
+
+@media (min-width: 880px) {
+  .cc-chuong {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 4rem;
+    min-height: 100vh;
+    padding: 0;
+  }
+}
+
+.cc-loi {
+  display: grid;
+  gap: 0.9rem;
+  align-content: center;
+}
+
+.cc-loi__so {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--mau-le-do);
+}
+
+.cc-loi__tieu-de {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1.05;
+  color: var(--mau-chu);
+}
+
+.cc-loi__buoc {
+  max-width: 34ch;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--mau-chu-phu);
+}
+
+.cc-san-khau {
+  display: grid;
+  place-items: center;
+  perspective: 1400px;
+}
+
+/* ── 1. Thẻ lật ── */
+.cc-the {
+  width: min(24rem, 86vw);
+  aspect-ratio: 5 / 3;
+}
+
+.cc-the__trong {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.cc-the__mat {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background:
+    linear-gradient(to bottom, transparent 3.2rem, color-mix(in srgb, var(--mau-le-do) 70%, transparent) 3.2rem, color-mix(in srgb, var(--mau-le-do) 70%, transparent) calc(3.2rem + 1.5px), transparent calc(3.2rem + 1.5px)),
+    repeating-linear-gradient(to bottom, transparent 0 1.9rem, var(--mau-dong-ke) 1.9rem calc(1.9rem + 1px)),
+    var(--mau-giay);
+  box-shadow: var(--bong-giay-nang);
+  text-align: center;
+  backface-visibility: hidden;
+}
+
+.cc-the__mat--sau {
+  transform: rotateY(180deg);
+}
+
+.cc-the__tu {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: var(--mau-chu);
+}
+
+.cc-the__goi-y {
+  color: var(--mau-chu-mo);
+}
+
+.cc-the__nghia {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.cc-the__vi-du {
+  font-style: italic;
+  color: var(--mau-chu-phu);
+}
+
+.cc-the__to {
+  padding: 0 0.15em;
+  background: linear-gradient(transparent 45%, #ffe066 45%, #ffe066 90%, transparent 90%) no-repeat 0 0 / 100% 100%;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* ── 2. Đường cong trí nhớ ── */
+.cc-bieu-do {
+  width: min(40rem, 100%);
+  height: auto;
+  overflow: visible;
+  border-radius: 1rem;
+  background: var(--mau-giay);
+  box-shadow: var(--bong-giay-nang);
+  padding: 1rem;
+}
+
+.cc-truc {
+  stroke: var(--mau-vien-manh);
+  stroke-width: 1.5;
+}
+
+.cc-duong-nho {
+  fill: none;
+  stroke: var(--mau-le-do);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cc-moc circle {
+  fill: var(--cc-xanh);
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.cc-moc text {
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--mau-chu-phu);
+}
+
+.cc-moc {
+  transform-box: fill-box;
+}
+
+/* ── 3. Lưới 48 buổi ── */
+.cc-luoi {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.5rem;
+  width: min(30rem, 100%);
+  border-radius: 1rem;
+  background: var(--mau-giay);
+  box-shadow: var(--bong-giay-nang);
+  padding: 1.1rem;
+}
+
+.cc-o {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1.5px solid var(--cc-xanh);
+  border-radius: 0.55rem;
+  background: var(--cc-xanh);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── 4. Chế độ học ── */
+.cc-hang-che-do {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 880px) {
+  .cc-hang-che-do {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.cc-che-do {
+  display: grid;
+  gap: 0.3rem;
+  min-height: 7rem;
+  align-content: start;
+  border: 1px solid var(--mau-vien);
+  border-top: 3px solid var(--mau-le-do);
+  border-radius: 0.8rem;
+  background: var(--mau-giay);
+  box-shadow: var(--bong-giay);
+  padding: 1rem;
+}
+
+.cc-che-do__ten {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.cc-che-do__mo {
+  font-size: 0.9rem;
+  color: var(--mau-chu-phu);
+}
+
+/* ── Lời mời cuối ── */
+.cc-cuoi {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  padding: 6rem 0 4rem;
+  text-align: center;
+}
+
+.cc-cuoi__tieu-de {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  color: var(--mau-chu);
+}
+
+.cc-cuoi__mo {
+  margin: 0;
+  color: var(--mau-chu-phu);
+}
+
+.cc-cuoi__nut {
+  min-height: 3rem;
+  border-radius: 0.8rem;
+  padding: 0 1.6rem;
+  font-weight: 700;
+}

@@ -12,6 +12,8 @@ import useNghieng3D from "../hooks/useNghieng3D";
 
 // Hero WebGL (three.js, chunk riêng): chỉ tải khi máy vẽ được WebGL và người dùng không hạn chế chuyển động/dữ liệu
 const CanhThe3D = lazy(() => import("../components/home/CanhThe3D"));
+// Phần kể chuyện theo cuộn (gsap + lenis, chunk riêng) nằm dưới màn đầu
+const CauChuyenCuon = lazy(() => import("../components/home/CauChuyenCuon"));
 
 function coTheDung3D() {
   if (typeof window === "undefined") return false;
@@ -192,6 +194,17 @@ function TrangChu() {
   const [dung3D] = useState(coTheDung3D);
   // Mỗi lần ném thẻ: một cơn gió thổi đàn thẻ 3D theo hướng ném
   const [gio, setGio] = useState({ huong: 1, lan: 0 });
+  // Cuộn qua màn đầu: hero 3D mờ đi và ngừng vẽ
+  const manDauRef = useRef(null);
+  const [quaManDau, setQuaManDau] = useState(false);
+
+  useEffect(() => {
+    const manDau = manDauRef.current;
+    if (!manDau) return undefined;
+    const quanSat = new IntersectionObserver(([muc]) => setQuaManDau(!muc.isIntersecting), { threshold: 0.3 });
+    quanSat.observe(manDau);
+    return () => quanSat.disconnect();
+  }, []);
 
   function thoiGio(huong) {
     setGio((truoc) => ({ huong, lan: truoc.lan + 1 }));
@@ -210,84 +223,93 @@ function TrangChu() {
     <main className="home-trang">
       {dung3D && (
         <Suspense fallback={null}>
-          <CanhThe3D gio={gio} />
+          <CanhThe3D gio={gio} tamDung={quaManDau} />
         </Suspense>
       )}
-      <header className="home-dau">
-        <span className="dash-nav__brand">
-          <span className="dash-nav__brand-mark" aria-hidden="true" />
-          Streak Drop
-        </span>
-        <Link to={isAuthenticated ? "/dashboard" : "/login"} className="dash-nav__link">
-          {isAuthenticated ? "Vào Dashboard" : "Đăng nhập"}
-        </Link>
-      </header>
+      <div ref={manDauRef} className="home-man-dau">
+        <header className="home-dau">
+          <span className="dash-nav__brand">
+            <span className="dash-nav__brand-mark" aria-hidden="true" />
+            Streak Drop
+          </span>
+          <Link to={isAuthenticated ? "/dashboard" : "/login"} className="dash-nav__link">
+            {isAuthenticated ? "Vào Dashboard" : "Đăng nhập"}
+          </Link>
+        </header>
 
-      <section className="home-than">
-        <div className="home-loi">
-          <h1 className="home-loi__tieu-de">Học từ vựng tiếng Anh, mỗi lần một thẻ.</h1>
-          <p className="home-loi__mo-ta">
-            Tạo bộ từ của riêng bạn, lật thẻ để ghi nhớ, rồi tự kiểm tra bằng trắc nghiệm
-            và tự luận. Từ nào hay quên sẽ tự quay lại đúng lúc cần ôn.
-          </p>
-          <div className="home-loi__hanh-dong">
-            <Link
-              to={startPath}
-              state={startState}
-              className="ui-button ui-button--primary home-loi__nut-chinh"
-            >
-              Bắt đầu học ngay
-            </Link>
-            <Link to="/khoa-hoc" className="ui-button ui-button--ghost home-loi__nut-phu">
-              Xem lộ trình học
-            </Link>
+        <section className="home-than">
+          <div className="home-loi">
+            <h1 className="home-loi__tieu-de">Học từ vựng tiếng Anh, mỗi lần một thẻ.</h1>
+            <p className="home-loi__mo-ta">
+              Tạo bộ từ của riêng bạn, lật thẻ để ghi nhớ, rồi tự kiểm tra bằng trắc nghiệm
+              và tự luận. Từ nào hay quên sẽ tự quay lại đúng lúc cần ôn.
+            </p>
+            <div className="home-loi__hanh-dong">
+              <Link
+                to={startPath}
+                state={startState}
+                className="ui-button ui-button--primary home-loi__nut-chinh"
+              >
+                Bắt đầu học ngay
+              </Link>
+              <Link to="/khoa-hoc" className="ui-button ui-button--ghost home-loi__nut-phu">
+                Xem lộ trình học
+              </Link>
+            </div>
           </div>
-        </div>
 
-        <div className="home-xap">
-          <div
-            ref={xapRef}
-            onPointerMove={nghiengXap}
-            onPointerLeave={thoiNghiengXap}
-            className="home-xap__khung ui-nghieng-3d ui-nghieng-3d--khong-sang"
-          >
-            {/* Giữ nguyên thứ tự DOM (chồng thẻ bằng zIndex): đổi chỗ node giữa chừng làm hỏng thao tác kéo */}
-            {THE_MAU.map((the, chiSoThe) => (
-              <TheMau
-                key={the.en}
-                the={the}
-                tang={thuTu.indexOf(chiSoThe)}
-                soThe={THE_MAU.length}
-                daLat={daLat}
-                onLat={() => setDaLat((dangLat) => !dangLat)}
-                dangNem={dangNem}
-                onBatDauNem={(huong) => {
-                  setDangNem(true);
-                  thoiGio(huong);
+          <div className="home-xap">
+            <div
+              ref={xapRef}
+              onPointerMove={nghiengXap}
+              onPointerLeave={thoiNghiengXap}
+              className="home-xap__khung ui-nghieng-3d ui-nghieng-3d--khong-sang"
+            >
+              {/* Giữ nguyên thứ tự DOM (chồng thẻ bằng zIndex): đổi chỗ node giữa chừng làm hỏng thao tác kéo */}
+              {THE_MAU.map((the, chiSoThe) => (
+                <TheMau
+                  key={the.en}
+                  the={the}
+                  tang={thuTu.indexOf(chiSoThe)}
+                  soThe={THE_MAU.length}
+                  daLat={daLat}
+                  onLat={() => setDaLat((dangLat) => !dangLat)}
+                  dangNem={dangNem}
+                  onBatDauNem={(huong) => {
+                    setDangNem(true);
+                    thoiGio(huong);
+                  }}
+                  onNem={chuyenTheTrenCungXuongDay}
+                  giam={giam}
+                  daChiaXong={daChiaXong}
+                  onChiaXong={() => setDaChiaXong(true)}
+                />
+              ))}
+            </div>
+            <div className="home-xap__goi-y">
+              <span>Nhấn để lật thẻ, kéo sang bên để đổi thẻ.</span>
+              <button
+                type="button"
+                className="home-xap__doi"
+                onClick={() => {
+                  chuyenTheTrenCungXuongDay();
+                  thoiGio(-1);
                 }}
-                onNem={chuyenTheTrenCungXuongDay}
-                giam={giam}
-                daChiaXong={daChiaXong}
-                onChiaXong={() => setDaChiaXong(true)}
-              />
-            ))}
+                disabled={dangNem}
+              >
+                Thẻ khác
+              </button>
+            </div>
           </div>
-          <div className="home-xap__goi-y">
-            <span>Nhấn để lật thẻ, kéo sang bên để đổi thẻ.</span>
-            <button
-              type="button"
-              className="home-xap__doi"
-              onClick={() => {
-                chuyenTheTrenCungXuongDay();
-                thoiGio(-1);
-              }}
-              disabled={dangNem}
-            >
-              Thẻ khác
-            </button>
-          </div>
-        </div>
-      </section>
+        </section>
+        <p className="home-cuon-xuong" aria-hidden="true">
+          <span>Cuộn xuống để xem cách học ↓</span>
+        </p>
+      </div>
+
+      <Suspense fallback={null}>
+        <CauChuyenCuon startPath={startPath} startState={startState} />
+      </Suspense>
     </main>
   );
 }

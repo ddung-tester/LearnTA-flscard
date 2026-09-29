@@ -76,9 +76,11 @@ function ngauNhien(min, max) {
  * thổi đàn thẻ theo hướng ném (gio.huong: -1 trái, 1 phải).
  * Chỉ được tải khi có WebGL và không bật giảm chuyển động (xem TrangChu).
  */
-function CanhThe3D({ gio }) {
+function CanhThe3D({ gio, tamDung = false }) {
   const khungRef = useRef(null);
   const thoiGioRef = useRef(null);
+  const tiepTucRef = useRef(null);
+  const tamDungRef = useRef(tamDung);
 
   useEffect(() => {
     const khung = khungRef.current;
@@ -175,13 +177,20 @@ function CanhThe3D({ gio }) {
 
       renderer.render(scene, camera);
       if (khung.dataset.daVe !== "1") khung.dataset.daVe = "1";
-      raf = dangHien ? requestAnimationFrame(khung1) : 0;
+      raf = dangHien && !tamDungRef.current ? requestAnimationFrame(khung1) : 0;
     }
 
     function xuLyConTro(event) {
       conTro.mx = (event.clientX / window.innerWidth - 0.5) * 2;
       conTro.my = -(event.clientY / window.innerHeight - 0.5) * 2;
     }
+
+    tiepTucRef.current = () => {
+      if (dangHien && !raf) {
+        truoc = performance.now();
+        raf = requestAnimationFrame(khung1);
+      }
+    };
 
     thoiGioRef.current = (huong) => {
       for (const the of cacThe) {
@@ -212,6 +221,7 @@ function CanhThe3D({ gio }) {
       quanSatCo.disconnect();
       window.removeEventListener("pointermove", xuLyConTro);
       thoiGioRef.current = null;
+      tiepTucRef.current = null;
       hinh.dispose();
       cacVatLieu.forEach((vatLieu) => {
         vatLieu.map.dispose();
@@ -228,7 +238,13 @@ function CanhThe3D({ gio }) {
     if (gio.lan > 0) thoiGioRef.current?.(gio.huong);
   }, [gio]);
 
-  return <div ref={khungRef} className="home-canh-3d" aria-hidden="true" />;
+  // Cuộn qua màn đầu: ngừng vẽ (CSS làm mờ qua data-an), quay lại thì vẽ tiếp
+  useEffect(() => {
+    tamDungRef.current = tamDung;
+    if (!tamDung) tiepTucRef.current?.();
+  }, [tamDung]);
+
+  return <div ref={khungRef} className="home-canh-3d" data-an={tamDung ? "1" : undefined} aria-hidden="true" />;
 }
 
 export default CanhThe3D;
