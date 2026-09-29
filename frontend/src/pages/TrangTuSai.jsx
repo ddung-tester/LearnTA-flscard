@@ -1,6 +1,7 @@
 import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import EmptyState from "../components/common/EmptyState";
+import AnimatedModal from "../components/common/AnimatedModal";
 import { useToast } from "../contexts/ToastContext";
 import {
   layTatCaTuSai,
@@ -248,6 +249,7 @@ function TrangTuSai() {
   const [filter, setFilter] = useState("all");
   const [deckFilter, setDeckFilter] = useState(initialDeck);
   const [search, setSearch] = useState("");
+  const [dangXacNhanXoaHet, setDangXacNhanXoaHet] = useState(false);
   const [sort, setSort] = useState("last_wrong");
 
   const refresh = useCallback(async () => {
@@ -302,7 +304,7 @@ function TrangTuSai() {
   }
 
   async function handleClearAll() {
-    if (!window.confirm("Xoá toàn bộ sổ từ sai? Hành động này không thể hoàn tác.")) return;
+    setDangXacNhanXoaHet(false);
     await xoaTatCaTuSaiDongBo();
     setAllEntries([]);
     toast.warning("Đã xoá toàn bộ sổ từ sai.");
@@ -395,13 +397,43 @@ function TrangTuSai() {
         <div className="tu-sai-danger-zone">
           <button
             type="button"
-            onClick={handleClearAll}
+            onClick={() => setDangXacNhanXoaHet(true)}
             className="tu-sai-btn tu-sai-btn--danger-outline"
           >
             Xoá toàn bộ sổ từ sai
           </button>
         </div>
       )}
+
+      <AnimatedModal
+        open={dangXacNhanXoaHet}
+        onClose={() => setDangXacNhanXoaHet(false)}
+        labelledBy="tu-sai-xoa-het-tieu-de"
+        className="ui-form-panel max-w-[340px] shadow-[var(--bong-modal)] p-6 text-center"
+      >
+        <h3 id="tu-sai-xoa-het-tieu-de" className="text-xl font-bold text-[var(--mau-chu)] mb-2">
+          Xoá toàn bộ sổ từ sai?
+        </h3>
+        <p className="text-sm text-[var(--mau-chu-phu)] mb-6">
+          Hành động này không thể hoàn tác.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setDangXacNhanXoaHet(false)}
+            className="ui-button ui-button--ghost py-3 rounded-xl border border-[var(--mau-vien)] text-sm font-semibold"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="ui-button ui-button--danger py-3 rounded-xl text-sm font-bold"
+          >
+            Xoá hết
+          </button>
+        </div>
+      </AnimatedModal>
     </div>
   );
 }

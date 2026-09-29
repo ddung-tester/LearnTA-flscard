@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
-import LottieModule from "lottie-react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
-const Lottie = LottieModule.default ?? LottieModule;
+// Tải lottie-web khi overlay cần hiện lần đầu, không nằm trong bundle chính
+const Lottie = lazy(() =>
+  import("lottie-react").then((m) => ({ default: m.default?.default ?? m.default })),
+);
 const LOADING_REVEAL_DELAY_MS = 120;
 // Trì hoãn nhỏ khi ẩn overlay: safety net cho double-rAF bridge,
 // tránh flicker nếu data-loading key chưa kịp đăng ký trên thiết bị chậm.
@@ -16,8 +18,10 @@ function PageLoadingOverlay({ hienThi }) {
   // Giữ Lottie mount đến sau khi animation fade-out hoàn tất, tránh bị cắt đứt giữa chướng
   const [giuLottie, setGiuLottie] = useState(false);
   const lottieTimerRef = useRef(null);
+  const giamChuyenDong = useReducedMotion();
 
   useEffect(() => {
+    if (giamChuyenDong) return undefined;
     const controller = new AbortController();
 
     fetch("/animation/loading.json", { signal: controller.signal })
@@ -38,7 +42,7 @@ function PageLoadingOverlay({ hienThi }) {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [giamChuyenDong]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -69,7 +73,7 @@ function PageLoadingOverlay({ hienThi }) {
     };
   }, [hienThi]);
 
-  const hienLottie = giuLottie && loadingAnimation;
+  const hienLottie = giuLottie && loadingAnimation && !giamChuyenDong;
 
   return (
     <motion.div
@@ -84,12 +88,14 @@ function PageLoadingOverlay({ hienThi }) {
     >
       <div className="page-loading-overlay__content">
         {hienLottie && (
-          <Lottie
-            animationData={loadingAnimation}
-            loop
-            autoplay
-            className="page-loading-overlay__animation"
-          />
+          <Suspense fallback={null}>
+            <Lottie
+              animationData={loadingAnimation}
+              loop
+              autoplay
+              className="page-loading-overlay__animation"
+            />
+          </Suspense>
         )}
         <p className="page-loading-overlay__text">Đang tải...</p>
       </div>

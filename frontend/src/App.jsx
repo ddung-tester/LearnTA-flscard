@@ -5,12 +5,12 @@ import BoCuc from "./components/common/BoCuc";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
-import ChatbotWidget from "./components/ChatbotWidget";
 import {
   SuspenseLoader,
   usePageTransition,
 } from "./contexts/PageTransitionContext";
 
+const ChatbotWidget = lazy(() => import("./components/ChatbotWidget"));
 const TrangChu = lazy(() => import("./pages/TrangChu"));
 const TrangTuVung = lazy(() => import("./pages/TrangTuVung"));
 const TrangDashboard = lazy(() => import("./pages/TrangDashboard"));
@@ -108,7 +108,11 @@ function UngDung() {
       mode={laTrangAuth ? "immersive" : "app"}
     >
       <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
-      {!laTrangImmersive && <ChatbotWidget />}
+      {!laTrangImmersive && (
+        <Suspense fallback={null}>
+          <ChatbotWidget />
+        </Suspense>
+      )}
     </VideoBackground>
   );
 }

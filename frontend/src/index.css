@@ -8772,3 +8772,15 @@ a.dash-lich__o:focus-visible {
     grid-column: 1 / -1;
   }
 }
+
+/* Màn cảm ứng: nút và nút icon có vùng bấm tối thiểu 44px */
+@media (pointer: coarse) {
+  .ui-button {
+    min-height: 44px;
+  }
+
+  .ui-icon-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

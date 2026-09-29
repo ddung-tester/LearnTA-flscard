@@ -363,3 +363,11 @@
   .chatbot-close-btn { width: 36px; height: 36px; }
   .chatbot-suggestion-btn { white-space: normal; text-align: left; }
 }
+
+/* Màn cảm ứng: vùng bấm tối thiểu 44px */
+@media (pointer: coarse) {
+  .chatbot-close-btn,
+  .chatbot-clear-btn,
+  .chatbot-send-btn { width: 44px; height: 44px; }
+  .chatbot-suggestion-btn { min-height: 44px; padding: 8px 14px; font-size: 13px; }
+}

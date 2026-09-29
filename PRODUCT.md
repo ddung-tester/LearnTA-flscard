@@ -22,15 +22,15 @@ Clear, friendly, focused. The interface should feel like a well-organized notebo
 
 - Generic Quizlet blue (too familiar, no identity of its own)
 - Enterprise dashboards (dense, intimidating, data-heavy)
-- Heavy gamification (streaks, badges, excessive popups)
-- Too many animations or decorative effects
+- Heavy gamification (coins, shops, leaderboards, excessive popups) — existing streak/combo stay
+- Motion with no meaning (decoration that doesn't respond to the learner or show progress)
 - Dense, cluttered layouts that are hard to scan
 
 ## Design Principles
 
 1. **Reduce friction first.** Every screen should answer: what does the user do next? Remove anything that competes with that answer.
 2. **Earn the next interaction.** Don't show everything at once. Surface controls when they're relevant to where the user is in the workflow.
-3. **Warmth without whimsy.** The personality is friendly, not playful. Avoid cartoon metaphors, excess illustration, and gamified rewards.
+3. **Alive, not noisy.** (Updated 2026-09-29.) The interface should feel lively: expressive motion, depth and 3D touches (card flips, tilt, answer feedback, progress that visibly fills) are welcome when they respond to what the learner just did. Avoid gamified reward systems. Every animation has a prefers-reduced-motion fallback.
 4. **Clarity over completeness.** Show one thing at a time on learning screens. Resist adding stats and indicators until they serve the task.
 5. **Consistency as trust.** Same patterns, spacing, and language everywhere. Predictability lowers cognitive load for repeat sessions.
 

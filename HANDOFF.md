@@ -1,6 +1,6 @@
 # HANDOFF.md — Bàn giao cho AI/dev làm tiếp
 
-> Cập nhật: 2026-09-27. Đọc file này TRƯỚC, rồi đọc `CLAUDE.md` (quy tắc làm việc), `PROJECT_CONTEXT.md` (trạng thái kỹ thuật chi tiết), `PRODUCT.md` (định hướng sản phẩm), `README.md` (chạy local + deploy).
+> Cập nhật: 2026-09-29. Đọc file này TRƯỚC, rồi đọc `CLAUDE.md` (quy tắc làm việc), `PROJECT_CONTEXT.md` (trạng thái kỹ thuật chi tiết), `PRODUCT.md` (định hướng sản phẩm), `README.md` (chạy local + deploy).
 
 ## 1. Mục tiêu
 
@@ -49,6 +49,7 @@ Mọi nội dung từ vựng đều là bộ từ (`decks` + `cards`), nhưng **
 | 16 | **Bố cục lấy khoá 48 ngày làm trục** | Menu mới (mục 2). Dashboard (`TrangDashboard`): thẻ Hôm nay = buổi học tiếp (3 bước Từ vựng/Lý thuyết/Bài tập, nút vào đúng bước còn dở) + lưới 48 buổi; "Cần ôn hôm nay" (từ đến hạn, câu làm sai, từ hay nhầm); Từ vựng theo buổi (4 buổi quanh buổi đang học); Bộ của tôi; Tổng quan. Trang Từ vựng: tab Theo buổi hiện đủ mọi buổi (không khoá; buổi trống liền nhau gộp một dòng, `chiaDongBuoi`), mỗi buổi mở bộ từ/Flashcard/Luyện tập. `GET /courses` trả thêm `deck_id` mỗi buổi. Lưới lộ trình tách thành `components/deck/DanhSachLoTrinh`. Đã xem bằng API giả (desktop + 375px); **chưa bấm trên tài khoản thật**. |
 | 17 | **Khoá học bài 14–48 + bài nghe** | 35 buổi trích bằng script (mục 4.1). Migration 013: `course_questions.audio_path`, `listen_text`. File nghe ở bucket riêng tư `flash-card-499907-course-audio` (chặn public, SA Cloud Run chỉ đọc); `GET /api/course-questions/:id/audio` chỉ phát cho chủ khoá (`services/audioStorage.js`, máy dev dùng file ADC của gcloud). FE `NgheAudioCauHoi` (tải blob một lần/file) + nút đọc `listen_text` bằng giọng máy; đề dài hiện dạng đoạn văn. Prompt AI giải thích có lời thoại. |
 | 18 | **Khoá học bài 1–12** | Cùng quy trình script (không có audio). Bảng nối câu → trắc nghiệm, bỏ phần viết theo tranh (bài 3, 4, 7). `dung_bai.py` có thêm `sua_lc` (sửa lựa chọn gõ sai). FE thêm nhãn loại từ `possessive` = "tính từ sở hữu". Đã nạp DB. |
+| 19 | **UI/UX giai đoạn 1: sửa lỗi nền** | Định hướng mới (chốt 2026-09-29, đã sửa `PRODUCT.md`): **nhiều animation/hiệu ứng/3D, không game hoá nặng** (coin/shop/leaderboard chưa làm). Bundle chính 755 → 422 KB (lottie lazy trong `PageLoadingOverlay`, `ChatbotWidget` lazy). `MotionConfig reducedMotion="user"` ở `main.jsx` cho mọi animation `motion`. Vùng bấm 44px khi `pointer: coarse` (`.ui-button`, `.ui-icon-action`, nút chatbot). Icon 🗑 chatbot → SVG. `TrangTuSai` bỏ `window.confirm`, dùng `AnimatedModal`. Kế hoạch tiếp: GĐ2 phản hồi khi học (đúng/sai, vuốt thẻ 3D, phím tắt, màn kết quả), GĐ3 Dashboard/Khoá 48 ngày (lưới buổi, chuyển trang, skeleton). |
 
 ## 4. Việc treo / chưa làm — ưu tiên từ trên xuống
 

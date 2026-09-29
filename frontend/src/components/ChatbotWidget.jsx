@@ -216,7 +216,9 @@ export default function ChatbotWidget() {
               title="Xoá lịch sử hội thoại"
               aria-label="Xoá lịch sử"
             >
-              🗑
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" aria-hidden="true">
+                <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+              </svg>
             </button>
             <button
               className="chatbot-close-btn"
