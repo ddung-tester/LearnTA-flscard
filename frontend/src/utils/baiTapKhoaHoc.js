@@ -200,3 +200,113 @@ export function tachChuDam(text) {
         : { text: doan.replace(/\*([^*\n]+)\*/g, "$1"), dam: false }
     );
 }
+
+// ---- Phân tích câu tự gõ bị sai (phản hồi tức thì, không cần AI) ----
+
+function chuanHoaHienThi(text) {
+  return String(text ?? "")
+    .replace(/[’‘`´]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?]+$/, "")
+    .trim();
+}
+
+// Khoảng cách sửa chữ, đổi chỗ 2 ký tự cạnh nhau tính 1 lần ("recieve" → "receive" = 1)
+function khoangCachSua(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j += 1) d[0][j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const khac = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + khac);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[a.length][b.length];
+}
+
+// Dãy con chung dài nhất: trả về cặp chỉ số khớp nhau giữa a và b (so sánh bằng hàm bang)
+function cacCapKhop(a, b, bang) {
+  const L = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i -= 1) {
+    for (let j = b.length - 1; j >= 0; j -= 1) {
+      L[i][j] = bang(a[i], b[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+    }
+  }
+  const cap = [];
+  for (let i = 0, j = 0; i < a.length && j < b.length; ) {
+    if (bang(a[i], b[j])) {
+      cap.push([i, j]);
+      i += 1;
+      j += 1;
+    } else if (L[i + 1][j] >= L[i][j + 1]) i += 1;
+    else j += 1;
+  }
+  return cap;
+}
+
+function taoDoan(chuoi, viTriKhop, kieuLech) {
+  const doan = [];
+  [...chuoi].forEach((kyTu, i) => {
+    const kieu = viTriKhop.has(i) ? "giong" : kieuLech;
+    const cuoi = doan[doan.length - 1];
+    if (cuoi?.kieu === kieu) cuoi.text += kyTu;
+    else doan.push({ text: kyTu, kieu });
+  });
+  return doan;
+}
+
+// Gốc từ để so đuôi: bỏ -ing/-ed/-es/-s/-d và e cuối ("making" ~ "make", "watched" ~ "watching")
+const gocTu = (tu) => tu.replace(/(ing|ed|es|s|d)$/, "").replace(/e$/, "");
+
+/**
+ * So câu đã gõ (sai) với đáp án gần nhất. Trả về:
+ * loai: "chinh-ta" | "duoi-tu" | "thieu-tu" | "thua-tu" | "khac"; nhan: lời nhắn ngắn (null nếu "khac");
+ * doanDaGo / doanDapAn: các đoạn chữ để tô (kieu "giong" | "sai" | "thieu"); tuLech: từ thiếu/thừa.
+ */
+export function phanTichLoiGo(traLoi, dapAnDung) {
+  const daGo = chuanHoaHienThi(traLoi);
+  const thuong = (s) => s.toLowerCase();
+  const dapAn = (dapAnDung || [])
+    .map(chuanHoaHienThi)
+    .filter(Boolean)
+    .reduce((gan, x) =>
+      gan === null || khoangCachSua(thuong(daGo), thuong(x)) < khoangCachSua(thuong(daGo), thuong(gan)) ? x : gan
+    , null) ?? "";
+
+  const a = thuong(daGo);
+  const b = thuong(dapAn);
+  const capKyTu = cacCapKhop([...a], [...b], (x, y) => x === y);
+  const doanDaGo = taoDoan(daGo, new Set(capKyTu.map(([i]) => i)), "sai");
+  const doanDapAn = taoDoan(dapAn, new Set(capKyTu.map(([, j]) => j)), "thieu");
+  const ketQua = (loai, nhan, tuLech = []) => ({ loai, nhan, dapAn, doanDaGo, doanDapAn, tuLech });
+
+  const tuA = a.split(" ");
+  const tuB = b.split(" ");
+  if (tuA.length !== tuB.length) {
+    const capTu = cacCapKhop(tuA, tuB, (x, y) => x === y);
+    if (capTu.length === tuA.length) {
+      const tuLech = tuB.filter((_, j) => !capTu.some(([, k]) => k === j));
+      return ketQua("thieu-tu", `Còn thiếu từ: ${tuLech.join(", ")}.`, tuLech);
+    }
+    if (capTu.length === tuB.length) {
+      const tuLech = tuA.filter((_, i) => !capTu.some(([k]) => k === i));
+      return ketQua("thua-tu", `Thừa từ: ${tuLech.join(", ")}.`, tuLech);
+    }
+  } else {
+    const cacCapLech = tuA.map((x, i) => [x, tuB[i]]).filter(([x, y]) => x !== y);
+    if (cacCapLech.length === 1) {
+      const [x, y] = cacCapLech[0];
+      if (gocTu(x) === gocTu(y)) {
+        return ketQua("duoi-tu", `Sai dạng/đuôi từ: cần "${y}" chứ không phải "${x}".`);
+      }
+    }
+  }
+  if (khoangCachSua(a, b) <= Math.max(1, Math.floor(b.length / 4))) {
+    return ketQua("chinh-ta", "Gần đúng rồi, chỉ sai chính tả.");
+  }
+  return ketQua("khac", null);
+}

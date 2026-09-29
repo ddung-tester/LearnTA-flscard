@@ -397,3 +397,34 @@ test("lichOnCauHoi only schedules questions that were answered wrong, with the w
   assert.deepEqual(lichOnCauHoi({ mastery_level: 0, next_review_at: now }, true, now), { level: 1, nextReviewAt: ngayMai });
   assert.deepEqual(lichOnCauHoi({ mastery_level: 3, next_review_at: now }, false, now), { level: 2, nextReviewAt: now });
 });
+
+test("cacTraLoiCanGiaiThich lists every choice of a multiple-choice question", () => {
+  const { cacTraLoiCanGiaiThich } = require("../src/utils/khoaHoc");
+  const cau = {
+    type: "multiple_choice",
+    options: [{ key: "A", text: "go" }, { key: "B", text: "went" }, { key: "C", text: "gone" }],
+    answer_key: "B",
+  };
+  assert.deepEqual(cacTraLoiCanGiaiThich(cau), [
+    { answerNorm: "A", learnerAnswer: "A", isCorrect: false },
+    { answerNorm: "B", learnerAnswer: "B", isCorrect: true },
+    { answerNorm: "C", learnerAnswer: "C", isCorrect: false },
+  ]);
+});
+
+test("cacTraLoiCanGiaiThich lists accepted answers of a fill-blank question once per normalized form", () => {
+  const { cacTraLoiCanGiaiThich } = require("../src/utils/khoaHoc");
+  const cau = { type: "fill_blank", accepted_answers: ["Went.", "went", "has gone"] };
+  assert.deepEqual(cacTraLoiCanGiaiThich(cau), [
+    { answerNorm: "went", learnerAnswer: "Went.", isCorrect: true },
+    { answerNorm: "has gone", learnerAnswer: "has gone", isCorrect: true },
+  ]);
+});
+
+test("parseLoiThuongGap reads fenced JSON, drops correct/duplicate/empty guesses", () => {
+  const aiService = require("../src/services/aiService");
+  const cau = { type: "fill_blank", accepted_answers: ["went"] };
+  const text = '```json\n["goed", "Went", "go", "goed.", "", "gone", "goes", "going"]\n```';
+  assert.deepEqual(aiService.parseLoiThuongGap(text, cau), ["goed", "go", "gone", "goes"]);
+  assert.deepEqual(aiService.parseLoiThuongGap("không phải JSON", cau), []);
+});

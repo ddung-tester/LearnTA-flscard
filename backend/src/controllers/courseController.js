@@ -331,6 +331,11 @@ async function explainQuestion(req, res) {
     traVe(cached[0].explanation, { cached: true });
     return;
   }
+  // ?chiCache=1: chỉ lấy lời giải thích có sẵn (câu tự gõ sai); chưa có thì để người học tự bấm hỏi AI
+  if (req.query?.chiCache === "1") {
+    res.status(204).end();
+    return;
+  }
 
   let explanation;
   try {

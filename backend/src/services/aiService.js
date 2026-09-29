@@ -4,6 +4,7 @@
  *   [{ tense, formula, sentence, highlight, translation }, ...]
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { chuanHoaTraLoi, laTraLoiDung } = require("../utils/khoaHoc");
 
 const TENSES = [
   { key: "present_simple",     formula: "S + V(s/es)" },
@@ -245,6 +246,9 @@ const MODEL_GIAI_THICH_NHANH = [
   { model: "gemini-flash-lite-latest" },
   { model: "gemini-3.6-flash", generationConfig: { thinkingConfig: { thinkingLevel: "minimal" } } },
 ];
+// Tạo sẵn hàng loạt (scripts/sinh-giai-thich.js): cùng thứ tự với khi học — flash-lite chất lượng đủ tốt,
+// nhanh hơn ~5 lần, và 3.6-flash có hạn mức theo ngày thấp (hết 429 sau ~80 lượt ngày 2026-09-29)
+const MODEL_GIAI_THICH_SINH_SAN = MODEL_GIAI_THICH_NHANH;
 const THOI_HAN_GIAI_THICH_MS = 8000;
 const TOKEN_GIAI_THICH_TOI_DA = 260;
 
@@ -284,6 +288,72 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
     } catch (error) {
       // Đã gửi một phần chữ cho người học thì không đổi model giữa chừng
       if (daGui) throw error;
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
+// ---- Đoán trước đáp án sai hay gặp của câu điền từ (scripts/sinh-giai-thich.js --loi-thuong-gap) ----
+const SO_LOI_THUONG_GAP = 4;
+
+function buildLoiThuongGapPrompt({ lessonTitle, grammar, question }) {
+  const focus = grammar.map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`).join("\n");
+  return `Người Việt mất gốc (A1–B1) làm câu điền từ tiếng Anh sau. Đoán ${SO_LOI_THUONG_GAP} câu trả lời SAI mà họ hay gõ nhất
+(ví dụ: chia sai thì, thiếu/thừa đuôi -s/-ed/-ing, sai trợ động từ, sai chính tả phổ biến, dịch từng chữ).
+
+Bài học: ${lessonTitle}
+Kiến thức trọng tâm:
+${focus || "- (không có)"}
+Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
+${question.prompt}
+Đáp án đúng: ${(question.accepted_answers || []).join(" / ")}
+
+Chỉ trả về một mảng JSON các chuỗi, đúng dạng người học sẽ gõ, không giải thích. Ví dụ: ["goed", "go"]`;
+}
+
+/** Lấy các đáp án sai từ câu trả lời của AI: bỏ đáp án đúng, trùng (sau chuẩn hoá) và rỗng. */
+function parseLoiThuongGap(text, question) {
+  const clean = String(text || "").replace(/```json?\s*/gi, "").replace(/```/g, "").trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(clean);
+  } catch {
+    const match = clean.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    try {
+      parsed = JSON.parse(match[0]);
+    } catch {
+      return [];
+    }
+  }
+  const daCo = new Set();
+  const ketQua = [];
+  for (const item of Array.isArray(parsed) ? parsed : []) {
+    const traLoi = String(item ?? "").trim().slice(0, 120);
+    const khoa = chuanHoaTraLoi(traLoi);
+    if (!khoa || daCo.has(khoa) || laTraLoiDung(question, traLoi)) continue;
+    daCo.add(khoa);
+    ketQua.push(traLoi);
+    if (ketQua.length >= SO_LOI_THUONG_GAP) break;
+  }
+  return ketQua;
+}
+
+async function doanLoiThuongGap(input) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+  const genAI = new GoogleGenerativeAI(apiKey);
+  let lastError;
+  for (const { model: modelName, generationConfig = {} } of MODEL_GIAI_THICH_SINH_SAN) {
+    try {
+      const model = genAI.getGenerativeModel(
+        { model: modelName, generationConfig: { maxOutputTokens: 120, ...generationConfig } },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      const result = await model.generateContent(buildLoiThuongGapPrompt(input));
+      return parseLoiThuongGap(result.response.text(), input.question);
+    } catch (error) {
       lastError = error;
     }
   }
@@ -372,6 +442,9 @@ module.exports = {
   parseVocabularyResponse,
   buildCourseExplanationPrompt,
   explainCourseQuestion,
+  MODEL_GIAI_THICH_SINH_SAN,
+  parseLoiThuongGap,
+  doanLoiThuongGap,
   buildExtraPracticePrompt,
   parseExtraPracticeResponse,
   generateExtraPractice,

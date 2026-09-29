@@ -974,6 +974,67 @@
   color: var(--mau-chinh);
 }
 
+/* Câu tự gõ sai: nút tự hỏi AI khi chưa có lời giải thích tạo sẵn */
+.kh-ai__hoi {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: flex-start;
+  justify-self: start;
+  width: fit-content;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* So chữ đã gõ với đáp án: phần gõ sai gạch đỏ, phần còn thiếu tô xanh */
+.kh-so-sanh {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.kh-so-sanh__nhan {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--mau-chu);
+}
+
+.kh-so-sanh__dong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: var(--mau-chu);
+}
+
+.kh-so-sanh__nhan-dong {
+  min-width: 4rem;
+  font-size: 0.8rem;
+  color: var(--mau-chu-mo);
+}
+
+.kh-so-sanh__doan {
+  white-space: pre-wrap;
+}
+
+.kh-so-sanh__doan--sai {
+  border-radius: 0.2em;
+  background: oklch(62% 0.2 28 / 0.14);
+  color: var(--mau-loi);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.kh-so-sanh__doan--thieu {
+  border-radius: 0.2em;
+  background: oklch(70% 0.16 150 / 0.2);
+  color: var(--kh-dung-chu);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
 .kh-ai__loi {
   font-size: 0.9rem;
   color: var(--mau-chu-phu);

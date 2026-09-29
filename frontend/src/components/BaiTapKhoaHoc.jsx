@@ -9,6 +9,7 @@ import {
   layDapAnHienThi,
   nhomPhanBaiTap,
   phanBaiTap,
+  phanTichLoiGo,
   tachChuDam,
 } from "../utils/baiTapKhoaHoc";
 
@@ -49,6 +50,15 @@ function DoanChuDam({ text }) {
 
 function GiaiThichAI({ trangThai, onThuLai }) {
   if (!trangThai) return null;
+  // Câu tự gõ sai chưa có lời giải thích tạo sẵn: người học tự quyết định có hỏi AI không
+  if (trangThai.canHoi) {
+    return (
+      <button type="button" className="ui-button ui-button--ghost kh-ai__hoi" onClick={onThuLai}>
+        <IconGiaiThich className="kh-ai__icon" />
+        Hỏi AI vì sao mình sai
+      </button>
+    );
+  }
   return (
     <section className="kh-ai" aria-busy={trangThai.dangTai} aria-live="polite">
       <h4 className="kh-ai__tieu-de">
@@ -77,6 +87,32 @@ function GiaiThichAI({ trangThai, onThuLai }) {
         </p>
       )}
     </section>
+  );
+}
+
+// So chữ đã gõ với đáp án gần nhất: tô ký tự sai/thiếu + nhận ra lỗi hay gặp (tức thì, không cần AI)
+function SoSanhChuGo({ traLoi, dapAnDung }) {
+  const phanTich = phanTichLoiGo(traLoi, dapAnDung);
+  return (
+    <div className="kh-so-sanh">
+      {phanTich.nhan && <p className="kh-so-sanh__nhan">{phanTich.nhan}</p>}
+      <p className="kh-so-sanh__dong">
+        <span className="kh-so-sanh__nhan-dong">Bạn gõ</span>
+        <span lang="en">
+          {phanTich.doanDaGo.map((doan, i) => (
+            <span key={i} className={`kh-so-sanh__doan kh-so-sanh__doan--${doan.kieu}`}>{doan.text}</span>
+          ))}
+        </span>
+      </p>
+      <p className="kh-so-sanh__dong">
+        <span className="kh-so-sanh__nhan-dong">Đáp án</span>
+        <strong lang="en">
+          {phanTich.doanDapAn.map((doan, i) => (
+            <span key={i} className={`kh-so-sanh__doan kh-so-sanh__doan--${doan.kieu}`}>{doan.text}</span>
+          ))}
+        </strong>
+      </p>
+    </div>
   );
 }
 
@@ -243,6 +279,23 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     }
   }
 
+  // Câu tự gõ sai: chỉ lấy lời giải thích tạo sẵn; chưa có thì hiện nút "Hỏi AI" thay vì bắt chờ
+  function layGiaiThichSan(cauHienTai, traLoi) {
+    setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
+    giaiThichCauHoi(cauHienTai.id, traLoi, { chiCache: true })
+      .then((data) =>
+        setGiaiThich((cu) => ({
+          ...cu,
+          [cauHienTai.id]: data
+            ? { dangTai: false, text: data.explanation, loi: "" }
+            : { dangTai: false, text: "", loi: "", canHoi: true },
+        }))
+      )
+      .catch(() =>
+        setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text: "", loi: "", canHoi: true } }))
+      );
+  }
+
   function hoiAI(cauHienTai, traLoi) {
     setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
     giaiThichCauHoi(cauHienTai.id, traLoi, {
@@ -268,7 +321,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     onGhiNhan?.(cau.id, dung);
     // Lưu tiến độ lỗi (mất mạng...) không được chặn việc làm bài
     luuTraLoiCauHoi(cau.id, traLoi).catch(() => {});
-    hoiAI(cau, traLoi);
+    if (!dung && cau.type !== "multiple_choice") layGiaiThichSan(cau, traLoi);
+    else hoiAI(cau, traLoi);
   }
 
   function sangCauTiep() {
@@ -541,11 +595,14 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
             {daTraLoi.dung ? <IconDung className="kh-phan-hoi__icon" /> : <IconSai className="kh-phan-hoi__icon" />}
             {daTraLoi.dung ? "Chính xác" : "Chưa đúng"}
           </p>
-          {!daTraLoi.dung && (
-            <p className="kh-phan-hoi__dap-an">
-              Đáp án đúng: <strong lang="en">{dapAnDung}</strong>
-            </p>
-          )}
+          {!daTraLoi.dung &&
+            (laTracNghiem ? (
+              <p className="kh-phan-hoi__dap-an">
+                Đáp án đúng: <strong lang="en">{dapAnDung}</strong>
+              </p>
+            ) : (
+              <SoSanhChuGo traLoi={daTraLoi.traLoi} dapAnDung={cau.accepted_answers} />
+            ))}
           {cau.listen_text && (
             <p className="kh-phan-hoi__goi-y" lang="en">
               Lời thoại: {cau.listen_text}

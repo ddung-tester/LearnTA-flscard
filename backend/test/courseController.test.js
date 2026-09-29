@@ -203,6 +203,30 @@ test("explainQuestion falls back to the question's own hint when AI fails", asyn
   assert.equal(calls.length, 2);
 });
 
+test("explainQuestion with chiCache=1 answers 204 on a cache miss without calling AI", async () => {
+  fakePool([[CAU_TRAC_NGHIEM], []]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("không được gọi AI");
+  };
+  const res = {
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    end() {
+      this.ended = true;
+    },
+  };
+
+  await explainQuestion(
+    { user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" }, query: { chiCache: "1" } },
+    res
+  );
+
+  assert.equal(res.statusCode, 204);
+  assert.equal(res.ended, true);
+});
+
 test("buildCourseExplanationPrompt asks for a short fixed format", () => {
   const sai = aiService.buildCourseExplanationPrompt({
     lessonTitle: "Bài giả định",

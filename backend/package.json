@@ -15,7 +15,8 @@
     "test": "node --test",
     "seed:roadmaps": "node scripts/seed-roadmaps.js",
     "nhap:khoa-hoc": "node scripts/nhap-khoa-hoc.js",
-    "sinh:luyen-them": "node scripts/sinh-bai-luyen-them.js"
+    "sinh:luyen-them": "node scripts/sinh-bai-luyen-them.js",
+    "sinh:giai-thich": "node scripts/sinh-giai-thich.js"
   },
   "keywords": [],
   "license": "ISC",

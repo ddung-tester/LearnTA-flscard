@@ -38,10 +38,15 @@ export async function luuTraLoiCauHoi(questionId, answer) {
 /**
  * answer: chữ cái lựa chọn (trắc nghiệm) hoặc câu trả lời đã gõ (điền từ).
  * onChunk (tuỳ chọn): nhận toàn bộ chữ đã có mỗi khi AI viết thêm (server gửi dần, ?stream=1).
+ * chiCache: chỉ lấy lời giải thích đã tạo sẵn, không gọi AI; chưa có thì trả về null.
  * Trả về { explanation } khi xong.
  */
-export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
+export async function giaiThichCauHoi(questionId, answer, { onChunk, chiCache = false } = {}) {
   const duongDan = `/course-questions/${encodeURIComponent(questionId)}/explain`;
+  if (chiCache) {
+    const response = await api.post(duongDan, { answer }, { params: { chiCache: 1 } });
+    return response.status === 204 ? null : response.data;
+  }
   if (!onChunk || typeof ReadableStream === "undefined") {
     const response = await api.post(duongDan, { answer });
     return response.data;

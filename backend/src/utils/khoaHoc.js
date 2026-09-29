@@ -62,6 +62,30 @@ function laTraLoiDung(cauHoi, traLoi) {
   );
 }
 
+/**
+ * Các câu trả lời của một câu bài tập cần có lời giải thích tạo sẵn (scripts/sinh-giai-thich.js):
+ * trắc nghiệm = mọi lựa chọn (đúng lẫn sai); điền từ = mọi đáp án được chấp nhận.
+ * answerNorm khớp đúng khoá cache mà server dùng khi người học trả lời (explainQuestion).
+ */
+function cacTraLoiCanGiaiThich(cauHoi) {
+  if (cauHoi.type === "multiple_choice") {
+    return (cauHoi.options || []).map(({ key }) => ({
+      answerNorm: key.toUpperCase(),
+      learnerAnswer: key,
+      isCorrect: key.toUpperCase() === cauHoi.answer_key,
+    }));
+  }
+  const daCo = new Set();
+  const ketQua = [];
+  for (const dapAn of cauHoi.accepted_answers || []) {
+    const answerNorm = chuanHoaTraLoi(dapAn);
+    if (!answerNorm || daCo.has(answerNorm)) continue;
+    daCo.add(answerNorm);
+    ketQua.push({ answerNorm, learnerAnswer: dapAn, isCorrect: true });
+  }
+  return ketQua;
+}
+
 function chuanHoaNguPhap(muc) {
   return {
     id: chuoi(muc?.id),
@@ -489,6 +513,7 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
 }
 
 module.exports = {
+  cacTraLoiCanGiaiThich,
   chuanHoaTraLoi,
   laTraLoiDung,
   lichOnCauHoi,

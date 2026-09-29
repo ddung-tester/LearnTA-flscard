@@ -184,3 +184,36 @@ describe("chiaDongBuoi", () => {
     ]);
   });
 });
+
+describe("phanTichLoiGo", () => {
+  it("nhận ra lỗi chính tả nhỏ và tô đúng ký tự sai/thiếu", async () => {
+    const { phanTichLoiGo } = await import("./baiTapKhoaHoc");
+    const kq = phanTichLoiGo("recieve", ["receive"]);
+    expect(kq.loai).toBe("chinh-ta");
+    expect(kq.dapAn).toBe("receive");
+    // đoạn đã gõ: phần sai được đánh dấu; ghép lại vẫn ra đúng chữ đã gõ
+    expect(kq.doanDaGo.map((d) => d.text).join("")).toBe("recieve");
+    expect(kq.doanDaGo.some((d) => d.kieu === "sai")).toBe(true);
+    expect(kq.doanDapAn.map((d) => d.text).join("")).toBe("receive");
+    expect(kq.doanDapAn.some((d) => d.kieu === "thieu")).toBe(true);
+  });
+
+  it("nhận ra sai đuôi -s/-ed/-ing", async () => {
+    const { phanTichLoiGo } = await import("./baiTapKhoaHoc");
+    expect(phanTichLoiGo("She go to school", ["She goes to school"]).loai).toBe("duoi-tu");
+    expect(phanTichLoiGo("watched", ["watching"]).loai).toBe("duoi-tu");
+    expect(phanTichLoiGo("play", ["played"]).loai).toBe("duoi-tu");
+  });
+
+  it("nhận ra thiếu hoặc thừa từ", async () => {
+    const { phanTichLoiGo } = await import("./baiTapKhoaHoc");
+    expect(phanTichLoiGo("I going", ["I am going"])).toMatchObject({ loai: "thieu-tu", tuLech: ["am"] });
+    expect(phanTichLoiGo("did went", ["went"])).toMatchObject({ loai: "thua-tu", tuLech: ["did"] });
+  });
+
+  it("chọn đáp án gần nhất khi có nhiều đáp án đúng; khác hẳn thì loai = khac", async () => {
+    const { phanTichLoiGo } = await import("./baiTapKhoaHoc");
+    expect(phanTichLoiGo("dont", ["do not", "don't"]).dapAn).toBe("don't");
+    expect(phanTichLoiGo("banana", ["went"]).loai).toBe("khac");
+  });
+});
