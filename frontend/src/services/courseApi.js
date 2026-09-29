@@ -36,17 +36,21 @@ export async function luuTraLoiCauHoi(questionId, answer) {
 }
 
 /**
+ * Nhờ server soạn trước lời giải thích cho mọi câu trả lời của câu hỏi (gọi khi câu vừa hiện ra),
+ * để lúc người học trả lời thì lời giải thích đã có sẵn. Lỗi không ảnh hưởng việc học.
+ */
+export async function chuanBiGiaiThich(questionId) {
+  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`);
+  return response.data;
+}
+
+/**
  * answer: chữ cái lựa chọn (trắc nghiệm) hoặc câu trả lời đã gõ (điền từ).
  * onChunk (tuỳ chọn): nhận toàn bộ chữ đã có mỗi khi AI viết thêm (server gửi dần, ?stream=1).
- * chiCache: chỉ lấy lời giải thích đã tạo sẵn, không gọi AI; chưa có thì trả về null.
  * Trả về { explanation } khi xong.
  */
-export async function giaiThichCauHoi(questionId, answer, { onChunk, chiCache = false } = {}) {
+export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
   const duongDan = `/course-questions/${encodeURIComponent(questionId)}/explain`;
-  if (chiCache) {
-    const response = await api.post(duongDan, { answer }, { params: { chiCache: 1 } });
-    return response.status === 204 ? null : response.data;
-  }
   if (!onChunk || typeof ReadableStream === "undefined") {
     const response = await api.post(duongDan, { answer });
     return response.data;

@@ -2,7 +2,13 @@ const pool = require("../config/db");
 const aiService = require("../services/aiService");
 const audioStorage = require("../services/audioStorage");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
-const { chuanHoaTraLoi, laTraLoiDung, lichOnCauHoi } = require("../utils/khoaHoc");
+const {
+  cacTraLoiCanGiaiThich,
+  chuanHoaTraLoi,
+  laTraLoiDung,
+  lichOnCauHoi,
+  locGiaiThichHopLe,
+} = require("../utils/khoaHoc");
 
 // Khoá học riêng (tài liệu cá nhân): chỉ chủ khoá (courses.user_id) đọc được.
 // Mọi truy vấn đều lọc theo user trong token; khoá của người khác trả 404 như không tồn tại.
@@ -190,21 +196,7 @@ async function docCauTraLoi(req) {
     throw createHttpError(400, "answer la bat buoc");
   }
 
-  const [rows] = await pool.query(
-    `SELECT q.*, l.title AS lesson_title, l.content AS lesson_content
-     FROM course_questions q
-     JOIN course_lessons l ON l.id = q.lesson_id
-     JOIN courses c ON c.id = l.course_id
-     WHERE q.id = ? AND c.user_id = ?
-     LIMIT 1`,
-    [questionId, req.user.id]
-  );
-  const row = rows[0];
-  if (!row) {
-    throw createHttpError(404, "Khong tim thay cau hoi");
-  }
-
-  const question = normalizeQuestion(row);
+  const { row, question } = await docCauCuaChuKhoa(questionId, req.user.id);
   const isMultipleChoice = question.type === "multiple_choice";
   const answerNorm = isMultipleChoice ? answer.toUpperCase() : chuanHoaTraLoi(answer);
   if (isMultipleChoice && !(question.options || []).some((option) => option.key === answerNorm)) {
@@ -215,6 +207,24 @@ async function docCauTraLoi(req) {
   }
 
   return { questionId, answer, row, question, isMultipleChoice, answerNorm };
+}
+
+// Câu bài tập (kèm bài học) nếu thuộc khoá của userId, không thì 404
+async function docCauCuaChuKhoa(questionId, userId) {
+  const [rows] = await pool.query(
+    `SELECT q.*, l.title AS lesson_title, l.content AS lesson_content
+     FROM course_questions q
+     JOIN course_lessons l ON l.id = q.lesson_id
+     JOIN courses c ON c.id = l.course_id
+     WHERE q.id = ? AND c.user_id = ?
+     LIMIT 1`,
+    [questionId, userId]
+  );
+  const row = rows[0];
+  if (!row) {
+    throw createHttpError(404, "Khong tim thay cau hoi");
+  }
+  return { row, question: normalizeQuestion(row) };
 }
 
 // Ghi kết quả lần trả lời gần nhất (server tự chấm) + lịch ôn SRS nếu câu từng làm sai
@@ -298,13 +308,83 @@ async function getQuestionAudio(req, res) {
   audio.stream.pipe(res);
 }
 
-async function explainQuestion(req, res) {
-  const { questionId, answer, row, question, isMultipleChoice, answerNorm } = await docCauTraLoi(req);
+// ---- Soạn trước lời giải thích (câu hỏi vừa hiện, người học còn đang đọc đề) ----
+// questionId → Promise đang soạn; câu trả lời đến giữa lúc soạn thì chờ promise này, không gọi AI lần hai.
+// Chỉ trong một instance (Cloud Run nhiều instance thì có thể trùng, chấp nhận được).
+const dangSoanTruoc = new Map();
 
+function nguCanhAI(row, question) {
+  return {
+    lessonTitle: row.lesson_title,
+    grammar: docJson(row.lesson_content, {}).grammar || [],
+    question,
+  };
+}
+
+/** Soạn và lưu lời giải thích cho mọi câu trả lời còn thiếu của câu hỏi; trả về số lời mới. */
+function soanTruocGiaiThich(questionId, row, question) {
+  if (dangSoanTruoc.has(questionId)) return dangSoanTruoc.get(questionId);
+
+  const viec = (async () => {
+    const [daCo] = await pool.query(
+      "SELECT answer_norm FROM course_question_explanations WHERE question_id = ?",
+      [questionId]
+    );
+    const coRoi = new Set(daCo.map((dong) => dong.answer_norm));
+    if (cacTraLoiCanGiaiThich(question).every((traLoi) => coRoi.has(traLoi.answerNorm))) return 0;
+
+    const items = await aiService.explainAllAnswers(nguCanhAI(row, question));
+    const { hopLe } = locGiaiThichHopLe(
+      items.map((item) => ({ ...item, question_id: String(questionId) })),
+      new Map([[String(questionId), question]])
+    );
+    let soMoi = 0;
+    for (const muc of hopLe) {
+      if (coRoi.has(muc.answerNorm)) continue;
+      coRoi.add(muc.answerNorm);
+      await pool.query(
+        "INSERT IGNORE INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)",
+        [questionId, muc.answerNorm, muc.explanation]
+      );
+      soMoi += 1;
+    }
+    return soMoi;
+  })().finally(() => dangSoanTruoc.delete(questionId));
+
+  dangSoanTruoc.set(questionId, viec);
+  return viec;
+}
+
+// POST /course-questions/:id/prepare — gọi khi câu hỏi hiện ra; lỗi AI không làm hỏng việc học
+async function prepareQuestion(req, res) {
+  const questionId = parsePositiveInt(req.params.questionId, "questionId");
+  const { row, question } = await docCauCuaChuKhoa(questionId, req.user.id);
+  try {
+    const generated = await soanTruocGiaiThich(questionId, row, question);
+    res.json({ ready: true, generated });
+  } catch (error) {
+    console.error("prepareQuestion failed:", error.message);
+    res.json({ ready: false, generated: 0 });
+  }
+}
+
+async function docGiaiThichDaLuu(questionId, answerNorm) {
   const [cached] = await pool.query(
     "SELECT explanation FROM course_question_explanations WHERE question_id = ? AND answer_norm = ? LIMIT 1",
     [questionId, answerNorm]
   );
+  return cached[0]?.explanation || null;
+}
+
+async function explainQuestion(req, res) {
+  const { questionId, answer, row, question, isMultipleChoice, answerNorm } = await docCauTraLoi(req);
+
+  let daLuu = await docGiaiThichDaLuu(questionId, answerNorm);
+  // Đang soạn trước cho câu này (người học trả lời nhanh hơn AI): chờ nó xong rồi đọc lại cache
+  if (!daLuu && dangSoanTruoc.has(questionId)) {
+    await dangSoanTruoc.get(questionId).catch(() => {});
+    daLuu = await docGiaiThichDaLuu(questionId, answerNorm);
+  }
   // ?stream=1: trả chữ thuần, gửi dần từng đoạn ngay khi AI viết ra (người học thấy chữ sau ~1s).
   // Header chỉ gửi khi đã có chữ đầu tiên, để lỗi trước đó vẫn trả được mã lỗi đúng.
   const guiDan = req.query?.stream === "1";
@@ -327,13 +407,8 @@ async function explainQuestion(req, res) {
     res.end(explanation);
   }
 
-  if (cached[0]) {
-    traVe(cached[0].explanation, { cached: true });
-    return;
-  }
-  // ?chiCache=1: chỉ lấy lời giải thích có sẵn (câu tự gõ sai); chưa có thì để người học tự bấm hỏi AI
-  if (req.query?.chiCache === "1") {
-    res.status(204).end();
+  if (daLuu) {
+    traVe(daLuu, { cached: true });
     return;
   }
 
@@ -341,9 +416,7 @@ async function explainQuestion(req, res) {
   try {
     explanation = await aiService.explainCourseQuestion(
       {
-        lessonTitle: row.lesson_title,
-        grammar: docJson(row.lesson_content, {}).grammar || [],
-        question,
+        ...nguCanhAI(row, question),
         learnerAnswer: isMultipleChoice ? answerNorm : answer,
         isCorrect: laTraLoiDung(question, answerNorm),
       },
@@ -396,4 +469,5 @@ module.exports = {
   listDueQuestions,
   getQuestionAudio,
   explainQuestion,
+  prepareQuestion,
 };

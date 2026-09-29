@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
-import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
+import { chuanBiGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
   laTraLoiDung,
   layCauBaiChinh,
@@ -50,15 +50,6 @@ function DoanChuDam({ text }) {
 
 function GiaiThichAI({ trangThai, onThuLai }) {
   if (!trangThai) return null;
-  // Câu tự gõ sai chưa có lời giải thích tạo sẵn: người học tự quyết định có hỏi AI không
-  if (trangThai.canHoi) {
-    return (
-      <button type="button" className="ui-button ui-button--ghost kh-ai__hoi" onClick={onThuLai}>
-        <IconGiaiThich className="kh-ai__icon" />
-        Hỏi AI vì sao mình sai
-      </button>
-    );
-  }
   return (
     <section className="kh-ai" aria-busy={trangThai.dangTai} aria-live="polite">
       <h4 className="kh-ai__tieu-de">
@@ -231,6 +222,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const [giaiThich, setGiaiThich] = useState({});
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
+  const daChuanBiRef = useRef(new Set());
   const deBaiRef = useRef(null);
   const cauRef = useRef(null);
 
@@ -240,6 +232,18 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const xong = chiSo >= danhSach.length;
   const soDung = Object.values(ketQua).filter((k) => k.dung).length;
   const soSai = Object.keys(ketQua).length - soDung;
+
+  // Soạn trước lời giải thích của câu đang hiện và câu kế tiếp trong lúc người học đọc đề,
+  // để khi trả lời thì lời giải thích hiện ngay (server bỏ qua câu đã soạn đủ)
+  const idCauNay = danhSach[chiSo]?.id;
+  const idCauSau = danhSach[chiSo + 1]?.id;
+  useEffect(() => {
+    for (const id of [idCauNay, idCauSau]) {
+      if (!id || daChuanBiRef.current.has(id)) continue;
+      daChuanBiRef.current.add(id);
+      chuanBiGiaiThich(id).catch(() => daChuanBiRef.current.delete(id));
+    }
+  }, [idCauNay, idCauSau]);
 
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
   useEffect(() => {
@@ -279,23 +283,6 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     }
   }
 
-  // Câu tự gõ sai: chỉ lấy lời giải thích tạo sẵn; chưa có thì hiện nút "Hỏi AI" thay vì bắt chờ
-  function layGiaiThichSan(cauHienTai, traLoi) {
-    setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
-    giaiThichCauHoi(cauHienTai.id, traLoi, { chiCache: true })
-      .then((data) =>
-        setGiaiThich((cu) => ({
-          ...cu,
-          [cauHienTai.id]: data
-            ? { dangTai: false, text: data.explanation, loi: "" }
-            : { dangTai: false, text: "", loi: "", canHoi: true },
-        }))
-      )
-      .catch(() =>
-        setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text: "", loi: "", canHoi: true } }))
-      );
-  }
-
   function hoiAI(cauHienTai, traLoi) {
     setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
     giaiThichCauHoi(cauHienTai.id, traLoi, {
@@ -321,8 +308,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     onGhiNhan?.(cau.id, dung);
     // Lưu tiến độ lỗi (mất mạng...) không được chặn việc làm bài
     luuTraLoiCauHoi(cau.id, traLoi).catch(() => {});
-    if (!dung && cau.type !== "multiple_choice") layGiaiThichSan(cau, traLoi);
-    else hoiAI(cau, traLoi);
+    // Thường đã được soạn trước (hiện ngay); câu tự gõ sai lạ thì AI viết và hiện chữ dần
+    hoiAI(cau, traLoi);
   }
 
   function sangCauTiep() {

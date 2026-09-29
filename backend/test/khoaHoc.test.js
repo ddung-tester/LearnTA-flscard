@@ -421,21 +421,13 @@ test("cacTraLoiCanGiaiThich lists accepted answers of a fill-blank question once
   ]);
 });
 
-test("parseLoiThuongGap reads fenced JSON, drops correct/duplicate/empty guesses", () => {
-  const aiService = require("../src/services/aiService");
-  const cau = { type: "fill_blank", accepted_answers: ["went"] };
-  const text = '```json\n["goed", "Went", "go", "goed.", "", "gone", "goes", "going"]\n```';
-  assert.deepEqual(aiService.parseLoiThuongGap(text, cau), ["goed", "go", "gone", "goes"]);
-  assert.deepEqual(aiService.parseLoiThuongGap("không phải JSON", cau), []);
-});
-
-test("kiemTraFileGiaiThich keeps valid items and rejects wrong ids, options and mis-graded answers", () => {
-  const { kiemTraFileGiaiThich } = require("../src/utils/khoaHoc");
+test("locGiaiThichHopLe keeps valid items and rejects wrong ids, options and mis-graded answers", () => {
+  const { locGiaiThichHopLe } = require("../src/utils/khoaHoc");
   const cauTheoKey = new Map([
     ["q_mc", { id: 11, type: "multiple_choice", options: [{ key: "A" }, { key: "B" }], answer_key: "B" }],
     ["q_fill", { id: 12, type: "fill_blank", accepted_answers: ["went"] }],
   ]);
-  const { hopLe, loi } = kiemTraFileGiaiThich(
+  const { hopLe, loi } = locGiaiThichHopLe(
     [
       { question_id: "q_mc", tra_loi: "a", dung: false, giai_thich: "Sai vì: ..." },
       { question_id: "q_mc", tra_loi: "B", dung: true, giai_thich: "Đúng rồi: ..." },

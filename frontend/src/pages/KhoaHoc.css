@@ -974,19 +974,6 @@
   color: var(--mau-chinh);
 }
 
-/* Câu tự gõ sai: nút tự hỏi AI khi chưa có lời giải thích tạo sẵn */
-.kh-ai__hoi {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  align-self: flex-start;
-  justify-self: start;
-  width: fit-content;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
 /* So chữ đã gõ với đáp án: phần gõ sai gạch đỏ, phần còn thiếu tô xanh */
 .kh-so-sanh {
   display: grid;

@@ -10,6 +10,7 @@ const {
   answerQuestion,
   explainQuestion,
   getLesson,
+  prepareQuestion,
   getQuestionAudio,
   listCourses,
   listDueQuestions,
@@ -203,28 +204,68 @@ test("explainQuestion falls back to the question's own hint when AI fails", asyn
   assert.equal(calls.length, 2);
 });
 
-test("explainQuestion with chiCache=1 answers 204 on a cache miss without calling AI", async () => {
-  fakePool([[CAU_TRAC_NGHIEM], []]);
-  aiService.explainCourseQuestion = async () => {
+test("prepareQuestion asks AI once for every answer and caches only valid ones", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}, {}]);
+  let soLanGoi = 0;
+  aiService.explainAllAnswers = async (input) => {
+    soLanGoi += 1;
+    assert.equal(input.question.id, 5);
+    return [
+      { tra_loi: "A", dung: true, giai_thich: "Đúng rồi: số ít dùng is." },
+      { tra_loi: "B", dung: false, giai_thich: "Sai vì: are cho số nhiều." },
+      { tra_loi: "B", dung: true, giai_thich: "AI chấm nhầm" },
+    ];
+  };
+  const res = fakeRes();
+
+  await prepareQuestion({ user: { id: 7 }, params: { questionId: "5" } }, res);
+
+  assert.equal(soLanGoi, 1);
+  assert.deepEqual(calls[1].params, [5]);
+  assert.match(calls[2].sql, /INSERT IGNORE INTO course_question_explanations/);
+  assert.deepEqual(calls[2].params, [5, "A", "Đúng rồi: số ít dùng is."]);
+  assert.deepEqual(calls[3].params, [5, "B", "Sai vì: are cho số nhiều."]);
+  assert.deepEqual(res.body, { ready: true, generated: 2 });
+});
+
+test("prepareQuestion skips AI when every answer is already cached", async () => {
+  fakePool([[CAU_TRAC_NGHIEM], [{ answer_norm: "A" }, { answer_norm: "B" }]]);
+  aiService.explainAllAnswers = async () => {
     throw new Error("không được gọi AI");
   };
-  const res = {
-    status(code) {
-      this.statusCode = code;
-      return this;
-    },
-    end() {
-      this.ended = true;
-    },
+  const res = fakeRes();
+
+  await prepareQuestion({ user: { id: 7 }, params: { questionId: "5" } }, res);
+
+  assert.deepEqual(res.body, { ready: true, generated: 0 });
+});
+
+test("explainQuestion waits for an in-flight prepare instead of calling AI again", async () => {
+  let xongSoan;
+  const soanXong = new Promise((resolve) => {
+    xongSoan = resolve;
+  });
+  // prepare: đọc câu, cache trống, rồi chờ AI; explain: đọc câu, cache trống, (chờ prepare), đọc lại cache
+  fakePool([[CAU_TRAC_NGHIEM], [], [CAU_TRAC_NGHIEM], [], {}, {}, [{ explanation: "Soạn sẵn" }]]);
+  aiService.explainAllAnswers = async () => {
+    await soanXong;
+    return [
+      { tra_loi: "A", dung: true, giai_thich: "Đúng" },
+      { tra_loi: "B", dung: false, giai_thich: "Soạn sẵn" },
+    ];
+  };
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("không được gọi AI lần hai");
   };
 
-  await explainQuestion(
-    { user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" }, query: { chiCache: "1" } },
-    res
-  );
+  const dangSoan = prepareQuestion({ user: { id: 7 }, params: { questionId: "5" } }, fakeRes());
+  await new Promise((resolve) => setImmediate(resolve));
+  const res = fakeRes();
+  const dangGiaiThich = explainQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, res);
+  xongSoan();
+  await Promise.all([dangSoan, dangGiaiThich]);
 
-  assert.equal(res.statusCode, 204);
-  assert.equal(res.ended, true);
+  assert.deepEqual(res.body, { explanation: "Soạn sẵn", cached: true });
 });
 
 test("buildCourseExplanationPrompt asks for a short fixed format", () => {

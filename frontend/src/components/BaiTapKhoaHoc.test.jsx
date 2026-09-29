@@ -3,6 +3,7 @@ import { renderToString } from "react-dom/server";
 import BaiTapKhoaHoc from "./BaiTapKhoaHoc";
 
 vi.mock("../services/courseApi", () => ({
+  chuanBiGiaiThich: vi.fn(() => Promise.resolve({ ready: true })),
   giaiThichCauHoi: vi.fn(),
   layAudioCauHoi: vi.fn(),
   luuTraLoiCauHoi: vi.fn(),

@@ -89,11 +89,11 @@ function cacTraLoiCanGiaiThich(cauHoi) {
 const DO_DAI_GIAI_THICH_TOI_DA = 1200;
 
 /**
- * Kiểm tra file giai-thich*.json do ChatGPT soạn (docs/khoa-hoc-48-ngay.md) trước khi nạp vào cache.
- * cauTheoKey: Map question_key → câu hỏi trong DB ({ id, type, options, answer_key, accepted_answers }).
+ * Lọc lời giải thích AI soạn sẵn ({ question_id, tra_loi, dung, giai_thich }) trước khi lưu cache.
+ * cauTheoKey: Map question_id → câu hỏi ({ id, type, options, answer_key, accepted_answers }).
  * Chấm lại bằng luật của server: dòng ghi "dung" sai sự thật, sai id, sai lựa chọn hay trống đều bị bỏ.
  */
-function kiemTraFileGiaiThich(items, cauTheoKey) {
+function locGiaiThichHopLe(items, cauTheoKey) {
   const hopLe = [];
   const loi = [];
   (Array.isArray(items) ? items : []).forEach((item, viTri) => {
@@ -545,7 +545,7 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
 
 module.exports = {
   cacTraLoiCanGiaiThich,
-  kiemTraFileGiaiThich,
+  locGiaiThichHopLe,
   chuanHoaTraLoi,
   laTraLoiDung,
   lichOnCauHoi,

@@ -4,7 +4,6 @@
  *   [{ tense, formula, sentence, highlight, translation }, ...]
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { chuanHoaTraLoi, laTraLoiDung } = require("../utils/khoaHoc");
 const { ghiNhanLoi, xepTheoLuot } = require("./luotGemini");
 
 const TENSES = [
@@ -193,11 +192,8 @@ function textOfOption(question, key) {
   return (question.options || []).find((option) => option.key === key)?.text || "";
 }
 
-/**
- * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
- *           learnerAnswer: string, isCorrect: boolean }} input — câu hỏi đọc từ DB
- */
-function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect }) {
+// Phần mô tả câu hỏi dùng chung cho prompt giải thích một câu trả lời và prompt soạn trước mọi câu trả lời
+function moTaDeBai({ lessonTitle, grammar, question }) {
   const isMultipleChoice = question.type === "multiple_choice";
   const focus = grammar
     .map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`)
@@ -208,13 +204,8 @@ function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerA
   const correct = isMultipleChoice
     ? `${question.answer_key}. ${textOfOption(question, question.answer_key)}`
     : question.accepted_answers.join(" / ");
-  const answer = isMultipleChoice
-    ? `${learnerAnswer}. ${textOfOption(question, learnerAnswer)}`
-    : `"${learnerAnswer}"`;
 
-  return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy giải thích một câu bài tập người học vừa làm.
-
-Bài học: ${lessonTitle}
+  return `Bài học: ${lessonTitle}
 Kiến thức trọng tâm của bài:
 ${focus || "- (không có)"}
 
@@ -224,11 +215,53 @@ ${question.listen_text ? `Lời thoại người học được nghe: ${question
 ${options}
 
 Đáp án đúng: ${correct}
-Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
-${question.explanation ? `Gợi ý có sẵn: ${question.explanation}\n` : ""}
+${question.explanation ? `Gợi ý có sẵn: ${question.explanation}\n` : ""}`;
+}
+
+const LUAT_TRINH_BAY =
+  "Được **in đậm** từ khoá; không dùng định dạng markdown khác, không lời chào, không chép lại đề bài.";
+
+/**
+ * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
+ *           learnerAnswer: string, isCorrect: boolean }} input — câu hỏi đọc từ DB
+ */
+function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect }) {
+  const answer =
+    question.type === "multiple_choice"
+      ? `${learnerAnswer}. ${textOfOption(question, learnerAnswer)}`
+      : `"${learnerAnswer}"`;
+
+  return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy giải thích một câu bài tập người học vừa làm.
+
+${moTaDeBai({ lessonTitle, grammar, question })}Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
+
 Trả lời bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "2" : "3"} dòng theo mẫu:
 ${isCorrect ? MAU_GIAI_THICH_DUNG : MAU_GIAI_THICH_SAI}
-Được **in đậm** từ khoá; không dùng định dạng markdown khác, không lời chào, không chép lại đề bài.`;
+${LUAT_TRINH_BAY}`;
+}
+
+/**
+ * Prompt soạn trước lời giải thích cho MỌI câu trả lời của một câu (1 lượt gọi AI):
+ * trắc nghiệm = từng lựa chọn; điền từ = đáp án đúng + các lỗi sai người học hay gõ.
+ */
+function buildAllAnswersPrompt(input) {
+  const isMultipleChoice = input.question.type === "multiple_choice";
+  const canSoan = isMultipleChoice
+    ? `MỖI lựa chọn (${input.question.options.map((option) => option.key).join(", ")}), cả đúng lẫn sai`
+    : `đáp án đúng, và ${SO_LOI_THUONG_GAP} câu trả lời SAI mà người Việt hay gõ nhất (chia sai thì, thiếu/thừa đuôi -s/-ed/-ing, sai trợ động từ, sai chính tả phổ biến, dịch từng chữ) — viết đúng như người học sẽ gõ`;
+
+  return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy soạn sẵn lời giải thích cho một câu bài tập, trước khi người học trả lời.
+
+${moTaDeBai(input)}
+Soạn lời giải thích cho: ${canSoan}.
+Mỗi lời giải thích bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, xuống dòng bằng \\n, và nói đúng vào lỗi của chính câu trả lời đó.
+- Câu trả lời SAI viết đúng 3 dòng:
+${MAU_GIAI_THICH_SAI}
+- Câu trả lời ĐÚNG viết đúng 2 dòng:
+${MAU_GIAI_THICH_DUNG}
+${LUAT_TRINH_BAY}
+
+Chỉ trả về JSON dạng: {"giai_thich": [{"tra_loi": "<${isMultipleChoice ? "chữ cái lựa chọn" : "câu trả lời như người học gõ"}>", "dung": true|false, "giai_thich": "<lời giải thích>"}]}`;
 }
 
 const MAU_NHO = "Nhớ: <quy tắc hoặc công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)";
@@ -251,9 +284,6 @@ const MODEL_GIAI_THICH_NHANH = [
   { model: "gemini-3.1-flash-lite" },
   { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
 ];
-// Tạo sẵn hàng loạt (scripts/sinh-giai-thich.js): cùng thứ tự với khi học — flash-lite chất lượng đủ tốt,
-// nhanh hơn ~5 lần, và 3.6-flash có hạn mức theo ngày thấp (hết 429 sau ~80 lượt ngày 2026-09-29)
-const MODEL_GIAI_THICH_SINH_SAN = MODEL_GIAI_THICH_NHANH;
 const THOI_HAN_GIAI_THICH_MS = 8000;
 const TOKEN_GIAI_THICH_TOI_DA = 260;
 
@@ -301,66 +331,54 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
   throw lastError;
 }
 
-// ---- Đoán trước đáp án sai hay gặp của câu điền từ (scripts/sinh-giai-thich.js --loi-thuong-gap) ----
 const SO_LOI_THUONG_GAP = 4;
+const THOI_HAN_SOAN_TRUOC_MS = 15000;
+const TOKEN_SOAN_TRUOC_TOI_DA = 1400;
 
-function buildLoiThuongGapPrompt({ lessonTitle, grammar, question }) {
-  const focus = grammar.map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`).join("\n");
-  return `Người Việt mất gốc (A1–B1) làm câu điền từ tiếng Anh sau. Đoán ${SO_LOI_THUONG_GAP} câu trả lời SAI mà họ hay gõ nhất
-(ví dụ: chia sai thì, thiếu/thừa đuôi -s/-ed/-ing, sai trợ động từ, sai chính tả phổ biến, dịch từng chữ).
-
-Bài học: ${lessonTitle}
-Kiến thức trọng tâm:
-${focus || "- (không có)"}
-Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
-${question.prompt}
-Đáp án đúng: ${(question.accepted_answers || []).join(" / ")}
-
-Chỉ trả về một mảng JSON các chuỗi, đúng dạng người học sẽ gõ, không giải thích. Ví dụ: ["goed", "go"]`;
-}
-
-/** Lấy các đáp án sai từ câu trả lời của AI: bỏ đáp án đúng, trùng (sau chuẩn hoá) và rỗng. */
-function parseLoiThuongGap(text, question) {
+function docJsonAI(text) {
   const clean = String(text || "").replace(/```json?\s*/gi, "").replace(/```/g, "").trim();
-  let parsed;
   try {
-    parsed = JSON.parse(clean);
+    return JSON.parse(clean);
   } catch {
-    const match = clean.match(/\[[\s\S]*\]/);
-    if (!match) return [];
+    const match = clean.match(/\{[\s\S]*\}/);
+    if (!match) return null;
     try {
-      parsed = JSON.parse(match[0]);
+      return JSON.parse(match[0]);
     } catch {
-      return [];
+      return null;
     }
   }
-  const daCo = new Set();
-  const ketQua = [];
-  for (const item of Array.isArray(parsed) ? parsed : []) {
-    const traLoi = String(item ?? "").trim().slice(0, 120);
-    const khoa = chuanHoaTraLoi(traLoi);
-    if (!khoa || daCo.has(khoa) || laTraLoiDung(question, traLoi)) continue;
-    daCo.add(khoa);
-    ketQua.push(traLoi);
-    if (ketQua.length >= SO_LOI_THUONG_GAP) break;
-  }
-  return ketQua;
 }
 
-async function doanLoiThuongGap(input) {
+/**
+ * Soạn trước lời giải thích cho mọi câu trả lời của một câu, 1 lượt gọi AI (JSON mode).
+ * Trả về mảng thô { tra_loi, dung, giai_thich } — nơi gọi phải lọc lại bằng locGiaiThichHopLe.
+ */
+async function explainAllAnswers(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
   const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildAllAnswersPrompt(input);
   let lastError;
-  for (const mucModel of xepTheoLuot(MODEL_GIAI_THICH_SINH_SAN)) {
-    const { model: modelName, generationConfig = {} } = mucModel;
+  for (const mucModel of xepTheoLuot(models)) {
     try {
       const model = genAI.getGenerativeModel(
-        { model: modelName, generationConfig: { maxOutputTokens: 120, ...generationConfig } },
-        { timeout: THOI_HAN_GIAI_THICH_MS }
+        {
+          model: mucModel.model,
+          generationConfig: {
+            maxOutputTokens: TOKEN_SOAN_TRUOC_TOI_DA,
+            responseMimeType: "application/json",
+            ...mucModel.generationConfig,
+          },
+        },
+        { timeout: THOI_HAN_SOAN_TRUOC_MS }
       );
-      const result = await model.generateContent(buildLoiThuongGapPrompt(input));
-      return parseLoiThuongGap(result.response.text(), input.question);
+      const result = await model.generateContent(prompt);
+      const duLieu = docJsonAI(result.response.text());
+      const items = Array.isArray(duLieu) ? duLieu : duLieu?.giai_thich;
+      if (!Array.isArray(items) || items.length === 0) throw new Error("AI trả về JSON không dùng được");
+      return items;
     } catch (error) {
       ghiNhanLoi(mucModel, error);
       lastError = error;
@@ -451,10 +469,9 @@ module.exports = {
   parseVocabularyResponse,
   buildCourseExplanationPrompt,
   explainCourseQuestion,
-  MODEL_GIAI_THICH_SINH_SAN,
   THINKING_TOI_THIEU,
-  parseLoiThuongGap,
-  doanLoiThuongGap,
+  buildAllAnswersPrompt,
+  explainAllAnswers,
   buildExtraPracticePrompt,
   parseExtraPracticeResponse,
   generateExtraPractice,

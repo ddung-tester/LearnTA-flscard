@@ -15,6 +15,15 @@ const aiExplainLimiter = rateLimit({
   message: { message: "Bạn hỏi AI hơi nhiều, thử lại sau ít phút nhé" },
 });
 
+// Soạn trước: tối đa ~2 câu/lượt hiện câu hỏi; câu đã soạn đủ không gọi AI
+const aiPrepareLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 120,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Soạn trước quá nhiều, thử lại sau ít phút" },
+});
+
 router.get("/courses", requireAuth, asyncHandler(courseController.listCourses));
 router.get(
   "/courses/:courseId/lessons/:lessonNumber",
@@ -31,6 +40,13 @@ router.post(
   "/course-questions/:questionId/answer",
   requireAuth,
   asyncHandler(courseController.answerQuestion)
+);
+// Soạn trước lời giải thích khi câu hỏi vừa hiện (câu hiện tại + câu kế tiếp)
+router.post(
+  "/course-questions/:questionId/prepare",
+  requireAuth,
+  aiPrepareLimiter,
+  asyncHandler(courseController.prepareQuestion)
 );
 router.post(
   "/course-questions/:questionId/explain",
