@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import useTTS from "../hooks/useTTS";
+import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
@@ -92,6 +93,15 @@ function loiNhan(tiLe) {
 function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
   const cauSai = danhSach.filter((c) => !ketQua[c.id]?.dung);
   const soDung = danhSach.length - cauSai.length;
+
+  // Làm tốt (≥ 80%) thì ăn mừng một lần khi hiện tổng kết
+  useEffect(() => {
+    if (danhSach.length > 0 && soDung / danhSach.length >= 0.8) {
+      banPhaoGiay(null, "lon");
+      rungMay("xong");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi mở tổng kết
+  }, []);
   const theoPhan = nhomPhanBaiTap(danhSach).flatMap((nhom) =>
     nhom.cacPhan.map((phan) => {
       const cacCau = danhSach.filter((c) => phanBaiTap(c).khoa === phan.khoa);
@@ -186,6 +196,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
   const deBaiRef = useRef(null);
+  const cauRef = useRef(null);
 
   const nhomPhan = nhomPhanBaiTap(cauHoi);
   const cau = danhSach[chiSo];
@@ -193,6 +204,17 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const xong = chiSo >= danhSach.length;
   const soDung = Object.values(ketQua).filter((k) => k.dung).length;
   const soSai = Object.keys(ketQua).length - soDung;
+
+  // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
+  useEffect(() => {
+    if (!daTraLoi) return;
+    if (daTraLoi.dung) {
+      banPhaoGiay(cauRef.current?.querySelector(".kh-lua-chon__nut--dung, .kh-dien__o"));
+      rungMay("dung");
+    } else {
+      rungMay("sai");
+    }
+  }, [daTraLoi]);
 
   function batDauLuot(ds) {
     setDanhSach(ds);
@@ -401,7 +423,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
         </p>
       </div>
 
-      <section className="kh-cau" aria-labelledby="kh-de-bai">
+      <section key={cau.id} ref={cauRef} className="kh-cau" aria-labelledby="kh-de-bai">
         <p className="kh-cau__phan">
           {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}

@@ -354,3 +354,321 @@
     animation: none;
   }
 }
+
+/* ---------- Bài tập khoá học (BaiTapKhoaHoc) ----------
+   Selector 2 lớp để thắng KhoaHoc.css (tải sau, cùng trang). */
+.kh-bt .kh-cau {
+  transform-origin: 50% 100%;
+  animation: hu-the-lat-vao 520ms var(--hu-lo-xo) both;
+}
+
+.kh-cau .kh-lua-chon li {
+  animation: hu-dap-an-vao 440ms var(--hu-lo-xo) backwards;
+}
+
+.kh-cau .kh-lua-chon li:nth-child(1) { animation-delay: 90ms; }
+.kh-cau .kh-lua-chon li:nth-child(2) { animation-delay: 150ms; }
+.kh-cau .kh-lua-chon li:nth-child(3) { animation-delay: 210ms; }
+.kh-cau .kh-lua-chon li:nth-child(4) { animation-delay: 270ms; }
+.kh-cau .kh-lua-chon li:nth-child(n + 5) { animation-delay: 330ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  .kh-cau .kh-lua-chon__nut:not(:disabled):hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 26px rgba(110, 55, 10, 0.14), 0 3px 8px rgba(110, 55, 10, 0.08);
+  }
+
+  .kh-cau .kh-lua-chon__nut:not(:disabled):hover .kh-lua-chon__chu {
+    transform: scale(1.12) rotate(-6deg);
+  }
+}
+
+.kh-cau .kh-lua-chon__chu {
+  transition: transform 220ms var(--hu-lo-xo), background-color 160ms ease, color 160ms ease;
+}
+
+.kh-cau .kh-lua-chon__nut--dung,
+.kh-cau .kh-dien__o--dung {
+  position: relative;
+  animation:
+    hu-dap-an-dung 620ms var(--hu-lo-xo) both,
+    hu-vong-sang 900ms ease-out 80ms backwards;
+}
+
+.kh-cau .kh-lua-chon__nut--sai,
+.kh-cau .kh-dien__o--sai {
+  animation: hu-dap-an-sai 520ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.kh-cau .kh-lua-chon__icon {
+  animation: hu-dau-bat 520ms var(--hu-lo-xo) 120ms both;
+}
+
+.kh-cau .kh-lua-chon__nut--mo {
+  transform: scale(0.97);
+  transition: transform 360ms var(--hu-mem), opacity 360ms ease;
+}
+
+.kh-bt .kh-phan-hoi {
+  transform-origin: 50% 0%;
+  animation: hu-o-thong-ke 520ms var(--hu-lo-xo) both;
+}
+
+.kh-bt .kh-tong-ket {
+  transform-origin: 50% 0%;
+  animation: hu-ket-qua-vao 700ms var(--hu-lo-xo) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kh-bt .kh-cau,
+  .kh-cau .kh-lua-chon li,
+  .kh-cau .kh-lua-chon__nut--dung,
+  .kh-cau .kh-dien__o--dung,
+  .kh-cau .kh-lua-chon__nut--sai,
+  .kh-cau .kh-dien__o--sai,
+  .kh-cau .kh-lua-chon__icon,
+  .kh-bt .kh-phan-hoi,
+  .kh-bt .kh-tong-ket {
+    animation: none !important;
+  }
+
+  .kh-cau .kh-lua-chon__nut,
+  .kh-cau .kh-lua-chon__chu {
+    transform: none !important;
+  }
+}
+
+/* ---------- Lưới 48 buổi (trang Khoá học + Dashboard) ---------- */
+.kh-lich li,
+.dash-lich li {
+  animation: hu-o-lich-vao 520ms var(--hu-lo-xo) backwards;
+  animation-delay: calc(var(--thu-tu, 0) * 14ms + 80ms);
+}
+
+.kh-lich .kh-lich__o {
+  position: relative;
+  transition:
+    transform 260ms var(--hu-lo-xo),
+    box-shadow 260ms var(--hu-mem),
+    background-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .kh-lich a.kh-lich__o:hover {
+    z-index: 1;
+    transform: translateY(-4px) scale(1.08) rotate(-2deg);
+    box-shadow: 0 12px 22px rgba(110, 55, 10, 0.22);
+  }
+
+  .dash-lich a.dash-lich__o:hover {
+    transform: scale(1.25);
+    filter: brightness(1.08);
+  }
+}
+
+.dash-lich .dash-lich__o {
+  transition: transform 220ms var(--hu-lo-xo), filter 160ms ease;
+}
+
+/* Buổi đã xong: dấu ✓ "đóng" vào góc */
+.kh-lich .kh-lich__o--xong::after {
+  content: "";
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: oklch(99% 0.01 90)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f7d3b' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+    center / 72% no-repeat;
+  box-shadow: 0 1px 3px rgba(40, 60, 20, 0.35);
+  animation: hu-dong-dau 520ms var(--hu-lo-xo) backwards;
+  animation-delay: calc(var(--thu-tu, 0) * 14ms + 420ms);
+}
+
+/* Buổi học tiếp: nổi và "thở" */
+.kh-lich .kh-lich__o--tiep,
+.dash-lich .dash-lich__o--tiep {
+  animation: hu-nhip-tho 2.4s ease-in-out 1s infinite;
+}
+
+@keyframes hu-o-lich-vao {
+  0% {
+    opacity: 0;
+    transform: perspective(500px) translateY(10px) rotateX(-60deg) scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-dong-dau {
+  0% {
+    opacity: 0;
+    transform: scale(2.4) rotate(-25deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(0.85) rotate(6deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hu-nhip-tho {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.06);
+    filter: drop-shadow(0 6px 10px color-mix(in oklch, var(--mau-le-do) 45%, transparent));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kh-lich li,
+  .dash-lich li,
+  .kh-lich .kh-lich__o--xong::after,
+  .kh-lich .kh-lich__o--tiep,
+  .dash-lich .dash-lich__o--tiep {
+    animation: none !important;
+  }
+
+  .kh-lich .kh-lich__o,
+  .dash-lich .dash-lich__o {
+    transform: none !important;
+  }
+}
+
+/* ---------- Màn chờ chuyển trang: thẻ lật 3D ---------- */
+.ui-the-cho {
+  width: 3.6rem;
+  height: 4.5rem;
+  perspective: 600px;
+}
+
+.ui-the-cho__lat {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: hu-the-cho-lat 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.ui-the-cho__mat {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.6rem;
+  background:
+    linear-gradient(var(--mau-le-do), var(--mau-le-do)) 0 1.1rem / 100% 1.5px no-repeat,
+    var(--mau-giay, #fffdf6);
+  box-shadow: 0 10px 22px rgba(110, 55, 10, 0.18);
+  color: var(--mau-chinh);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  backface-visibility: hidden;
+}
+
+.ui-the-cho__mat--sau {
+  transform: rotateY(180deg);
+  background: var(--mau-chinh);
+  color: var(--mau-chu-tren-chinh);
+}
+
+@keyframes hu-the-cho-lat {
+  0% {
+    transform: translateY(0) rotateY(0);
+  }
+
+  25% {
+    transform: translateY(-8px) rotateY(90deg);
+  }
+
+  50% {
+    transform: translateY(0) rotateY(180deg);
+  }
+
+  75% {
+    transform: translateY(-8px) rotateY(270deg);
+  }
+
+  100% {
+    transform: translateY(0) rotateY(360deg);
+  }
+}
+
+/* ---------- Trang mới vào: nổi lên từ dưới, hơi phóng ---------- */
+.ui-route-transition {
+  animation: hu-trang-vao 380ms var(--hu-mem) both;
+}
+
+@keyframes hu-trang-vao {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.99);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-the-cho__lat,
+  .ui-route-transition {
+    animation: none !important;
+  }
+}
+
+/* ---------- Dashboard: các khối vào lần lượt ---------- */
+.dash-hom-nay {
+  transform-origin: 50% 0%;
+  animation: hu-ket-qua-vao 700ms var(--hu-lo-xo) both;
+}
+
+.dash-viec .dash-viec__the {
+  animation: hu-o-thong-ke 560ms var(--hu-lo-xo) backwards;
+  transition: transform 260ms var(--hu-lo-xo), box-shadow 260ms var(--hu-mem);
+}
+
+.dash-viec .dash-viec__the:nth-child(1) { animation-delay: 220ms; }
+.dash-viec .dash-viec__the:nth-child(2) { animation-delay: 300ms; }
+.dash-viec .dash-viec__the:nth-child(3) { animation-delay: 380ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  .dash-viec .dash-viec__the:hover {
+    transform: translateY(-4px) rotate(-0.6deg);
+    box-shadow: 0 16px 30px rgba(110, 55, 10, 0.16);
+  }
+}
+
+.dash-section {
+  animation: hu-trang-vao 520ms var(--hu-mem) 420ms backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hom-nay,
+  .dash-viec .dash-viec__the,
+  .dash-section {
+    animation: none !important;
+  }
+
+  .dash-viec .dash-viec__the {
+    transform: none !important;
+  }
+}

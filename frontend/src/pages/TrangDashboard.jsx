@@ -287,7 +287,7 @@ function TrangDashboard() {
                       ? " dash-lich__o--tiep"
                       : " dash-lich__o--co";
                 return (
-                  <li key={i}>
+                  <li key={i} style={{ "--thu-tu": i }}>
                     {bai ? (
                       <Link
                         to={`/khoa-hoc/${khoaChinh.id}/bai/${bai.lesson_number}`}

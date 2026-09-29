@@ -23,7 +23,7 @@ function LichBuoiHoc({ khoa, buoiTiep }) {
         const xong = bai && tienDoBuoiHoc(bai).xong;
         const laBuoiTiep = bai && bai === buoiTiep;
         return (
-          <li key={i}>
+          <li key={i} style={{ "--thu-tu": i }}>
             {bai ? (
               <Link
                 to={`/khoa-hoc/${khoa.id}/bai/${bai.lesson_number}`}

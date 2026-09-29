@@ -1,48 +1,17 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
-// Tải lottie-web khi overlay cần hiện lần đầu, không nằm trong bundle chính
-const Lottie = lazy(() =>
-  import("lottie-react").then((m) => ({ default: m.default?.default ?? m.default })),
-);
 const LOADING_REVEAL_DELAY_MS = 120;
 // Trì hoãn nhỏ khi ẩn overlay: safety net cho double-rAF bridge,
 // tránh flicker nếu data-loading key chưa kịp đăng ký trên thiết bị chậm.
 const LOADING_HIDE_DELAY_MS = 50;
-// Thời gian fade-out của motion animation (ms) — Lottie được unmount sau khi fade xong
-const MOTION_HIDE_DURATION_MS = 140;
 
+/**
+ * PageLoadingOverlay — màn chờ khi chuyển trang: một thẻ từ vựng lật 3D liên tục (CSS thuần).
+ * Giảm chuyển động: thẻ đứng yên (styles/hieu-ung.css).
+ */
 function PageLoadingOverlay({ hienThi }) {
-  const [loadingAnimation, setLoadingAnimation] = useState(null);
   const [dangHienThi, setDangHienThi] = useState(false);
-  // Giữ Lottie mount đến sau khi animation fade-out hoàn tất, tránh bị cắt đứt giữa chướng
-  const [giuLottie, setGiuLottie] = useState(false);
-  const lottieTimerRef = useRef(null);
-  const giamChuyenDong = useReducedMotion();
-
-  useEffect(() => {
-    if (giamChuyenDong) return undefined;
-    const controller = new AbortController();
-
-    fetch("/animation/loading.json", { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Loading animation returned ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(setLoadingAnimation)
-      .catch((error) => {
-        if (error.name !== "AbortError") {
-          // The text fallback keeps navigation usable when the optional asset fails.
-          setLoadingAnimation(null);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, [giamChuyenDong]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -53,27 +22,6 @@ function PageLoadingOverlay({ hienThi }) {
       window.clearTimeout(timer);
     };
   }, [hienThi]);
-
-  // Quản lý vòng đời Lottie độc lập: mount khi cần hiện, unmount
-  // sau khi motion fade-out hoàn tất (không bị cắt đứt giữa animation)
-  useEffect(() => {
-    if (hienThi) {
-      // Hiện thị: mount Lottie ngay, hủy bất kỳ timer unmount nào đang chờ
-      window.clearTimeout(lottieTimerRef.current);
-      setGiuLottie(true);
-    } else {
-      // Ẩn: đợi animation fade-out xong mới unmount Lottie
-      lottieTimerRef.current = window.setTimeout(() => {
-        setGiuLottie(false);
-      }, LOADING_HIDE_DELAY_MS + MOTION_HIDE_DURATION_MS + 20); // buffer nhỏ
-    }
-
-    return () => {
-      window.clearTimeout(lottieTimerRef.current);
-    };
-  }, [hienThi]);
-
-  const hienLottie = giuLottie && loadingAnimation && !giamChuyenDong;
 
   return (
     <motion.div
@@ -87,15 +35,14 @@ function PageLoadingOverlay({ hienThi }) {
       aria-hidden={!dangHienThi}
     >
       <div className="page-loading-overlay__content">
-        {hienLottie && (
-          <Suspense fallback={null}>
-            <Lottie
-              animationData={loadingAnimation}
-              loop
-              autoplay
-              className="page-loading-overlay__animation"
-            />
-          </Suspense>
+        {/* Chỉ chạy animation khi overlay đang hiện */}
+        {dangHienThi && (
+          <div className="ui-the-cho" aria-hidden="true">
+            <div className="ui-the-cho__lat">
+              <span className="ui-the-cho__mat">Aa</span>
+              <span className="ui-the-cho__mat ui-the-cho__mat--sau">Ăâ</span>
+            </div>
+          </div>
         )}
         <p className="page-loading-overlay__text">Đang tải...</p>
       </div>
@@ -104,4 +51,3 @@ function PageLoadingOverlay({ hienThi }) {
 }
 
 export default PageLoadingOverlay;
-

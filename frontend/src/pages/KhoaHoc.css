@@ -1247,23 +1247,25 @@
   opacity: 0.6;
 }
 
+/* Buổi có nội dung, chưa học: viền liền (khác ô chưa có nội dung nét đứt), nền giấy — nhẹ hơn buổi học tiếp */
 .kh-lich__o--co {
-  border: 1.5px solid var(--mau-chinh);
-  background: var(--mau-chinh);
-  color: var(--mau-chu-tren-chinh);
+  border: 1.5px solid color-mix(in oklch, var(--mau-chinh) 45%, transparent);
+  background: var(--mau-mat);
+  color: var(--mau-chinh);
   opacity: 1;
-  box-shadow: 0 2px 0 var(--mau-chinh-hover);
+  box-shadow: 0 2px 0 color-mix(in oklch, var(--mau-chinh) 22%, transparent);
   transition: background var(--tuong-tac-hover) var(--tuong-tac-ease);
 }
 
 .kh-lich__o--co:hover {
-  background: var(--mau-chinh-hover);
+  background: var(--mau-mat-hover);
 }
 
 /* Buổi đã xong: tô màu đúng; buổi học tiếp: khoanh bằng màu lề đỏ của vở */
 .kh-lich__o--xong {
   border-color: var(--kh-dung-chu);
   background: var(--kh-dung-chu);
+  color: var(--mau-chu-tren-chinh);
   box-shadow: 0 2px 0 oklch(36% 0.1 145);
 }
 
@@ -1272,8 +1274,16 @@
 }
 
 .kh-lich__o--tiep {
+  border-color: var(--mau-chinh);
+  background: var(--mau-chinh);
+  color: var(--mau-chu-tren-chinh);
+  box-shadow: 0 2px 0 var(--mau-chinh-hover);
   outline: 3px solid var(--mau-le-do);
   outline-offset: 3px;
+}
+
+.kh-lich__o--tiep:hover {
+  background: var(--mau-chinh-hover);
 }
 
 .kh-khoa__nut {
