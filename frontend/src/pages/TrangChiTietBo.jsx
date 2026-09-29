@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import StreakBadge from "../components/common/StreakBadge";
+import SoChayDan from "../components/common/SoChayDan";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import AnimatedModal from "../components/common/AnimatedModal";
 import NhapNhanhTu from "../components/NhapNhanhTu";
@@ -894,7 +895,7 @@ function TrangChiTietBo() {
       <div className="ui-stat-grid ui-stat-grid--deck">
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
           <p className="ui-stat-label mb-1">Tổng từ</p>
-          <p className="ui-stat-value text-[var(--mau-chu)]">{soTu}</p>
+          <p className="ui-stat-value text-[var(--mau-chu)]"><SoChayDan value={soTu} /></p>
         </div>
         {isAuthenticated ? (
           /* Thẻ Streak: 3 trạng thái — cháy / đóng băng / vỡ */
@@ -912,16 +913,16 @@ function TrangChiTietBo() {
         ) : (
           <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
             <p className="ui-stat-label mb-1">Đã học</p>
-            <p className="ui-stat-value text-[var(--mau-thanh-cong)]">{soTuDaHoc}</p>
+            <p className="ui-stat-value text-[var(--mau-thanh-cong)]"><SoChayDan value={soTuDaHoc} /></p>
           </div>
         )}
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
           <p className="ui-stat-label mb-1">Yêu thích</p>
-          <p className="ui-stat-value" style={{ color: "oklch(51% 0.15 24)" }}>{soTuYeuThich}</p>
+          <p className="ui-stat-value" style={{ color: "oklch(51% 0.15 24)" }}><SoChayDan value={soTuYeuThich} /></p>
         </div>
         <div className="ui-stat-card border border-[var(--mau-vien)] bg-[var(--mau-mat)]">
           <p className="ui-stat-label mb-1">Chưa học</p>
-          <p className="ui-stat-value text-[var(--mau-chinh)]">{soTuChuaHoc}</p>
+          <p className="ui-stat-value text-[var(--mau-chinh)]"><SoChayDan value={soTuChuaHoc} /></p>
         </div>
       </div>
 
@@ -1158,7 +1159,7 @@ function TrangChiTietBo() {
                     if (e.target.closest("button")) return;
                     setChiTietTu(the);
                   }}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", "--thu-tu": i }}
                 >
                   <div className="ui-word-row__inner">
                     <div className="ui-word-main">

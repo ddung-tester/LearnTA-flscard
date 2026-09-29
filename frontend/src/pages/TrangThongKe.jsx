@@ -12,6 +12,7 @@ import { layStudySessionSummary } from "../services/studySessionApi";
 import { layDanhSachKhoaHoc } from "../services/courseApi";
 import { tongHopKhoaHoc } from "../utils/baiTapKhoaHoc";
 import EmptyState from "../components/common/EmptyState";
+import SoChayDan from "../components/common/SoChayDan";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 
@@ -90,7 +91,7 @@ function TkStatCard({ icon, label, value, sub, highlight = false }) {
     <div className={`tk-stat-card ${highlight ? "tk-stat-card--highlight" : ""}`.trim()}>
       <span className="tk-stat-card__icon" aria-hidden="true"><DashIcon name={icon} size={20} /></span>
       <div>
-        <p className="tk-stat-card__value">{value ?? "—"}</p>
+        <p className="tk-stat-card__value">{value == null ? "—" : <SoChayDan value={value} />}</p>
         <p className="tk-stat-card__label">{label}</p>
         {sub && <p className="tk-stat-card__sub">{sub}</p>}
       </div>
@@ -409,7 +410,12 @@ function TrangThongKe() {
         ) : (
           <>
             <p className="tk-section__sub">Hoạt động 7 ngày gần nhất</p>
-            <ActivityBars days={activityDays} />
+            {/* Có lịch sử cũ nhưng 7 ngày qua chưa học: báo một dòng thay vì khung trống */}
+            {activityDays.length > 0 ? (
+              <ActivityBars days={activityDays} />
+            ) : (
+              <p className="tk-section__sub">Chưa có phiên học nào trong 7 ngày qua.</p>
+            )}
             {modeBreakdown.length > 0 && (
               <>
                 <p className="tk-section__sub">Theo chế độ học</p>
