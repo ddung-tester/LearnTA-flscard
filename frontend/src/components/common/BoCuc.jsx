@@ -34,6 +34,25 @@ const TAB_KHACH = [
 ];
 
 /**
+ * TrangVao — bọc nội dung trang: ẩn khi còn màn chờ, rồi nổi lên (hoặc trượt theo hướng tab)
+ * đúng lúc màn chờ tắt. Chỉ chạy một lần mỗi trang (BoCuc đặt key theo pathname).
+ */
+function TrangVao({ huong, children }) {
+  const { dangChuyenTrang } = usePageTransition();
+  const [daVao, setDaVao] = useState(!dangChuyenTrang);
+  if (!daVao && !dangChuyenTrang) setDaVao(true);
+
+  return (
+    <div
+      className={`ui-route-transition${daVao ? " ui-route-transition--vao" : ""}`}
+      data-huong={huong}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
  * BoCuc — Layout chung cho tat ca trang (tru TrangChu).
  * Gom header va main content area.
  */
@@ -65,6 +84,17 @@ function BoCuc() {
   // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), cập nhật mỗi lần SRS đổi
   const soTuDenHanLocal = useSyncExternalStore(theoDoiSRS, () => layThongKeSRS().duHomNay);
   const soTuDenHan = isAuthenticated ? soTuDenHanLocal : 0;
+  // Đổi tab chính: trang mới trượt theo hướng tab (trái/phải); còn lại nổi lên
+  const chiSoTab = dsTab.findIndex((tab) => tab.laActive(viTri.pathname));
+  const [tabTruoc, setTabTruoc] = useState({ path: viTri.pathname, chiSo: chiSoTab, huong: "len" });
+  if (tabTruoc.path !== viTri.pathname) {
+    const doiTab = chiSoTab >= 0 && tabTruoc.chiSo >= 0 && chiSoTab !== tabTruoc.chiSo;
+    setTabTruoc({
+      path: viTri.pathname,
+      chiSo: chiSoTab,
+      huong: doiTab ? (chiSoTab > tabTruoc.chiSo ? "phai" : "trai") : "len",
+    });
+  }
   const noiDungTrang = <Outlet />;
 
   useEffect(() => {
@@ -270,7 +300,9 @@ function BoCuc() {
       <main
         className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}${laTrangDashboard ? " app-shell-main--dashboard" : ""}`}
       >
-        {noiDungTrang}
+        <TrangVao key={viTri.pathname} huong={tabTruoc.huong}>
+          {noiDungTrang}
+        </TrangVao>
       </main>
     </div>
   );

@@ -57,7 +57,7 @@ function TuVungTheoBuoi({ khoa }) {
           const phanTram = tienDo.tongTu > 0 ? Math.round((tienDo.tuDaHoc / tienDo.tongTu) * 100) : 0;
           const laBuoiTiep = bai === buoiTiep;
           return (
-            <li key={soBuoi} className={`tv-buoi${laBuoiTiep ? " tv-buoi--tiep" : ""}`}>
+            <li key={soBuoi} className={`tv-buoi${laBuoiTiep ? " tv-buoi--tiep" : ""}`} data-mo-rong>
               <span className="tv-buoi__so">
                 Buổi {soBuoi}
                 {laBuoiTiep && <span className="tv-buoi__nhan">Đang học</span>}

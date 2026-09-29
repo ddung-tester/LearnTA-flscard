@@ -611,27 +611,67 @@
   }
 }
 
-/* ---------- Trang mới vào: nổi lên từ dưới, hơi phóng ---------- */
+/* ---------- Trang mới vào (BoCuc > TrangVao) ----------
+   Ẩn khi màn chờ còn hiện, rồi nổi lên / trượt theo hướng tab.
+   fill "backwards": hết animation là trả về transform gốc, không giữ containing block
+   cho các phần tử position: fixed bên trong (modal, pháo giấy). */
 .ui-route-transition {
-  animation: hu-trang-vao 380ms var(--hu-mem) both;
+  opacity: 0;
+  animation: none;
+}
+
+.ui-route-transition--vao {
+  opacity: 1;
+  animation: hu-trang-vao 420ms var(--hu-mem) backwards;
+}
+
+.ui-route-transition--vao[data-huong="phai"] {
+  animation-name: hu-trang-vao-phai;
+}
+
+.ui-route-transition--vao[data-huong="trai"] {
+  animation-name: hu-trang-vao-trai;
 }
 
 @keyframes hu-trang-vao {
   0% {
     opacity: 0;
-    transform: translate3d(0, 14px, 0) scale(0.99);
+    transform: translate3d(0, 18px, 0) scale(0.985);
   }
+}
 
-  100% {
-    opacity: 1;
-    transform: none;
+@keyframes hu-trang-vao-phai {
+  0% {
+    opacity: 0;
+    transform: translate3d(32px, 0, 0);
   }
+}
+
+@keyframes hu-trang-vao-trai {
+  0% {
+    opacity: 0;
+    transform: translate3d(-32px, 0, 0);
+  }
+}
+
+/* Tờ giấy nở từ thẻ vừa bấm ra kín màn hình (TheMoRong), phủ lên cả màn chờ */
+.ui-the-mo-rong {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  pointer-events: none;
+  background: var(--mau-nen);
+  clip-path: inset(50% round 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ui-the-cho__lat,
-  .ui-route-transition {
+  .ui-route-transition--vao {
     animation: none !important;
+  }
+
+  .ui-the-mo-rong {
+    display: none;
   }
 }
 

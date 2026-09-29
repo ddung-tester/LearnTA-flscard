@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PageLoadingOverlay from "../components/PageLoadingOverlay";
+import TheMoRong from "../components/TheMoRong";
 
 const PageTransitionContext = createContext(null);
 
@@ -20,10 +21,22 @@ function normalizeTo(to) {
   return `${to.pathname ?? ""}${to.search ?? ""}${to.hash ?? ""}`;
 }
 
+const TRE_DOI_TRANG_KHI_MO_RONG_MS = 180;
+
+// Khung của thẻ vừa bấm, để TheMoRong nở từ đúng chỗ đó (bỏ qua khi giảm chuyển động)
+function doKhungMoRong(phanTu) {
+  if (!phanTu || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return null;
+  const r = phanTu.getBoundingClientRect();
+  if (r.width === 0 || r.height === 0) return null;
+  const bo = parseFloat(window.getComputedStyle(phanTu).borderTopLeftRadius) || 0;
+  return { top: r.top, left: r.left, right: r.right, bottom: r.bottom, bo };
+}
+
 export function PageTransitionProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [soTacVuTaiDuLieu, setSoTacVuTaiDuLieu] = useState(0);
+  const [khungMoRong, setKhungMoRong] = useState(null);
   const dangChuyenTrangRef = useRef(false);
   const currentPathRef = useRef("");
   const tacVuTaiDuLieuRef = useRef(new Set());
@@ -93,6 +106,7 @@ export function PageTransitionProvider({ children }) {
 
   const navigateWithLoading = useCallback(
     (to, options = {}) => {
+      const { tuPhanTu, ...tuyChonDieuHuong } = options;
       const targetPath = normalizeTo(to);
 
       if (!targetPath || targetPath === currentPathRef.current || dangChuyenTrangRef.current) {
@@ -105,14 +119,30 @@ export function PageTransitionProvider({ children }) {
       dangChuyenTrangRef.current = true;
       setPageDataLoading("__nav__", true);
 
-      try {
-        startTransition(() => {
-          navigate(to, options);
-        });
-      } catch (error) {
-        dangChuyenTrangRef.current = false;
-        setPageDataLoading("__nav__", false);
-        throw error;
+      // Giữ trang mới ẩn sau tờ giấy cho tới khi tờ giấy nở xong
+      const khung = doKhungMoRong(tuPhanTu);
+
+      function chuyenTrang() {
+        try {
+          startTransition(() => {
+            navigate(to, tuyChonDieuHuong);
+          });
+        } catch (error) {
+          dangChuyenTrangRef.current = false;
+          setPageDataLoading("__nav__", false);
+          setPageDataLoading("__mo-rong__", false);
+          setKhungMoRong(null);
+          throw error;
+        }
+      }
+
+      if (khung) {
+        setPageDataLoading("__mo-rong__", true);
+        setKhungMoRong(khung);
+        // Trang cũ còn nằm dưới tờ giấy lúc nó bắt đầu nở; đổi trang khi giấy đã phủ gần kín
+        window.setTimeout(chuyenTrang, TRE_DOI_TRANG_KHI_MO_RONG_MS);
+      } else {
+        chuyenTrang();
       }
     },
     [navigate, setPageDataLoading]
@@ -144,7 +174,10 @@ export function PageTransitionProvider({ children }) {
     if (targetPath === currentPathRef.current) return;
 
     event.preventDefault();
-    navigateWithLoading(targetPath, { replace: link.hasAttribute("data-replace") });
+    navigateWithLoading(targetPath, {
+      replace: link.hasAttribute("data-replace"),
+      tuPhanTu: link.closest("[data-mo-rong]"),
+    });
   }
 
   const value = useMemo(
@@ -157,7 +190,14 @@ export function PageTransitionProvider({ children }) {
       <div className="page-transition-root" onClickCapture={handleClickCapture}>
         {children}
       </div>
-      <PageLoadingOverlay hienThi={hienThiLoading} />
+      <PageLoadingOverlay hienThi={hienThiLoading} treHien={khungMoRong ? 900 : undefined} />
+      {khungMoRong && (
+        <TheMoRong
+          khung={khungMoRong}
+          onMoXong={() => setPageDataLoading("__mo-rong__", false)}
+          onXong={() => setKhungMoRong(null)}
+        />
+      )}
     </PageTransitionContext.Provider>
   );
 }

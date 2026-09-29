@@ -97,7 +97,7 @@ function buoiGanDay(lessons, buoiTiep) {
 function DeckMiniCard({ deck }) {
   const phanTram = phanTramTienDo(deck);
   return (
-    <Link to={`/decks/${deck.id}`} className="dash-deck-mini">
+    <Link to={`/decks/${deck.id}`} className="dash-deck-mini" data-mo-rong>
       <div className="dash-deck-mini__top">
         <p className="dash-deck-mini__title">{deck.title}</p>
         {deck.total_words > 0 && (
@@ -292,6 +292,7 @@ function TrangDashboard() {
                       <Link
                         to={`/khoa-hoc/${khoaChinh.id}/bai/${bai.lesson_number}`}
                         className={`dash-lich__o${trangThai}`}
+                        data-mo-rong
                         title={`Buổi ${i + 1}: ${bai.title}`}
                       >
                         <span className="sr-only">Buổi {i + 1}</span>

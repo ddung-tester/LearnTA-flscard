@@ -297,7 +297,7 @@ function TrangLuyenTap() {
                   {noiDung}
                 </span>
               ) : (
-                <Link key={cheDo.path} to={`/decks/${boId}/${cheDo.path}${query}`} className="practice-mode">
+                <Link key={cheDo.path} to={`/decks/${boId}/${cheDo.path}${query}`} className="practice-mode" data-mo-rong>
                   {noiDung}
                 </Link>
               );

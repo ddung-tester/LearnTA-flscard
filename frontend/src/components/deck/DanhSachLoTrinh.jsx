@@ -17,7 +17,7 @@ export default function DanhSachLoTrinh({ loTrinh, coLoi = false, hienTienDo = f
   return (
     <div className="roadmap-grid">
       {loTrinh.map((muc) => (
-        <Link key={muc.slug} to={`/roadmap/${muc.slug}`} className="roadmap-card">
+        <Link key={muc.slug} to={`/roadmap/${muc.slug}`} className="roadmap-card" data-mo-rong>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="roadmap-card__title">{muc.title}</h3>
             {muc.level_label && (

@@ -30,6 +30,7 @@ function LichBuoiHoc({ khoa, buoiTiep }) {
                 className={`kh-lich__o kh-lich__o--co${xong ? " kh-lich__o--xong" : ""}${laBuoiTiep ? " kh-lich__o--tiep" : ""}`}
                 title={bai.title}
                 aria-current={laBuoiTiep ? "step" : undefined}
+                data-mo-rong
               >
                 {i + 1}
                 <span className="sr-only">
@@ -53,7 +54,7 @@ function LichBuoiHoc({ khoa, buoiTiep }) {
 function TheBuoiHoc({ khoaId, bai }) {
   const tienDo = tienDoBuoiHoc(bai);
   return (
-    <Link to={`/khoa-hoc/${khoaId}/bai/${bai.lesson_number}`} className="kh-buoi">
+    <Link to={`/khoa-hoc/${khoaId}/bai/${bai.lesson_number}`} className="kh-buoi" data-mo-rong>
       <span className="kh-buoi__so" aria-hidden="true">{bai.lesson_number}</span>
       <span className="kh-buoi__chu">
         <span className="kh-buoi__nhan">

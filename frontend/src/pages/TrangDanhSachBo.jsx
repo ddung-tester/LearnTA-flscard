@@ -380,8 +380,8 @@ function TrangDanhSachBo() {
     }
   }
 
-  function moChiTietBo(boId) {
-    navigateWithLoading(`/decks/${boId}`);
+  function moChiTietBo(boId, theBo) {
+    navigateWithLoading(`/decks/${boId}`, { tuPhanTu: theBo });
   }
 
   function xuLyPhimCard(event, boId) {
@@ -389,7 +389,7 @@ function TrangDanhSachBo() {
     if (event.target.closest("button, a, input, textarea, select")) return;
 
     event.preventDefault();
-    moChiTietBo(boId);
+    moChiTietBo(boId, event.currentTarget);
   }
 
   const tieuDeTrang = isAuthenticated ? "Bộ từ vựng của bạn" : "Bộ từ vựng";
@@ -456,7 +456,7 @@ function TrangDanhSachBo() {
                 key={bo.id}
                 role="link"
                 tabIndex={0}
-                onClick={() => moChiTietBo(bo.id)}
+                onClick={(event) => moChiTietBo(bo.id, event.currentTarget)}
                 onKeyDown={(event) => xuLyPhimCard(event, bo.id)}
                 className="ui-card-interactive ui-deck-card group cursor-pointer rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-4 py-4 shadow-[var(--bong-card)] outline-none transition-colors hover:border-[var(--mau-chinh)]/55 hover:bg-[var(--mau-mat-hover)] focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:px-5"
                 style={{ "--mau-deck": mauDeck }}

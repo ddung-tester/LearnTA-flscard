@@ -984,7 +984,7 @@ function TrangChiTietBo() {
                 {cach.label}
               </span>
             ) : (
-              <Link key={cach.key} to={`/decks/${boId}/${cach.path}${queryHoc}`} className={lop}>
+              <Link key={cach.key} to={`/decks/${boId}/${cach.path}${queryHoc}`} className={lop} data-mo-rong>
                 {cach.label}
               </Link>
             );

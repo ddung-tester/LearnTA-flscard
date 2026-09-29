@@ -9,19 +9,20 @@ const LOADING_HIDE_DELAY_MS = 50;
 /**
  * PageLoadingOverlay — màn chờ khi chuyển trang: một thẻ từ vựng lật 3D liên tục (CSS thuần).
  * Giảm chuyển động: thẻ đứng yên (styles/hieu-ung.css).
+ * treHien: đang có tờ giấy TheMoRong phủ màn hình thì chờ lâu hơn, trang tải nhanh sẽ không chớp màn chờ.
  */
-function PageLoadingOverlay({ hienThi }) {
+function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
   const [dangHienThi, setDangHienThi] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDangHienThi(hienThi);
-    }, hienThi ? LOADING_REVEAL_DELAY_MS : LOADING_HIDE_DELAY_MS);
+    }, hienThi ? treHien : LOADING_HIDE_DELAY_MS);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [hienThi]);
+  }, [hienThi, treHien]);
 
   return (
     <motion.div
