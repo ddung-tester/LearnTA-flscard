@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
 import NutAmThanh from "./NutAmThanh";
+import NutDenBan from "./NutDenBan";
 
 const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
@@ -203,6 +204,7 @@ function BoCuc() {
             </nav>
           )}
           <div className="dash-nav__links dash-nav__account">
+            {!laTrangAuth && <NutDenBan />}
             {!laTrangAuth && <NutAmThanh />}
             {!laTrangAuth && isAuthenticated ? (
               <div ref={menuTaiKhoanRef} className="relative">

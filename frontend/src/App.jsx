@@ -3,6 +3,7 @@ import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import TuongTacNho from "./components/common/TuongTacNho";
+import DenBan from "./components/common/DenBan";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
@@ -109,6 +110,7 @@ function UngDung() {
       mode={laTrangAuth ? "immersive" : "app"}
     >
       <TuongTacNho />
+      <DenBan />
       <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
       {!laTrangImmersive && (
         <Suspense fallback={null}>

@@ -139,6 +139,10 @@ const BAN_AM = {
   giay(c) {
     nhieu(c, { dai: 0.32, to: 0.2, locTu: 1200, locDen: 2600, q: 0.6, soDoc: 3 });
   },
+  congTac(c) {
+    nhieu(c, { dai: 0.035, to: 0.35, locTu: 3500, locDen: 2500, q: 1.2 });
+    not(c, { tanSo: 1800, tanSoCuoi: 1200, dai: 0.05, to: 0.08, kieu: "square" });
+  },
   dongDau(c) {
     not(c, { tanSo: 150, tanSoCuoi: 55, dai: 0.18, to: 0.5 });
     nhieu(c, { dai: 0.06, to: 0.3, locTu: 2000, locDen: 900, q: 0.7 });
@@ -146,7 +150,7 @@ const BAN_AM = {
 };
 
 /**
- * Phát một tiếng: "dung" | "sai" | "xong" | "lat" | "giay" | "dongDau".
+ * Phát một tiếng: "dung" | "sai" | "xong" | "lat" | "giay" | "dongDau" | "congTac".
  * Không làm gì khi đã tắt âm thanh hoặc trình duyệt không có Web Audio.
  */
 export function phatAm(ten) {

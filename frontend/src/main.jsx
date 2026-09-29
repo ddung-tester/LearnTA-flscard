@@ -9,6 +9,7 @@ import { PageTransitionProvider } from "./contexts/PageTransitionContext.jsx";
 import { ToastProvider } from "./contexts/ToastContext.jsx";
 import "./index.css";
 import "./styles/hieu-ung.css";
+import "./styles/den-ban.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

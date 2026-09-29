@@ -1,0 +1,492 @@
+/* =========================================================
+   Giao diện "đèn bàn học" (html[data-giao-dien="den-ban"], xem components/common/DenBan)
+   Ý tưởng: mặt bàn gỗ tối, thẻ giấy vẫn sáng dưới đèn. Chỉ chữ/viền nằm thẳng trên mặt bàn
+   đổi sang màu sáng; mọi mặt giấy (danh sách dưới, sinh từ các class có nền giấy/trắng)
+   đặt lại bộ màu chữ gốc nên nội dung trong thẻ giữ nguyên như giao diện sáng.
+   Thêm thành phần nền giấy mới → thêm class vào danh sách này.
+   ========================================================= */
+:root[data-giao-dien="den-ban"] {
+  color-scheme: dark;
+  --mau-nen: #1c140e;
+  --mau-cham-luoi: oklch(88% 0.05 75 / 0.07);
+  --mau-chu: #f6ead6;
+  --mau-chu-phu: #dcc6a4;
+  --mau-chu-mo: #b59c7c;
+  --mau-chinh: #e8ae3a;
+  --mau-chinh-hover: #f3c25a;
+  --mau-chu-tren-chinh: #2c1608;
+  --mau-nhan: #f0b865;
+  --mau-loi: oklch(72% 0.16 28);
+  --mau-thanh-cong: oklch(76% 0.15 142);
+  --mau-vien: rgba(246, 222, 180, 0.16);
+  --mau-vien-manh: rgba(246, 222, 180, 0.32);
+  --vong-focus: 0 0 0 3px rgba(232, 174, 58, 0.45);
+  --bong-card: 0 16px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --bong-giay: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 18px -6px rgba(0, 0, 0, 0.6);
+  --bong-giay-nang: 0 2px 0 rgba(0, 0, 0, 0.3), 0 24px 44px -14px rgba(0, 0, 0, 0.7);
+  --bong-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --bong-tuong-tac: 0 10px 24px rgba(0, 0, 0, 0.4);
+  --bong-tuong-tac-cao: 0 18px 36px rgba(0, 0, 0, 0.5);
+  --den-x: 50vw;
+  --den-y: 8vh;
+}
+
+/* Mặt giấy: trả lại bộ màu gốc cho mọi thứ bên trong */
+:root[data-giao-dien="den-ban"] :is(
+    .chatbot-bubble,
+    .chatbot-bubble-text code,
+    .chatbot-header,
+    .chatbot-header-avatar,
+    .chatbot-input-row,
+    .chatbot-messages,
+    .chatbot-msg.is-loi .chatbot-bubble-text,
+    .chatbot-msg.model .chatbot-bubble-text,
+    .chatbot-panel,
+    .chatbot-suggestion-btn,
+    .chatbot-suggestions,
+    .chatbot-textarea,
+    .chatbot-typing,
+    .dash-deck-mini,
+    .dash-error-note,
+    .dash-hom-nay,
+    .dash-overview-card,
+    .dash-stat-row--accent,
+    .dash-tu-buoi,
+    .dash-viec__the,
+    .fc-chong__to,
+    .fc-the-keo,
+    .fc-mat,
+    .fc-mat--sau,
+    .fc-rate-btn--fail,
+    .fc-rate-btn--pass .fc-rate-btn__icon,
+    .google-signin-btn,
+    .home-xap__doi,
+    .kh-ai,
+    .kh-ai__cho span,
+    .kh-bt__thanh,
+    .kh-buoc__nut,
+    .kh-buoc__nut[aria-selected="true"],
+    .kh-buoi,
+    .kh-buoi__thanh,
+    .kh-cau,
+    .kh-chip,
+    .kh-cong-thuc__khoi--cho,
+    .kh-dien__o,
+    .kh-dien__o--dung,
+    .kh-dien__o--sai,
+    .kh-lich,
+    .kh-lich__o--co,
+    .kh-lua-chon__chu,
+    .kh-lua-chon__nut,
+    .kh-lua-chon__nut--dung,
+    .kh-lua-chon__nut--sai,
+    .kh-nut-loa,
+    .kh-nut-loa--dang-doc,
+    .kh-phan-hoi,
+    .kh-the-tu,
+    .kh-the-tu__loa,
+    .kh-tong-ket,
+    .kh-tong-ket__thanh,
+    .kh-vo,
+    .kh-vo__ghi-nho,
+    .meo-hoc__loi,
+    .practice-mode,
+    .practice-panel,
+    .review-badge,
+    .review-badge--good,
+    .review-badge--mastered,
+    .review-badge--ok,
+    .review-btn,
+    .review-card,
+    .review-card__rating,
+    .review-done,
+    .review-done-btn,
+    .review-filter-bar,
+    .review-filter-tab--active,
+    .review-filter-tabs,
+    .review-input,
+    .review-level-settings,
+    .review-nav-btn,
+    .review-search-input,
+    .review-select,
+    .review-stats-bar,
+    .review-stats-bar__track,
+    .roadmap-card,
+    .roadmap-progress__track,
+    .roadmap-stage,
+    .roadmap-stage__number,
+    .seg-bar__shimmer,
+    .seg-bar__track,
+    .streak-badge--zero,
+    .streak-cel__btn,
+    .study-result__card,
+    .study-result__dau--kha,
+    .study-result__dau--tot,
+    .study-result__dau--yeu,
+    .study-result__level,
+    .tec-continue-bar,
+    .tec-item,
+    .tec-item__speak-btn,
+    .tk-chip,
+    .tk-chip--due,
+    .tk-chip--master,
+    .tk-chip--mistake,
+    .tk-cta-btn--secondary,
+    .tk-deck-row,
+    .tk-deck-row__bar-wrap,
+    .tk-mastery-badge,
+    .tk-mastery-bar-wrap,
+    .tk-mastery-chart,
+    .tk-review-card--due,
+    .tk-review-card--mastered,
+    .tk-review-card--mistake,
+    .tk-review-card--upcoming,
+    .tk-stat-card,
+    .tk-stat-card--highlight,
+    .tk-word-row,
+    .tk-word-row__count,
+    .tu-sai-card,
+    .tu-sai-card--reviewed,
+    .tu-sai-deck-select,
+    .tu-sai-filter-tab--active,
+    .tu-sai-filter-tabs,
+    .tu-sai-stat,
+    .tu-sai-stat--active,
+    .tu-sai-stat--hardest,
+    .tu-sai-stat--reviewed,
+    .tv-khoa,
+    .ui-answer-phim,
+    .ui-back-btn,
+    .ui-back-link,
+    .ui-button--ghost,
+    .ui-button--secondary,
+    .ui-chip,
+    .ui-chip--danger,
+    .ui-chip--muted,
+    .ui-chip--warning,
+    .ui-combo,
+    .ui-combo__shimmer,
+    .ui-dau-cham--dung,
+    .ui-empty-panel,
+    .ui-empty-state,
+    .ui-filter-tab[aria-pressed="true"],
+    .ui-filter-tab[aria-selected="true"],
+    .ui-filter-tabs,
+    .ui-form-panel,
+    .ui-icon-action,
+    .ui-moc,
+    .ui-mode-chip,
+    .ui-mode-rotate-button,
+    .ui-mode-switch,
+    .ui-mode-switch__thumb,
+    .ui-reward-progress__fill-core,
+    .ui-reward-progress__shimmer,
+    .ui-reward-progress__track,
+    .ui-reward-progress__wave,
+    .ui-segmented-divider,
+    .ui-segmented-progress__endpoint-label,
+    .ui-segmented-progress__endpoint-label--start,
+    .ui-settings-popover__panel,
+    .ui-settings-popover__trigger,
+    .ui-skeleton,
+    .ui-study-back-link,
+    .ui-study-empty-card,
+    .ui-study-launch__btn,
+    .ui-study-launch__btn--disabled,
+    .ui-study-progress,
+    .ui-the-cho__mat,
+    .ui-toast-item,
+    .ui-toast-item--error,
+    .ui-toast-item--info,
+    .ui-toast-item--success,
+    .ui-toast-item--warning,
+    .ui-toggle-switch__thumb,
+    .ui-word-card,
+    .ui-word-card--meaning,
+    .ui-word-drag-preview,
+    .ui-word-index,
+    .ui-word-input-card,
+    .ui-word-move-handle,
+    .ui-word-row,
+    .ui-word-search__input,
+    .ui-word-sort__select,
+    .ui-written-answer-input--answer-review,
+    .ui-written-answer-input--answer-review.ui-written-answer-input--wrong,
+    .ui-written-answer-input--wrong,
+    .dash-deck-mini:not(.dash-deck-mini--loading),
+    .ui-deck-card.ui-card-interactive,
+    .ui-the-cau-hoi.ui-question-flow,
+    .ui-word-row:not(.ui-word-row--editing),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea,
+    [class*="bg-[var(--mau-mat"],
+    [class*="bg-[var(--mau-giay"],
+    [class*="bg-[var(--mau-input"],
+    [class*="bg-[oklch(98%"],
+    .bg-white,
+    [role="dialog"],
+    [role="menu"]
+  ) {
+  --mau-chu: #2c1608;
+  --mau-chu-phu: #5c381f;
+  --mau-chu-mo: #8c6346;
+  --mau-chinh: #823a0d;
+  --mau-chinh-hover: #6a2c07;
+  --mau-chu-tren-chinh: #ffffff;
+  --mau-nhan: #9e4614;
+  --mau-loi: oklch(55% 0.2 28);
+  --mau-thanh-cong: oklch(58% 0.16 142);
+  --mau-vien: rgba(130, 75, 15, 0.18);
+  --mau-vien-manh: rgba(110, 55, 10, 0.38);
+  --vong-focus: 0 0 0 3px rgba(130, 58, 13, 0.28);
+}
+
+/* Chữ không tự đặt màu trong mặt giấy thì lấy màu mực (specificity 0: class riêng luôn thắng) */
+:where(:root[data-giao-dien="den-ban"]) :where(
+    .chatbot-bubble,
+    .chatbot-bubble-text code,
+    .chatbot-header,
+    .chatbot-header-avatar,
+    .chatbot-input-row,
+    .chatbot-messages,
+    .chatbot-msg.is-loi .chatbot-bubble-text,
+    .chatbot-msg.model .chatbot-bubble-text,
+    .chatbot-panel,
+    .chatbot-suggestion-btn,
+    .chatbot-suggestions,
+    .chatbot-textarea,
+    .chatbot-typing,
+    .dash-deck-mini,
+    .dash-error-note,
+    .dash-hom-nay,
+    .dash-overview-card,
+    .dash-stat-row--accent,
+    .dash-tu-buoi,
+    .dash-viec__the,
+    .fc-chong__to,
+    .fc-the-keo,
+    .fc-mat,
+    .fc-mat--sau,
+    .fc-rate-btn--fail,
+    .fc-rate-btn--pass .fc-rate-btn__icon,
+    .google-signin-btn,
+    .home-xap__doi,
+    .kh-ai,
+    .kh-ai__cho span,
+    .kh-bt__thanh,
+    .kh-buoc__nut,
+    .kh-buoc__nut[aria-selected="true"],
+    .kh-buoi,
+    .kh-buoi__thanh,
+    .kh-cau,
+    .kh-chip,
+    .kh-cong-thuc__khoi--cho,
+    .kh-dien__o,
+    .kh-dien__o--dung,
+    .kh-dien__o--sai,
+    .kh-lich,
+    .kh-lich__o--co,
+    .kh-lua-chon__chu,
+    .kh-lua-chon__nut,
+    .kh-lua-chon__nut--dung,
+    .kh-lua-chon__nut--sai,
+    .kh-nut-loa,
+    .kh-nut-loa--dang-doc,
+    .kh-phan-hoi,
+    .kh-the-tu,
+    .kh-the-tu__loa,
+    .kh-tong-ket,
+    .kh-tong-ket__thanh,
+    .kh-vo,
+    .kh-vo__ghi-nho,
+    .meo-hoc__loi,
+    .practice-mode,
+    .practice-panel,
+    .review-badge,
+    .review-badge--good,
+    .review-badge--mastered,
+    .review-badge--ok,
+    .review-btn,
+    .review-card,
+    .review-card__rating,
+    .review-done,
+    .review-done-btn,
+    .review-filter-bar,
+    .review-filter-tab--active,
+    .review-filter-tabs,
+    .review-input,
+    .review-level-settings,
+    .review-nav-btn,
+    .review-search-input,
+    .review-select,
+    .review-stats-bar,
+    .review-stats-bar__track,
+    .roadmap-card,
+    .roadmap-progress__track,
+    .roadmap-stage,
+    .roadmap-stage__number,
+    .seg-bar__shimmer,
+    .seg-bar__track,
+    .streak-badge--zero,
+    .streak-cel__btn,
+    .study-result__card,
+    .study-result__dau--kha,
+    .study-result__dau--tot,
+    .study-result__dau--yeu,
+    .study-result__level,
+    .tec-continue-bar,
+    .tec-item,
+    .tec-item__speak-btn,
+    .tk-chip,
+    .tk-chip--due,
+    .tk-chip--master,
+    .tk-chip--mistake,
+    .tk-cta-btn--secondary,
+    .tk-deck-row,
+    .tk-deck-row__bar-wrap,
+    .tk-mastery-badge,
+    .tk-mastery-bar-wrap,
+    .tk-mastery-chart,
+    .tk-review-card--due,
+    .tk-review-card--mastered,
+    .tk-review-card--mistake,
+    .tk-review-card--upcoming,
+    .tk-stat-card,
+    .tk-stat-card--highlight,
+    .tk-word-row,
+    .tk-word-row__count,
+    .tu-sai-card,
+    .tu-sai-card--reviewed,
+    .tu-sai-deck-select,
+    .tu-sai-filter-tab--active,
+    .tu-sai-filter-tabs,
+    .tu-sai-stat,
+    .tu-sai-stat--active,
+    .tu-sai-stat--hardest,
+    .tu-sai-stat--reviewed,
+    .tv-khoa,
+    .ui-answer-phim,
+    .ui-back-btn,
+    .ui-back-link,
+    .ui-button--ghost,
+    .ui-button--secondary,
+    .ui-chip,
+    .ui-chip--danger,
+    .ui-chip--muted,
+    .ui-chip--warning,
+    .ui-combo,
+    .ui-combo__shimmer,
+    .ui-dau-cham--dung,
+    .ui-empty-panel,
+    .ui-empty-state,
+    .ui-filter-tab[aria-pressed="true"],
+    .ui-filter-tab[aria-selected="true"],
+    .ui-filter-tabs,
+    .ui-form-panel,
+    .ui-icon-action,
+    .ui-moc,
+    .ui-mode-chip,
+    .ui-mode-rotate-button,
+    .ui-mode-switch,
+    .ui-mode-switch__thumb,
+    .ui-reward-progress__fill-core,
+    .ui-reward-progress__shimmer,
+    .ui-reward-progress__track,
+    .ui-reward-progress__wave,
+    .ui-segmented-divider,
+    .ui-segmented-progress__endpoint-label,
+    .ui-segmented-progress__endpoint-label--start,
+    .ui-settings-popover__panel,
+    .ui-settings-popover__trigger,
+    .ui-skeleton,
+    .ui-study-back-link,
+    .ui-study-empty-card,
+    .ui-study-launch__btn,
+    .ui-study-launch__btn--disabled,
+    .ui-study-progress,
+    .ui-the-cho__mat,
+    .ui-toast-item,
+    .ui-toast-item--error,
+    .ui-toast-item--info,
+    .ui-toast-item--success,
+    .ui-toast-item--warning,
+    .ui-toggle-switch__thumb,
+    .ui-word-card,
+    .ui-word-card--meaning,
+    .ui-word-drag-preview,
+    .ui-word-index,
+    .ui-word-input-card,
+    .ui-word-move-handle,
+    .ui-word-row,
+    .ui-word-search__input,
+    .ui-word-sort__select,
+    .ui-written-answer-input--answer-review,
+    .ui-written-answer-input--answer-review.ui-written-answer-input--wrong,
+    .ui-written-answer-input--wrong,
+    .dash-deck-mini:not(.dash-deck-mini--loading),
+    .ui-deck-card.ui-card-interactive,
+    .ui-the-cau-hoi.ui-question-flow,
+    .ui-word-row:not(.ui-word-row--editing),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+    select,
+    textarea,
+    [class*="bg-[var(--mau-mat"],
+    [class*="bg-[var(--mau-giay"],
+    [class*="bg-[var(--mau-input"],
+    [class*="bg-[oklch(98%"],
+    .bg-white,
+    [role="dialog"],
+    [role="menu"]
+  ) {
+  color: var(--mau-chu);
+}
+
+/* Mặt bàn gỗ: vân gỗ rất nhạt + lưới chấm + vũng sáng của đèn đi theo con trỏ */
+:root[data-giao-dien="den-ban"] body.has-video-background-variant--flat,
+:root[data-giao-dien="den-ban"] body {
+  background:
+    radial-gradient(circle 46vmax at var(--den-x) var(--den-y), rgb(255 196 110 / 0.2), rgb(255 170 80 / 0.06) 45%, transparent 75%),
+    radial-gradient(circle, var(--mau-cham-luoi) 1.1px, transparent 1.4px) 0 0 / 22px 22px,
+    repeating-linear-gradient(96deg, rgb(255 230 190 / 0.018) 0 3px, transparent 3px 11px),
+    var(--mau-nen) !important;
+  background-attachment: fixed !important;
+}
+
+/* VideoBackground.css ép .ui-link nâu đậm (!important) — đi theo màu chính của nơi nó nằm */
+:root[data-giao-dien="den-ban"] body.has-video-background--app .ui-link {
+  color: var(--mau-chinh) !important;
+}
+
+/* Header: kính mờ tối (thắng dải giấy !important của VideoBackground.css) */
+:root[data-giao-dien="den-ban"] body .app-shell-header,
+:root[data-giao-dien="den-ban"] body.has-video-background-variant--flat .app-shell-header {
+  background: oklch(19% 0.02 60 / 0.8) !important;
+  border-bottom: 1px solid rgba(246, 222, 180, 0.12) !important;
+  box-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Phần xa đèn chìm vào bóng tối (dưới mèo, chatbot, modal) */
+.den-ban-bong {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  pointer-events: none;
+  /* Nhân màu nâu ấm: giấy xa đèn ngả vàng nâu như dưới ánh đèn thật, không xám */
+  mix-blend-mode: multiply;
+  background: radial-gradient(circle at var(--den-x) var(--den-y), transparent 0 24vmax, rgb(150 100 55 / 0.22) 48vmax, rgb(110 70 35 / 0.38) 85vmax);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .den-ban-bong {
+    background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 0 45%, rgb(130 85 45 / 0.3) 100%);
+  }
+}
+
+/* Thẻ giấy hơi hắt sáng ấm như đang nằm dưới đèn */
+:root[data-giao-dien="den-ban"] :is(.ui-card, .ui-card-interactive, .ui-the-cau-hoi, .fc-mat, .review-card, .kh-cau, .roadmap-card) {
+  box-shadow:
+    0 0 0 1px rgb(255 214 150 / 0.08),
+    0 18px 40px -10px rgb(0 0 0 / 0.65),
+    0 0 60px -20px rgb(255 190 100 / 0.25);
+}

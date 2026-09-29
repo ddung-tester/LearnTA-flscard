@@ -10,6 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&amp;family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap&amp;subset=vietnamese" />
     <title>Streak Drop — Học từ vựng tiếng Anh</title>
+    <script>
+      // Đặt giao diện đèn bàn trước khi vẽ để không nháy nền sáng (xem utils/giaoDien.js)
+      try {
+        var g = localStorage.getItem("learnta_giao_dien");
+        if (!g) g = matchMedia("(prefers-color-scheme: dark)").matches ? "den-ban" : "sang";
+        if (g === "den-ban" && location.pathname !== "/") document.documentElement.dataset.giaoDien = "den-ban";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
