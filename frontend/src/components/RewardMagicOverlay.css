@@ -209,6 +209,7 @@
 
 .reward-magic__media,
 .reward-magic__canvas,
+.reward-magic__video,
 .reward-magic__fallback {
   width: 100%;
   height: 100%;
@@ -218,6 +219,12 @@
   position: relative;
   z-index: 1;
   background: rgba(7, 59, 95, 0.24);
+}
+
+/* Điện thoại: <video> nằm thẳng trong cổng (không qua canvas) */
+.reward-magic__video {
+  display: block;
+  object-fit: cover;
 }
 
 .reward-magic__canvas {

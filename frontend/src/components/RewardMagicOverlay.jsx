@@ -131,6 +131,7 @@ function RewardMagicOverlay({
   videoReady = false,
   originRect = null,
   canvasRefs,
+  videoNode = null,
   onPortalOpen,
   onComplete,
   compact = false,
@@ -277,6 +278,7 @@ function RewardMagicOverlay({
             0
           )
           .to(media, { autoAlpha: 1, scale: 1, duration: 0.2 }, 0.08)
+          .set(portals, { clearProps: "filter,clipPath" })
           .call(() => { onPortalOpen?.(); setPortalDaMo(true); }, null, 0.2);
 
         return () => quickTimeline.kill();
@@ -342,6 +344,8 @@ function RewardMagicOverlay({
           3.38
         )
         .to(sourceGlow, { autoAlpha: 0.2, scale: 1.28 * comboScale, duration: 0.48 }, 3.42)
+        // Mở xong thì gỡ filter/clip-path: để blur(0px)/inset(0%) lại vẫn bắt mọi khung video đi qua bộ lọc
+        .set(portals, { clearProps: "filter,clipPath" }, 3.84)
         .call(() => { onPortalOpen?.(); setPortalDaMo(true); }, null, 3.5)
         .to(media, { autoAlpha: 1, scale: 1, duration: 0.4 }, 3.62);
 
@@ -611,7 +615,7 @@ function RewardMagicOverlay({
           <div className="reward-magic__media">
             {hasError || !videoSrc ? (
               <div className="reward-magic__fallback" />
-            ) : (
+            ) : videoNode ?? (
               <canvas
                 ref={(node) => luuCanvas(viTri, node)}
                 className="reward-magic__canvas"

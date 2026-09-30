@@ -101,9 +101,9 @@ function RewardTikTokEffect({
     if (danhSach.length === 0) return "";
     if (danhSach.length === 1) return danhSach[0];
 
+    // Hết hàng đợi thì xáo luôn bây giờ, để video được tải sẵn đúng là video sẽ phát
     if (videoQueueIndexRef.current >= videoQueueRef.current.length) {
-      const candidates = danhSach.filter((s) => s !== videoDaPhatGanNhatRef.current);
-      return candidates[0] ?? danhSach[0];
+      xayDungHangDoiVideo(danhSach);
     }
     return videoQueueRef.current[videoQueueIndexRef.current] || "";
   }
@@ -238,6 +238,17 @@ function RewardTikTokEffect({
       daHuy = true;
     };
   }, [daDoViewport, config.manifestSrc]);
+
+  // Tải sẵn đúng một video sắp phát vào cache HTTP khi chưa tới mốc thưởng
+  // (thẻ <video> chỉ được gắn lúc thưởng bắt đầu; không tải sẵn thì vừa tải vừa phát, giật trên 4G)
+  useEffect(() => {
+    if (!videoSrc || dangRenderReward) return undefined;
+    const huy = new AbortController();
+    fetch(videoSrc, { signal: huy.signal, priority: "low" })
+      .then((res) => res.blob())
+      .catch(() => {});
+    return () => huy.abort();
+  }, [videoSrc, dangRenderReward]);
 
   // Reset hàng đợi mỗi khi danh sách video thay đổi (manifest mới)
   useEffect(() => {
@@ -425,7 +436,9 @@ function RewardTikTokEffect({
     }
 
     videoReadyTimeoutRef.current = window.setTimeout(() => {
-      setLoiVideo(true);
+      // Sự kiện canplay có thể bị lỡ (thẻ gắn khi dữ liệu đã có sẵn trong cache) — hỏi thẳng video trước khi bỏ
+      if ((videoRef.current?.readyState ?? 0) >= VIDEO_READY_STATE_CAN_DRAW) setVideoSanSang(true);
+      else setLoiVideo(true);
       videoReadyTimeoutRef.current = null;
     }, REWARD_VIDEO_READY_TIMEOUT_MS);
 
@@ -485,7 +498,7 @@ function RewardTikTokEffect({
       });
 
     setDangFadeOut(false);
-    veKhungHinh();
+    if (coTheHienThi) veKhungHinh();
 
     return () => {
       window.cancelAnimationFrame(animationId);
@@ -501,6 +514,7 @@ function RewardTikTokEffect({
     videoSrc,
     videoSanSang,
     config.volume,
+    coTheHienThi,
   ]);
 
   const toggleAmThanh = useCallback(
@@ -587,6 +601,46 @@ function RewardTikTokEffect({
 
   if (typeof document === "undefined") return null;
 
+  // Điện thoại (compact): thẻ <video> hiện thẳng trong cổng — trình duyệt giải mã và vẽ bằng phần cứng,
+  // không chép từng khung sang canvas. Máy tính: <video> ẩn làm nguồn cho 2 canvas trái/phải.
+  const compact = !coTheHienThi;
+  const theVideo = !loiVideo && videoSrc && (
+    <video
+      key={videoSrc}
+      ref={(el) => {
+        videoRef.current = el;
+        if (el) {
+          el.defaultMuted = true;
+          el.playsInline = true;
+          el.setAttribute("playsinline", "");
+          el.setAttribute("webkit-playsinline", "");
+        }
+      }}
+      className={compact ? "reward-magic__video" : "streak-celebration-effect__source-video"}
+      src={videoSrc}
+      preload="auto"
+      muted
+      playsInline
+      onLoadedData={(event) => {
+        if (event.currentTarget.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
+          setVideoSanSang(true);
+          window.requestAnimationFrame(() => {
+            veTatCaCanvas(event.currentTarget);
+          });
+        }
+      }}
+      onCanPlay={(event) => {
+        setVideoSanSang(true);
+        window.requestAnimationFrame(() => {
+          veTatCaCanvas(event.currentTarget);
+        });
+      }}
+      onCanPlayThrough={() => setVideoSanSang(true)}
+      onEnded={yeuCauDongReward}
+      onError={() => setLoiVideo(true)}
+    />
+  );
+
   const rewardLayer = (
     <div
       className={`streak-celebration-effect ${loiVideo ? "streak-celebration-effect--fallback" : ""} ${
@@ -595,42 +649,7 @@ function RewardTikTokEffect({
       aria-hidden="true"
       style={style}
     >
-      {!loiVideo && videoSrc && (
-        <video
-          key={videoSrc}
-          ref={(el) => {
-            videoRef.current = el;
-            if (el) {
-              el.defaultMuted = true;
-              el.playsInline = true;
-              el.setAttribute("playsinline", "");
-              el.setAttribute("webkit-playsinline", "");
-            }
-          }}
-          className="streak-celebration-effect__source-video"
-          src={videoSrc}
-          preload="auto"
-          muted
-          playsInline
-          onLoadedData={(event) => {
-            if (event.currentTarget.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
-              setVideoSanSang(true);
-              window.requestAnimationFrame(() => {
-                veTatCaCanvas(event.currentTarget);
-              });
-            }
-          }}
-          onCanPlay={(event) => {
-            setVideoSanSang(true);
-            window.requestAnimationFrame(() => {
-              veTatCaCanvas(event.currentTarget);
-            });
-          }}
-          onCanPlayThrough={() => setVideoSanSang(true)}
-          onEnded={yeuCauDongReward}
-          onError={() => setLoiVideo(true)}
-        />
-      )}
+      {!compact && theVideo}
       {dangRenderReward && (
         <Suspense fallback={null}>
           <RewardMagicOverlay
@@ -642,8 +661,9 @@ function RewardTikTokEffect({
             videoReady={giamChuyenDong || videoSanSang || loiVideo || !videoSrc}
             originRect={originRect}
             canvasRefs={canvasRefs}
+            videoNode={compact ? theVideo : null}
             onPortalOpen={giamChuyenDong ? undefined : batDauPhatVideo}
-            compact={!coTheHienThi}
+            compact={compact}
             combo={combo}
             tenseExamples={tenseExamples}
           />
