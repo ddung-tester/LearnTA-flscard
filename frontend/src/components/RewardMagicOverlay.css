@@ -392,3 +392,26 @@
     display: none;
   }
 }
+
+/* Điện thoại (compact) và máy yếu: bỏ những lớp phải vẽ/trộn lại mỗi khung hình đè lên video
+   (hoà màu screen, bóng đổ nhấp nháy, filter trên canvas) — video phát mượt hơn hẳn */
+.reward-magic--compact .reward-magic__portal::before,
+.may-yeu .reward-magic__portal::before {
+  mix-blend-mode: normal;
+  opacity: 0.5;
+}
+
+.reward-magic--compact .reward-magic__portal-ring,
+.may-yeu .reward-magic__portal-ring {
+  animation: none;
+}
+
+.reward-magic--compact .reward-magic__canvas,
+.may-yeu .reward-magic__canvas {
+  filter: none;
+}
+
+.reward-magic--compact .reward-magic__path--aura,
+.may-yeu .reward-magic__path--aura {
+  mix-blend-mode: normal;
+}

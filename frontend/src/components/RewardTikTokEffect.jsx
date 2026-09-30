@@ -34,7 +34,6 @@ function RewardTikTokEffect({
 }) {
   const videoRef = useRef(null);
   const canvasRefs = useRef({});
-  const cacheVideoRefs = useRef({});
   const lanDaDungVideoRef = useRef(0);
   const videoDaPhatGanNhatRef = useRef("");
   const videoQueueRef = useRef([]);        // hàng đợi video đã trộn
@@ -225,23 +224,9 @@ function RewardTikTokEffect({
 
         if (daHuy) return;
 
+        // Chỉ tải trước video sắp phát (thẻ <video> ẩn bên dưới, preload="auto");
+        // không tải cả danh sách (~70 MB) — nghẽn mạng và bộ giải mã, giật trên điện thoại
         setDanhSachVideo(danhSachHopLe);
-
-        danhSachHopLe.forEach((src) => {
-          if (cacheVideoRefs.current[src]) return;
-
-          const video = document.createElement("video");
-          video.preload = "auto";
-          video.defaultMuted = true;
-          video.muted = true;
-          video.playsInline = true;
-          video.setAttribute("playsinline", "");
-          video.setAttribute("webkit-playsinline", "");
-          video.loop = false;
-          video.src = src;
-          video.load();
-          cacheVideoRefs.current[src] = video;
-        });
       } catch {
         if (!daHuy) setDanhSachVideo([]);
       }
@@ -470,10 +455,14 @@ function RewardTikTokEffect({
     const volume = config.volume ?? CAU_HINH_REWARD_QUIZ.volume;
 
     let animationId;
+    let khungVideoId;
 
+    // Chỉ vẽ khi video có khung mới (~30 fps) thay vì mỗi lần màn hình làm tươi (60–120 Hz)
+    const coKhungVideo = typeof video.requestVideoFrameCallback === "function";
     function veKhungHinh() {
       veTatCaCanvas(video);
-      animationId = window.requestAnimationFrame(veKhungHinh);
+      if (coKhungVideo) khungVideoId = video.requestVideoFrameCallback(veKhungHinh);
+      else animationId = window.requestAnimationFrame(veKhungHinh);
     }
 
     video.volume = volume;
@@ -500,6 +489,7 @@ function RewardTikTokEffect({
 
     return () => {
       window.cancelAnimationFrame(animationId);
+      if (khungVideoId !== undefined) video.cancelVideoFrameCallback?.(khungVideoId);
       video.pause();
       video.volume = volume;
     };
