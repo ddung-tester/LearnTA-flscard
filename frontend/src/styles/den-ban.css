@@ -27,8 +27,6 @@
   --bong-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
   --bong-tuong-tac: 0 10px 24px rgba(0, 0, 0, 0.4);
   --bong-tuong-tac-cao: 0 18px 36px rgba(0, 0, 0, 0.5);
-  --den-x: 50vw;
-  --den-y: 8vh;
 }
 
 /* Mặt giấy: trả lại bộ màu gốc cho mọi thứ bên trong */
@@ -448,15 +446,22 @@
   color: var(--mau-chu);
 }
 
-/* Mặt bàn gỗ: vân gỗ rất nhạt + lưới chấm + vũng sáng của đèn đi theo con trỏ */
+/* Mặt bàn gỗ: vân gỗ rất nhạt + lưới chấm (cuộn theo trang, không `fixed` để khỏi vẽ lại cả nền khi cuộn) */
 :root[data-giao-dien="den-ban"] body.has-video-background-variant--flat,
 :root[data-giao-dien="den-ban"] body {
   background:
-    radial-gradient(circle 46vmax at var(--den-x) var(--den-y), rgb(255 196 110 / 0.2), rgb(255 170 80 / 0.06) 45%, transparent 75%),
     radial-gradient(circle, var(--mau-cham-luoi) 1.1px, transparent 1.4px) 0 0 / 22px 22px,
     repeating-linear-gradient(96deg, rgb(255 230 190 / 0.018) 0 3px, transparent 3px 11px),
     var(--mau-nen) !important;
-  background-attachment: fixed !important;
+}
+
+/* Vũng sáng của đèn treo phía trên giữa: lớp cố định riêng nằm sau nội dung (compositor giữ, không vẽ lại khi cuộn) */
+.den-ban-den {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle 46vmax at 50% 8%, rgb(255 196 110 / 0.2), rgb(255 170 80 / 0.06) 45%, transparent 75%);
 }
 
 /* VideoBackground.css ép .ui-link nâu đậm (!important) — đi theo màu chính của nơi nó nằm */
@@ -478,15 +483,8 @@
   inset: 0;
   z-index: 7000;
   pointer-events: none;
-  /* Nhân màu nâu ấm: giấy xa đèn ngả vàng nâu như dưới ánh đèn thật, không xám */
-  mix-blend-mode: multiply;
-  background: radial-gradient(circle at var(--den-x) var(--den-y), transparent 0 24vmax, rgb(150 100 55 / 0.22) 48vmax, rgb(110 70 35 / 0.38) 85vmax);
-}
-
-@media (hover: none), (pointer: coarse) {
-  .den-ban-bong {
-    background: radial-gradient(ellipse 120% 80% at 50% 0%, transparent 0 45%, rgb(130 85 45 / 0.3) 100%);
-  }
+  /* Nâu sẫm pha alpha thường (không mix-blend-mode: trộn cả màn hình mỗi khung hình rất nặng trên máy yếu) */
+  background: radial-gradient(circle at 50% 8%, transparent 0 24vmax, rgb(25 12 2 / 0.12) 48vmax, rgb(20 10 0 / 0.26) 85vmax);
 }
 
 /* Thẻ giấy hơi hắt sáng ấm như đang nằm dưới đèn */

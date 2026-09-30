@@ -3,8 +3,6 @@ import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import Lenis from "lenis";
-import "lenis/dist/lenis.css";
 import "../../styles/cau-chuyen.css";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -27,11 +25,12 @@ const CHE_DO = [
 ];
 
 /**
- * CauChuyenCuon — phần kể chuyện theo cuộn dưới hero trang chủ (tải lười cùng gsap + lenis):
+ * CauChuyenCuon — phần kể chuyện theo cuộn dưới hero trang chủ (tải lười cùng gsap):
  * 1 thẻ lật dần khi cuộn · 2 đường cong trí nhớ tự vẽ, mốc ôn bật lên · 3 lưới 48 buổi đóng dấu dần
  * · 4 xấp thẻ chế độ học xoè ra · lời mời bắt đầu.
  * Máy tính (≥880px): các chương được ghim lại trong lúc cuộn. Điện thoại: không ghim, chỉ chạy theo cuộn.
- * Giảm chuyển động: không cuộn mượt, không animation — mọi thứ hiện sẵn ở trạng thái cuối.
+ * Dùng cuộn gốc của trình duyệt (không cuộn mượt kiểu Lenis — giật trên máy yếu).
+ * Giảm chuyển động: không animation — mọi thứ hiện sẵn ở trạng thái cuối.
  */
 function CauChuyenCuon({ startPath, startState }) {
   const gocRef = useRef(null);
@@ -47,13 +46,6 @@ function CauChuyenCuon({ startPath, startState }) {
         },
         (ctx) => {
           const { may } = ctx.conditions;
-
-          // Cuộn mượt (chỉ khi có animation); ScrollTrigger đọc vị trí từ Lenis
-          const lenis = new Lenis({ lerp: 0.12 });
-          lenis.on("scroll", ScrollTrigger.update);
-          const nhip = (t) => lenis.raf(t * 1000);
-          gsap.ticker.add(nhip);
-          gsap.ticker.lagSmoothing(0);
 
           const chuong = (chon, cauHinh = {}) =>
             gsap.timeline({
@@ -114,12 +106,6 @@ function CauChuyenCuon({ startPath, startState }) {
             stagger: 0.12,
             scrollTrigger: { trigger: ".cc-cuoi", start: "top 80%" },
           });
-
-          return () => {
-            gsap.ticker.remove(nhip);
-            gsap.ticker.lagSmoothing(500, 33); // trả lại mặc định cho animation gsap ở trang khác
-            lenis.destroy();
-          };
         }
       );
     },

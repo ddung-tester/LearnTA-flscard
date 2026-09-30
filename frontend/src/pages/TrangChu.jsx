@@ -9,16 +9,17 @@ import {
 } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import useNghieng3D from "../hooks/useNghieng3D";
+import { laMayYeu } from "../utils/mayYeu";
 
-// Hero WebGL (three.js, chunk riêng): chỉ tải khi máy vẽ được WebGL và người dùng không hạn chế chuyển động/dữ liệu
+// Hero WebGL (three.js, chunk riêng): chỉ tải khi máy vẽ được WebGL, không phải máy yếu/tiết kiệm dữ liệu và không hạn chế chuyển động
 const CanhThe3D = lazy(() => import("../components/home/CanhThe3D"));
-// Phần kể chuyện theo cuộn (gsap + lenis, chunk riêng) nằm dưới màn đầu
+// Phần kể chuyện theo cuộn (gsap, chunk riêng) nằm dưới màn đầu
 const CauChuyenCuon = lazy(() => import("../components/home/CauChuyenCuon"));
 
 function coTheDung3D() {
   if (typeof window === "undefined") return false;
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
-  if (navigator.connection?.saveData) return false;
+  if (laMayYeu()) return false;
   try {
     const cv = document.createElement("canvas");
     return Boolean(cv.getContext("webgl2") || cv.getContext("webgl"));

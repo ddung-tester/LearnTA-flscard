@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SU_KIEN_PHAN_HOI_HOC } from "../../utils/hieuUng";
+import { laMayYeu } from "../../utils/mayYeu";
 
 // Câu nói ngắn theo trạng thái (chọn ngẫu nhiên)
 const LOI = {
@@ -19,7 +20,7 @@ const chon = (ds) => ds[Math.floor(Math.random() * ds.length)];
 /**
  * MeoHocCung — mèo mực vẽ tay ngồi ở góc màn học, phản ứng theo SU_KIEN_PHAN_HOI_HOC:
  * đúng → vui (đúng liền 5 câu → phấn khích), sai → buồn, xong phiên → ăn mừng;
- * 25 giây không đụng gì → ngáp rồi ngủ, có tương tác thì thức dậy. Mắt nhìn theo chuột.
+ * 25 giây không đụng gì → ngáp rồi ngủ, có tương tác thì thức dậy. Mắt nhìn theo chuột (trừ máy yếu).
  * Chỉ để trang trí (aria-hidden, không nhận bấm). Giảm chuyển động: chỉ đổi nét mặt.
  */
 function MeoHocCung() {
@@ -91,7 +92,8 @@ function MeoHocCung() {
     window.addEventListener(SU_KIEN_PHAN_HOI_HOC, nhanPhanHoi);
     window.addEventListener("pointerdown", coTuongTac, { passive: true });
     window.addEventListener("keydown", coTuongTac);
-    window.addEventListener("pointermove", nhinTheo, { passive: true });
+    // Máy yếu: mắt đứng yên (đỡ đo layout mỗi khung hình khi rê chuột)
+    if (!laMayYeu()) window.addEventListener("pointermove", nhinTheo, { passive: true });
     henGioNgap();
     return () => {
       window.removeEventListener(SU_KIEN_PHAN_HOI_HOC, nhanPhanHoi);

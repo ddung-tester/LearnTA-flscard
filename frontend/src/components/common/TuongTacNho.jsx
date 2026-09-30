@@ -13,7 +13,7 @@ const PHAN_TU_BAM = [
  * TuongTacNho — hiệu ứng nhỏ toàn web (gắn một lần ở gốc app, không vẽ gì):
  * - Bấm vào nút/liên kết: giọt mực loang ra tại điểm bấm.
  * - Nút chính (.ui-button--primary): hơi hút theo con trỏ khi rê chuột (chỉ chuột thật).
- * Con trỏ bút chì nằm ở CSS (styles/hieu-ung.css). Tắt hết khi giảm chuyển động.
+ * Tắt hết khi giảm chuyển động.
  */
 function TuongTacNho() {
   useEffect(() => {

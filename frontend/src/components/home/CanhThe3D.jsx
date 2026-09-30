@@ -86,11 +86,12 @@ function CanhThe3D({ gio, tamDung = false }) {
     const khung = khungRef.current;
     let renderer;
     try {
-      renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
+      // Màn mật độ cao đã đủ mịn, bỏ khử răng cưa cho nhẹ GPU
+      renderer = new WebGLRenderer({ antialias: (window.devicePixelRatio || 1) < 1.5, alpha: true, powerPreference: "low-power" });
     } catch {
       return undefined;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     khung.appendChild(renderer.domElement);
 
     const mauNen = new Color(getComputedStyle(document.body).backgroundColor || "#f7d492");

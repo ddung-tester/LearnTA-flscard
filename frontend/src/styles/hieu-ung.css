@@ -1323,31 +1323,6 @@ body.has-video-background--app .roadmap-card {
   }
 }
 
-/* Con trỏ bút chì (chỉ chuột thật): bút mật ong thường, bút nâu ngòi đỏ khi trỏ vào chỗ bấm được.
-   Điểm nóng ở đầu ngòi (3, 29). Ô nhập giữ con trỏ chữ, vùng kéo giữ con trỏ nắm. */
-@media (hover: hover) and (pointer: fine) {
-  html {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg stroke='%233b2412' stroke-width='1.2' stroke-linejoin='round'%3E%3Cpath d='M5.9 21.9 23.9 3.9 28.1 8.1 10.1 26.1Z' fill='%23e0a526'/%3E%3Cpath d='M23.9 3.9 26 1.8 30.2 6 28.1 8.1Z' fill='%23f2b8a8'/%3E%3Cpath d='M3 29 5.9 21.9 10.1 26.1Z' fill='%23f3dcae'/%3E%3C/g%3E%3Cpath d='M3 29 4.3 25.7 6.3 27.7Z' fill='%233b2412'/%3E%3C/svg%3E") 3 29, auto;
-  }
-
-  button:not(:disabled),
-  a[href],
-  [role="link"],
-  [role="button"]:not([aria-disabled="true"]),
-  label[for],
-  summary,
-  select,
-  .cursor-pointer {
-    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg stroke='%233b2412' stroke-width='1.2' stroke-linejoin='round'%3E%3Cpath d='M5.9 21.9 23.9 3.9 28.1 8.1 10.1 26.1Z' fill='%23823a0d'/%3E%3Cpath d='M23.9 3.9 26 1.8 30.2 6 28.1 8.1Z' fill='%23f2b8a8'/%3E%3Cpath d='M3 29 5.9 21.9 10.1 26.1Z' fill='%23f3dcae'/%3E%3C/g%3E%3Cpath d='M3 29 4.3 25.7 6.3 27.7Z' fill='%23d6452f'/%3E%3C/svg%3E") 3 29, pointer;
-  }
-
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]),
-  textarea,
-  [contenteditable="true"] {
-    cursor: text;
-  }
-}
-
 /* Nút loa (NutAmThanh) trên header: màn hẹp chỉ hiện trong phiên học (header không có tab) */
 .dash-nav__am-thanh {
   margin-right: 0.35rem;
@@ -2085,4 +2060,41 @@ body.has-video-background--app .roadmap-card {
   50% {
     transform: translateY(6px);
   }
+}
+
+/* Máy yếu (lớp .may-yeu do index.html gắn, xem utils/mayYeu.js): bỏ kính mờ và các animation lặp vô hạn
+   buộc trình duyệt vẽ lại mỗi khung hình (filter, box-shadow, background-position). Animation phản hồi một lần vẫn giữ. */
+.may-yeu *,
+.may-yeu *::before,
+.may-yeu *::after,
+:root.may-yeu body .app-shell-header {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.may-yeu :is(
+    .ui-study-progress__fill,
+    .ui-reward-progress__fill,
+    .seg-bar__fill-core,
+    .seg-bar__shimmer,
+    .dash-deck-mini__progress-bar-fill,
+    .tk-mastery-bar-fill,
+    .tk-deck-row__bar-fill,
+    .streak-badge--active,
+    .streak-badge__glow,
+    .streak-badge--broken,
+    .streak-badge__broken-heart,
+    .home-xap,
+    .dash-lich__o--tiep,
+    .ui-moc--tiep,
+    .meo-hoc__duoi,
+    .meo-hoc__mat,
+    .meo-hoc--cho .meo-hoc__dau,
+    .meo-hoc--ngu .meo-hoc__dau,
+    .chatbot-status-dot
+  ),
+.may-yeu .ui-reward-progress__fill::before,
+.may-yeu .chatbot-bubble::before,
+.may-yeu *:focus-visible {
+  animation: none !important;
 }
