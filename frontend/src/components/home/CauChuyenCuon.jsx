@@ -54,7 +54,9 @@ function CauChuyenCuon({ startPath, startState }) {
                 trigger: chon,
                 start: may ? "top top" : "top 75%",
                 end: may ? "+=120%" : "bottom 60%",
-                scrub: 0.6,
+                // Điện thoại: chạy một lần khi cuộn tới, không tính lại theo từng khung cuộn
+                scrub: may ? 0.6 : false,
+                toggleActions: "play none none none",
                 pin: may,
                 ...cauHinh,
               },

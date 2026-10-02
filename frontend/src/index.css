@@ -557,6 +557,14 @@ body.is-page-loading .page-transition-root {
   gap: 0.85rem;
 }
 
+.page-loading-overlay__animation {
+  width: 5.5rem;
+  height: 5.5rem;
+  filter:
+    sepia(0.4) saturate(0.6) hue-rotate(-10deg) brightness(1.05) contrast(0.92);
+  opacity: 0.85;
+}
+
 .page-loading-overlay__text {
   font-size: 0.8rem;
   font-weight: 500;

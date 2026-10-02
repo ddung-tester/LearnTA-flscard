@@ -550,67 +550,6 @@
   }
 }
 
-/* ---------- Màn chờ chuyển trang: thẻ lật 3D ---------- */
-.ui-the-cho {
-  width: 3.6rem;
-  height: 4.5rem;
-  perspective: 600px;
-}
-
-.ui-the-cho__lat {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  animation: hu-the-cho-lat 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-.ui-the-cho__mat {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--mau-vien);
-  border-radius: 0.6rem;
-  background:
-    linear-gradient(var(--mau-le-do), var(--mau-le-do)) 0 1.1rem / 100% 1.5px no-repeat,
-    var(--mau-giay, #fffdf6);
-  box-shadow: 0 10px 22px rgba(110, 55, 10, 0.18);
-  color: var(--mau-chinh);
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 800;
-  backface-visibility: hidden;
-}
-
-.ui-the-cho__mat--sau {
-  transform: rotateY(180deg);
-  background: var(--mau-chinh);
-  color: var(--mau-chu-tren-chinh);
-}
-
-@keyframes hu-the-cho-lat {
-  0% {
-    transform: translateY(0) rotateY(0);
-  }
-
-  25% {
-    transform: translateY(-8px) rotateY(90deg);
-  }
-
-  50% {
-    transform: translateY(0) rotateY(180deg);
-  }
-
-  75% {
-    transform: translateY(-8px) rotateY(270deg);
-  }
-
-  100% {
-    transform: translateY(0) rotateY(360deg);
-  }
-}
-
 /* ---------- Trang mới vào (BoCuc > TrangVao) ----------
    Ẩn khi màn chờ còn hiện, rồi nổi lên / trượt theo hướng tab.
    fill "backwards": hết animation là trả về transform gốc, không giữ containing block
@@ -665,7 +604,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui-the-cho__lat,
   .ui-route-transition--vao {
     animation: none !important;
   }

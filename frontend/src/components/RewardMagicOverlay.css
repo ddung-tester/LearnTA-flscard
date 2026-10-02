@@ -422,3 +422,10 @@
 .may-yeu .reward-magic__path--aura {
   mix-blend-mode: normal;
 }
+
+/* Bỏ blur (GSAP đặt inline lúc mở/đóng cổng) và glow feGaussianBlur trên đường bay — trên điện thoại
+   mỗi khung phải làm mờ lại cả cổng chứa video và các đường SVG đang chạy */
+.reward-magic--compact :is(.reward-magic__portal, .reward-magic__media, .reward-magic__source-glow, .reward-magic__path, .reward-magic__burst),
+.may-yeu :is(.reward-magic__portal, .reward-magic__media, .reward-magic__source-glow, .reward-magic__path, .reward-magic__burst) {
+  filter: none !important;
+}

@@ -21,10 +21,11 @@
         if (!g) g = matchMedia("(prefers-color-scheme: dark)").matches ? "den-ban" : "sang";
         if (g === "den-ban" && location.pathname !== "/") document.documentElement.dataset.giaoDien = "den-ban";
       } catch (e) {}
-      // Máy yếu (≤4 luồng CPU, ≤4GB RAM hoặc bật tiết kiệm dữ liệu): tắt hiệu ứng nặng (xem utils/mayYeu.js)
+      // Máy yếu (điện thoại/máy tính bảng cảm ứng, ≤4 luồng CPU, ≤4GB RAM hoặc bật tiết kiệm dữ liệu): tắt hiệu ứng nặng (xem utils/mayYeu.js).
+      // Điện thoại nay thường báo 8 nhân/8GB nhưng GPU yếu + màn DPR 3 nên phải dựa vào màn cảm ứng.
       try {
         var n = navigator;
-        if ((n.connection && n.connection.saveData) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || (n.deviceMemory && n.deviceMemory <= 4))
+        if (matchMedia("(pointer: coarse)").matches || (n.connection && n.connection.saveData) || (n.hardwareConcurrency && n.hardwareConcurrency <= 4) || (n.deviceMemory && n.deviceMemory <= 4))
           document.documentElement.classList.add("may-yeu");
       } catch (e) {}
     </script>
