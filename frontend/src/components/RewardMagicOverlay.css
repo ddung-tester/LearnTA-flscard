@@ -191,12 +191,34 @@
   inset: 0;
   z-index: 2;
   border: 1px solid rgba(91, 188, 255, 0.58);
-  box-shadow:
-    inset 0 0 34px rgba(91, 188, 255, 0.28),
-    inset 0 0 92px rgba(143, 211, 255, 0.18),
-    0 0 34px rgba(91, 188, 255, 0.42),
-    0 0 80px rgba(143, 211, 255, 0.24);
   animation: reward-portal-pulse 1800ms ease-in-out infinite alternate;
+}
+
+/* Nhịp sáng của vòng: hai lớp bóng vẽ sẵn (nhạt / đậm), lớp đậm chỉ đổi opacity —
+   animate box-shadow thì mỗi khung phải vẽ lại cả vùng bóng mờ đè lên video */
+.reward-magic__portal-ring::before,
+.reward-magic__portal-ring::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.reward-magic__portal-ring::before {
+  box-shadow:
+    inset 0 0 22px rgba(91, 188, 255, 0.16),
+    inset 0 0 64px rgba(143, 211, 255, 0.1),
+    0 0 22px rgba(91, 188, 255, 0.24);
+}
+
+.reward-magic__portal-ring::after {
+  box-shadow:
+    inset 0 0 34px rgba(91, 188, 255, 0.24),
+    inset 0 0 88px rgba(143, 211, 255, 0.16),
+    0 0 36px rgba(91, 188, 255, 0.38);
+  opacity: 0;
+  animation: reward-portal-pulse-dam 1800ms ease-in-out infinite alternate;
 }
 
 .reward-magic__portal--left .reward-magic__portal-ring {
@@ -248,17 +270,15 @@
 @keyframes reward-portal-pulse {
   from {
     opacity: 0.72;
-    box-shadow:
-      inset 0 0 22px rgba(91, 188, 255, 0.16),
-      inset 0 0 64px rgba(143, 211, 255, 0.1),
-      0 0 22px rgba(91, 188, 255, 0.24);
   }
   to {
     opacity: 1;
-    box-shadow:
-      inset 0 0 34px rgba(91, 188, 255, 0.24),
-      inset 0 0 88px rgba(143, 211, 255, 0.16),
-      0 0 36px rgba(91, 188, 255, 0.38);
+  }
+}
+
+@keyframes reward-portal-pulse-dam {
+  to {
+    opacity: 1;
   }
 }
 
@@ -393,6 +413,20 @@
     animation: none;
   }
 
+  /* Vòng đứng yên: bóng tĩnh như trước */
+  .reward-magic__portal-ring {
+    box-shadow:
+      inset 0 0 34px rgba(91, 188, 255, 0.28),
+      inset 0 0 92px rgba(143, 211, 255, 0.18),
+      0 0 34px rgba(91, 188, 255, 0.42),
+      0 0 80px rgba(143, 211, 255, 0.24);
+  }
+
+  .reward-magic__portal-ring::before,
+  .reward-magic__portal-ring::after {
+    display: none;
+  }
+
   .reward-magic__sparkles,
   .reward-magic__paths,
   .reward-magic__source-glow {
@@ -400,32 +434,22 @@
   }
 }
 
-/* Điện thoại (compact) và máy yếu: bỏ những lớp phải vẽ/trộn lại mỗi khung hình đè lên video
-   (hoà màu screen, bóng đổ nhấp nháy, filter trên canvas) — video phát mượt hơn hẳn */
-.reward-magic--compact .reward-magic__portal::before,
+/* Máy yếu thật sự (≤4 luồng / ≤4GB / tiết kiệm dữ liệu): bỏ những lớp phải trộn lại mỗi khung đè lên video.
+   Điện thoại thường giữ đủ hiệu ứng (vòng sáng đã chỉ còn đổi opacity, GPU lo) */
 .may-yeu .reward-magic__portal::before {
   mix-blend-mode: normal;
   opacity: 0.5;
 }
 
-.reward-magic--compact .reward-magic__portal-ring,
-.may-yeu .reward-magic__portal-ring {
+.may-yeu .reward-magic__portal-ring,
+.may-yeu .reward-magic__portal-ring::after {
   animation: none;
 }
 
-.reward-magic--compact .reward-magic__canvas,
 .may-yeu .reward-magic__canvas {
   filter: none;
 }
 
-.reward-magic--compact .reward-magic__path--aura,
 .may-yeu .reward-magic__path--aura {
   mix-blend-mode: normal;
-}
-
-/* Bỏ blur (GSAP đặt inline lúc mở/đóng cổng) và glow feGaussianBlur trên đường bay — trên điện thoại
-   mỗi khung phải làm mờ lại cả cổng chứa video và các đường SVG đang chạy */
-.reward-magic--compact :is(.reward-magic__portal, .reward-magic__media, .reward-magic__source-glow, .reward-magic__path, .reward-magic__burst),
-.may-yeu :is(.reward-magic__portal, .reward-magic__media, .reward-magic__source-glow, .reward-magic__path, .reward-magic__burst) {
-  filter: none !important;
 }

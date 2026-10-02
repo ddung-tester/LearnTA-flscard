@@ -192,6 +192,22 @@
   color: #fff;
 }
 
+/* Điện thoại: ô chờ là giấy, cuộn qua thì đóng dấu (CauChuyenCuon gắn lớp) */
+.cc-luoi--cho .cc-o {
+  transition:
+    background-color 0.2s ease-out,
+    border-color 0.2s ease-out,
+    color 0.2s ease-out,
+    transform 0.2s cubic-bezier(0.34, 1.8, 0.64, 1);
+}
+
+.cc-luoi--cho .cc-o:not(.cc-o--dong) {
+  border-color: var(--mau-vien-manh);
+  background: var(--mau-giay);
+  color: var(--mau-chu-phu);
+  transform: scale(0.8);
+}
+
 /* ── 4. Chế độ học ── */
 .cc-hang-che-do {
   display: grid;

@@ -842,7 +842,20 @@ function TrangFlashcard() {
               "--progress-gradient-scale": Math.max(tiLeTienDo, 0.01),
               width: `${tienDoAnToan}%`,
             }}
-          />
+          >
+            <span className="ui-study-progress__lop" aria-hidden="true">
+              <span className="ui-study-progress__holo" />
+              <span className="ui-study-progress__holo ui-study-progress__holo--dam" />
+              <span className="ui-study-progress__tim" />
+              <span className="ui-study-progress__sang" />
+            </span>
+            <span className="ui-study-progress__nang" aria-hidden="true">
+              <span className="ui-study-progress__nang-4" />
+              <span className="ui-study-progress__nang-3" />
+              <span className="ui-study-progress__nang-2" />
+              <span className="ui-study-progress__nang-1" />
+            </span>
+          </div>
         </div>
       </div>
 
