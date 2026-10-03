@@ -149,10 +149,16 @@ function RewardTikTokEffect({
     context.drawImage(video, x, y, rongVe, caoVe);
   }
 
+  // Ánh video hắt ra giữa (máy tính): vẽ cả khung vào canvas rất nhỏ, CSS phóng to + làm mờ
+  function veAnhHat(video, canvas) {
+    if (!canvas || !video.videoWidth) return;
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  }
+
   function veTatCaCanvas(video) {
     veVideoLenCanvas(video, canvasRefs.current.left);
     veVideoLenCanvas(video, canvasRefs.current.right);
-    veVideoLenCanvas(video, canvasRefs.current.center);
+    veAnhHat(video, canvasRefs.current.anhHat);
   }
 
   const hoanTatDongReward = useCallback(() => {

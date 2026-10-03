@@ -302,9 +302,22 @@ function RewardMagicOverlay({
 
   if (!active) return null;
 
+  const hienGiua = !compact && portalDaMo && !fadeOut;
+  const cauMau = (tenseExamples ?? []).slice(0, 3).filter(Boolean);
+
   return (
     <div ref={rootRef} className={`reward-magic ${compact ? "reward-magic--compact" : ""}`} aria-hidden="true">
       <div ref={manRef} className="reward-magic__man" />
+
+      {/* Máy tính: màu video hắt ra khoảng giữa hai cổng như đèn hắt lên tường */}
+      {!compact && (
+        <canvas
+          ref={(node) => luuCanvas("anhHat", node)}
+          className={`reward-magic__anh-hat ${hienGiua ? "reward-magic__anh-hat--hien" : ""}`}
+          width={16}
+          height={9}
+        />
+      )}
 
       {viTris.map((viTri) => (
         <div
@@ -335,37 +348,47 @@ function RewardMagicOverlay({
 
       <canvas ref={fxRef} className="reward-magic__fx" />
 
-      {/* Câu gợi ý 3 thì (máy tính) — trượt vào phần dưới mỗi cổng sau khi cổng mở */}
-      {!compact &&
-        ["left", "right"].map((viTri) => {
-          const cauList =
-            viTri === "left" ? [tenseExamples?.[0]].filter(Boolean) : [tenseExamples?.[1], tenseExamples?.[2]].filter(Boolean);
-          const hienThi = portalDaMo && cauList.length > 0;
-          const xFrom = viTri === "left" ? "-110%" : "110%";
+      {/* Sân khấu giữa (máy tính): lời chúc + câu mẫu 3 thì của từ vừa làm đúng, hiện khi cổng đã mở */}
+      {!compact && (
+        <div className="reward-magic__san-khau">
+          <AnimatePresence>
+            {hienGiua && (
+              <motion.div
+                key={sequenceKey}
+                className="reward-magic__the-giua"
+                initial={{ opacity: 0, y: 28, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.25 } }}
+                transition={{ type: "spring", stiffness: 240, damping: 22, mass: 0.9 }}
+              >
+                <p className="reward-magic__kicker">Mốc thưởng</p>
+                <h2 className="reward-magic__tieu-de">Giỏi lắm!</h2>
+                {combo >= 2 && <span className="reward-magic__chuoi">Chuỗi đúng ×{combo}</span>}
 
-          return (
-            <div key={viTri} className={`reward-magic__tense-panel reward-magic__tense-panel--${viTri}`}>
-              <AnimatePresence>
-                {hienThi &&
-                  cauList.map((item, i) => (
-                    <motion.div
-                      key={`${item.tense}-${viTri}`}
-                      className="reward-magic__tense-item"
-                      initial={{ opacity: 0, x: xFrom }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: xFrom }}
-                      transition={{ type: "spring", stiffness: 260, damping: 22, mass: 0.8, delay: i * 0.12 }}
-                    >
-                      <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
-                      {item.formula && <span className="reward-magic__tense-formula">{item.formula}</span>}
-                      <p className="reward-magic__tense-sentence">{item.sentence}</p>
-                      {item.translation && <p className="reward-magic__tense-translation">{item.translation}</p>}
-                    </motion.div>
-                  ))}
-              </AnimatePresence>
-            </div>
-          );
-        })}
+                {cauMau.length > 0 && (
+                  <div className="reward-magic__cau-mau">
+                    <p className="reward-magic__cau-mau-nhan">Câu mẫu với từ vừa học</p>
+                    {cauMau.map((item, i) => (
+                      <motion.div
+                        key={item.tense}
+                        className="reward-magic__tense-item"
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ type: "spring", stiffness: 260, damping: 24, delay: 0.2 + i * 0.12 }}
+                      >
+                        <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
+                        {item.formula && <span className="reward-magic__tense-formula">{item.formula}</span>}
+                        <p className="reward-magic__tense-sentence">{item.sentence}</p>
+                        {item.translation && <p className="reward-magic__tense-translation">{item.translation}</p>}
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
