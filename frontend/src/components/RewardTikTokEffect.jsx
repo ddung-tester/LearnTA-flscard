@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-// Overlay thưởng kéo theo GSAP (~70 KB): tách chunk riêng, tải trước lúc trình duyệt rảnh
+// Overlay thưởng (động cơ hạt canvas + motion): tách chunk riêng, tải trước lúc trình duyệt rảnh
 // để khi đạt mốc thưởng không phải chờ tải.
 const taiRewardMagicOverlay = () => import("./RewardMagicOverlay");
 const RewardMagicOverlay = lazy(taiRewardMagicOverlay);
@@ -614,6 +614,9 @@ function RewardTikTokEffect({
           el.playsInline = true;
           el.setAttribute("playsinline", "");
           el.setAttribute("webkit-playsinline", "");
+          // Lần thưởng đầu, overlay tải lười bị treo (Suspense) một nhịp: React dựng sẵn <video> khi chưa gắn vào trang,
+          // canplay bắn lúc đó bị bỏ → gắn vào đã có dữ liệu thì coi là sẵn sàng luôn, không chờ hết 2,6 s
+          if (el.readyState >= VIDEO_READY_STATE_CAN_DRAW) setVideoSanSang(true);
         }
       }}
       className={compact ? "reward-magic__video" : "streak-celebration-effect__source-video"}
@@ -622,17 +625,19 @@ function RewardTikTokEffect({
       muted
       playsInline
       onLoadedData={(event) => {
-        if (event.currentTarget.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
+        const video = event.currentTarget; // React đặt lại currentTarget = null sau khi xử lý xong sự kiện
+        if (video.readyState >= VIDEO_READY_STATE_CAN_DRAW) {
           setVideoSanSang(true);
           window.requestAnimationFrame(() => {
-            veTatCaCanvas(event.currentTarget);
+            veTatCaCanvas(video);
           });
         }
       }}
       onCanPlay={(event) => {
+        const video = event.currentTarget;
         setVideoSanSang(true);
         window.requestAnimationFrame(() => {
-          veTatCaCanvas(event.currentTarget);
+          veTatCaCanvas(video);
         });
       }}
       onCanPlayThrough={() => setVideoSanSang(true)}

@@ -1,455 +1,243 @@
+/* Hiệu ứng thưởng "mực vàng bốc lửa" — xem RewardMagicOverlay.jsx.
+   Lúc phát video chỉ còn 2 thứ chạy, đều do compositor lo: viền vàng xoay (transform) và video. */
+
 .reward-magic {
-  --reward-source-x: 50vw;
-  --reward-source-y: 8rem;
   position: fixed;
   inset: 0;
   z-index: 9999;
   overflow: hidden;
   pointer-events: none;
-  visibility: hidden;
-  opacity: 0;
 }
 
-.reward-magic::before {
-  content: "";
-  position: fixed;
+/* Đèn phòng học tối xuống — opacity do vòng vẽ đặt */
+.reward-magic__man {
+  position: absolute;
   inset: 0;
+  opacity: 0;
   background:
-    radial-gradient(circle at var(--reward-source-x) var(--reward-source-y), rgba(243, 251, 255, 0.2), rgba(143, 211, 255, 0.1) 10rem, transparent 22rem),
-    radial-gradient(circle at 0% 50%, rgba(91, 188, 255, 0.14), transparent 25rem),
-    radial-gradient(circle at 100% 50%, rgba(217, 135, 255, 0.1), transparent 25rem);
-  opacity: 0.42;
-  pointer-events: none;
+    radial-gradient(ellipse 75% 65% at 50% 46%, rgba(26, 10, 3, 0.7), rgba(9, 4, 1, 0.9));
+  will-change: opacity;
 }
 
-.reward-magic__study-frame {
+.reward-magic__cong {
   position: fixed;
+  z-index: 2;
+  border-radius: 22px;
+}
+
+/* Điện thoại / màn hẹp: một cổng giữa màn hình */
+.reward-magic__cong--center {
   top: 50%;
   left: 50%;
-  width: min(48rem, max(26rem, calc(100vw - 112.5dvh)));
-  height: min(76vh, 42rem);
-  transform: translate(-50%, -50%);
-  border-radius: 1.25rem;
-  background:
-    radial-gradient(ellipse at center, rgba(243, 251, 255, 0.06), rgba(143, 211, 255, 0.05) 36%, transparent 68%),
-    linear-gradient(90deg, transparent, rgba(91, 188, 255, 0.05), transparent);
-  box-shadow:
-    -24px 0 38px rgba(7, 59, 95, 0.04),
-    24px 0 38px rgba(7, 59, 95, 0.04);
-}
-
-.reward-magic__source-glow {
-  position: fixed;
-  top: var(--reward-source-y);
-  left: var(--reward-source-x);
-  width: 8.5rem;
-  height: 8.5rem;
-  transform: translate(-50%, -50%);
-  border-radius: 9999px;
-  background:
-    radial-gradient(circle, rgba(255, 245, 200, 0.52), rgba(132, 243, 234, 0.34) 28%, rgba(122, 167, 255, 0.18) 52%, transparent 74%);
-  filter: blur(7px);
-}
-
-.reward-magic__source-glow::after {
-  content: "";
-  position: absolute;
-  inset: 1.1rem;
-  border-radius: inherit;
-  border: 1px solid rgba(236, 253, 255, 0.42);
-  box-shadow: 0 0 24px rgba(132, 243, 234, 0.24);
-}
-
-.reward-magic__sparkles {
-  position: fixed;
-  top: var(--reward-source-y);
-  left: var(--reward-source-x);
-  z-index: 2;
-  width: 1px;
-  height: 1px;
-}
-
-.reward-magic__spark {
-  position: absolute;
-  left: -0.12rem;
-  top: -0.22rem;
-  width: 0.24rem;
-  height: 0.58rem;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 245, 200, 0.88), rgba(105, 223, 240, 0.58), transparent);
-  box-shadow: 0 0 8px rgba(146, 236, 241, 0.34);
-}
-
-.reward-magic__spark:nth-child(3n) {
-  height: 0.38rem;
-  background: linear-gradient(180deg, rgba(246, 254, 255, 0.84), rgba(217, 135, 255, 0.46), transparent);
-}
-
-.reward-magic__paths {
-  position: fixed;
-  inset: 0;
-  z-index: 4;
-  width: 100vw;
-  height: 100vh;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.reward-magic__path {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.reward-magic__path--aura {
-  stroke: rgba(105, 223, 240, 0.28);
-  stroke-width: 18;
-  mix-blend-mode: screen;
-}
-
-.reward-magic__path--core {
-  stroke-width: 5;
-}
-
-.reward-magic__path--spark {
-  stroke: rgba(255, 245, 200, 0.74);
-  stroke-width: 1.3;
-  stroke-dasharray: 2 18;
-  filter: drop-shadow(0 0 7px rgba(143, 211, 255, 0.52));
-}
-
-.reward-magic__burst {
-  fill: none;
-  stroke: rgba(255, 245, 200, 0.86);
-  stroke-width: 2;
-  opacity: 0;
-}
-
-.reward-magic__portal {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  z-index: 2;
-  width: calc(100dvh * 9 / 16);
-  height: 100dvh;
+  translate: -50% -50%;
+  width: min(86vw, calc(80dvh * 9 / 16), 24rem);
   aspect-ratio: 9 / 16;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(143, 211, 255, 0.18), transparent 42%),
-    linear-gradient(155deg, rgba(11, 110, 168, 0.22), rgba(76, 201, 196, 0.13), rgba(114, 166, 189, 0.3)),
-    color-mix(in srgb, var(--mau-chinh) 36%, var(--mau-nen));
-  box-shadow:
-    0 0 54px rgba(7, 59, 95, 0.34),
-    inset 0 0 0 1px rgba(243, 251, 255, 0.14);
-  transform-origin: center center;
 }
 
-.reward-magic__portal::before,
-.reward-magic__portal::after {
-  content: "";
+/* Máy tính: hai cổng sát hai mép, phần học ở giữa */
+.reward-magic__cong--left,
+.reward-magic__cong--right {
+  top: 16px;
+  height: calc(100dvh - 32px);
+  aspect-ratio: 9 / 16;
+}
+
+.reward-magic__cong--left {
+  left: 16px;
+}
+
+.reward-magic__cong--right {
+  right: 16px;
+}
+
+/* Quầng sáng quanh cổng: bóng tĩnh, chỉ đổi opacity khi cổng mở */
+.reward-magic__hao-quang {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  box-shadow:
+    0 0 0 1px rgba(255, 201, 77, 0.35),
+    0 0 28px 2px rgba(255, 128, 40, 0.42),
+    0 0 90px 12px rgba(224, 69, 123, 0.2);
+  transition: opacity 0.4s ease;
+}
+
+.reward-magic__cong--mo .reward-magic__hao-quang {
+  opacity: 1;
+}
+
+/* Lòng cổng: clip-path do vòng vẽ đặt (lỗ cháy lan ra); mặc định đóng kín */
+.reward-magic__long {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  background: #1c0d05;
+  clip-path: circle(0px at 50% 50%);
+}
+
+/* Viền vàng xoay: hình vuông conic-gradient lớn quay sau lớp media, lộ ra 3px quanh mép */
+.reward-magic__vien {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 230%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(
+    #ffc94d,
+    #ff6b3d 20%,
+    #e0457b 36%,
+    #9b3fd1 50%,
+    #e0457b 64%,
+    #ff6b3d 80%,
+    #ffc94d
+  );
+  animation: reward-vien-xoay 5s linear infinite;
+}
+
+.reward-magic__media {
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  border-radius: calc(22px - 3px);
+  overflow: hidden;
+  background: #1c0d05;
+}
+
+.reward-magic__media > video,
+.reward-magic__canvas,
+.reward-magic__fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reward-magic__cong--right .reward-magic__canvas,
+.reward-magic__cong--right .reward-magic__fallback {
+  transform: scaleX(-1);
+}
+
+/* Không có video (lỗi tải / giảm chuyển động): nền ấm có ánh vàng thở nhẹ */
+.reward-magic__fallback {
+  background:
+    radial-gradient(circle at 50% 36%, rgba(255, 201, 77, 0.55), transparent 42%),
+    radial-gradient(circle at 28% 82%, rgba(224, 69, 123, 0.32), transparent 48%),
+    radial-gradient(circle at 78% 70%, rgba(155, 63, 209, 0.24), transparent 46%),
+    linear-gradient(165deg, #3d1806, #1c0d05);
+  animation: reward-fallback-tho 1600ms ease-in-out infinite alternate;
+}
+
+/* Lớp hạt (canvas) trên cổng — chỉ hiện lúc tụ phép / bay / mở / đóng */
+.reward-magic__fx {
   position: absolute;
   inset: 0;
   z-index: 3;
-  pointer-events: none;
-}
-
-.reward-magic__portal::before {
-  background:
-    linear-gradient(90deg, rgba(91, 188, 255, 0.34), transparent 14%, transparent 86%, rgba(91, 188, 255, 0.34)),
-    radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(143, 211, 255, 0.2) 72%, rgba(243, 251, 255, 0.2) 100%);
-  mix-blend-mode: screen;
-}
-
-.reward-magic__portal::after {
-  inset: 0.55rem;
-  border: 1px solid rgba(243, 251, 255, 0.32);
-  box-shadow:
-    inset 0 0 24px rgba(91, 188, 255, 0.16),
-    0 0 18px rgba(143, 211, 255, 0.24);
-}
-
-.reward-magic__portal--left {
-  left: 0;
-}
-
-.reward-magic__portal--right {
-  right: 0;
-}
-
-.reward-magic__portal--center {
-  top: 50%;
-  left: 50%;
-  bottom: auto;
-  width: min(82vw, calc(82dvh * 9 / 16), 22rem);
-  height: min(82dvh, calc(82vw * 16 / 9), 39rem);
-  border-radius: 1rem;
-  translate: -50% -50%;
-}
-
-.reward-magic__portal-ring {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border: 1px solid rgba(91, 188, 255, 0.58);
-  animation: reward-portal-pulse 1800ms ease-in-out infinite alternate;
-}
-
-/* Nhịp sáng của vòng: hai lớp bóng vẽ sẵn (nhạt / đậm), lớp đậm chỉ đổi opacity —
-   animate box-shadow thì mỗi khung phải vẽ lại cả vùng bóng mờ đè lên video */
-.reward-magic__portal-ring::before,
-.reward-magic__portal-ring::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.reward-magic__portal-ring::before {
-  box-shadow:
-    inset 0 0 22px rgba(91, 188, 255, 0.16),
-    inset 0 0 64px rgba(143, 211, 255, 0.1),
-    0 0 22px rgba(91, 188, 255, 0.24);
-}
-
-.reward-magic__portal-ring::after {
-  box-shadow:
-    inset 0 0 34px rgba(91, 188, 255, 0.24),
-    inset 0 0 88px rgba(143, 211, 255, 0.16),
-    0 0 36px rgba(91, 188, 255, 0.38);
-  opacity: 0;
-  animation: reward-portal-pulse-dam 1800ms ease-in-out infinite alternate;
-}
-
-.reward-magic__portal--left .reward-magic__portal-ring {
-  border-right-color: rgba(143, 211, 255, 0.72);
-}
-
-.reward-magic__portal--right .reward-magic__portal-ring {
-  border-left-color: rgba(143, 211, 255, 0.72);
-}
-
-.reward-magic__media,
-.reward-magic__canvas,
-.reward-magic__video,
-.reward-magic__fallback {
+  display: none;
   width: 100%;
   height: 100%;
 }
 
-.reward-magic__media {
-  position: relative;
-  z-index: 1;
-  background: rgba(7, 59, 95, 0.24);
-}
-
-/* Điện thoại: <video> nằm thẳng trong cổng (không qua canvas) */
-.reward-magic__video {
-  display: block;
-  object-fit: cover;
-}
-
-.reward-magic__canvas {
-  display: block;
-  object-fit: cover;
-  filter: saturate(1.08) contrast(1.04);
-}
-
-.reward-magic__portal--right .reward-magic__canvas,
-.reward-magic__portal--right .reward-magic__fallback {
-  transform: scaleX(-1);
-}
-
-.reward-magic__fallback {
-  background:
-    radial-gradient(circle at 50% 22%, rgba(219, 247, 255, 0.52), transparent 24%),
-    linear-gradient(180deg, rgba(15, 95, 148, 0.22), rgba(143, 211, 255, 0.18) 52%, rgba(10, 79, 125, 0.2));
-  animation: reward-fallback-pulse 1100ms ease-out infinite alternate;
-}
-
-@keyframes reward-portal-pulse {
-  from {
-    opacity: 0.72;
-  }
+@keyframes reward-vien-xoay {
   to {
-    opacity: 1;
+    transform: rotate(1turn);
   }
 }
 
-@keyframes reward-portal-pulse-dam {
+@keyframes reward-fallback-tho {
   to {
-    opacity: 1;
+    transform: scale(1.04);
   }
 }
 
-@keyframes reward-fallback-pulse {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.025);
-  }
-}
-
-/* ── Câu gợi ý 3 thì — panel cố định 2 bên màn hình ────────────────── */
+/* ── Câu gợi ý 3 thì (máy tính) — phần dưới mỗi cổng ─────────────── */
 .reward-magic__tense-panel {
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 8;
+  bottom: 40px;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: calc(100dvh * 9 / 16 - 1rem);
+  width: calc((100dvh - 32px) * 9 / 16 - 2rem);
   max-width: min(22vw, 18rem);
-  padding: 0;
   pointer-events: none;
 }
 
 .reward-magic__tense-panel--left {
-  left: 0.5rem;
-  align-items: flex-start;
+  left: 32px;
 }
 
 .reward-magic__tense-panel--right {
-  right: 0.5rem;
-  align-items: flex-start;
+  right: 32px;
 }
 
 .reward-magic__tense-item {
   display: flex;
   flex-direction: column;
   gap: 0.22rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.75rem;
-  background: rgba(5, 15, 28, 0.78);
-  border: 1px solid rgba(105, 223, 240, 0.22);
-  backdrop-filter: blur(12px);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.32),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   width: 100%;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.8rem;
+  background: rgba(28, 12, 4, 0.82);
+  border: 1px solid rgba(255, 201, 77, 0.24);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   will-change: transform, opacity;
 }
 
-
 .reward-magic__tense-badge {
-  display: inline-block;
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.15rem 0.4rem;
-  border-radius: 0.25rem;
-  background: rgba(105, 223, 240, 0.18);
-  color: #7dd8f0;
   width: fit-content;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  background: rgba(255, 201, 77, 0.15);
+  color: #ffc94d;
+  font-size: 0.66rem;
+  font-weight: 700;
 }
 
 .reward-magic__tense-formula {
-  font-size: 0.6rem;
-  font-family: "SF Mono", "Cascadia Mono", "Consolas", monospace;
-  color: rgba(200, 220, 255, 0.7);
   margin-top: 0.1rem;
+  color: rgba(255, 228, 190, 0.7);
+  font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.62rem;
 }
 
 .reward-magic__tense-sentence {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.94);
-  line-height: 1.35;
   margin: 0.15rem 0 0;
+  color: #fff4d6;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .reward-magic__tense-translation {
-  font-size: 0.65rem;
-  font-style: italic;
-  color: rgba(200, 215, 235, 0.6);
-  line-height: 1.3;
   margin: 0;
+  color: rgba(255, 228, 190, 0.62);
+  font-size: 0.68rem;
+  font-style: italic;
+  line-height: 1.3;
 }
 
-
-
-
 @media (max-width: 1279px) {
-  .reward-magic::before {
-    background:
-      radial-gradient(circle at var(--reward-source-x) var(--reward-source-y), rgba(255, 245, 200, 0.18), rgba(132, 243, 234, 0.12) 8rem, transparent 18rem),
-      radial-gradient(circle at 50% 50%, rgba(217, 135, 255, 0.12), transparent 18rem);
-  }
-
-  .reward-magic__study-frame {
-    width: min(34rem, calc(100vw - 2rem));
-    height: min(72dvh, 38rem);
-    border-radius: 1rem;
-  }
-
-  .reward-magic__paths {
-    opacity: 0.72;
-  }
-
-  .reward-magic__path--aura {
-    stroke-width: 12;
-  }
-
-  /* Ẩn panel câu ví dụ khi không còn đủ chỗ 2 bên */
   .reward-magic__tense-panel {
     display: none;
   }
 }
 
-@media (max-width: 520px) {
-  .reward-magic__portal--center {
-    width: min(86vw, calc(74dvh * 9 / 16));
-    height: min(74dvh, calc(86vw * 16 / 9));
-    border-radius: 0.875rem;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .reward-magic__portal-ring,
+  .reward-magic__long {
+    clip-path: none;
+  }
+
+  .reward-magic__vien,
   .reward-magic__fallback {
     animation: none;
   }
-
-  /* Vòng đứng yên: bóng tĩnh như trước */
-  .reward-magic__portal-ring {
-    box-shadow:
-      inset 0 0 34px rgba(91, 188, 255, 0.28),
-      inset 0 0 92px rgba(143, 211, 255, 0.18),
-      0 0 34px rgba(91, 188, 255, 0.42),
-      0 0 80px rgba(143, 211, 255, 0.24);
-  }
-
-  .reward-magic__portal-ring::before,
-  .reward-magic__portal-ring::after {
-    display: none;
-  }
-
-  .reward-magic__sparkles,
-  .reward-magic__paths,
-  .reward-magic__source-glow {
-    display: none;
-  }
 }
 
-/* Máy yếu thật sự (≤4 luồng / ≤4GB / tiết kiệm dữ liệu): bỏ những lớp phải trộn lại mỗi khung đè lên video.
-   Điện thoại thường giữ đủ hiệu ứng (vòng sáng đã chỉ còn đổi opacity, GPU lo) */
-.may-yeu .reward-magic__portal::before {
-  mix-blend-mode: normal;
-  opacity: 0.5;
-}
-
-.may-yeu .reward-magic__portal-ring,
-.may-yeu .reward-magic__portal-ring::after {
+/* Máy yếu thật sự: viền đứng yên (vẫn đủ màu) */
+.may-yeu .reward-magic__vien {
   animation: none;
-}
-
-.may-yeu .reward-magic__canvas {
-  filter: none;
-}
-
-.may-yeu .reward-magic__path--aura {
-  mix-blend-mode: normal;
 }

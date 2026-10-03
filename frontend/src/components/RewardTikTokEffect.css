@@ -26,11 +26,11 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(28, 12, 4, 0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 201, 77, 0.3);
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 600;
@@ -38,12 +38,23 @@
   pointer-events: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: streakSoundPulse 2s infinite ease-in-out;
+}
+
+/* Vòng gợn vàng lan ra quanh nút — chỉ transform/opacity (box-shadow động bắt luồng chính vẽ lại
+   mỗi khung suốt lúc phát video) */
+.streak-celebration-effect__sound-btn::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid rgba(255, 201, 77, 0.75);
+  border-radius: inherit;
+  pointer-events: none;
+  animation: streakSoundPulse 2s ease-out infinite;
 }
 
 .streak-celebration-effect__sound-btn:hover {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(48, 22, 8, 0.94);
+  border-color: rgba(255, 201, 77, 0.55);
   transform: scale(1.05);
 }
 
@@ -52,11 +63,21 @@
 }
 
 @keyframes streakSoundPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  from {
+    transform: none;
+    opacity: 1;
   }
-  50% {
-    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0), 0 8px 24px rgba(0, 0, 0, 0.35);
+  70%,
+  to {
+    transform: scale(1.18, 1.5);
+    opacity: 0;
   }
 }
 
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-celebration-effect__sound-btn::after {
+    animation: none;
+    opacity: 0;
+  }
+}

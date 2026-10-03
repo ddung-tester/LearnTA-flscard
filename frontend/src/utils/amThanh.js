@@ -147,10 +147,23 @@ const BAN_AM = {
     not(c, { tanSo: 150, tanSoCuoi: 55, dai: 0.18, to: 0.5 });
     nhieu(c, { dai: 0.06, to: 0.3, locTu: 2000, locDen: 900, q: 0.7 });
   },
+  // Hiệu ứng thưởng: sao chổi phóng đi (vút + ánh kim lên cao)
+  phepBay(c) {
+    nhieu(c, { dai: 0.7, to: 0.2, locTu: 380, locDen: 5200, q: 1.1 });
+    not(c, { tanSo: 620, tanSoCuoi: 1860, dai: 0.62, to: 0.05, kieu: "triangle" });
+  },
+  // Hiệu ứng thưởng: nổ mở cổng (thụp trầm + chuông lấp lánh)
+  phepNo(c) {
+    not(c, { tanSo: 120, tanSoCuoi: 42, dai: 0.4, to: 0.5 });
+    nhieu(c, { dai: 0.28, to: 0.22, locTu: 3200, locDen: 700, q: 0.7 });
+    [1318.5, 1760, 2349.3, 2637].forEach((tanSo, i) => {
+      not(c, { tanSo, batDau: 0.04 + i * 0.045, dai: 0.55, to: 0.07, kieu: "triangle" });
+    });
+  },
 };
 
 /**
- * Phát một tiếng: "dung" | "sai" | "xong" | "lat" | "giay" | "dongDau" | "congTac".
+ * Phát một tiếng: "dung" | "sai" | "xong" | "lat" | "giay" | "dongDau" | "congTac" | "phepBay" | "phepNo".
  * Không làm gì khi đã tắt âm thanh hoặc trình duyệt không có Web Audio.
  */
 export function phatAm(ten) {
