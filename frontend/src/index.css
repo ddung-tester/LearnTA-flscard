@@ -199,6 +199,12 @@ html {
   min-height: 0;
 }
 
+/* Trong flex column, mx-auto tắt stretch → khung co theo nội dung (bé tí trên PC).
+   Giãn đủ ngang, max-w-* của từng trang vẫn chặn trên. */
+.app-shell-main--study>.ui-route-transition>.ui-study-session {
+  width: 100%;
+}
+
 /* Chỉ trang học (flashcard/quiz/tự luận) mới chừa hai bên cho video reward 9:16.
    Các trang khác giữ 48rem, nếu không danh sách bộ từ bị ép còn ~26rem trên laptop 1280–1440px. */
 @media (min-width: 1280px) and (min-height: 640px) {
