@@ -8,7 +8,6 @@
   isolation: isolate;
 }
 
-.streak-celebration-effect__source-video,
 .reward-tiktok-effect__source-video {
   position: fixed;
   width: 1px;
@@ -26,9 +25,8 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(28, 12, 4, 0.82);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Nền đặc, không backdrop-filter: lớp làm mờ nằm trên video bắt GPU làm mờ lại mỗi khung hình (giật trên điện thoại) */
+  background: rgba(20, 12, 40, 0.92);
   color: #ffffff;
   border: 1px solid rgba(255, 201, 77, 0.3);
   border-radius: 9999px;
@@ -49,11 +47,20 @@
   border: 1.5px solid rgba(255, 201, 77, 0.75);
   border-radius: inherit;
   pointer-events: none;
-  animation: streakSoundPulse 2s ease-out infinite;
+  opacity: 0;
+  /* Gợn 3 lần để gây chú ý rồi thôi — animation lặp vô hạn bắt trình duyệt tính lại style mỗi khung suốt lúc phát video */
+  animation: streakSoundPulse 2s ease-out 3;
+}
+
+/* Đang thưởng: trang học phía sau (bị lớp phủ che) tạm dừng mọi animation */
+.reward-dang-phat #root *,
+.reward-dang-phat #root *::before,
+.reward-dang-phat #root *::after {
+  animation-play-state: paused !important;
 }
 
 .streak-celebration-effect__sound-btn:hover {
-  background: rgba(48, 22, 8, 0.94);
+  background: rgba(34, 22, 64, 0.96);
   border-color: rgba(255, 201, 77, 0.55);
   transform: scale(1.05);
 }

@@ -1157,6 +1157,7 @@ function TrangTuLuan({ loai }) {
       onHideComplete={xuLyRewardDongXong}
       combo={combo}
       tenseExamples={daHoanThanh ? null : getTenseExamples(theHienTai)}
+      tuVung={daHoanThanh ? "" : theHienTai?.term_en}
     />
   );
 

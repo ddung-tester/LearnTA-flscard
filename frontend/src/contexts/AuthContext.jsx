@@ -41,6 +41,8 @@ export function AuthProvider({ children }) {
 
   const clearAuth = useCallback(() => {
     clearStoredAuthToken();
+    // Về kho khách: không đọc tiếp cài đặt/tiến độ của tài khoản vừa thoát
+    chonKhoHocTap(null);
     setToken(null);
     setUser(null);
     setIsAuthReady(true);

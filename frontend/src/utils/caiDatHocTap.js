@@ -1,7 +1,11 @@
 import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
-import { getUserSettings, updateUserSettings } from "../services/userApi";
+import { getUserSettings } from "../services/userApi";
+import { luuLenTaiKhoan } from "./caiDatTaiKhoan";
+import { apDungGiaoDien, layGiaoDienDaChon } from "./giaoDien";
+import { apDungAmThanh, layAmThanhDaChon } from "./amThanh";
 
 const KHO_CAI_DAT = "learnta_user_study_settings";
+const KHO_CACH_XEM_LY_THUYET = "learnta_ly_thuyet_cach_xem";
 
 const MAC_DINH_CAI_DAT = {
   flashcard: {
@@ -92,28 +96,16 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
 
     window.localStorage.setItem(khoaKhoHocTap(KHO_CAI_DAT), JSON.stringify(tatCa));
 
-    // Đồng bộ lên CSDL Backend (MySQL) nếu người dùng đã đăng nhập
-    const payloadBackend = {};
-    if (caiDatCanLuu.cheDo === "en-vi" || caiDatCanLuu.cheDo === "vi-en") {
-      payloadBackend.default_direction = caiDatCanLuu.cheDo;
-    }
-    if (caiDatCanLuu.chiHocTuYeuThich !== undefined) payloadBackend.only_favorite = caiDatCanLuu.chiHocTuYeuThich;
-    if (caiDatCanLuu.batRandom !== undefined) payloadBackend.random_order = caiDatCanLuu.batRandom;
-    if (caiDatCanLuu.soCauDungNhanThuong !== undefined) payloadBackend.reward_trigger_count = caiDatCanLuu.soCauDungNhanThuong;
-    if (caiDatCanLuu.batReward !== undefined) payloadBackend.reward_enabled = caiDatCanLuu.batReward;
-
-    if (Object.keys(payloadBackend).length > 0) {
-      updateUserSettings(payloadBackend).catch(() => {
-        // Silent error nếu offline hoặc chưa đăng nhập
-      });
-    }
+    // Lưu nguyên cài đặt từng chế độ vào tài khoản (không gộp về một chiều hỏi chung như cột cũ)
+    luuLenTaiKhoan({ hocTap: tatCa });
   } catch {
     // Bỏ qua nếu localStorage bị đầy hoặc lỗi
   }
 }
 
 /**
- * Tải cài đặt từ CSDL về và đồng bộ vào localStorage khi người dùng đăng nhập.
+ * Đăng nhập: tải cài đặt của tài khoản về máy và áp dụng ngay (giao diện, âm thanh, cách xem, cài đặt học).
+ * Tài khoản chưa lưu mục nào thì đẩy lựa chọn đang có trên máy lên làm bản đầu tiên.
  */
 export async function dongBoCaiDatTuDatabase() {
   const phien = layPhienKhoHocTap();
@@ -121,32 +113,76 @@ export async function dongBoCaiDatTuDatabase() {
     const dbSettings = await getUserSettings();
     if (!dbSettings || !laPhienKhoHienTai(phien)) return;
 
-    const tatCa = docTatCaCaiDat();
-    const capNhat = {
-      cheDo: dbSettings.default_direction || "vi-en",
-      chiHocTuYeuThich: Boolean(dbSettings.only_favorite),
-      batRandom: Boolean(dbSettings.random_order),
-      batReward: Boolean(dbSettings.reward_enabled),
-    };
+    const prefs = dbSettings.preferences || {};
+    const canDayLen = {};
 
-    const capNhatVoimoc = {
-      ...capNhat,
-      soCauDungNhanThuong: dbSettings.reward_trigger_count || 10,
-    };
+    if (prefs.giaoDien) apDungGiaoDien(prefs.giaoDien);
+    else if (layGiaoDienDaChon()) canDayLen.giaoDien = layGiaoDienDaChon();
 
-    tatCa.flashcard = { ...tatCa.flashcard, ...capNhat };
-    tatCa.quiz = { ...tatCa.quiz, ...capNhatVoimoc };
-    tatCa.tuluan = { ...tatCa.tuluan, ...capNhatVoimoc };
-    for (const mode of ["ngheviet", "nguCanh", "noiTu", "honHop"]) {
-      tatCa[mode] = { ...tatCa[mode], ...capNhatVoimoc, cheDo: undefined };
+    if (typeof prefs.amThanh === "boolean") apDungAmThanh(prefs.amThanh);
+    else if (layAmThanhDaChon() !== null) canDayLen.amThanh = layAmThanhDaChon();
+
+    if (prefs.lyThuyetCachXem) ghiCachXemLyThuyet(prefs.lyThuyetCachXem);
+    else if (docCachXemLyThuyetDaChon()) canDayLen.lyThuyetCachXem = docCachXemLyThuyetDaChon();
+
+    let tatCa;
+    if (prefs.hocTap) {
+      tatCa = ghepVoiMacDinh(prefs.hocTap);
+    } else {
+      // Tài khoản cũ chỉ có các cột chung: áp chúng lên bản trên máy rồi lưu bản đầy đủ
+      tatCa = docTatCaCaiDat();
+      const capNhat = {
+        cheDo: dbSettings.default_direction || "vi-en",
+        chiHocTuYeuThich: Boolean(dbSettings.only_favorite),
+        batRandom: Boolean(dbSettings.random_order),
+        batReward: Boolean(dbSettings.reward_enabled),
+      };
+      const capNhatVoiMoc = { ...capNhat, soCauDungNhanThuong: dbSettings.reward_trigger_count || 10 };
+
+      tatCa.flashcard = { ...tatCa.flashcard, ...capNhat };
+      tatCa.quiz = { ...tatCa.quiz, ...capNhatVoiMoc };
+      tatCa.tuluan = { ...tatCa.tuluan, ...capNhatVoiMoc };
+      for (const mode of ["ngheviet", "nguCanh", "noiTu", "honHop"]) {
+        tatCa[mode] = { ...tatCa[mode], ...capNhatVoiMoc, cheDo: undefined };
+      }
+      canDayLen.hocTap = tatCa;
     }
 
     if (coTheDungLocalStorage()) {
       window.localStorage.setItem(khoaKhoHocTap(KHO_CAI_DAT), JSON.stringify(tatCa));
     }
+    if (Object.keys(canDayLen).length > 0) luuLenTaiKhoan(canDayLen);
   } catch {
     // Silent fail nếu chưa đăng nhập hoặc lỗi mạng
   }
+}
+
+/** Trang Bài học → Lý thuyết: "so-tay" (lật trang, mặc định) hoặc "cuon" */
+function docCachXemLyThuyetDaChon() {
+  try {
+    const daChon = window.localStorage.getItem(KHO_CACH_XEM_LY_THUYET);
+    return daChon === "cuon" || daChon === "so-tay" ? daChon : null;
+  } catch {
+    return null;
+  }
+}
+
+function ghiCachXemLyThuyet(cachXem) {
+  if (cachXem !== "cuon" && cachXem !== "so-tay") return;
+  try {
+    window.localStorage.setItem(KHO_CACH_XEM_LY_THUYET, cachXem);
+  } catch {
+    // Không lưu được thì chỉ đổi trong lần xem này
+  }
+}
+
+export function docCachXemLyThuyet() {
+  return docCachXemLyThuyetDaChon() ?? "so-tay";
+}
+
+export function luuCachXemLyThuyet(cachXem) {
+  ghiCachXemLyThuyet(cachXem);
+  luuLenTaiKhoan({ lyThuyetCachXem: cachXem });
 }
 
 export function xoaCaiDatHocTap() {

@@ -560,6 +560,7 @@ function TrangQuiz({ loai }) {
       onHideComplete={xuLyRewardDongXong}
       combo={combo}
       tenseExamples={getTenseExamples(cauHienTai?.the)}
+      tuVung={cauHienTai?.the?.term_en}
     />
   );
 

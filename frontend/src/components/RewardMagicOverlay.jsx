@@ -5,12 +5,13 @@ import { clipTuDiem, diemMepChay, em, taoDongCo, taoDuongBay } from "./reward/do
 import "./RewardMagicOverlay.css";
 
 /*
- * Hiệu ứng thưởng "mực vàng bốc lửa":
- *  tụ phép ở đầu thanh tiến độ (chờ video sẵn sàng) → sao chổi bay cong → nổ → cổng video bị đốt thủng
- *  từ giữa ra → phát video trong khung viền vàng xoay. Đóng: lỗ cháy khép lại, đốm lửa bay về thanh tiến độ.
+ * Hiệu ứng thưởng "vòng phép chữ":
+ *  tụ phép xoáy ốc ở đầu thanh tiến độ (chờ video sẵn sàng) → tia năng lượng lụa bay cong → chạm đích bùng tia thần
+ *  → vòng phép ghi chính từ vừa làm đúng tự viết ra tại cổng → vòng tia lửa xoáy mở cổng từ giữa ra → phát video.
+ *  Đóng: vòng phép hiện lại, cổng khép, đốm sáng bay về thanh tiến độ.
  */
 
-const THOI_GIAN = { tu: 420, bay: 720, mo: 640, dong: 360, ve: 380 };
+const THOI_GIAN = { tu: 420, bay: 640, trieuHoi: 440, mo: 600, dong: 360, ve: 380 };
 const BAN_KINH_CONG = 22;
 
 const TENSE_LABEL = {
@@ -40,12 +41,14 @@ function RewardMagicOverlay({
   videoReady = false,
   originRect = null,
   canvasRefs,
-  videoNode = null,
+  // Thẻ <video> gốc cho từng cổng ({ center } hoặc { left, right }): phần cứng giải mã + vẽ, nét đúng độ phân giải gốc
+  videoNodes = null,
   onPortalOpen,
   onComplete,
   compact = false,
   combo = 0,
   tenseExamples = null,
+  tuVung = "",
 }) {
   const rootRef = useRef(null);
   const manRef = useRef(null);
@@ -66,7 +69,7 @@ function RewardMagicOverlay({
 
   // Vòng vẽ đọc giá trị mới nhất mà không phải dựng lại kịch bản mỗi lần props đổi
   useLayoutEffect(() => {
-    moiNhatRef.current = { videoReady, hasError, onPortalOpen, onComplete, originRect, combo };
+    moiNhatRef.current = { videoReady, hasError, onPortalOpen, onComplete, originRect, combo, tuVung };
   });
 
   const viTris = compact ? ["center"] : ["left", "right"];
@@ -77,7 +80,14 @@ function RewardMagicOverlay({
       .filter((c) => c.wrap && c.long)
       .map((c) => {
         const r = c.wrap.getBoundingClientRect();
-        return { ...c, rect: r, tam: { x: r.left + r.width / 2, y: r.top + r.height / 2 }, rMax: Math.hypot(r.width, r.height) / 2 };
+        return {
+          ...c,
+          rect: r,
+          tam: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+          rMax: Math.hypot(r.width, r.height) / 2,
+          // Vòng phép vừa lòng cổng
+          R: Math.min(r.width, r.height) * 0.44,
+        };
       });
   }
 
@@ -86,8 +96,11 @@ function RewardMagicOverlay({
     vongRef.current = 0;
   }
 
-  /** Chạy một kịch bản theo từng khung; tắt canvas khi kịch bản xong và hạt đã tàn */
-  function chay(buoc) {
+  /**
+   * Chạy một kịch bản theo từng khung; tắt canvas khi kịch bản xong và hạt đã tàn.
+   * tatSauMs: kịch bản xong thì hạt còn lại chỉ được sống thêm chừng này (mờ dần) — nhường GPU cho video vừa phát.
+   */
+  function chay(buoc, { tatSauMs = Infinity } = {}) {
     const canvas = fxRef.current;
     if (!canvas) return;
     dongCoRef.current ??= taoDongCo(canvas);
@@ -95,31 +108,37 @@ function RewardMagicOverlay({
     catVong();
     dongCo.doKichThuoc();
     canvas.style.display = "block";
+    canvas.style.opacity = "";
 
     let truoc = performance.now();
     const batDau = truoc;
+    let xongLuc = null;
     const khung = (now) => {
       const dt = Math.min(40, now - truoc);
       truoc = now;
       dongCo.capNhat(dt);
       dongCo.ve();
-      const conChay = buoc(now - batDau, dt, dongCo);
-      if (conChay || dongCo.conHat()) {
+      const conChay = xongLuc === null && buoc(now - batDau, dt, dongCo);
+      if (!conChay && xongLuc === null) xongLuc = now;
+      const conHat = dongCo.conHat() && (xongLuc === null || now - xongLuc < tatSauMs);
+      if (conChay || conHat) {
+        if (xongLuc !== null && Number.isFinite(tatSauMs)) canvas.style.opacity = String(1 - (now - xongLuc) / tatSauMs);
         vongRef.current = window.requestAnimationFrame(khung);
       } else {
         dongCo.xoaHet();
         canvas.style.display = "none";
+        canvas.style.opacity = "";
         vongRef.current = 0;
       }
     };
     vongRef.current = window.requestAnimationFrame(khung);
   }
 
-  function veLoChay(cacCong, R, bienDo, pha, dongCo) {
+  function veLoChay(cacCong, R, bienDo, pha, dongCo, chieu) {
     for (const c of cacCong) {
       const ds = diemMepChay(c.tam, R, bienDo, pha);
       c.long.style.clipPath = clipTuDiem(ds, c.rect);
-      dongCo.veMepChay(ds, c.rect, c.tam, BAN_KINH_CONG);
+      dongCo.veMepChay(ds, c.rect, c.tam, BAN_KINH_CONG, chieu);
     }
   }
 
@@ -190,6 +209,20 @@ function RewardMagicOverlay({
         if (u >= 1) {
           for (const c of cacCong) dongCo.no(c.tam, k);
           phatAm("phepNo");
+          pha = "trieuHoi";
+          moc = t;
+        }
+        return true;
+      }
+
+      const tuVungHienTai = moiNhatRef.current.tuVung;
+
+      if (pha === "trieuHoi") {
+        const v = Math.min(1, (t - moc) / THOI_GIAN.trieuHoi);
+        for (const c of cacCong) {
+          dongCo.veVongPhep(c.tam, c.R, t, { hien: em.raLapPhuong(v), co: 0.92 + 0.08 * em.raLapPhuong(v), tuVung: tuVungHienTai });
+        }
+        if (v >= 1) {
           pha = "mo";
           moc = t;
         }
@@ -198,9 +231,13 @@ function RewardMagicOverlay({
 
       if (pha === "mo") {
         const v = Math.min(1, (t - moc) / THOI_GIAN.mo);
-        const bienDo = 18 * (1 - v) + 3;
+        const bienDo = 14 * (1 - v) + 3;
         const rMax = Math.max(...cacCong.map((c) => c.rMax));
-        veLoChay(cacCong, em.raLapPhuong(v) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo);
+        // Vòng phép phình ra, nhạt dần trong khi vòng lửa mở cổng
+        for (const c of cacCong) {
+          dongCo.veVongPhep(c.tam, c.R, t, { sang: 1 - em.raLapPhuong(v), co: 1 + 0.4 * em.raLapPhuong(v), tuVung: tuVungHienTai });
+        }
+        veLoChay(cacCong, em.raLapPhuong(v) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo, 1);
         if (v >= 1) {
           moCong();
           pha = "xong";
@@ -209,7 +246,7 @@ function RewardMagicOverlay({
       }
 
       return false;
-    });
+    }, { tatSauMs: 350 });
 
     return catVong;
     // Kịch bản chỉ dựng lại khi có lượt thưởng mới; giá trị khác đọc qua moiNhatRef
@@ -245,8 +282,12 @@ function RewardMagicOverlay({
     chay((t, dt, dongCo) => {
       if (pha === "dong") {
         const v = Math.min(1, t / THOI_GIAN.dong);
-        const bienDo = 3 + 15 * v;
-        veLoChay(cacCong, (1 - em.vaoLapPhuong(v)) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo);
+        const bienDo = 3 + 12 * v;
+        // Vòng phép hiện lại, co vào cùng cổng
+        for (const c of cacCong) {
+          dongCo.veVongPhep(c.tam, c.R, t, { sang: Math.sin(v * Math.PI) * 0.9, co: 1.3 - 0.5 * v, tuVung: moiNhatRef.current.tuVung });
+        }
+        veLoChay(cacCong, (1 - em.vaoLapPhuong(v)) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo, -1);
         if (v >= 1) {
           for (const c of cacCong) {
             c.long.style.clipPath = "";
@@ -328,6 +369,11 @@ function RewardMagicOverlay({
           }}
         >
           <div className="reward-magic__hao-quang" />
+          <div className="reward-magic__bui">
+            {Array.from({ length: 8 }, (_, i) => (
+              <span key={i} />
+            ))}
+          </div>
           <div
             className="reward-magic__long"
             ref={(node) => {
@@ -339,7 +385,7 @@ function RewardMagicOverlay({
               {hasError || !videoSrc ? (
                 <div className="reward-magic__fallback" />
               ) : (
-                videoNode ?? <canvas ref={(node) => luuCanvas(viTri, node)} className="reward-magic__canvas" />
+                videoNodes?.[viTri] ?? <div className="reward-magic__fallback" />
               )}
             </div>
           </div>

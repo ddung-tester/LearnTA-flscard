@@ -2,6 +2,9 @@ const pool = require("../config/db");
 const { cleanText, createHttpError, parseBoolean } = require("../utils/http");
 const { currentUserId } = require("./deckController");
 
+// Cài đặt theo tài khoản (giao diện, âm thanh, cài đặt học) — đủ rộng cho mọi chế độ, chặn gửi rác cỡ lớn
+const PREFERENCES_MAX_BYTES = 16 * 1024;
+
 /**
  * GET /api/user/stats
  * Trả về thống kê streak + xp của user đang đăng nhập.
@@ -37,7 +40,7 @@ async function getUserSettings(req, res) {
 
   const [rows] = await pool.query(
     `SELECT default_direction, only_favorite, random_order,
-            reward_enabled, reward_trigger_count, email_reminders
+            reward_enabled, reward_trigger_count, email_reminders, preferences
      FROM user_settings WHERE user_id = ? LIMIT 1`,
     [userId]
   );
@@ -53,6 +56,7 @@ async function getUserSettings(req, res) {
     email_reminders: settings.email_reminders !== undefined
       ? Boolean(settings.email_reminders)
       : true, // default bật
+    preferences: settings.preferences ?? null,
   });
 }
 
@@ -93,19 +97,39 @@ async function updateUserSettings(req, res) {
     updates.reward_trigger_count = triggerCount;
   }
 
-  if (Object.keys(updates).length === 0) {
+  // preferences: chỉ gửi phần đổi, server gộp vào bản đã lưu (khoá gửi null sẽ bị xoá)
+  let preferencesJson = null;
+  if (req.body.preferences !== undefined) {
+    const preferences = req.body.preferences;
+    if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) {
+      throw createHttpError(400, "preferences phai la object");
+    }
+    preferencesJson = JSON.stringify(preferences);
+    if (Buffer.byteLength(preferencesJson) > PREFERENCES_MAX_BYTES) {
+      throw createHttpError(400, "preferences qua lon");
+    }
+  }
+
+  if (Object.keys(updates).length === 0 && preferencesJson === null) {
     return res.status(400).json({ message: "Không có trường nào để cập nhật" });
   }
 
-  const setClauses = Object.keys(updates)
-    .map((key) => `${key} = ?`)
-    .join(", ");
+  const columns = Object.keys(updates);
+  const placeholders = columns.map(() => "?");
+  const setClauses = columns.map((key) => `${key} = ?`);
+  const values = Object.values(updates);
+  if (preferencesJson !== null) {
+    columns.push("preferences");
+    placeholders.push("CAST(? AS JSON)");
+    setClauses.push("preferences = JSON_MERGE_PATCH(COALESCE(preferences, JSON_OBJECT()), CAST(? AS JSON))");
+    values.push(preferencesJson);
+  }
 
   await pool.execute(
-    `INSERT INTO user_settings (user_id, ${Object.keys(updates).join(", ")})
-     VALUES (?, ${Object.keys(updates).map(() => "?").join(", ")})
-     ON DUPLICATE KEY UPDATE ${setClauses}`,
-    [userId, ...Object.values(updates), ...Object.values(updates)]
+    `INSERT INTO user_settings (user_id, ${columns.join(", ")})
+     VALUES (?, ${placeholders.join(", ")})
+     ON DUPLICATE KEY UPDATE ${setClauses.join(", ")}`,
+    [userId, ...values, ...values]
   );
 
   // Trả lại settings mới

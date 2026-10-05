@@ -1,8 +1,10 @@
 /**
  * amThanh — âm thanh phản hồi dùng chung, tạo bằng Web Audio (không cần file, trừ tiếng "đúng"
  * dùng lại /sound/bigo.mp3 cho đồng bộ với Quiz/Nối từ/Tự luận).
- * Bật/tắt lưu ở localStorage; nút loa trên header đổi qua `datAmThanh`.
+ * Bật/tắt lưu ở localStorage (và vào tài khoản khi đã đăng nhập); nút loa trên header đổi qua `datAmThanh`.
  */
+
+import { luuLenTaiKhoan } from "./caiDatTaiKhoan";
 
 const KHO_AM_THANH = "learnta_am_thanh";
 const SU_KIEN_AM_THANH_DOI = "learnta:am-thanh-doi";
@@ -15,13 +17,29 @@ export function amThanhDangBat() {
   }
 }
 
-export function datAmThanh(bat) {
+/** Lựa chọn người dùng đã bấm; null khi chưa từng đổi (mặc định bật) */
+export function layAmThanhDaChon() {
+  try {
+    const daChon = window.localStorage.getItem(KHO_AM_THANH);
+    return daChon === null ? null : daChon !== "0";
+  } catch {
+    return null;
+  }
+}
+
+/** Áp dụng lựa chọn tải từ tài khoản về (không gửi ngược lên) */
+export function apDungAmThanh(bat) {
   try {
     window.localStorage.setItem(KHO_AM_THANH, bat ? "1" : "0");
   } catch {
     // Không lưu được (chế độ riêng tư) — chỉ đổi trong phiên này qua sự kiện
   }
   window.dispatchEvent(new Event(SU_KIEN_AM_THANH_DOI));
+}
+
+export function datAmThanh(bat) {
+  apDungAmThanh(bat);
+  luuLenTaiKhoan({ amThanh: Boolean(bat) });
 }
 
 /** Cho useSyncExternalStore */

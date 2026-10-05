@@ -314,6 +314,8 @@ CREATE TABLE IF NOT EXISTS user_settings (
   reward_trigger_count INT UNSIGNED NOT NULL DEFAULT 10,
   -- Nhắc học qua email (database/add_email_reminders.sql)
   email_reminders BOOLEAN NOT NULL DEFAULT TRUE,
+  -- Cài đặt giao diện + học tập theo tài khoản (migrations/014_add_user_preferences.sql)
+  preferences JSON NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -1,7 +1,74 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { getUserSettings, updateUserSettings } from "../services/userApi";
 import { getUserStats } from "../services/userApi";
 import { useToast } from "../contexts/ToastContext";
+import { datGiaoDien, layGiaoDien, theoDoiGiaoDien } from "../utils/giaoDien";
+import { amThanhDangBat, datAmThanh, theoDoiAmThanh } from "../utils/amThanh";
+
+function CongTac({ bat, disabled = false, onDoi, nhan }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={bat}
+      aria-label={nhan}
+      disabled={disabled}
+      onClick={() => onDoi(!bat)}
+      className={[
+        "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full",
+        "border-2 border-transparent transition-colors duration-200 ease-in-out",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        bat ? "bg-[var(--mau-chinh)]" : "bg-[var(--mau-vien-manh,#d1d5db)]",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "ui-cong-tac-num pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg",
+          "transform transition-transform duration-200 ease-in-out",
+          bat ? "translate-x-5" : "translate-x-0",
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
+// Giao diện và âm thanh lưu trên máy ngay, đồng thời vào tài khoản (utils/caiDatTaiKhoan)
+function GiaoDienVaAmThanh() {
+  const denBan = useSyncExternalStore(theoDoiGiaoDien, layGiaoDien, () => "sang") === "den-ban";
+  const amThanh = useSyncExternalStore(theoDoiAmThanh, amThanhDangBat, () => true);
+
+  return (
+    <section className="rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-5">
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-[var(--mau-chu-phu)]">
+        Giao diện &amp; âm thanh
+      </h3>
+
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-[var(--mau-chu)]">Chế độ tối (đèn bàn)</p>
+            <p className="mt-1 text-sm text-[var(--mau-chu-phu)]">Nền gỗ tối, thẻ học vẫn sáng dưới đèn.</p>
+          </div>
+          <CongTac nhan="Chế độ tối" bat={denBan} onDoi={(bat) => datGiaoDien(bat ? "den-ban" : "sang")} />
+        </div>
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-[var(--mau-chu)]">Âm thanh phản hồi</p>
+            <p className="mt-1 text-sm text-[var(--mau-chu-phu)]">Tiếng đúng, sai, lật thẻ khi học.</p>
+          </div>
+          <CongTac nhan="Âm thanh phản hồi" bat={amThanh} onDoi={datAmThanh} />
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs text-[var(--mau-chu-mo)]">
+        Các cài đặt này cùng cài đặt trong từng phiên học (chiều hỏi, trộn thẻ, phần thưởng, cách xem lý thuyết)
+        được lưu theo tài khoản, đăng nhập máy khác vẫn giữ nguyên.
+      </p>
+    </section>
+  );
+}
 
 function TrangCaiDat() {
   const [settings, setSettings] = useState(null);
@@ -97,6 +164,8 @@ function TrangCaiDat() {
           </section>
         )}
 
+        <GiaoDienVaAmThanh />
+
         {/* Email reminders */}
         <section className="rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-5">
           <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-[var(--mau-chu-phu)]">
@@ -114,31 +183,12 @@ function TrangCaiDat() {
               </p>
             </div>
 
-            {/* Toggle switch */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings?.email_reminders ?? true}
+            <CongTac
+              nhan="Nhắc nhở học tập qua email"
+              bat={settings?.email_reminders ?? true}
               disabled={saving}
-              onClick={() => handleToggle("email_reminders", !(settings?.email_reminders ?? true))}
-              className={[
-                "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full",
-                "border-2 border-transparent transition-colors duration-200 ease-in-out",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                settings?.email_reminders
-                  ? "bg-[var(--mau-chinh)]"
-                  : "bg-[var(--mau-vien-manh,#d1d5db)]",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "ui-cong-tac-num pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg",
-                  "transform transition-transform duration-200 ease-in-out",
-                  settings?.email_reminders ? "translate-x-5" : "translate-x-0",
-                ].join(" ")}
-              />
-            </button>
+              onDoi={(bat) => handleToggle("email_reminders", bat)}
+            />
           </div>
 
           <p className="mt-3 text-xs text-[var(--mau-chu-mo)]">

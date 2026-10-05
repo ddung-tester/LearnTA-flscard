@@ -8,6 +8,7 @@ import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
+import { docCachXemLyThuyet, luuCachXemLyThuyet } from "../utils/caiDatHocTap";
 import "./KhoaHoc.css";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
@@ -178,28 +179,16 @@ function VoCuon({ grammar, notes, onDoc }) {
   );
 }
 
-const KHO_CACH_XEM_LY_THUYET = "learnta_ly_thuyet_cach_xem";
-
 function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
   const { grammar = [], notes = [] } = content || {};
-  const [cachXem, setCachXem] = useState(() => {
-    try {
-      return window.localStorage.getItem(KHO_CACH_XEM_LY_THUYET) === "cuon" ? "cuon" : "so-tay";
-    } catch {
-      return "so-tay";
-    }
-  });
+  const [cachXem, setCachXem] = useState(docCachXemLyThuyet);
   if (grammar.length === 0 && notes.length === 0) {
     return <p className="kh-trong">Buổi này chưa có lý thuyết.</p>;
   }
 
   function doiCachXem(moi) {
     setCachXem(moi);
-    try {
-      window.localStorage.setItem(KHO_CACH_XEM_LY_THUYET, moi);
-    } catch {
-      // Không lưu được thì chỉ đổi trong lần xem này
-    }
+    luuCachXemLyThuyet(moi);
   }
 
   // Sổ tay: mỗi mục ngữ pháp một trang, "Ghi nhớ" là trang cuối

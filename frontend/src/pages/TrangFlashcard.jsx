@@ -775,6 +775,7 @@ function TrangFlashcard() {
         onHideComplete={() => setHienReward(false)}
         combo={diemReward}
         tenseExamples={getTenseExamples(theHienTai)}
+        tuVung={theHienTai?.term_en}
       />
       <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
       {loiLuuKetQua && <p role="alert">Kết quả chưa đồng bộ. {loiLuuKetQua}</p>}

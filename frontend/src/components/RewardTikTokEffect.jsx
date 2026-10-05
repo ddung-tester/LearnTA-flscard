@@ -18,7 +18,9 @@ export const CAU_HINH_REWARD_QUIZ = { // eslint-disable-line react-refresh/only-
 };
 
 const VIDEO_READY_STATE_CAN_DRAW = 2;
-const REWARD_CANVAS_MAX_DPR = 1.25;
+// Video gương (cổng phải, máy tính): lệch ít thì chỉnh tốc độ phát cho đuổi kịp (không khựng), lệch nhiều mới tua
+const DO_LECH_GUONG_TUA = 0.25;
+const DO_LECH_GUONG_CHINH_TOC = 0.04;
 const REWARD_VIDEO_READY_TIMEOUT_MS = 2600;
 
 function RewardTikTokEffect({
@@ -31,8 +33,11 @@ function RewardTikTokEffect({
   onHideComplete,
   combo = 0,
   tenseExamples = null,
+  // Từ vừa làm đúng: viết quanh vòng phép
+  tuVung = "",
 }) {
   const videoRef = useRef(null);
+  const videoGuongRef = useRef(null);
   const canvasRefs = useRef({});
   const lanDaDungVideoRef = useRef(0);
   const videoDaPhatGanNhatRef = useRef("");
@@ -53,6 +58,9 @@ function RewardTikTokEffect({
   const [coTheHienThi, setCoTheHienThi] = useState(false);
   const [giamChuyenDong, setGiamChuyenDong] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
+  // Bản video đã tải trọn vào bộ nhớ: phát từ đây thì không còn chờ mạng giữa chừng (giật trên 4G)
+  const [banTaiSan, setBanTaiSan] = useState({ src: "", url: "" });
+  const dangRenderRewardRef = useRef(false);
   const [videoSanSang, setVideoSanSang] = useState(false);
   const [dangRenderReward, setDangRenderReward] = useState(false);
   const [dangFadeOut, setDangFadeOut] = useState(false);
@@ -124,41 +132,31 @@ function RewardTikTokEffect({
     return video;
   }
 
-  function veVideoLenCanvas(video, canvas) {
-    if (!canvas || !video.videoWidth || !video.videoHeight) return;
-
-    const tiLeManHinh = Math.min(
-      window.devicePixelRatio || 1,
-      REWARD_CANVAS_MAX_DPR
-    );
-    const rong = canvas.clientWidth * tiLeManHinh;
-    const cao = canvas.clientHeight * tiLeManHinh;
-
-    if (canvas.width !== rong || canvas.height !== cao) {
-      canvas.width = rong;
-      canvas.height = cao;
-    }
-
-    const context = canvas.getContext("2d");
-    const tiLe = Math.max(rong / video.videoWidth, cao / video.videoHeight);
-    const rongVe = video.videoWidth * tiLe;
-    const caoVe = video.videoHeight * tiLe;
-    const x = (rong - rongVe) / 2;
-    const y = (cao - caoVe) / 2;
-
-    context.drawImage(video, x, y, rongVe, caoVe);
-  }
-
   // Ánh video hắt ra giữa (máy tính): vẽ cả khung vào canvas rất nhỏ, CSS phóng to + làm mờ
   function veAnhHat(video, canvas) {
     if (!canvas || !video.videoWidth) return;
     canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
   }
 
+  const demKhungAnhHatRef = useRef(0);
+  // Hai cổng là thẻ <video> gốc (không chép khung bằng JS); chỉ còn ánh hắt 16×9 lấy màu từ video.
+  // Ánh hắt bị CSS làm mờ 42px: mỗi lần đổi là làm mờ lại cả lớp lớn → chỉ cập nhật 1/4 số khung (vẫn đổi màu mượt)
   function veTatCaCanvas(video) {
-    veVideoLenCanvas(video, canvasRefs.current.left);
-    veVideoLenCanvas(video, canvasRefs.current.right);
-    veAnhHat(video, canvasRefs.current.anhHat);
+    if (demKhungAnhHatRef.current++ % 4 === 0) veAnhHat(video, canvasRefs.current.anhHat);
+  }
+
+  // Máy tính: video gương chạy theo video chính (cùng blob, tắt tiếng)
+  function dongBoVideoGuong(video) {
+    const guong = videoGuongRef.current;
+    if (!guong) return;
+    const lech = video.currentTime - guong.currentTime;
+    if (Math.abs(lech) > DO_LECH_GUONG_TUA) {
+      guong.currentTime = video.currentTime;
+      guong.playbackRate = 1;
+    } else {
+      guong.playbackRate = Math.abs(lech) > DO_LECH_GUONG_CHINH_TOC ? 1 + Math.max(-0.1, Math.min(0.1, lech)) : 1;
+    }
+    if (guong.paused) guong.play().catch(() => {});
   }
 
   const hoanTatDongReward = useCallback(() => {
@@ -245,16 +243,40 @@ function RewardTikTokEffect({
     };
   }, [daDoViewport, config.manifestSrc]);
 
-  // Tải sẵn đúng một video sắp phát vào cache HTTP khi chưa tới mốc thưởng
-  // (thẻ <video> chỉ được gắn lúc thưởng bắt đầu; không tải sẵn thì vừa tải vừa phát, giật trên 4G)
   useEffect(() => {
-    if (!videoSrc || dangRenderReward) return undefined;
+    dangRenderRewardRef.current = dangRenderReward;
+    if (!dangRenderReward) return undefined;
+    // Trang học phía sau bị lớp phủ che gần hết: tạm dừng mọi animation của nó để luồng chính rảnh cho hiệu ứng + video
+    document.documentElement.classList.add("reward-dang-phat");
+    return () => document.documentElement.classList.remove("reward-dang-phat");
+  }, [dangRenderReward]);
+
+  // Tải trọn đúng một video sắp phát vào bộ nhớ khi chưa tới mốc thưởng rồi phát bằng blob URL.
+  // Không dựa vào cache HTTP: Vercel mặc định must-revalidate, mỗi đoạn video lại hỏi server → khựng trên 4G.
+  useEffect(() => {
+    if (!videoSrc || dangRenderReward || banTaiSan.src === videoSrc) return undefined;
     const huy = new AbortController();
     fetch(videoSrc, { signal: huy.signal, priority: "low" })
-      .then((res) => res.blob())
+      .then((res) => {
+        if (!res.ok) throw new Error("Khong tai duoc video");
+        return res.blob();
+      })
+      .then((blob) => {
+        // Xong giữa lúc đang thưởng: không đổi src của video đang phát
+        if (huy.signal.aborted || dangRenderRewardRef.current) return;
+        setBanTaiSan({ src: videoSrc, url: URL.createObjectURL(blob) });
+      })
       .catch(() => {});
     return () => huy.abort();
-  }, [videoSrc, dangRenderReward]);
+  }, [videoSrc, dangRenderReward, banTaiSan.src]);
+
+  // Chỉ giữ một bản trong bộ nhớ: thả bản cũ khi đã có bản mới hoặc khi rời trang
+  useEffect(() => {
+    const url = banTaiSan.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [banTaiSan.url]);
 
   // Reset hàng đợi mỗi khi danh sách video thay đổi (manifest mới)
   useEffect(() => {
@@ -480,12 +502,24 @@ function RewardTikTokEffect({
     const coKhungVideo = typeof video.requestVideoFrameCallback === "function";
     function veKhungHinh() {
       veTatCaCanvas(video);
+      if (demKhungAnhHatRef.current % 30 === 0) dongBoVideoGuong(video);
       if (coKhungVideo) khungVideoId = video.requestVideoFrameCallback(veKhungHinh);
       else animationId = window.requestAnimationFrame(veKhungHinh);
     }
 
     video.volume = volume;
     video.muted = false;
+
+    // Video gương bắt đầu cùng nhịp với video chính, sau đó chỉ cần chỉnh nhẹ
+    const guong = videoGuongRef.current;
+    if (guong) {
+      try {
+        guong.currentTime = video.currentTime;
+      } catch {
+        // Chưa có metadata: lần đồng bộ sau sẽ kéo về
+      }
+      guong.play().catch(() => {});
+    }
 
     video
       .play()
@@ -498,6 +532,7 @@ function RewardTikTokEffect({
         setDaTatTieng(true);
         return video.play();
       })
+      .then(() => dongBoVideoGuong(video))
       .catch(() => {
         // Chặn hoàn toàn video (tiết kiệm pin hoặc block triệt để) -> Kích hoạt fallback đồ họa
         setLoiVideo(true);
@@ -510,6 +545,7 @@ function RewardTikTokEffect({
       window.cancelAnimationFrame(animationId);
       if (khungVideoId !== undefined) video.cancelVideoFrameCallback?.(khungVideoId);
       video.pause();
+      videoGuongRef.current?.pause();
       video.volume = volume;
     };
   }, [
@@ -607,9 +643,10 @@ function RewardTikTokEffect({
 
   if (typeof document === "undefined") return null;
 
-  // Điện thoại (compact): thẻ <video> hiện thẳng trong cổng — trình duyệt giải mã và vẽ bằng phần cứng,
-  // không chép từng khung sang canvas. Máy tính: <video> ẩn làm nguồn cho 2 canvas trái/phải.
+  // Thẻ <video> hiện thẳng trong cổng — trình duyệt giải mã và vẽ bằng phần cứng, không chép khung bằng JS.
+  // Máy tính: cổng trái là video chính (có tiếng), cổng phải là video gương cùng nguồn, tắt tiếng, lật ngang.
   const compact = !coTheHienThi;
+  const srcPhat = banTaiSan.src === videoSrc ? banTaiSan.url : videoSrc;
   const theVideo = !loiVideo && videoSrc && (
     <video
       key={videoSrc}
@@ -625,8 +662,8 @@ function RewardTikTokEffect({
           if (el.readyState >= VIDEO_READY_STATE_CAN_DRAW) setVideoSanSang(true);
         }
       }}
-      className={compact ? "reward-magic__video" : "streak-celebration-effect__source-video"}
-      src={videoSrc}
+      className="reward-magic__video"
+      src={srcPhat}
       preload="auto"
       muted
       playsInline
@@ -652,6 +689,22 @@ function RewardTikTokEffect({
     />
   );
 
+  const theVideoGuong = !compact && !loiVideo && videoSrc && (
+    <video
+      key={`${videoSrc}-guong`}
+      ref={(el) => {
+        videoGuongRef.current = el;
+        if (el) el.defaultMuted = true;
+      }}
+      className="reward-magic__video"
+      src={srcPhat}
+      preload="auto"
+      muted
+      playsInline
+      disablePictureInPicture
+    />
+  );
+
   const rewardLayer = (
     <div
       className={`streak-celebration-effect ${loiVideo ? "streak-celebration-effect--fallback" : ""} ${
@@ -660,7 +713,6 @@ function RewardTikTokEffect({
       aria-hidden="true"
       style={style}
     >
-      {!compact && theVideo}
       {dangRenderReward && (
         <Suspense fallback={null}>
           <RewardMagicOverlay
@@ -672,11 +724,12 @@ function RewardTikTokEffect({
             videoReady={giamChuyenDong || videoSanSang || loiVideo || !videoSrc}
             originRect={originRect}
             canvasRefs={canvasRefs}
-            videoNode={compact ? theVideo : null}
+            videoNodes={compact ? { center: theVideo } : { left: theVideo, right: theVideoGuong }}
             onPortalOpen={giamChuyenDong ? undefined : batDauPhatVideo}
             compact={compact}
             combo={combo}
             tenseExamples={tenseExamples}
+            tuVung={tuVung}
           />
         </Suspense>
       )}
