@@ -98,7 +98,7 @@ export default function TenseExamplesCard({
   const effectiveTermEn = termEn || card?.term_en || "";
   const effectiveMeaningVi = meaningVi || card?.meaning_vi || "";
   const examples = getTenseExamples(card || effectiveTermEn);
-  const wordType = getWordType(effectiveTermEn);
+  const wordType = getWordType(effectiveTermEn, card?.part_of_speech);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1100px)");

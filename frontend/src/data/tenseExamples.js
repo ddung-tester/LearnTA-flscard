@@ -266,26 +266,32 @@ export const POS_META = {
   noun:      { nameVi: "Danh từ", nameEn: "noun",      abbr: "n.",   color: "#b45309" },
 };
 
-/** API public: nhận diện loại từ cho một từ tiếng Anh */
-export function getWordType(termEn) {
+/** Loại từ đã lưu trong thẻ (part_of_speech) nếu khuôn câu dự phòng có hỗ trợ, không thì đoán theo chữ */
+function chonPOS(lower, partOfSpeech) {
+  const daLuu = String(partOfSpeech || "").trim().toLowerCase();
+  return POS_META[daLuu] ? daLuu : detectPOS(lower);
+}
+
+/** API public: nhận diện loại từ cho một từ tiếng Anh (ưu tiên part_of_speech của thẻ) */
+export function getWordType(termEn, partOfSpeech) {
   if (!termEn) return null;
   const lower = String(termEn).trim().toLowerCase();
   // Trường hợp "to + verb"
   const base = lower.startsWith("to ") ? lower.slice(3) : lower;
-  const pos = detectPOS(base);
+  const pos = chonPOS(base, partOfSpeech);
   return { pos, ...POS_META[pos] };
 }
 
 // ---------------------------------------------------------------------------
 // Sinh câu mẫu dự phòng — đơn giản, luôn chứa từ đang học
 // ---------------------------------------------------------------------------
-function generateFallbackExamples(termEn, meaningVi) {
+function generateFallbackExamples(termEn, meaningVi, partOfSpeech) {
   const term = String(termEn || "").trim();
   if (!term) return [];
 
   const lower = term.toLowerCase();
   const meaning = String(meaningVi || "").trim();
-  const pos = detectPOS(lower);
+  const pos = chonPOS(lower, partOfSpeech);
 
   // --- ĐỘNG TỪ ---
   if (pos === "verb") {
@@ -588,6 +594,7 @@ export function getTenseExamples(cardOrTerm) {
 
   const termEn = typeof cardOrTerm === "string" ? cardOrTerm : cardOrTerm.term_en || "";
   const meaningVi = typeof cardOrTerm === "object" ? cardOrTerm.meaning_vi : "";
+  const partOfSpeech = typeof cardOrTerm === "object" ? cardOrTerm.part_of_speech : "";
   const cleanKey = termEn.trim().toLowerCase();
 
   // 1. Ưu tiên cao nhất: dùng câu mẫu AI/chuẩn đã lưu trong DB
@@ -612,7 +619,7 @@ export function getTenseExamples(cardOrTerm) {
   }
 
   // 3. Sinh fallback (luôn trả về 6)
-  const generated = generateFallbackExamples(termEn, meaningVi);
+  const generated = generateFallbackExamples(termEn, meaningVi, partOfSpeech);
 
   if (!base) return generated;
 

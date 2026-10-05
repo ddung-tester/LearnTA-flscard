@@ -77,6 +77,7 @@ function TheMau({
   giam,
   daChiaXong,
   onChiaXong,
+  onKeo,
 }) {
   const x = useMotionValue(0);
   const nghieng = useTransform(x, [-300, 0, 300], [-16, 0, 16]);
@@ -94,6 +95,7 @@ function TheMau({
   }, [laTrenCung, giam, x]);
 
   function xuLyThaTay(_, info) {
+    onKeo(false);
     const doDoi = info.offset.x;
     const vanToc = info.velocity.x;
     const huong = doDoi < 0 ? -1 : 1;
@@ -140,6 +142,7 @@ function TheMau({
         }}
         onDragStart={() => {
           daKeoRef.current = true;
+          onKeo(true);
         }}
         onDragEnd={xuLyThaTay}
         onClickCapture={(event) => {
@@ -183,7 +186,12 @@ function TheMau({
 function TrangChu() {
   const { isAuthenticated } = useAuth();
   const giam = useReducedMotion();
-  const { nghiengRef: xapRef, onPointerMove: nghiengXap, onPointerLeave: thoiNghiengXap } = useNghieng3D({ doNghieng: 9 });
+  // Đang kéo thẻ: tắt nghiêng xấp + dừng bồng bềnh, để thẻ bám đúng ngón tay/con trỏ
+  const [dangKeo, setDangKeo] = useState(false);
+  const { nghiengRef: xapRef, onPointerMove: nghiengXap, onPointerLeave: thoiNghiengXap } = useNghieng3D({
+    doNghieng: 9,
+    tat: dangKeo,
+  });
   const [thuTu, setThuTu] = useState(() => THE_MAU.map((_, i) => i));
   const [daLat, setDaLat] = useState(false);
   const [daChiaXong, setDaChiaXong] = useState(false);
@@ -255,7 +263,7 @@ function TrangChu() {
             </div>
           </div>
 
-          <div className="home-xap">
+          <div className="home-xap" data-dang-keo={dangKeo ? "" : undefined}>
             <div
               ref={xapRef}
               onPointerMove={nghiengXap}
@@ -280,6 +288,7 @@ function TrangChu() {
                   giam={giam}
                   daChiaXong={daChiaXong}
                   onChiaXong={() => setDaChiaXong(true)}
+                  onKeo={setDangKeo}
                 />
               ))}
             </div>

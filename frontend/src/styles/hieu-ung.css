@@ -271,6 +271,17 @@
   display: none;
 }
 
+/* Xấp thẻ trang chủ: nghiêng phẳng (flat). Với preserve-3d, khi xấp đang nghiêng thì điểm chạm rơi vào khung
+   thay vì thẻ (kéo không ăn) và Safari bỏ qua z-index của các thẻ chồng nhau */
+.home-xap__khung.ui-nghieng-3d {
+  transform-style: flat;
+}
+
+/* Đang kéo thẻ: dừng bồng bềnh để thẻ không trôi lên xuống dưới ngón tay */
+.home-xap[data-dang-keo] {
+  animation-play-state: paused;
+}
+
 .home-xap {
   animation: hu-bong-benh 6.5s ease-in-out infinite;
 }
