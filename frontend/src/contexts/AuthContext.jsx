@@ -44,6 +44,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     setIsAuthReady(true);
+    setAuthError("");
   }, []);
 
   useEffect(() => {
@@ -57,22 +58,25 @@ export function AuthProvider({ children }) {
       }
 
       setIsAuthReady(false);
+      setAuthError("");
 
       try {
         const currentUser = await layNguoiDungHienTai();
-        if (isMounted) {
+        if (isMounted && token === getStoredAuthToken()) {
+          chonKhoHocTap(currentUser.id);
           setUser(currentUser);
           dongBoCaiDatTuDatabase();
           dongBoDuLieuHocTapLenBackend();
         }
-      } catch {
-        clearStoredAuthToken();
-        if (isMounted) {
-          setToken(null);
+      } catch (error) {
+        if (isMounted && token === getStoredAuthToken()) {
+          if (error.status === 401) clearStoredAuthToken();
+          else setAuthError(error.message);
+          setToken(getStoredAuthToken());
           setUser(null);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && token === getStoredAuthToken()) {
           setIsAuthReady(true);
         }
       }
@@ -83,7 +87,7 @@ export function AuthProvider({ children }) {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, authRetry]);
 
   useEffect(() => {
     function handleUnauthorized() {
@@ -135,16 +139,18 @@ export function AuthProvider({ children }) {
       user,
       token,
       isAuthReady,
+      authError,
+      retryAuth: () => setAuthRetry((lan) => lan + 1),
       isAuthenticated: Boolean(token && user),
       dangNhap,
       dangNhapViaGoogle,
       dangKy,
       dangXuat: clearAuth,
     }),
-    [clearAuth, dangKy, dangNhap, dangNhapViaGoogle, isAuthReady, token, user]
+    [clearAuth, dangKy, dangNhap, dangNhapViaGoogle, isAuthReady, token, user, authError]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider key={token || "guest"} value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() { // eslint-disable-line react-refresh/only-export-components

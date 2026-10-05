@@ -35,7 +35,7 @@ const TrangBaiHoc = lazy(() => import("./pages/TrangBaiHoc"));
 const TrangOnCauHoi = lazy(() => import("./pages/TrangOnCauHoi"));
 
 function AuthReadyGate({ children }) {
-  const { isAuthReady } = useAuth();
+  const { isAuthReady, authError, retryAuth } = useAuth();
   const { setPageDataLoading } = usePageTransition();
 
   useLayoutEffect(() => {
@@ -50,6 +50,12 @@ function AuthReadyGate({ children }) {
     return null;
   }
 
+  if (authError) {
+    return <section className="ui-form-panel" role="alert">
+      <p>Chưa thể xác minh phiên đăng nhập. {authError}</p>
+      <button type="button" className="ui-button ui-button--primary rounded-xl px-5 py-2.5 font-semibold" onClick={retryAuth}>Thử lại</button>
+    </section>;
+  }
   return children;
 }
 
