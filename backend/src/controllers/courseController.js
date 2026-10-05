@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const aiService = require("../services/aiService");
 const audioStorage = require("../services/audioStorage");
+const { pipeline } = require("node:stream/promises");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
 const {
   cacTraLoiCanGiaiThich,
@@ -305,7 +306,7 @@ async function getQuestionAudio(req, res) {
     "Cache-Control": "private, max-age=86400",
     ...(audio.size ? { "Content-Length": String(audio.size) } : {}),
   });
-  audio.stream.pipe(res);
+  await pipeline(audio.stream, res);
 }
 
 // ---- Soạn trước lời giải thích (câu hỏi vừa hiện, người học còn đang đọc đề) ----

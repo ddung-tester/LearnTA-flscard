@@ -434,7 +434,7 @@ test("getQuestionAudio streams the owner's private audio and hides it from every
       res.headers = headers;
     };
     await getQuestionAudio({ user: { id: 7 }, params: { questionId: "9" } }, res);
-    await new Promise((resolve) => res.on("finish", resolve));
+
 
     assert.deepEqual(calls[0].params, [9, 7]);
     assert.match(calls[0].sql, /c.user_id = ?/);
@@ -452,5 +452,30 @@ test("getQuestionAudio streams the owner's private audio and hides it from every
     assert.equal(daMo.length, 1);
   } finally {
     audioStorage.moAudio = moAudioGoc;
+  }
+});
+
+test("getQuestionAudio handles source errors and client disconnects without unhandled stream errors", async () => {
+  const { Readable, Writable } = require("node:stream");
+  const original = audioStorage.moAudio;
+  try {
+    for (const disconnect of [false, true]) {
+      fakePool([[{ audio_path: "audio.mp3", slug: "test" }]]);
+      const source = new Readable({ read() {
+        if (disconnect) this.push(Buffer.from("mp3"));
+        else this.destroy(new Error("upstream failed"));
+      } });
+      const res = new Writable({ write(_chunk, _encoding, done) {
+        this.destroy();
+        done();
+      } });
+      res.set = () => {};
+      audioStorage.moAudio = async () => ({ stream: source, contentType: "audio/mpeg" });
+      await assert.rejects(getQuestionAudio({ user: { id: 7 }, params: { questionId: "9" } }, res));
+      assert.equal(source.destroyed, true);
+      assert.equal(res.destroyed, true);
+    }
+  } finally {
+    audioStorage.moAudio = original;
   }
 });

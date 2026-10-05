@@ -92,6 +92,7 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
+  if (res.headersSent || res.destroyed) return next(err);
 
   let statusCode = err.statusCode || err.status || 500;
   if (err.code === "ER_DUP_ENTRY") statusCode = 409;
