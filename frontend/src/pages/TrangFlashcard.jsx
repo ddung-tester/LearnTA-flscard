@@ -571,6 +571,10 @@ function TrangFlashcard() {
         diChuyen(1);
       } else if (e.key === "ArrowLeft") {
         diChuyen(-1);
+      } else if (daLat && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Đã lật: 1 = Chưa nhớ, 2 = Đã nhớ
+        if (e.key === "1") danhGiaChuaNho();
+        else if (e.key === "2") danhGiaDaNho();
       }
     }
 
@@ -956,7 +960,7 @@ function TrangFlashcard() {
                   )}
                   <span className="fc-mat__goi-y">
                     Nhấn để lật thẻ<span className="fc-mat__phim"> (phím Space)</span>.
-                    Kéo sang trái để qua thẻ sau.
+                    Kéo sang trái<span className="fc-mat__phim"> (phím →)</span> để qua thẻ sau.
                   </span>
                 </div>
 
@@ -1021,30 +1025,23 @@ function TrangFlashcard() {
         <div className="fc-rate-row ui-content-enter">
           <button
             type="button"
-            onClick={() => {
-              rungMay("sai");
-              phatAm("sai");
-              xuLyChuaNho();
-            }}
+            onClick={danhGiaChuaNho}
+            aria-keyshortcuts="1"
             className="fc-rate-btn fc-rate-btn--fail"
             id="btn-flashcard-chua-nho"
           >
             <span className="fc-rate-btn__icon">✕</span>
-            <span>Chưa nhớ</span>
+            <span>Chưa nhớ<span className="fc-mat__phim"> (1)</span></span>
           </button>
           <button
             type="button"
-            onClick={(e) => {
-              banPhaoGiay(e.currentTarget);
-              rungMay("dung");
-              phatAm("dung");
-              xuLyDaNho();
-            }}
+            onClick={(e) => danhGiaDaNho(e.currentTarget)}
+            aria-keyshortcuts="2"
             className="fc-rate-btn fc-rate-btn--pass"
             id="btn-flashcard-da-nho"
           >
             <span className="fc-rate-btn__icon">✓</span>
-            <span>Đã nhớ</span>
+            <span>Đã nhớ<span className="fc-mat__phim"> (2)</span></span>
           </button>
         </div>
       )}

@@ -45,6 +45,7 @@ import {
 import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
 import { chuanHoaDapAn, taoGoiY } from "../utils/phienHoc";
 import GachVeTay from "../components/common/GachVeTay";
+import { laDangGoChu } from "../utils/phimTat";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -271,7 +272,7 @@ function useEnterDeTiepTuc(daTraLoi, onTiepTuc) {
     if (!daTraLoi) return undefined;
 
     function xuLy(event) {
-      if (event.key === "Enter" && !event.repeat) {
+      if (event.key === "Enter" && !event.repeat && !laDangGoChu(event.target)) {
         event.preventDefault();
         onTiepTuc();
       }
@@ -442,6 +443,40 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
     setRevealed(false); // reset for next card (same component reused)
   }
 
+  function danhGiaQuen() {
+    rungMay("sai");
+    phatAm("sai");
+    handleRate("wrong");
+  }
+
+  function danhGiaThuoc(nut) {
+    banPhaoGiay(nut ?? document.getElementById("btn-rate-correct"));
+    rungMay("dung");
+    phatAm("dung");
+    handleRate("correct");
+  }
+
+  // Bàn phím: Space/Enter xem nghĩa, rồi 1 = Quên, 2 = Thuộc
+  useEffect(() => {
+    function xuLyPhim(event) {
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || laDangGoChu(event.target)) return;
+      if (!revealed) {
+        // Space/Enter trên nút khác (xoá, bộ lọc) là bấm nút đó, không phải xem nghĩa
+        if (event.target.closest?.("button, a")) return;
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          setRevealed(true);
+        }
+        return;
+      }
+      if (event.key === "1") danhGiaQuen();
+      else if (event.key === "2") danhGiaThuoc();
+    }
+
+    window.addEventListener("keydown", xuLyPhim);
+    return () => window.removeEventListener("keydown", xuLyPhim);
+  });
+
   const level = entry.level ?? 0;
   const levelKhiThuoc = Math.min(5, level + 1);
 
@@ -460,7 +495,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             className="review-card__reveal-btn"
             id="btn-reveal-answer"
           >
-            Xem nghĩa →
+            Xem nghĩa<span className="fc-mat__phim"> (Space)</span> →
           </button>
         ) : (
           <div className="review-card__reveal ui-content-enter">
@@ -480,31 +515,24 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
           <div className="review-card__rating-row">
             <button
               type="button"
-              onClick={() => {
-                rungMay("sai");
-                phatAm("sai");
-                handleRate("wrong");
-              }}
+              onClick={danhGiaQuen}
               disabled={isLoading}
+              aria-keyshortcuts="1"
               className="review-btn review-btn--again"
               id="btn-rate-wrong"
             >
-              <span className="review-btn__label">Quên</span>
+              <span className="review-btn__label">Quên<span className="fc-mat__phim"> (1)</span></span>
               <span className="review-btn__sub">Lv{Math.max(0, level - 1)} · Ôn ngay</span>
             </button>
             <button
               type="button"
-              onClick={(e) => {
-                banPhaoGiay(e.currentTarget);
-                rungMay("dung");
-                phatAm("dung");
-                handleRate("correct");
-              }}
+              onClick={(e) => danhGiaThuoc(e.currentTarget)}
               disabled={isLoading}
+              aria-keyshortcuts="2"
               className="review-btn review-btn--easy"
               id="btn-rate-correct"
             >
-              <span className="review-btn__label">Thuộc</span>
+              <span className="review-btn__label">Thuộc<span className="fc-mat__phim"> (2)</span></span>
               <span className="review-btn__sub">
                 Lv{levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
               </span>

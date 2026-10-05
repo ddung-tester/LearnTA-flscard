@@ -8167,8 +8167,39 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
   cursor: pointer;
 }
 
+/* Gợi ý phím tắt trong trang học: chỉ hiện khi có bàn phím vật lý */
+.ui-phim-tat {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--mau-chu-phu);
+}
+
+.ui-phim-tat kbd {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.3rem;
+  background: var(--mau-mat);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Nhãn phím nằm góc phải trong ô (Nối từ) */
+.ui-phim-tat--o {
+  float: right;
+  margin-left: 0.5rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.3rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 @media (hover: none) {
-  .fc-mat__phim {
+  .fc-mat__phim,
+  .ui-phim-tat {
     display: none;
   }
 }

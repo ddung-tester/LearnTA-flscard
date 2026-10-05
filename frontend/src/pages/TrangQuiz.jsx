@@ -22,6 +22,7 @@ import useSoundEffect from "../hooks/useSoundEffect";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { luuTienDoQuiz } from "../utils/tienDoHocTap";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import { laDangGoChu } from "../utils/phimTat";
 import {
   CHE_DO_MAC_DINH_QUIZ,
   taoDanhSachCauHoi,
@@ -418,7 +419,7 @@ function TrangQuiz({ loai }) {
     }
 
     function handleKeyDown(e) {
-      if (e.key === "Enter" && !e.repeat) {
+      if (e.key === "Enter" && !e.repeat && !laDangGoChu(e.target)) {
         e.preventDefault();
         chuyenCauMem();
       }

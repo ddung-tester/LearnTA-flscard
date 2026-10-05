@@ -23,6 +23,7 @@ import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
 import { ganLoaiCauHonHop } from "../utils/cauHoiTracNghiem";
+import { laDangGoChu } from "../utils/phimTat";
 import {
   chonTheChoPhien,
   ganTienTrinh,
@@ -366,6 +367,70 @@ function TrangTuLuan({ loai }) {
     }
   }, [chiSo, daHoanThanh, daKiemTra, ketQuaDung]);
 
+  // Điện thoại: bàn phím mở thì đưa ô nhập lên giữa vùng nhìn thấy, không để bàn phím che chữ đang gõ
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    let khung = 0;
+    const duaONhapVaoTam = () => {
+      const oNhap = inputRef.current;
+      if (!oNhap || document.activeElement !== oNhap) return;
+      cancelAnimationFrame(khung);
+      khung = requestAnimationFrame(() => {
+        const r = oNhap.getBoundingClientRect();
+        // Còn nằm gọn trong vùng nhìn thấy thì thôi, tránh giật trang khi đang gõ
+        if (r.top >= vv.offsetTop && r.bottom <= vv.offsetTop + vv.height - 8) return;
+        oNhap.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+    };
+    vv.addEventListener("resize", duaONhapVaoTam);
+    document.addEventListener("focusin", duaONhapVaoTam);
+    return () => {
+      cancelAnimationFrame(khung);
+      vv.removeEventListener("resize", duaONhapVaoTam);
+      document.removeEventListener("focusin", duaONhapVaoTam);
+    };
+  }, []);
+
+  // Rung lại ô nhập mỗi lần sai / cảnh báo mà không gắn lại ô (gắn lại làm mất focus, bàn phím điện thoại sập)
+  useEffect(() => {
+    if (!shakeKey && !lanCanhBaoNhap) return;
+    inputRef.current?.getAnimations?.().forEach((hieuUng) => {
+      if (!hieuUng.animationName) return;
+      hieuUng.cancel();
+      hieuUng.play();
+    });
+  }, [shakeKey, lanCanhBaoNhap]);
+
+  // Học hoàn toàn bằng bàn phím: gõ ở đâu cũng vào ô đáp án; Alt+G gợi ý, Alt+D xem đáp án, Alt+N nghe lại
+  useEffect(() => {
+    function xuLyPhim(e) {
+      const oNhap = inputRef.current;
+      if (!oNhap || daHoanThanh || e.isComposing) return;
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const dangHoiCau = !daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active;
+        const lenh = {
+          KeyG: dangHoiCau && !hienGoiY ? hienThiGoiY : null,
+          KeyD: dangHoiCau ? xemDapAn : null,
+          KeyN: docCauHoiHienTai,
+        }[e.code];
+        if (lenh) {
+          e.preventDefault();
+          lenh();
+        }
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || laDangGoChu(e.target)) return;
+      // Chuyển focus trước khi trình duyệt chèn ký tự: chữ vừa gõ rơi thẳng vào ô đáp án
+      if ((e.key.length === 1 && e.key !== " ") || e.key === "Backspace") oNhap.focus();
+    }
+
+    window.addEventListener("keydown", xuLyPhim);
+    return () => window.removeEventListener("keydown", xuLyPhim);
+  });
+
   useEffect(() => {
     // Khi trả lời đúng: hiển thị câu mẫu 3 thì kèm cấu trúc ngữ pháp để người học đọc kỹ.
     // Người học nhấn "Tiếp tục" hoặc bấm Enter để chuyển câu.
@@ -386,7 +451,7 @@ function TrangTuLuan({ loai }) {
     }
 
     function handleKeyDown(e) {
-      if (e.key === "Enter" && !e.repeat) {
+      if (e.key === "Enter" && !e.repeat && !laDangGoChu(e.target)) {
         e.preventDefault();
         chuyenCauMem();
       }
@@ -1438,6 +1503,10 @@ function TrangTuLuan({ loai }) {
           )}
 
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}
+
+          <p className="ui-phim-tat">
+            <kbd>Enter</kbd> kiểm tra / tiếp tục · <kbd>Alt</kbd>+<kbd>G</kbd> gợi ý · <kbd>Alt</kbd>+<kbd>D</kbd> xem đáp án · <kbd>Alt</kbd>+<kbd>N</kbd> nghe lại
+          </p>
         </form>
         )}
 

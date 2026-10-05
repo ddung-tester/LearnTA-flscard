@@ -16,6 +16,7 @@ import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
+import { laDangGoChu } from "../utils/phimTat";
 import {
   chiaVong,
   chonTheChoPhien,
@@ -31,8 +32,11 @@ import {
 const KHOA_CAI_DAT = "noiTu";
 const SO_CAP_MOI_VONG = 5;
 const THOI_GIAN_NHAY_SAI = 500;
+// Phím chọn ô: cột tiếng Anh 1–5, cột tiếng Việt A–E
+const PHIM_COT_TRAI = ["1", "2", "3", "4", "5"];
+const PHIM_COT_PHAI = ["A", "B", "C", "D", "E"];
 
-function NutGhep({ noiDung, lang, thuTu, daGhep, dangChon, dangSai, onChon }) {
+function NutGhep({ noiDung, lang, thuTu, phim, daGhep, dangChon, dangSai, onChon }) {
   let lopTrangThai =
     "border-[var(--mau-vien)] bg-[var(--mau-mat)] text-[var(--mau-chu)] hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-hover)]";
   if (daGhep) lopTrangThai = "ui-answer-correct text-[var(--mau-chu)] opacity-60";
@@ -46,9 +50,12 @@ function NutGhep({ noiDung, lang, thuTu, daGhep, dangChon, dangSai, onChon }) {
       onClick={onChon}
       disabled={daGhep}
       aria-pressed={dangChon}
+      aria-keyshortcuts={phim}
+      data-phim-noi-tu={phim}
       style={{ "--thu-tu": thuTu }}
       className={`ui-reading-card ui-dap-an-3d min-h-12 w-full rounded-lg border px-3 py-3 text-left break-words transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] ${lopTrangThai}`}
     >
+      {phim && <kbd className="ui-phim-tat ui-phim-tat--o">{phim}</kbd>}
       {noiDung}
     </button>
   );
@@ -255,12 +262,32 @@ function TrangNoiTu() {
     setDangChon(null);
   }
 
+  // Chọn ô bằng bàn phím trong lúc đang ghép
+  useEffect(() => {
+    if (xongVong || daHoanThanh) return undefined;
+
+    function xuLyPhim(event) {
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || laDangGoChu(event.target)) return;
+      const phim = event.key.toUpperCase();
+      const iTrai = PHIM_COT_TRAI.indexOf(phim);
+      const iPhai = PHIM_COT_PHAI.indexOf(phim);
+      const ben = iTrai >= 0 ? "trai" : iPhai >= 0 ? "phai" : null;
+      const the = ben === "trai" ? cotTrai[iTrai] : ben === "phai" ? cotPhai[iPhai] : null;
+      if (!the) return;
+      event.preventDefault();
+      chon(ben, the, document.querySelector(`[data-phim-noi-tu="${phim}"]`));
+    }
+
+    window.addEventListener("keydown", xuLyPhim);
+    return () => window.removeEventListener("keydown", xuLyPhim);
+  });
+
   // Enter để sang vòng tiếp theo
   useEffect(() => {
     if (!xongVong || daHoanThanh || phanThuong.dangBan) return undefined;
 
     function handleKeyDown(event) {
-      if (event.key === "Enter" && !event.repeat) {
+      if (event.key === "Enter" && !event.repeat && !laDangGoChu(event.target)) {
         event.preventDefault();
         tiepTucVong();
       }
@@ -490,8 +517,11 @@ function TrangNoiTu() {
           </section>
         ) : (
           <section key={`vong-${vong}`} className="ui-question-flow">
-            <p className="mb-3 text-center text-sm text-[var(--mau-chu-phu)]">
+            <p className="mb-1 text-center text-sm text-[var(--mau-chu-phu)]">
               Chọn một từ rồi chọn nghĩa tương ứng
+            </p>
+            <p className="ui-phim-tat mb-3">
+              Bàn phím: <kbd>1</kbd>–<kbd>5</kbd> chọn từ, <kbd>A</kbd>–<kbd>E</kbd> chọn nghĩa
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2.5">
@@ -503,6 +533,7 @@ function TrangNoiTu() {
                     key={the.id}
                     lang="en"
                     thuTu={i}
+                    phim={PHIM_COT_TRAI[i]}
                     noiDung={the.term_en}
                     daGhep={daGhepTrai.has(the.id)}
                     dangChon={dangChon?.ben === "trai" && dangChon.the.id === the.id}
@@ -520,6 +551,7 @@ function TrangNoiTu() {
                     key={the.id}
                     lang="vi"
                     thuTu={i + 1}
+                    phim={PHIM_COT_PHAI[i]}
                     noiDung={the.meaning_vi}
                     daGhep={daGhepPhai.has(the.id)}
                     dangChon={dangChon?.ben === "phai" && dangChon.the.id === the.id}
