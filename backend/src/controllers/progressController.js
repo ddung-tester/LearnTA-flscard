@@ -71,6 +71,11 @@ async function updateCardProgress(req, res) {
     throw createHttpError(401, "Đăng nhập để lưu tiến độ học");
   }
 
+  if (req.body.mastery_level !== undefined) {
+    const level = parseNonNegativeInt(req.body.mastery_level, "mastery_level");
+    if (level > 5) throw createHttpError(400, "mastery_level phai tu 0 den 5");
+  }
+
   const connection = await pool.getConnection();
 
   try {

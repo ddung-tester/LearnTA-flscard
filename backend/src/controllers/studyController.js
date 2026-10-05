@@ -505,7 +505,8 @@ async function getStudySessionsSummary(req, res) {
        ), 0) AS total_duration_seconds,
        COALESCE(SUM(xp_earned), 0) AS total_xp_earned
      FROM study_sessions
-     WHERE user_id = ?`,
+     WHERE user_id = ?
+       AND ended_at IS NOT NULL`,
     [userId]
   );
 
@@ -529,6 +530,7 @@ async function getStudySessionsSummary(req, res) {
        ), 0) AS duration_seconds
      FROM study_sessions
      WHERE user_id = ?
+       AND ended_at IS NOT NULL
        AND DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00')) >=
            DATE_SUB(DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00')), INTERVAL 6 DAY)
      GROUP BY DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00'))
@@ -545,6 +547,7 @@ async function getStudySessionsSummary(req, res) {
        COALESCE(SUM(review), 0) AS wrong_count
      FROM study_sessions
      WHERE user_id = ?
+       AND ended_at IS NOT NULL
      GROUP BY mode
      ORDER BY mode ASC`,
     [userId]
@@ -555,6 +558,7 @@ async function getStudySessionsSummary(req, res) {
      FROM study_sessions ss
      LEFT JOIN decks d ON d.id = ss.deck_id
      WHERE ss.user_id = ?
+       AND ss.ended_at IS NOT NULL
      ORDER BY COALESCE(ss.ended_at, ss.started_at) DESC, ss.id DESC
      LIMIT 8`,
     [userId]
