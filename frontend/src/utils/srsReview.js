@@ -409,21 +409,36 @@ export function ghiNhanSaiVaoSRS(cards, opts) {
   ghiNhanKetQuaLocal(cards, "wrong", opts);
 }
 
+async function taiTatCaTrangReviews(load, params, phienKho) {
+  const limit = 200;
+  const items = [];
+  for (let offset = 0; ; offset += limit) {
+    const page = await load({ ...params, limit, offset });
+    if (!laPhienKhoHienTai(phienKho)) return [];
+    items.push(...page);
+    if (page.length < limit) return items;
+  }
+}
+
 export async function taiSRSDongBo(params = {}) {
+  const phienKho = layPhienKhoHocTap();
   try {
-    const items = await layReviews(params);
+    const items = await taiTatCaTrangReviews(layReviews, params, phienKho);
+    if (!laPhienKhoHienTai(phienKho)) return [];
     return hopNhatSRSTuBackend(items);
   } catch {
-    return layTatCaSRS();
+    return laPhienKhoHienTai(phienKho) ? layTatCaSRS() : [];
   }
 }
 
 export async function taiCardsDenHanDongBo(params = {}) {
+  const phienKho = layPhienKhoHocTap();
   try {
-    const items = await layReviewsDenHan(params);
+    const items = await taiTatCaTrangReviews(layReviewsDenHan, params, phienKho);
+    if (!laPhienKhoHienTai(phienKho)) return [];
     return hopNhatSRSTuBackend(items).filter(laDenHanHomNay);
   } catch {
-    return layCardsDenHan();
+    return laPhienKhoHienTai(phienKho) ? layCardsDenHan() : [];
   }
 }
 
@@ -432,13 +447,19 @@ export async function taiCardsDenHanDongBo(params = {}) {
  * được giữ nguyên phía server, rồi ghi đè lại bản local.
  */
 export async function dongBoSRSLenBackend() {
+  const phienKho = layPhienKhoHocTap();
+  const cardsChoDapAn = new Set(layStudySessionsLocal()
+    .filter((session) => session.sync?.pending)
+    .flatMap((session) => session.answers.map((answer) => String(answer.card_id))));
   const items = layTatCaSRS()
     .filter((entry) => laCardIdHopLe(entry.id))
+    .filter((entry) => !cardsChoDapAn.has(String(entry.id)))
     .map(chuanHoaSRSChoBackend);
   if (items.length === 0) return layTatCaSRS();
 
   try {
     const result = await dongBoReviews(items);
+    if (!laPhienKhoHienTai(phienKho)) return [];
     return hopNhatSRSTuBackend(result.reviews || []);
   } catch {
     return layTatCaSRS();

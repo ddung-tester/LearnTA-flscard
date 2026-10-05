@@ -12,10 +12,13 @@ import {
   levelSauKetQua,
   moTaKhoangOn,
   themVaoSRS,
+  taiSRSDongBo,
+  taiCardsDenHanDongBo,
   xoaKhoiSRS,
 } from "./srsReview";
 
-vi.mock("../services/reviewApi", () => ({}));
+const reviews = vi.hoisted(() => ({ all: vi.fn(), due: vi.fn() }));
+vi.mock("../services/reviewApi", () => ({ layReviews: reviews.all, layReviewsDenHan: reviews.due }));
 
 function taoLocalStorage() {
   const store = new Map();
@@ -204,4 +207,37 @@ describe("moTaKhoangOn", () => {
       "30 ngày",
     ]);
   });
+});
+
+
+describe("complete SRS pagination", () => {
+  it.each([250, 400])("loads every card from a %i-card server queue", async (count) => {
+    const cards = Array.from({ length: count }, (_, i) => ({ card_id: i + 1, deck_id: 10, word: `word${i}`, meaning: "test", level: 1, next_review_at: NOW.toISOString() }));
+    reviews.all.mockReset().mockImplementation(async ({ limit, offset }) => cards.slice(offset, offset + limit));
+    await taiSRSDongBo({ limit: 200, deck_id: 10 });
+    expect(layThongKeSRS().total).toBe(count);
+    expect(reviews.all.mock.calls.map(([params]) => params.offset)).toEqual(count === 400 ? [0, 200, 400] : [0, 200]);
+    expect(reviews.all.mock.calls.every(([params]) => params.deck_id === 10)).toBe(true);
+  });
+  it("paginates due cards too and never merges an incomplete download", async () => {
+    const page = Array.from({ length: 200 }, (_, i) => ({ card_id: i + 1, level: 0, next_review_at: NOW.toISOString() }));
+    reviews.due.mockReset().mockResolvedValueOnce(page).mockRejectedValueOnce(new Error("offline"));
+    expect(await taiCardsDenHanDongBo({ limit: 200 })).toEqual([]);
+    expect(layThongKeSRS().total).toBe(0);
+    reviews.due.mockReset().mockResolvedValueOnce(page).mockResolvedValueOnce([{ card_id: 201, level: 0, next_review_at: NOW.toISOString() }]);
+    expect(await taiCardsDenHanDongBo({ limit: 200 })).toHaveLength(201);
+  });
+});
+
+
+it("discards pagination when the account changes between pages", async () => {
+  chonKhoHocTap(77);
+  const page = Array.from({ length: 200 }, (_, i) => ({ card_id: i + 1 }));
+  reviews.all.mockReset().mockResolvedValueOnce(page).mockImplementationOnce(async () => {
+    chonKhoHocTap(88);
+    return [{ card_id: 201 }];
+  });
+  expect(await taiSRSDongBo()).toEqual([]);
+  expect(layThongKeSRS().total).toBe(0);
+  chonKhoHocTap(null);
 });
