@@ -321,6 +321,7 @@ function TrangFlashcard() {
     cacTheDaTinhDiemRef.current = new Set();
     cacTheDaHoanTatRef.current = new Set();
     daDanhGiaRef.current = new Set();
+    dapAnRef.current = [];
     setSoTheDaHoanTat(0);
     setSoTheDaHoanTatTheoTienTrinh(danhSachTienTrinh.map(() => 0));
     setDiemReward(0);
@@ -338,6 +339,8 @@ function TrangFlashcard() {
 
   useLayoutEffect(() => {
     cacTheDaHoanTatRef.current = new Set();
+    daDanhGiaRef.current = new Set();
+    dapAnRef.current = [];
     daLuuKetQuaRef.current = false;
   }, [danhSach]);
   const cacThanhTienTrinh = danhSachTienTrinh.map((tienTrinh, index) => {
@@ -421,6 +424,8 @@ function TrangFlashcard() {
     const sessionKey = `${boId}-${cheDo}-${chiHocTuYeuThich}-${batRandom}-${lanTron}-${tongSoTheMucTieu}`;
     if (sessionKeyRef.current === sessionKey) return;
     sessionKeyRef.current = sessionKey;
+    setLoiLuuKetQua("");
+    setStudySessionId(null);
 
     taoStudySession({
       deck_id: boId,
@@ -440,7 +445,7 @@ function TrangFlashcard() {
       })),
     })
       .then((session) => {
-        setStudySessionId(session.id);
+        if (sessionKeyRef.current === sessionKey) setStudySessionId(session.id);
       })
       .catch(() => {
         sessionKeyRef.current = "";
@@ -453,14 +458,7 @@ function TrangFlashcard() {
       return;
     }
     phatAm("lat");
-    setDaLat((dangLat) => {
-      const seLatMatSau = !dangLat;
-      if (seLatMatSau) {
-        ghiNhanDiemReward();
-      }
-
-      return seLatMatSau;
-    });
+    setDaLat((dangLat) => !dangLat);
   }
 
   function diChuyen(buoc) {
@@ -477,13 +475,22 @@ function TrangFlashcard() {
    * Xuân lý đánh giá flashcard — gọi SRS và tự chuyển thẻ.
    * Chỉ đánh giá 1 lần / card trong session (để không spam SRS).
    */
-  function xuLyDaNho() {
+  function xuLyDanhGia(dung) {
     const card = theHienTai;
     if (!card || !bo) return;
     const cardKey = `${cheDo}-${card.id}`;
     if (!daDanhGiaRef.current.has(cardKey)) {
       daDanhGiaRef.current.add(cardKey);
-      ghiNhanKetQuaDongBo(card, "correct", {
+      dapAnRef.current.push({
+        card_id: card.id,
+        question_text: cheDo === "en-vi" ? card.term_en : card.meaning_vi,
+        correct_answer: cheDo === "en-vi" ? card.meaning_vi : card.term_en,
+        user_answer: "",
+        is_correct: dung,
+      });
+      ghiNhanDiemReward();
+      const ghiNhanSRS = dung ? ghiNhanDungVaoSRS : ghiNhanSaiVaoSRS;
+      ghiNhanSRS([card], {
         deckId: boId,
         deckTitle: bo.title ?? "",
         source: "flashcard",
@@ -492,19 +499,17 @@ function TrangFlashcard() {
     diChuyen(1);
   }
 
-  function xuLyChuaNho() {
-    const card = theHienTai;
-    if (!card || !bo) return;
-    const cardKey = `${cheDo}-${card.id}`;
-    if (!daDanhGiaRef.current.has(cardKey)) {
-      daDanhGiaRef.current.add(cardKey);
-      ghiNhanKetQuaDongBo(card, "wrong", {
-        deckId: boId,
-        deckTitle: bo.title ?? "",
-        source: "flashcard",
-      });
-    }
-    diChuyen(1);
+  function danhGiaChuaNho() {
+    rungMay("sai");
+    phatAm("sai");
+    xuLyDanhGia(false);
+  }
+
+  function danhGiaDaNho(nut) {
+    banPhaoGiay(nut ?? document.getElementById("btn-flashcard-da-nho"));
+    rungMay("dung");
+    phatAm("dung");
+    xuLyDanhGia(true);
   }
 
   function doiCheDoHoc(key) {
@@ -543,7 +548,10 @@ function TrangFlashcard() {
     setBatReward((dangBat) => {
       const moi = !dangBat;
       if (dangBat) {
-        datLaiReward();
+        xoaTimerReward();
+        cacTheDaTinhDiemRef.current = new Set();
+        setDiemReward(0);
+        setHienReward(false);
       }
       luuCaiDatHocTap("flashcard", { cheDo, chiHocTuYeuThich, batRandom, batReward: moi });
       return moi;
