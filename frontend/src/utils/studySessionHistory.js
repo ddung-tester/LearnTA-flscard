@@ -153,19 +153,21 @@ export function layStudySessionsLocal(params = {}) {
   return sessions;
 }
 
-function buildLast7Days() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function ngayHocVietnam(value) {
+  return new Date(new Date(value).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
+function buildLast7Days() {
+  const today = new Date(`${ngayHocVietnam(new Date())}T00:00:00Z`);
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today);
-    date.setDate(today.getDate() - (6 - index));
+    date.setUTCDate(today.getUTCDate() - (6 - index));
     return date.toISOString().slice(0, 10);
   });
 }
 
 export function layStudySessionSummaryLocal() {
-  const sessions = docSessions();
+  const sessions = docSessions().filter((session) => session.ended_at);
   const totalCards = sessions.reduce((sum, session) => sum + toNumber(session.total), 0);
   const totalCorrect = sessions.reduce((sum, session) => sum + toNumber(session.correct), 0);
   const totalDuration = sessions.reduce(
@@ -193,7 +195,7 @@ export function layStudySessionSummaryLocal() {
   const days = buildLast7Days();
   const activity = days.map((date) => {
     const sameDay = sessions.filter(
-      (session) => String(session.ended_at || session.started_at).slice(0, 10) === date
+      (session) => ngayHocVietnam(session.ended_at) === date
     );
 
     return {
