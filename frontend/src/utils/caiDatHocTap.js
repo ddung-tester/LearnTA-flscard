@@ -1,3 +1,4 @@
+import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
 import { getUserSettings, updateUserSettings } from "../services/userApi";
 
 const KHO_CAI_DAT = "learnta_user_study_settings";
@@ -61,7 +62,7 @@ export function docTatCaCaiDat() {
   if (!coTheDungLocalStorage()) return ghepVoiMacDinh();
 
   try {
-    const raw = window.localStorage.getItem(KHO_CAI_DAT);
+    const raw = window.localStorage.getItem(khoaKhoHocTap(KHO_CAI_DAT));
     if (!raw) return ghepVoiMacDinh();
 
     return ghepVoiMacDinh(JSON.parse(raw));
@@ -89,7 +90,7 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
       ...caiDatCanLuu,
     };
 
-    window.localStorage.setItem(KHO_CAI_DAT, JSON.stringify(tatCa));
+    window.localStorage.setItem(khoaKhoHocTap(KHO_CAI_DAT), JSON.stringify(tatCa));
 
     // Đồng bộ lên CSDL Backend (MySQL) nếu người dùng đã đăng nhập
     const payloadBackend = {};
@@ -115,9 +116,10 @@ export function luuCaiDatHocTap(mode, caiDatMoi) {
  * Tải cài đặt từ CSDL về và đồng bộ vào localStorage khi người dùng đăng nhập.
  */
 export async function dongBoCaiDatTuDatabase() {
+  const phien = layPhienKhoHocTap();
   try {
     const dbSettings = await getUserSettings();
-    if (!dbSettings) return;
+    if (!dbSettings || !laPhienKhoHienTai(phien)) return;
 
     const tatCa = docTatCaCaiDat();
     const capNhat = {
@@ -140,7 +142,7 @@ export async function dongBoCaiDatTuDatabase() {
     }
 
     if (coTheDungLocalStorage()) {
-      window.localStorage.setItem(KHO_CAI_DAT, JSON.stringify(tatCa));
+      window.localStorage.setItem(khoaKhoHocTap(KHO_CAI_DAT), JSON.stringify(tatCa));
     }
   } catch {
     // Silent fail nếu chưa đăng nhập hoặc lỗi mạng
@@ -151,7 +153,7 @@ export function xoaCaiDatHocTap() {
   if (!coTheDungLocalStorage()) return;
 
   try {
-    window.localStorage.removeItem(KHO_CAI_DAT);
+    window.localStorage.removeItem(khoaKhoHocTap(KHO_CAI_DAT));
   } catch {
     // Bỏ qua lỗi
   }

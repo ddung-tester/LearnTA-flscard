@@ -92,6 +92,7 @@ api.interceptors.response.use(
     const normalizedError = new Error(message);
     normalizedError.status = status;
     normalizedError.response = error.response;
+    normalizedError.code = error.code;
 
     return Promise.reject(normalizedError);
   }

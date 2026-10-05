@@ -51,7 +51,7 @@ beforeEach(() => {
   // apple đang ở Lv3 trong SRS local; pear và grape chưa từng học
   vi.stubGlobal(
     "localStorage",
-    taoLocalStorage({ streak_drop_srs_v1: JSON.stringify({ 1: { id: "1", level: 3 } }) })
+    taoLocalStorage({ "streak_drop_srs_v1:guest": JSON.stringify({ 1: { id: "1", level: 3 } }) })
   );
 });
 
