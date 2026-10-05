@@ -467,15 +467,25 @@ async function reorderCards(req, res) {
 
 async function updateCard(req, res) {
   const cardId = parsePositiveInt(req.params.cardId, "cardId");
-  await ensureCardWritable(cardId, req);
+  const current = await ensureCardWritable(cardId, req);
 
   const payload = readCardPayload(req.body);
+  for (const field of ["note", "pronunciation", "part_of_speech"]) {
+    if (req.body[field] === undefined) payload[field] = current[field];
+  }
+
+  if (req.body.tense_examples === undefined) {
+    const changed = ["term_en", "meaning_vi", "part_of_speech"]
+      .some((field) => payload[field] !== current[field]);
+    payload.tense_examples = changed ? null : current.tense_examples
+      ? JSON.stringify(current.tense_examples) : null;
+  }
 
   await pool.execute(
     `UPDATE cards
      SET term_en = ?, meaning_vi = ?, example_sentence = ?, note = ?,
          pronunciation = ?, part_of_speech = ?,
-         tense_examples = COALESCE(?, tense_examples)
+         tense_examples = ?
      WHERE id = ?`,
     [
       payload.term_en,
