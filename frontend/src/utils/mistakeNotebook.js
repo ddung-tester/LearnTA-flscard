@@ -29,6 +29,7 @@ import {
 } from "../services/mistakeApi";
 import { getStoredAuthToken } from "../services/api";
 import { themVaoSRS } from "./srsReview";
+import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
 
 const KHO_TU_SAI = "streak_drop_mistake_notebook_v1";
 
@@ -36,7 +37,7 @@ const KHO_TU_SAI = "streak_drop_mistake_notebook_v1";
 
 function docTatCa() {
   try {
-    const raw = localStorage.getItem(KHO_TU_SAI);
+    const raw = localStorage.getItem(khoaKhoHocTap(KHO_TU_SAI));
     if (!raw) return {};
     const data = JSON.parse(raw);
     return data && typeof data === "object" ? data : {};
@@ -47,7 +48,7 @@ function docTatCa() {
 
 function ghiTatCa(data) {
   try {
-    localStorage.setItem(KHO_TU_SAI, JSON.stringify(data));
+    localStorage.setItem(khoaKhoHocTap(KHO_TU_SAI), JSON.stringify(data));
   } catch {
     // localStorage full hoặc bị chặn — bỏ qua
   }
@@ -187,6 +188,7 @@ export function luuTuSai(cards, { deckId, deckTitle, source }) {
 }
 
 export async function luuTuSaiDongBo(cards, opts) {
+  const phienKho = layPhienKhoHocTap();
   luuTuSai(cards, opts);
   // Khách: chỉ lưu trong trình duyệt, đăng nhập rồi learningSync mới đẩy lên
   if (!getStoredAuthToken()) return;
@@ -198,6 +200,7 @@ export async function luuTuSaiDongBo(cards, opts) {
       .filter(Boolean)
       .map(chuanHoaTuSaiChoBackend);
     const result = await dongBoMistakes(items);
+    if (!laPhienKhoHienTai(phienKho)) return;
     hopNhatTuSaiTuBackend(result.mistakes || []);
   } catch {
     // Backend sync la best-effort. localStorage van la cache/fallback chinh.
@@ -242,6 +245,7 @@ export function danhDauDaOn(id) {
 }
 
 export async function danhDauDaOnDongBo(id) {
+  const phienKho = layPhienKhoHocTap();
   const tatCa = docTatCa();
   const entry = tatCa[String(id)];
   danhDauDaOn(id);
@@ -250,6 +254,7 @@ export async function danhDauDaOnDongBo(id) {
 
   try {
     const updated = await capNhatMistake(entry.backendId, { status: "reviewed" });
+    if (!laPhienKhoHienTai(phienKho)) return;
     hopNhatTuSaiTuBackend([updated]);
   } catch {
     // Local update da thanh cong.
@@ -299,7 +304,7 @@ export function xoaTuSaiTheoDeck(deckId) {
  */
 export function xoaTatCaTuSai() {
   try {
-    localStorage.removeItem(KHO_TU_SAI);
+    localStorage.removeItem(khoaKhoHocTap(KHO_TU_SAI));
   } catch {
     //
   }
@@ -331,8 +336,10 @@ export function layThongKeTuSai() {
 }
 
 export async function taiTuSaiDongBo(params = {}) {
+  const phienKho = layPhienKhoHocTap();
   try {
     const items = await layMistakes(params);
+    if (!laPhienKhoHienTai(phienKho)) return [];
     return hopNhatTuSaiTuBackend(items);
   } catch {
     return layTatCaTuSai();
@@ -340,11 +347,13 @@ export async function taiTuSaiDongBo(params = {}) {
 }
 
 export async function dongBoTuSaiLenBackend() {
+  const phienKho = layPhienKhoHocTap();
   const items = layTatCaTuSai().map(chuanHoaTuSaiChoBackend);
   if (items.length === 0) return layTatCaTuSai();
 
   try {
     const result = await dongBoMistakes(items);
+    if (!laPhienKhoHienTai(phienKho)) return [];
     return hopNhatTuSaiTuBackend(result.mistakes || []);
   } catch {
     return layTatCaTuSai();

@@ -35,6 +35,8 @@ import {
   layReviewsDenHan,
   xoaReviewTheoCard,
 } from "../services/reviewApi";
+import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { layStudySessionsLocal } from "./studySessionHistory";
 
 const KHO_SRS = "streak_drop_srs_v1";
 const MAX_LEVEL = 5;
@@ -45,7 +47,7 @@ export const KHOANG_ON_NGAY = [0, 1, 3, 7, 14, 30];
 
 function docTatCa() {
   try {
-    const raw = localStorage.getItem(KHO_SRS);
+    const raw = localStorage.getItem(khoaKhoHocTap(KHO_SRS));
     if (!raw) return {};
     const data = JSON.parse(raw);
     return data && typeof data === "object" ? data : {};
@@ -59,7 +61,7 @@ export const SU_KIEN_SRS_DOI = "srs-thay-doi";
 
 function ghiTatCa(data) {
   try {
-    localStorage.setItem(KHO_SRS, JSON.stringify(data));
+    localStorage.setItem(khoaKhoHocTap(KHO_SRS), JSON.stringify(data));
   } catch {
     // localStorage full — bỏ qua
   }
@@ -297,12 +299,14 @@ export function capNhatKetQuaOn(id, ketQua) {
  * Áp dụng kết quả local rồi gửi lên backend; bản backend trả về sẽ ghi đè local.
  */
 export async function capNhatKetQuaOnDongBo(id, ketQua) {
+  const phienKho = layPhienKhoHocTap();
   const updatedLocal = capNhatKetQuaOn(id, ketQua);
   if (!updatedLocal || !laCardIdHopLe(id)) return updatedLocal;
 
   try {
     const payload = typeof ketQua === "number" ? { level: ketQua } : { result: ketQua };
     const backendResult = await capNhatReviewResultTheoCard(Number(id), payload);
+    if (!laPhienKhoHienTai(phienKho)) return null;
     if (backendResult) {
       return (
         hopNhatSRSTuBackend([backendResult]).find((entry) => entry.id === String(id)) ??

@@ -1,3 +1,4 @@
+import { chonKhoHocTap } from "./khoHocTap";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   capNhatKetQuaOn,
@@ -58,7 +59,7 @@ describe("themVaoSRS", () => {
     const updated = capNhatKetQuaOn(1, "correct");
     themVaoSRS([{ ...CARD, meaning_vi: "táo" }], OPTS);
 
-    const entry = JSON.parse(localStorage.getItem("streak_drop_srs_v1"))["1"];
+    const entry = JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"];
     expect(entry.meaning).toBe("táo");
     expect(entry.level).toBe(1);
     expect(entry.nextReviewAt).toBe(updated.nextReviewAt);
@@ -120,7 +121,7 @@ describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
     ghiNhanDungVaoSRS([CARD], OPTS);
     ghiNhanSaiVaoSRS([{ id: 2, term_en: "pear", meaning_vi: "quả lê" }], OPTS);
 
-    const tatCa = JSON.parse(localStorage.getItem("streak_drop_srs_v1"));
+    const tatCa = JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"));
     expect(tatCa["1"]).toMatchObject({ level: 1, nextReviewAt: nuaDemSau(1) });
     expect(tatCa["2"]).toMatchObject({ level: 0, nextReviewAt: NOW.toISOString() });
   });
@@ -130,7 +131,7 @@ describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
     capNhatKetQuaOn(1, 3);
     ghiNhanSaiVaoSRS([CARD], OPTS);
 
-    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1"))["1"].level).toBe(2);
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(2);
   });
 });
 
@@ -181,10 +182,10 @@ describe("layLevelSRS / levelSauKetQua", () => {
   it("reads current levels without writing and predicts the next level", () => {
     themVaoSRS([CARD], OPTS);
     capNhatKetQuaOn(1, 3);
-    const truoc = localStorage.getItem("streak_drop_srs_v1");
+    const truoc = localStorage.getItem("streak_drop_srs_v1:guest");
 
     expect(layLevelSRS([1, 2])).toEqual({ 1: 3, 2: null });
-    expect(localStorage.getItem("streak_drop_srs_v1")).toBe(truoc);
+    expect(localStorage.getItem("streak_drop_srs_v1:guest")).toBe(truoc);
     expect(levelSauKetQua(3, "correct")).toBe(4);
     expect(levelSauKetQua(3, "wrong")).toBe(2);
     expect(levelSauKetQua(null, "correct")).toBe(1);

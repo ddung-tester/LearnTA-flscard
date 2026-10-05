@@ -1,3 +1,5 @@
+import { khoaKhoHocTap } from "./khoHocTap";
+
 const KHO_TIEN_DO = "hoc_tu_vung_progress";
 
 function coTheDungLocalStorage() {
@@ -8,7 +10,7 @@ function docTatCaTienDo() {
   if (!coTheDungLocalStorage()) return {};
 
   try {
-    const raw = window.localStorage.getItem(KHO_TIEN_DO);
+    const raw = window.localStorage.getItem(khoaKhoHocTap(KHO_TIEN_DO));
     if (!raw) return {};
 
     const data = JSON.parse(raw);
@@ -22,7 +24,7 @@ function ghiTatCaTienDo(data) {
   if (!coTheDungLocalStorage()) return;
 
   try {
-    window.localStorage.setItem(KHO_TIEN_DO, JSON.stringify(data));
+    window.localStorage.setItem(khoaKhoHocTap(KHO_TIEN_DO), JSON.stringify(data));
   } catch {
     // localStorage co the bi chan hoac day dung luong. Bo qua de app van chay.
   }

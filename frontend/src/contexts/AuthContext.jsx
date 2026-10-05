@@ -19,16 +19,20 @@ import {
 } from "../services/authApi";
 import { dongBoCaiDatTuDatabase } from "../utils/caiDatHocTap";
 import { dongBoDuLieuHocTapLenBackend } from "../utils/learningSync";
+import { chonKhoHocTap } from "../utils/khoHocTap";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => getStoredAuthToken());
   const [user, setUser] = useState(null);
+  const [authError, setAuthError] = useState("");
+  const [authRetry, setAuthRetry] = useState(0);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const saveAuth = useCallback((data) => {
     storeAuthToken(data.token);
+    chonKhoHocTap(data.user.id);
     setToken(data.token);
     setUser(data.user);
     dongBoCaiDatTuDatabase();
@@ -87,8 +91,16 @@ export function AuthProvider({ children }) {
     }
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);
+    function handleChanged() {
+      setToken(getStoredAuthToken());
+      setUser(null);
+      setAuthError("");
+      setIsAuthReady(!getStoredAuthToken());
+    }
+    window.addEventListener("auth:changed", handleChanged);
     return () => {
       window.removeEventListener("auth:unauthorized", handleUnauthorized);
+      window.removeEventListener("auth:changed", handleChanged);
     };
   }, [clearAuth]);
 

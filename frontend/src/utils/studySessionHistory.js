@@ -1,3 +1,4 @@
+import { khoaKhoHocTap } from "./khoHocTap";
 const KHO_STUDY_SESSIONS = "streak_drop_study_sessions_v1";
 
 function coTheDungLocalStorage() {
@@ -8,7 +9,7 @@ function docSessions() {
   if (!coTheDungLocalStorage()) return [];
 
   try {
-    const raw = window.localStorage.getItem(KHO_STUDY_SESSIONS);
+    const raw = window.localStorage.getItem(khoaKhoHocTap(KHO_STUDY_SESSIONS));
     if (!raw) return [];
     const data = JSON.parse(raw);
     return Array.isArray(data) ? data : [];
