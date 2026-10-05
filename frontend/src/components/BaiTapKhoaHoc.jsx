@@ -553,6 +553,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
               ref={oNhapRef}
               autoFocus
               autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
               spellCheck={false}
               value={nhap}
               onChange={(event) => setNhap(event.target.value)}

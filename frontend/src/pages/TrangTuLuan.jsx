@@ -147,6 +147,8 @@ function TrangTuLuan({ loai }) {
   // Danh sách card chỉ để học lại từ sai (null = học tất cả)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
+  // Đã đúng / đang hiện đáp án sai chờ Enter: ô nhập vẫn giữ focus nhưng không sửa được chữ
+  const khoaONhap = (daKiemTra && ketQuaDung) || dangChoNhanEnterSauSai;
   const inputRef = useRef(null);
   const questionTransitionTimerRef = useRef(null);
   const wrongAnswerTimerRef = useRef(null);
@@ -566,7 +568,7 @@ function TrangTuLuan({ loai }) {
   }
 
   function capNhatCauTraLoi(value) {
-    if (dangCooldownSaiRef.current) return;
+    if (dangCooldownSaiRef.current || khoaONhap) return;
     if (daKiemTra && !ketQuaDung) {
       xoaTrangThaiTraLoiSai();
     }
@@ -587,13 +589,15 @@ function TrangTuLuan({ loai }) {
 
   function xuLyPhimNhanInput(event) {
     if (dangCooldownSaiRef.current) return;
-    // Khi đang chờ Enter sau khi sai: Enter bắt đầu nhập lại
+    // Khi đang chờ Enter sau khi sai: Enter bắt đầu nhập lại, phím khác không sửa được đáp án đang hiện
     if (dangChoNhanEnterSauSai) {
       if (event.key === "Enter" && !event.nativeEvent.isComposing) {
         event.preventDefault();
         if (Date.now() < enterUnlockedTimeRef.current) return;
         xoaTimerTraLoiSai();
         batDauNhapLaiSauSaiThuong();
+      } else if (event.key.length === 1 || event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
       }
       return;
     }
@@ -616,6 +620,10 @@ function TrangTuLuan({ loai }) {
   }
 
   function xuLyDanInput(event) {
+    if (khoaONhap) {
+      event.preventDefault();
+      return;
+    }
     if (dangCooldownSaiRef.current) return;
     if (!daKiemTra || ketQuaDung) return;
 
@@ -1276,15 +1284,20 @@ function TrangTuLuan({ loai }) {
               </div>
             )}
             <input
-              key={`${shakeKey}-${lanCanhBaoNhap}`}
               ref={inputRef}
               type="text"
+              // Bàn phím điện thoại không được tự viết hoa / tự sửa từ người học đang gõ
+              autoComplete="off"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="done"
               value={cauTraLoi}
               onKeyDown={xuLyPhimNhanInput}
               onChange={(e) => capNhatCauTraLoi(e.target.value)}
               onPaste={xuLyDanInput}
-              disabled={daKiemTra && ketQuaDung}
-              readOnly={dangChoNhanEnterSauSai}
+              // Không disabled/readOnly: ô giữ focus suốt phiên để bàn phím điện thoại không sập giữa các câu
+              aria-readonly={khoaONhap || undefined}
               placeholder={loai === "tu-luan" ? "Nhập đáp án..." : GOI_Y_NHAP[loaiCauCua(theHienTai)]}
               className={`ui-written-answer-input ${daBoQua || (daKiemTra && !ketQuaDung) ? "ui-written-answer-input--answer-review" : ""} w-full rounded-xl border p-4 text-xl outline-none ${
                 daKiemTra

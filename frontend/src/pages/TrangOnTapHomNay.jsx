@@ -338,7 +338,7 @@ function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) 
   );
 }
 
-function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
+function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim }) {
   const [nhap, setNhap] = useState("");
   const [ketQua, setKetQua] = useState(null); // null | "dung" | "sai"
   const [hienGoiY, setHienGoiY] = useState(false);
@@ -350,6 +350,8 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
 
   function tiepTuc() {
     if (!ketQua || isLoading) return;
+    // Ô này sắp bị gỡ khi sang từ mới: chuyển focus sang ô giữ bàn phím ngay trong lúc nhấn
+    if (document.activeElement === inputRef.current) onGiuBanPhim?.();
     onRate(entry.id, ketQua === "dung" ? "correct" : "wrong");
   }
 
@@ -387,12 +389,16 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading }) {
           ref={inputRef}
           type="text"
           value={nhap}
-          onChange={(event) => setNhap(event.target.value)}
-          readOnly={Boolean(ketQua)}
+          onChange={(event) => {
+            if (!ketQua) setNhap(event.target.value);
+          }}
+          // Không readOnly: giữ bàn phím điện thoại mở để Enter sang từ tiếp theo
+          aria-readonly={Boolean(ketQua) || undefined}
           placeholder="Gõ từ tiếng Anh..."
           aria-label="Từ tiếng Anh"
           autoComplete="off"
           autoCapitalize="off"
+          autoCorrect="off"
           spellCheck={false}
           lang="en"
           className={`review-input${ketQua === "dung" ? " review-input--dung" : ketQua === "sai" ? " review-input--sai" : ""}`}
@@ -624,6 +630,8 @@ function TrangOnTapHomNay() {
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
   const actionLockRef = useRef(false);
+  // Ô ẩn giữ bàn phím điện thoại mở trong lúc chờ lưu kết quả và gắn ô gõ của từ tiếp theo
+  const giuBanPhimRef = useRef(null);
   const removedIdsRef = useRef(new Set());
 
   useLayoutEffect(() => {
@@ -742,6 +750,12 @@ function TrangOnTapHomNay() {
     cheDoTheoCaiDat === "chon" && poolTracNghiem.length < 4 ? "the" : cheDoTheoCaiDat;
   // Số lượt đã trả lời: đổi key mỗi lượt để thẻ hỏi lại cùng từ luôn bắt đầu mới
   const soLuot = correctCount + wrongCount;
+
+  // Từ mới đã hiện: ô gõ của nó tự lấy focus (effect con chạy trước); còn lại thì thả ô giữ bàn phím
+  useEffect(() => {
+    if (document.activeElement === giuBanPhimRef.current) giuBanPhimRef.current.blur();
+  }, [currentId, soLuot, isComplete]);
+
   const dapAnLuaChon = useMemo(() => {
     if (!currentEntry || cheDoHienTai !== "chon") return [];
     const [cauHoi] = taoDanhSachCauHoi(
@@ -929,6 +943,14 @@ function TrangOnTapHomNay() {
         />
       )}
 
+      <input
+        ref={giuBanPhimRef}
+        className="review-giu-ban-phim"
+        tabIndex={-1}
+        aria-hidden="true"
+        autoComplete="off"
+      />
+
       {/* Content */}
       {nothingDue ? (
         <EmptyState
@@ -953,6 +975,7 @@ function TrangOnTapHomNay() {
         ) : cheDoHienTai === "go" ? (
           <ReviewGoTu
             key={`${currentId}-${soLuot}`}
+            onGiuBanPhim={() => giuBanPhimRef.current?.focus({ preventScroll: true })}
             entry={currentEntry}
             choGoiY={levelHienTai < LEVEL_TAT_GOI_Y}
             onRate={handleRate}

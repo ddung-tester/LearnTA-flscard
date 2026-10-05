@@ -707,3 +707,17 @@
     transition: none;
   }
 }
+
+/* Ô ẩn giữ bàn phím điện thoại mở giữa hai từ (xem ReviewGoTu). 16px để iOS không phóng to. */
+.review-giu-ban-phim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  padding: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+}
