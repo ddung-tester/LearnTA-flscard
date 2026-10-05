@@ -262,16 +262,9 @@ function TrangFlashcard() {
       }
     } catch (error) {
       if (requestId === dataRequestRef.current) {
-        const mockDeck = layBoTheoId(boId);
-        const mockCards = layTheoBoId(boId);
-        if (mockDeck && mockCards && mockCards.length > 0) {
-          setBo(mockDeck);
-          setDanhSachGoc(mockCards);
-        } else {
-          setBo(null);
-          setDanhSachGoc([]);
-          setLoiTaiDuLieu(error.message);
-        }
+        setBo(null);
+        setDanhSachGoc([]);
+        setLoiTaiDuLieu(error.message);
       }
     } finally {
       if (requestId === dataRequestRef.current) {

@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
-import { layTheoBoId } from "../data/duLieuMau";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { layDanhSachDeck } from "../services/deckApi";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
@@ -76,7 +75,8 @@ function TrangLuyenTap() {
   });
   const [dsBo, setDsBo] = useState({ xong: false, danhSach: [], loi: "" });
   // Thẻ của bộ đang chọn; dangTai suy ra từ boId để không phải setState đồng bộ trong effect
-  const [theCuaBo, setTheCuaBo] = useState({ boId: null, danhSach: [] });
+  const [theCuaBo, setTheCuaBo] = useState({ boId: null, danhSach: [], loi: "", lanTai: 0 });
+  const [lanTaiThe, setLanTaiThe] = useState(0);
   const [srsStats, setSrsStats] = useState(() => layThongKeSRS());
 
   useLayoutEffect(() => {
@@ -121,18 +121,18 @@ function TrangLuyenTap() {
     let conHieuLuc = true;
     layCardsTheoDeck(boId)
       .then((danhSach) => {
-        if (conHieuLuc) setTheCuaBo({ boId, danhSach });
+        if (conHieuLuc) setTheCuaBo({ boId, danhSach, loi: "", lanTai: lanTaiThe });
       })
-      .catch(() => {
-        if (conHieuLuc) setTheCuaBo({ boId, danhSach: layTheoBoId(boId) || [] });
+      .catch((error) => {
+        if (conHieuLuc) setTheCuaBo({ boId, danhSach: [], loi: error.message, lanTai: lanTaiThe });
       });
     return () => {
       conHieuLuc = false;
     };
-  }, [boId]);
+  }, [boId, lanTaiThe]);
 
   const boDangChon = dsBo.danhSach.find((bo) => bo.id === boId) ?? null;
-  const dangTaiThe = boId !== null && theCuaBo.boId !== boId;
+  const dangTaiThe = boId !== null && (theCuaBo.boId !== boId || theCuaBo.lanTai !== lanTaiThe);
   const danhSachThe = dangTaiThe ? DANH_SACH_RONG : theCuaBo.danhSach;
   const demFilter = useMemo(() => demTheoFilter(danhSachThe), [danhSachThe]);
   const danhSachLoc = useMemo(
@@ -160,6 +160,7 @@ function TrangLuyenTap() {
 
   function lyDoKhoa(cheDo) {
     if (dangTaiThe) return "Đang tải từ vựng...";
+    if (theCuaBo.loi) return "Chưa tải được từ vựng";
     if (soTuSanSang === 0) return "Không có từ nào khớp bộ lọc";
     if (cheDo.canBonTu && danhSachThe.length < 4) return "Cần ít nhất 4 từ trong bộ";
     if (cheDo.canViDu && !coNguCanh) return "Cần câu ví dụ có chứa chính từ đang học";
@@ -247,7 +248,11 @@ function TrangLuyenTap() {
               )}
 
               <p className="practice-ready" aria-live="polite">
-                {dangTaiThe ? "Đang tải từ vựng..." : <><strong>{soTuSanSang}</strong> từ sẵn sàng</>}
+                {theCuaBo.loi && !dangTaiThe ? (
+                  <>Không tải được từ vựng.{" "}
+                    <button type="button" className="ui-button ui-button--ghost" onClick={() => setLanTaiThe((lan) => lan + 1)}>Thử lại</button>
+                  </>
+                ) : dangTaiThe ? "Đang tải từ vựng..." : <><strong>{soTuSanSang}</strong> từ sẵn sàng</>}
               </p>
             </>
           )}

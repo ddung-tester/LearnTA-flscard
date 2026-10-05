@@ -1,11 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePageTransition } from "../contexts/PageTransitionContext";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 
 /**
- * Tải bộ từ + danh sách thẻ cho một trang học; lỗi API thì dùng dữ liệu mẫu nếu có.
+ * Tải bộ từ và thẻ từ API; hiển thị lỗi để người học thử lại.
  * Đồng thời báo trạng thái tải cho overlay chuyển trang.
  */
 export default function useBoTuHoc(boId, tenTrang) {
@@ -17,6 +16,8 @@ export default function useBoTuHoc(boId, tenTrang) {
   const requestRef = useRef(0);
 
   async function taiDuLieu(requestId) {
+    setDangTai(true);
+    setLoi("");
     try {
       const [deck, cards] = await Promise.all([layDeckTheoId(boId), layCardsTheoDeck(boId)]);
       if (requestId !== requestRef.current) return;
@@ -24,16 +25,9 @@ export default function useBoTuHoc(boId, tenTrang) {
       setDanhSachGoc(cards);
     } catch (error) {
       if (requestId !== requestRef.current) return;
-      const mockDeck = layBoTheoId(boId);
-      const mockCards = layTheoBoId(boId);
-      if (mockDeck && mockCards && mockCards.length > 0) {
-        setBo(mockDeck);
-        setDanhSachGoc(mockCards);
-      } else {
-        setBo(null);
-        setDanhSachGoc([]);
-        setLoi(error.message);
-      }
+      setBo(null);
+      setDanhSachGoc([]);
+      setLoi(error.message);
     } finally {
       if (requestId === requestRef.current) setDangTai(false);
     }
