@@ -19,12 +19,14 @@ function docSessions() {
 }
 
 function ghiSessions(sessions) {
-  if (!coTheDungLocalStorage()) return;
+  if (!coTheDungLocalStorage()) throw new Error("Không thể giữ kết quả: trình duyệt không cho lưu dữ liệu.");
 
   try {
-    window.localStorage.setItem(KHO_STUDY_SESSIONS, JSON.stringify(sessions));
+    const pending = sessions.filter((session) => session.sync?.pending);
+    const history = sessions.filter((session) => !session.sync?.pending).slice(0, 300);
+    window.localStorage.setItem(khoaKhoHocTap(KHO_STUDY_SESSIONS), JSON.stringify([...pending, ...history]));
   } catch {
-    // localStorage co the bi day hoac bi chan. Bo qua de flow hoc khong bi dung.
+    throw new Error("Không thể giữ kết quả: kho trình duyệt đã đầy hoặc bị chặn.");
   }
 }
 
@@ -82,14 +84,16 @@ function normalizeSession(payload = {}) {
     max_combo: toNumber(payload.max_combo ?? payload.maxCombo),
     created_at: payload.created_at ?? startedAt,
     updated_at: payload.updated_at ?? endedAt ?? startedAt,
-    saved: false,
+    answers: payload.answers ?? [],
+    sync: payload.sync ?? null,
+    saved: payload.saved ?? false,
   };
 }
 
 export function taoStudySessionLocal(payload) {
   const session = normalizeSession(payload);
   const sessions = docSessions();
-  ghiSessions([session, ...sessions].slice(0, 300));
+  ghiSessions([session, ...sessions]);
   return session;
 }
 
@@ -111,12 +115,17 @@ export function ketThucStudySessionLocal(sessionId, payload) {
     sessions.unshift(updated);
   }
 
-  ghiSessions(sessions.slice(0, 300));
+  ghiSessions(sessions);
   return updated;
 }
 
-export function luuStudyAnswersLocal() {
-  return { inserted_count: 0, answers: [], saved: false };
+export function luuStudyAnswersLocal(sessionId, answers) {
+  const sessions = docSessions();
+  const index = sessions.findIndex((session) => String(session.id) === String(sessionId));
+  if (index < 0) sessions.unshift(normalizeSession({ id: sessionId, answers }));
+  else sessions[index] = { ...sessions[index], answers };
+  ghiSessions(sessions);
+  return { inserted_count: answers.length, answers, saved: false };
 }
 
 export function luuStudySessionHoanThanhLocal(payload) {
@@ -228,4 +237,13 @@ export function layStudySessionSummaryLocal() {
     recent_sessions: sessions.slice(0, 8),
     saved: false,
   };
+}
+
+export function capNhatStudySessionLocal(sessionId, patch) {
+  const sessions = docSessions();
+  const index = sessions.findIndex((session) => String(session.id) === String(sessionId));
+  if (index < 0) throw new Error("Không tìm thấy bản kết quả trong trình duyệt.");
+  sessions[index] = { ...sessions[index], ...patch };
+  ghiSessions(sessions);
+  return sessions[index];
 }

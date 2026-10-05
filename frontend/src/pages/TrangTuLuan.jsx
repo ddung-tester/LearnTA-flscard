@@ -223,7 +223,7 @@ function TrangTuLuan({ loai }) {
     resetAll();
   }
 
-  const { loiLuuKetQua, streakCelebration, dongStreakCelebration } = useLuuKetQuaPhien({
+  const { loiLuuKetQua, thuLuuLai, dangLuuKetQua, streakCelebration, dongStreakCelebration } = useLuuKetQuaPhien({
     bo,
     boId,
     mode: cauHinh.mode,
@@ -1105,6 +1105,8 @@ function TrangTuLuan({ loai }) {
             soCauSai={danhSachCardSai.length}
             maxCombo={maxCombo}
             loiLuu={loiLuuKetQua}
+            onThuLuuLai={thuLuuLai}
+            dangLuu={dangLuuKetQua}
             onLamLai={lamLai}
             onHocLaiTuSai={
               danhSachCardSai.length > 0 ? () => hocLaiTuSai(danhSachCardSai) : undefined

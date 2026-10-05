@@ -11,6 +11,7 @@ import {
   tachCauMau,
   taoGoiY,
   tachKetQuaPhien,
+  tongKetDapAnPhien,
   taoDanhSachTienTrinh,
   tinhTienTrinh,
   tronMangOnDinh,
@@ -248,5 +249,19 @@ describe("chuanHoaDapAn / taoGoiY", () => {
     expect(taoGoiY("give up")).toBe("giv_ __");
     expect(taoGoiY("a")).toBe("a");
     expect(taoGoiY("")).toBe("");
+  });
+});
+
+
+describe("tongKetDapAnPhien", () => {
+  it("scores each card once using its first answer despite successful retries", () => {
+    const answers = [false, true, false, true].map((is_correct, i) => ({ card_id: i + 1, is_correct }));
+    answers.push({ card_id: 1, is_correct: true }, { card_id: 3, is_correct: true });
+    expect(tongKetDapAnPhien(answers)).toEqual({ total: 4, correct: 2, review: 2, answers: answers.slice(0, 4) });
+  });
+  it("does not count flips without an assessment and keeps all forgotten cards wrong", () => {
+    expect(tongKetDapAnPhien([])).toMatchObject({ total: 0, correct: 0, review: 0 });
+    expect(tongKetDapAnPhien([{ card_id: 1, is_correct: false }, { card_id: 2, is_correct: false }]))
+      .toMatchObject({ total: 2, correct: 0, review: 2 });
   });
 });

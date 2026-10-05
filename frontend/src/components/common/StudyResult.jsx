@@ -15,7 +15,7 @@
  *   laLamLai: phiên này là lượt làm lại câu sai
  *   mode: "quiz" | "tuluan" | "nghe-viet" | "ngu-canh" | "noi-tu" | "hon-hop"
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { luuTuSaiDongBo, danhDauDaOnDongBo } from "../../utils/mistakeNotebook";
 import {
@@ -174,6 +174,8 @@ function StudyResult({
   soCauSai = 0,
   maxCombo = 0,
   loiLuu,
+  onThuLuuLai,
+  dangLuu = false,
   onLamLai,
   onHocLaiTuSai,
   danhSachCardSai = [],
@@ -190,7 +192,10 @@ function StudyResult({
   // Lưu kết quả vào Mistake Notebook + SRS khi màn hình kết quả xuất hiện.
   // SRS ở đây chỉ cập nhật bản local: server đã tự áp dụng cùng luật khi
   // trang Quiz/Tự luận lưu đáp án của study session.
+  const daGhiNhanSRSRef = useRef(false);
   useEffect(() => {
+    if (daGhiNhanSRSRef.current) return;
+    daGhiNhanSRSRef.current = true;
     const deckInfo = { deckId, deckTitle, source: mode };
 
     // 1. Lưu từ sai → Mistake Notebook, rồi hạ 1 cấp SRS và đưa vào diện ôn ngay
@@ -266,9 +271,16 @@ function StudyResult({
 
         {loiLuu && (
           <p className="study-result__error">
-            Không thể lưu kết quả. Kết quả trên màn hình vẫn được giữ.
+            Kết quả chưa đồng bộ. {loiLuu}
           </p>
         )}
+
+        {loiLuu && onThuLuuLai && (
+          <button type="button" className="ui-button ui-button--primary study-result__btn" onClick={onThuLuuLai} disabled={dangLuu}>
+            Thử lưu lại
+          </button>
+        )}
+        {dangLuu && <p role="status">Đang đồng bộ kết quả...</p>}
 
         <div className="study-result__ring-wrap">
           <ScoreRing percent={tiLeDung} size={120} strokeWidth={10} />

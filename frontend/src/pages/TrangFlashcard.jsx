@@ -22,18 +22,17 @@ import useTTS from "../hooks/useTTS";
 import useNghieng3D from "../hooks/useNghieng3D";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
-import { layBoTheoId, layTheoBoId } from "../data/duLieuMau";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
-import { ketThucStudySession, taoStudySession } from "../services/studyApi";
+import { luuKetQuaPhien, dongBoKetQuaPhien, taoStudySession } from "../services/studyApi";
 import {
   clampProgressPercent,
   getProgressColor,
 } from "../utils/progressColor";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
-import { chonTheChoPhien, tachCauMau, taoHatGiong } from "../utils/phienHoc";
-import { ghiNhanKetQuaDongBo } from "../utils/srsReview";
+import { chonTheChoPhien, tachCauMau, taoHatGiong, tongKetDapAnPhien } from "../utils/phienHoc";
+import { ghiNhanDungVaoSRS, ghiNhanSaiVaoSRS } from "../utils/srsReview";
 import SongAm from "../components/common/SongAm";
 import ChuTheoGiong from "../components/common/ChuTheoGiong";
 import EmojiDong from "../components/common/EmojiDong";
@@ -229,8 +228,11 @@ function TrangFlashcard() {
   const rewardTimerRef = useRef(null);
   // Theo dõi card đã được đánh giá (đã nhớ/chưa nhớ) trong session này — tránh đánh giá lại
   const daDanhGiaRef = useRef(new Set());
+  const dapAnRef = useRef([]);
   const progressEndpointRef = useRef(null);
   const [studySessionId, setStudySessionId] = useState(null);
+  const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
+  const [dangLuuKetQua, setDangLuuKetQua] = useState(false);
   const daLuuKetQuaRef = useRef(false);
   const dataRequestRef = useRef(0);
 
@@ -607,18 +609,31 @@ function TrangFlashcard() {
 
     daLuuKetQuaRef.current = true;
 
-    ketThucStudySession(studySessionId, {
-      correct: soTheDaHoanTat,
-      review: 0,
+    const sessionKey = sessionKeyRef.current;
+    setDangLuuKetQua(true);
+    const score = tongKetDapAnPhien(dapAnRef.current);
+    let combo = 0;
+    let maxCombo = 0;
+    for (const answer of score.answers) {
+      combo = answer.is_correct ? combo + 1 : 0;
+      maxCombo = Math.max(maxCombo, combo);
+    }
+    luuKetQuaPhien(studySessionId, { answers: score.answers, finish: {
+      correct: score.correct,
+      review: score.review,
       total: tongSoTheMucTieu,
-      xp_earned: soTheDaHoanTat * 10,
-      max_combo: diemReward,
+      xp_earned: score.correct * 10,
+      max_combo: maxCombo,
       segment_size: SO_TU_MOI_TIEN_TRINH,
       segment_total: danhSachTienTrinh.length,
       segment_completed: soTienTrinhHoanThanh,
       progress_segments: progressSegmentsPayload,
-    }).catch(() => {
-      daLuuKetQuaRef.current = false;
+    } }).then(() => {
+      if (sessionKeyRef.current === sessionKey) setLoiLuuKetQua("");
+    }).catch((error) => {
+      if (sessionKeyRef.current === sessionKey) setLoiLuuKetQua(error.message);
+    }).finally(() => {
+      if (sessionKeyRef.current === sessionKey) setDangLuuKetQua(false);
     });
   }, [
     studySessionId,
@@ -757,6 +772,12 @@ function TrangFlashcard() {
         tenseExamples={getTenseExamples(theHienTai)}
       />
       <div className="ui-study-session ui-study-session--compact ui-flashcard-session mx-auto flex max-w-3xl flex-col gap-4">
+      {loiLuuKetQua && <p role="alert">Kết quả chưa đồng bộ. {loiLuuKetQua}</p>}
+      {loiLuuKetQua && <button type="button" className="ui-button ui-button--primary self-start rounded-xl px-5 py-2.5 font-semibold" disabled={dangLuuKetQua} onClick={() => {
+        setDangLuuKetQua(true);
+        dongBoKetQuaPhien(studySessionId).then(() => setLoiLuuKetQua("")).catch((error) => setLoiLuuKetQua(error.message)).finally(() => setDangLuuKetQua(false));
+      }}>Thử lưu lại</button>}
+      {dangLuuKetQua && <p role="status">Đang đồng bộ kết quả...</p>}
       <div className="ui-study-toolbar">
         <div>
           <Link

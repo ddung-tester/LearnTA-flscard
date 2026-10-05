@@ -1,19 +1,29 @@
+import { dongBoKetQuaCho } from "../services/studyApi";
 import { dongBoTuSaiLenBackend } from "./mistakeNotebook";
 import { dongBoSRSLenBackend } from "./srsReview";
 
+import { layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+
 let syncPromise = null;
+let syncOwner = null;
 
 export async function dongBoDuLieuHocTapLenBackend() {
-  if (syncPromise) return syncPromise;
+  const owner = layPhienKhoHocTap();
+  if (syncPromise && syncOwner === owner) return syncPromise;
+  syncOwner = owner;
 
   syncPromise = Promise.allSettled([
     dongBoTuSaiLenBackend(),
-    dongBoSRSLenBackend(),
+    dongBoKetQuaCho(),
   ])
-    .then(() => true)
+    .then(async () => {
+      if (!laPhienKhoHienTai(owner)) return false;
+      await dongBoSRSLenBackend();
+      return true;
+    })
     .catch(() => false)
     .finally(() => {
-      syncPromise = null;
+      if (syncOwner === owner) syncPromise = null;
     });
 
   return syncPromise;

@@ -1,4 +1,5 @@
 import api from "./api";
+import { layPhienKhoHocTap, laPhienKhoHienTai } from "../utils/khoHocTap";
 import {
   layStudySessionsLocal,
   layStudySessionSummaryLocal,
@@ -30,10 +31,12 @@ export async function layStudySessionSummary() {
 }
 
 export async function luuStudySessionHoanThanh(payload) {
+  const owner = layPhienKhoHocTap();
   try {
     const response = await api.post("/study-sessions", payload);
     return response.data;
-  } catch {
+  } catch (error) {
+    if (!laPhienKhoHienTai(owner)) throw error;
     return luuStudySessionHoanThanhLocal(payload);
   }
 }

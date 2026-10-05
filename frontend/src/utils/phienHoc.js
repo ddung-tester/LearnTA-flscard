@@ -254,3 +254,15 @@ export function chiSoTuPhim(key, soDapAn) {
   const chiSo = Number(key) - 1;
   return chiSo < soDapAn ? chiSo : -1;
 }
+
+// Mỗi thẻ tính điểm theo lần trả lời đầu; luyện lại không đổi điểm.
+export function tongKetDapAnPhien(answers) {
+  const first = new Map();
+  for (const answer of answers) {
+    const key = String(answer.card_id);
+    if (!first.has(key)) first.set(key, answer);
+  }
+  const unique = [...first.values()];
+  const correct = unique.filter((answer) => answer.is_correct).length;
+  return { answers: unique, total: unique.length, correct, review: unique.length - correct };
+}
