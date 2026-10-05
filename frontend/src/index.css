@@ -7823,6 +7823,10 @@ body.has-video-background--app .dash-deck-mini:active {
   z-index: 1;
   width: 100%;
   touch-action: pan-y;
+  /* Chạm giữ / chạm nhanh lên thẻ không bôi đen chữ, không bật menu sao chép của iOS */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   cursor: grab;
 }
 
@@ -8106,6 +8110,10 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
 
 .home-the__keo {
   touch-action: pan-y;
+  /* Chạm giữ / chạm nhanh lên thẻ không bôi đen chữ, không bật menu sao chép của iOS */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   cursor: grab;
 }
 
@@ -8136,6 +8144,19 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
   inset: 0;
   display: block;
   transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform 560ms cubic-bezier(0.22, 0.8, 0.24, 1);
+  will-change: transform;
+}
+
+.home-the__lat[data-lat] {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-the__lat {
+    transition: none;
+  }
 }
 
 .home-the__mat {
@@ -8148,6 +8169,7 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
   justify-content: center;
   padding: 1.5rem;
   border-radius: 0.9rem;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   text-align: center;
 }

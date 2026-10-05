@@ -160,12 +160,8 @@ function TheMau({
           aria-pressed={laTrenCung ? daLat : undefined}
           aria-label={laTrenCung ? `Lật thẻ "${the.en}"` : undefined}
         >
-          <motion.span
-            className="home-the__lat"
-            initial={false}
-            animate={{ rotateY: laTrenCung && daLat ? 180 : 0 }}
-            transition={giam ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 24 }}
-          >
+          {/* Lật bằng CSS transition (chạy trên compositor), không để JS tính từng khung khi cảnh 3D đang chiếm main thread */}
+          <span className="home-the__lat" data-lat={laTrenCung && daLat ? "" : undefined}>
             <span className="fc-mat fc-mat--truoc home-the__mat">
               <span className="fc-mat__tu" lang="en">{the.en}</span>
             </span>
@@ -173,7 +169,7 @@ function TheMau({
               <span className="fc-mat__tu">{the.vi}</span>
               <span className="home-the__vi-du" lang="en">{the.viDu}</span>
             </span>
-          </motion.span>
+          </span>
         </button>
       </motion.div>
     </motion.div>
