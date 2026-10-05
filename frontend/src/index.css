@@ -122,6 +122,26 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Bấm nhanh hai lần (Tiếp / đáp án) không được phóng to trang trên iOS */
+:where(button, a[href], [role="button"], label, input, select, textarea) {
+  touch-action: manipulation;
+}
+
+/* iOS tự phóng to khi ô nhập/chọn có chữ nhỏ hơn 16px.
+   :root để thắng CSS riêng của từng trang (nạp sau file này). */
+@media (hover: none) and (pointer: coarse) {
+  :root :is(
+    .ui-input--compact,
+    .ui-word-sort__select,
+    .tu-sai-deck-select,
+    .tu-sai-search-input,
+    .review-search-input,
+    .review-select
+  ) {
+    font-size: 16px;
+  }
+}
+
 .font-mono {
   font-family: var(--font-sans);
 }
