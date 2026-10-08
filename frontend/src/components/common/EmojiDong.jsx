@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { kyTuEmoji, timEmoji } from "../../utils/timEmoji";
 import { taiLottie, taiThuVienLottie } from "../../utils/taiEmoji";
@@ -14,6 +14,7 @@ function EmojiDong({ tu, className = "" }) {
   const ma = useMemo(() => timEmoji(tu), [tu]);
   const giamChuyenDong = useReducedMotion();
   const [daTai, setDaTai] = useState({ ma: null, json: null });
+  const lottieRef = useRef(null);
 
   useEffect(() => {
     if (!ma) return undefined;
@@ -36,7 +37,15 @@ function EmojiDong({ tu, className = "" }) {
     <span className={`ui-emoji-dong ${className}`} aria-hidden="true" title="Noto Emoji © Google · CC BY 4.0">
       {json ? (
         <Suspense fallback={kyTu}>
-          <Lottie animationData={json} loop autoplay={!giamChuyenDong} className="ui-emoji-dong__hinh" />
+          <Lottie
+            lottieRef={lottieRef}
+            animationData={json}
+            loop
+            autoplay={!giamChuyenDong}
+            // Chỉ vẽ theo số khung của file (~30 fps), không nội suy thêm theo tần số màn 90–120 Hz
+            onDOMLoaded={() => lottieRef.current?.setSubframe(false)}
+            className="ui-emoji-dong__hinh"
+          />
         </Suspense>
       ) : (
         kyTu

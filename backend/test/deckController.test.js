@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 Object.assign(process.env, { DB_HOST: "127.0.0.1", DB_USER: "test", DB_NAME: "test" });
 const pool = require("../src/config/db");
 const {
+  canReadDeck,
   canWriteDeck,
   deleteDeck,
   getDeck,
@@ -60,7 +61,7 @@ test("getDeck derives the source and parent of each deck", async () => {
   for (const [row, source, parent] of cacTruongHop) {
     fakePool([[row]]);
     const res = fakeRes();
-    await getDeck({ params: { deckId: String(row.id) }, user: { id: 7 } }, res);
+    await getDeck({ params: { deckId: String(row.id) }, ...(row.user_id === null ? {} : { user: { id: 7 } }) }, res);
     assert.equal(res.body.source, source);
     assert.deepEqual(res.body.parent, parent);
   }
@@ -79,16 +80,17 @@ test("listDecks for guests excludes roadmap and course decks", async () => {
   const calls = fakePool([[]]);
   await listDecks({ query: {} }, fakeRes());
 
-  assert.match(calls[0].sql, /rd\.id IS NULL AND cl\.id IS NULL/);
+  assert.match(calls[0].sql, /WHERE d\.user_id IS NULL AND rd\.id IS NULL AND cl\.id IS NULL/);
+  assert.doesNotMatch(calls[0].sql, /is_public = TRUE/);
   assert.deepEqual(calls[0].params, [null]);
 });
 
-test("scope=learnable returns shared content plus the viewer's own decks, grouped by source", async () => {
+test("scope=learnable limits decks to the viewer ownership, grouped by source", async () => {
   const calls = fakePool([[{ ...BO_KHOA_HOC }]]);
   const res = fakeRes();
   await listDecks({ query: { scope: "learnable" }, user: { id: 7 } }, res);
 
-  assert.match(calls[0].sql, /WHERE d\.user_id IS NULL OR d\.user_id = \?/);
+  assert.match(calls[0].sql, /WHERE d\.user_id <=> \?/);
   assert.match(calls[0].sql, /ORDER BY\s+CASE WHEN cl\.id IS NOT NULL/);
   assert.deepEqual(calls[0].params, [7, 7]);
   assert.equal(res.body[0].source, "course");
@@ -131,4 +133,19 @@ test("the owner can still favorite a word in a read-only course deck", async () 
     toggleFavorite({ params: { cardId: "99" }, body: { is_favorite: true }, user: { id: 8 } }, fakeRes()),
     (error) => error.status === 403 || error.statusCode === 403
   );
+});
+
+test("deck read policy allows only guest samples or the authenticated owner's decks", async () => {
+  for (const owner of [null, 7, 8]) {
+    for (const userId of [null, 7, 8]) {
+      const row = { ...BO_CO_BAN, id: 99, user_id: owner, is_public: 1 };
+      const allowed = owner === userId;
+      assert.equal(canReadDeck(row, userId), allowed);
+      fakePool([[row]]);
+      const req = { params: { deckId: "99" }, ...(userId === null ? {} : { user: { id: userId } }) };
+      if (allowed) await getDeck(req, fakeRes());
+      else await assert.rejects(getDeck(req, fakeRes()), { statusCode: 404 });
+    }
+  }
+  assert.equal(canReadDeck({ user_id: 7 }, "7"), true);
 });

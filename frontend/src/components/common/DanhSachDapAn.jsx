@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 import { phatAm } from "../../utils/amThanh";
 import { chiSoTuPhim } from "../../utils/phienHoc";
 import useNetBut from "../../hooks/useNetBut";
+import ThanhTiepTuc from "./ThanhTiepTuc";
 
 // Chọn sai: gạch đáp án đã chọn, khoanh đáp án đúng (sau khi nút lắc xong)
 const NET_DAP_AN_DUNG = { type: "circle", color: "#2f8a4c", treMs: 480, padding: 7 };
@@ -39,6 +40,19 @@ export default function DanhSachDapAn({
 }) {
   const daTraLoi = dapAnDaChon !== null;
   const nutDungRef = useRef(null);
+  const danhSachRef = useRef(null);
+
+  // Bỏ focus khỏi nút đáp án trước khi chọn: nút đang focus mà bị disabled trong lúc commit thì Chrome phải
+  // tính style ngay, rồi React "khôi phục focus" bằng cách đọc scroll của mọi phần tử cha — ép layout cả trang
+  // đúng lúc vừa chèn khối phản hồi (khựng ~40ms trên điện thoại). Kết quả cuối như cũ: nút disabled vốn mất focus.
+  const chon = useCallback(
+    (dapAn) => {
+      const dangFocus = document.activeElement;
+      if (dangFocus instanceof HTMLElement && danhSachRef.current?.contains(dangFocus)) dangFocus.blur();
+      onChon(dapAn);
+    },
+    [onChon]
+  );
 
   useEffect(() => {
     if (daTraLoi || dangRoiDi) return undefined;
@@ -49,12 +63,12 @@ export default function DanhSachDapAn({
       const chiSo = chiSoTuPhim(event.key, danhSachDapAn.length);
       if (chiSo < 0) return;
       event.preventDefault();
-      onChon(danhSachDapAn[chiSo]);
+      chon(danhSachDapAn[chiSo]);
     }
 
     window.addEventListener("keydown", xuLyPhim);
     return () => window.removeEventListener("keydown", xuLyPhim);
-  }, [daTraLoi, dangRoiDi, danhSachDapAn, onChon]);
+  }, [daTraLoi, dangRoiDi, danhSachDapAn, chon]);
 
   useEffect(() => {
     if (!daTraLoi) return;
@@ -70,6 +84,7 @@ export default function DanhSachDapAn({
 
   return (
     <div
+      ref={danhSachRef}
       className={`ui-question-flow ui-quiz-answer-list space-y-3 mb-6 ${dangRoiDi ? "ui-question-flow--leaving" : ""}`}
     >
       {danhSachDapAn.map((dapAn, index) => {
@@ -95,7 +110,7 @@ export default function DanhSachDapAn({
             ref={laDapAnDung ? nutDungRef : undefined}
             style={{ "--thu-tu": index }}
             type="button"
-            onClick={() => onChon(dapAn)}
+            onClick={() => chon(dapAn)}
             disabled={daTraLoi}
             className={`ui-reading-card ui-dap-an-3d min-h-12 w-full rounded-lg border px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors ${lopTrangThai}`}
           >
@@ -138,21 +153,18 @@ export default function DanhSachDapAn({
 }
 
 /**
- * PhanHoiSaiTracNghiem — thông báo đáp án đúng sau khi chọn sai, kèm nút Tiếp tục.
+ * PhanHoiSaiTracNghiem — thông báo đáp án đúng sau khi chọn sai, kèm nút Tiếp tục
+ * (điện thoại: thanh dính đáy). tuChuyenMs: trang tự chuyển câu sau chừng này → hiện vạch đếm ngược.
  */
-export function PhanHoiSaiTracNghiem({ dapAnDung, onTiepTuc }) {
+export function PhanHoiSaiTracNghiem({ dapAnDung, onTiepTuc, tuChuyenMs = 0 }) {
   return (
-    <div className="ui-feedback-pop ui-quiz-feedback text-center mt-4 mb-6">
-      <p className="text-sm font-medium text-[var(--mau-loi)] mb-3">
-        Chưa đúng. Đáp án đúng là: <span className="font-bold">{dapAnDung}</span>
-      </p>
-      <button
-        type="button"
-        onClick={onTiepTuc}
-        className="ui-button ui-button--primary px-5 py-2 text-xs font-bold rounded-xl shadow-sm"
-      >
-        Tiếp tục (Enter ↵)
-      </button>
+    <div className="ui-feedback-pop ui-quiz-feedback mt-4 mb-6">
+      <ThanhTiepTuc dung={false} onTiepTuc={onTiepTuc} demNguocMs={tuChuyenMs}>
+        <span className="ui-thanh-tiep-tuc__nhan">Chưa đúng</span>
+        <span className="ui-thanh-tiep-tuc__dap-an">
+          Đáp án: <strong>{dapAnDung}</strong>
+        </span>
+      </ThanhTiepTuc>
     </div>
   );
 }

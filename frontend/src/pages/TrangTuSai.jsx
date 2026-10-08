@@ -214,7 +214,10 @@ function MistakeCard({ entry, vuaOn, onMarkReviewed, onRemove }) {
       </div>
 
       {entry.example && (
-        <p className="tu-sai-card__example">{entry.example}</p>
+        <p className="tu-sai-card__example" lang="en">{entry.example}</p>
+      )}
+      {entry.example && entry.exampleTranslation && (
+        <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>
       )}
 
       <div className="tu-sai-card__meta">

@@ -1062,8 +1062,7 @@ function TrangTuLuan({ loai }) {
     batDauLai();
   }
 
-  function capNhatMocReward(e) {
-    const v = Math.max(1, Number(e.target.value) || 1);
+  function capNhatMocReward(v) {
     datLaiPhanThuong();
     setSoCauDungNhanThuong(v);
     luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: v });
@@ -1146,6 +1145,8 @@ function TrangTuLuan({ loai }) {
   }
 
   const theHienTai = danhSachThe[chiSo];
+  // Khối có `layout` chỉ đo lại vị trí khi một khối trong form hiện/ẩn — không đo theo từng phím gõ
+  const phuThuocBoCuc = `${chiSo}|${daKiemTra}|${ketQuaDung}|${daBoQua}|${dangChoNhanEnterSauSai}|${cheDoNhapLai.active}|${hienGoiY}`;
   const hieuUngThuong = (
     <RewardTikTokEffect
       active={batReward && hienReward}
@@ -1287,6 +1288,7 @@ function TrangTuLuan({ loai }) {
             <input
               ref={inputRef}
               type="text"
+              aria-label="Đáp án của bạn"
               // Bàn phím điện thoại không được tự viết hoa / tự sửa từ người học đang gõ
               autoComplete="off"
               autoCapitalize="off"
@@ -1318,6 +1320,7 @@ function TrangTuLuan({ loai }) {
                 type="button"
                 key="answer"
                 layout
+                layoutDependency={phuThuocBoCuc}
                 initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 animate={{ opacity: 1, y: 0, scaleY: 1 }}
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
@@ -1349,6 +1352,7 @@ function TrangTuLuan({ loai }) {
               <motion.div
                 key="wrong-answer-reveal"
                 layout
+                layoutDependency={phuThuocBoCuc}
                 initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 animate={{ opacity: 1, y: 0, scaleY: 1 }}
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
@@ -1377,6 +1381,7 @@ function TrangTuLuan({ loai }) {
               <motion.div
                 key="nhap-lai-hint"
                 layout
+                layoutDependency={phuThuocBoCuc}
                 initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 animate={{ opacity: 1, y: 0, scaleY: 1 }}
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
@@ -1410,6 +1415,7 @@ function TrangTuLuan({ loai }) {
               <motion.div
                 key="hint"
                 layout
+                layoutDependency={phuThuocBoCuc}
                 initial={{ opacity: 0, y: -8, scaleY: 0.96 }}
                 animate={{ opacity: 1, y: 0, scaleY: 1 }}
                 exit={{ opacity: 0, y: -8, scaleY: 0.96 }}
@@ -1434,6 +1440,7 @@ function TrangTuLuan({ loai }) {
           {daBoQua && (
             <motion.div
               layout
+              layoutDependency={phuThuocBoCuc}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
             >
               <button
@@ -1450,6 +1457,7 @@ function TrangTuLuan({ loai }) {
           {dangChoNhanEnterSauSai && (
             <motion.div
               layout
+              layoutDependency={phuThuocBoCuc}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -1472,6 +1480,7 @@ function TrangTuLuan({ loai }) {
           {!daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active && (
             <motion.div
               layout
+              layoutDependency={phuThuocBoCuc}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="grid gap-3 sm:grid-cols-3"
             >
@@ -1503,6 +1512,7 @@ function TrangTuLuan({ loai }) {
           {cheDoNhapLai.active && !daKiemTra && (
             <motion.div
               layout
+              layoutDependency={phuThuocBoCuc}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}

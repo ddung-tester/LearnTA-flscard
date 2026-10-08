@@ -17,6 +17,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { getStoredAuthToken } from "../../services/api";
 import { luuTuSaiDongBo, danhDauDaOnDongBo } from "../../utils/mistakeNotebook";
 import {
   ghiNhanDungVaoSRS,
@@ -70,7 +71,10 @@ function DanhSachTuKetQua({ danhSach, dung, levelTruoc }) {
               </span>
             </div>
             {card.example_sentence && (
-              <p className="ui-word-example">{card.example_sentence}</p>
+              <p className="ui-word-example" lang="en">{card.example_sentence}</p>
+            )}
+            {card.example_sentence && card.example_translation && (
+              <p className="mt-1 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{card.example_translation}</p>
             )}
           </li>
         );
@@ -281,6 +285,8 @@ function StudyResult({
           </button>
         )}
         {dangLuu && <p role="status">Đang đồng bộ kết quả...</p>}
+
+        {!loiLuu && !dangLuu && !getStoredAuthToken() && <p role="status">Kết quả được lưu trên thiết bị này. Đăng nhập trước khi học để lưu vào tài khoản.</p>}
 
         <div className="study-result__ring-wrap">
           <ScoreRing percent={tiLeDung} size={120} strokeWidth={10} />

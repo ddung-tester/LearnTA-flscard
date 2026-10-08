@@ -22,7 +22,7 @@ const CORRECT_RESULTS = new Set(["correct", "hard", "good", "easy"]);
 const WRONG_RESULTS = new Set(["wrong", "again"]);
 const VALID_STATUSES = new Set(["active", "mastered"]);
 
-const READABLE_DECK = "(d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE)";
+const READABLE_DECK = "d.user_id = ?";
 
 const REVIEW_SELECT = `SELECT
        cp.id,
@@ -33,6 +33,7 @@ const REVIEW_SELECT = `SELECT
        c.term_en,
        c.meaning_vi,
        c.example_sentence,
+       c.example_translation,
        cp.mastery_level,
        cp.review_count,
        cp.last_reviewed_at,
@@ -84,6 +85,7 @@ function normalizeReview(row) {
     term_en: row.term_en,
     meaning_vi: row.meaning_vi,
     example_sentence: row.example_sentence || null,
+    example_translation: row.example_translation || null,
     level,
     review_count: Number(row.review_count || 0),
     last_reviewed_at: row.last_reviewed_at,

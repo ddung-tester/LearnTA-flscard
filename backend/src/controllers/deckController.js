@@ -125,7 +125,9 @@ function sameId(left, right) {
 }
 
 function canReadDeck(deck, userId) {
-  return deck.user_id === null || deck.is_public || sameId(deck.user_id, userId);
+  return userId === null || userId === undefined
+    ? deck.user_id === null
+    : sameId(deck.user_id, userId);
 }
 
 function isDeckOwner(deck, userId) {
@@ -188,13 +190,13 @@ async function assertUniqueDeckTitle(userId, title, excludeDeckId = null) {
 // Bộ từ thuộc lộ trình / khoá học chỉ hiện ở trang Khoá học, không lẫn vào "Bộ từ"
 const KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC = "rd.id IS NULL AND cl.id IS NULL";
 
-// scope=learnable (trang Luyện tập): mọi bộ học được — nội dung chung (user_id NULL) và bộ của mình,
+// scope=learnable (trang Luyện tập): khách đọc bộ mẫu, tài khoản đọc bộ của mình,
 // xếp theo nhóm nguồn: bộ tự tạo, bộ mẫu, khoá học (theo buổi), lộ trình (theo chặng)
 async function listLearnableDecks(req, res) {
   const userId = currentUserId(req);
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE d.user_id IS NULL OR d.user_id = ?
+     WHERE d.user_id <=> ?
      ORDER BY
        CASE WHEN cl.id IS NOT NULL THEN 2 WHEN rd.id IS NOT NULL THEN 3 WHEN d.user_id IS NULL THEN 1 ELSE 0 END,
        cl.course_id, cl.lesson_number, r.sort_order, r.id, rd.sort_order,
@@ -216,7 +218,7 @@ async function listDecks(req, res) {
   if (userId === null) {
     const [rows] = await pool.query(
       `${deckWithStatsSql()}
-       WHERE (d.user_id IS NULL OR d.is_public = TRUE) AND ${KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC}
+       WHERE d.user_id IS NULL AND ${KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC}
        ORDER BY d.updated_at DESC, d.created_at DESC, d.id DESC`,
       [userId]
     );

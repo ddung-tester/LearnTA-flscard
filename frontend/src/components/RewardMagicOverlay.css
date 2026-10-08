@@ -1,4 +1,4 @@
-/* Hiệu ứng thưởng "vòng phép chữ" — xem RewardMagicOverlay.jsx.
+/* Hiệu ứng thưởng "rạch sáng" — xem RewardMagicOverlay.jsx.
    Lúc phát video chỉ còn những thứ compositor tự lo: viền xoay, bụi sao trôi (transform/opacity) và video. */
 
 .reward-magic {
@@ -73,14 +73,14 @@
   opacity: 1;
 }
 
-/* Lòng cổng: clip-path do vòng vẽ đặt (lỗ cháy lan ra); mặc định đóng kín */
+/* Lòng cổng: clip-path do vòng vẽ đặt (khe sáng tách đôi ra hai bên); mặc định đóng kín */
 .reward-magic__long {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   overflow: hidden;
   background: #0d0820;
-  clip-path: circle(0px at 50% 50%);
+  clip-path: inset(0 50% round 22px);
 }
 
 /* Viền xoay: hình vuông conic-gradient lớn quay sau lớp media, lộ ra 2.5px quanh mép —

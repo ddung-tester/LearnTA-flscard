@@ -522,7 +522,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
                   <button
                     type="button"
                     className={`kh-lua-chon__nut${trangThai}`}
-                    onClick={() => traLoiCau(luaChon.key)}
+                    onClick={(e) => {
+                      // Mọi nút sẽ bị disabled ngay sau khi trả lời: bỏ focus trước để không ép layout cả trang lúc commit
+                      e.currentTarget.blur();
+                      traLoiCau(luaChon.key);
+                    }}
                     disabled={Boolean(daTraLoi)}
                     aria-keyshortcuts={`${index + 1} ${luaChon.key}`}
                   >

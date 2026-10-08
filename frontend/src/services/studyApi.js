@@ -22,7 +22,10 @@ function draft(sessionId) {
 export async function taoStudySession(payload) {
   const owner = layPhienKhoHocTap();
   const session = taoStudySessionLocal({ ...payload, sync: { create: payload, remoteId: null } });
-  const pending = api.post("/study-sessions", payload).then((response) => {
+  if (owner.chuSoHuu === "guest") return session;
+  const create = { ...payload, client_request_id: session.id };
+  capNhatStudySessionLocal(session.id, { sync: { ...session.sync, create } });
+  const pending = api.post("/study-sessions", create).then((response) => {
     assertOwner(owner);
     const current = draft(session.id);
     capNhatStudySessionLocal(session.id, { sync: { ...current.sync, remoteId: response.data.id } });
@@ -44,7 +47,9 @@ async function remoteId(sessionId, owner) {
   }
   const current = draft(sessionId);
   if (current.sync.remoteId) return current.sync.remoteId;
-  const response = await api.post("/study-sessions", current.sync.create);
+  const create = { ...current.sync.create, client_request_id: String(sessionId) };
+  capNhatStudySessionLocal(sessionId, { sync: { ...current.sync, create } });
+  const response = await api.post("/study-sessions", create);
   assertOwner(owner);
   capNhatStudySessionLocal(sessionId, { sync: { ...draft(sessionId).sync, remoteId: response.data.id } });
   return response.data.id;
@@ -53,6 +58,7 @@ async function remoteId(sessionId, owner) {
 export async function ketThucStudySession(sessionId, payload) {
   const owner = layPhienKhoHocTap();
   if (String(sessionId).startsWith("local-")) ketThucStudySessionLocal(sessionId, payload);
+  if (owner.chuSoHuu === "guest") return draft(sessionId);
   const id = await remoteId(sessionId, owner);
   const response = await api.patch(`/study-sessions/${id}/finish`, payload);
   assertOwner(owner);
@@ -62,6 +68,7 @@ export async function ketThucStudySession(sessionId, payload) {
 export async function luuStudyAnswers(sessionId, answers) {
   const owner = layPhienKhoHocTap();
   if (String(sessionId).startsWith("local-")) luuStudyAnswersLocal(sessionId, answers);
+  if (owner.chuSoHuu === "guest") return draft(sessionId);
   const id = await remoteId(sessionId, owner);
   const response = await api.post(`/study-sessions/${id}/answers`, { answers });
   assertOwner(owner);
@@ -69,6 +76,7 @@ export async function luuStudyAnswers(sessionId, answers) {
 }
 
 export async function luuQuizResult(payload) {
+  if (layPhienKhoHocTap().chuSoHuu === "guest") return { ...payload, saved: false, local_only: true };
   const response = await api.post("/quiz-results", payload);
   return response.data;
 }
@@ -92,12 +100,18 @@ export function dongBoKetQuaPhien(sessionId) {
   const promise = (async () => {
     const current = draft(sessionId);
     if (!current?.sync?.pending) return;
+    if (owner.chuSoHuu === "guest") {
+      capNhatStudySessionLocal(sessionId, {
+        saved: false, sync: { ...current.sync, localOnly: true, pending: false },
+      });
+      return;
+    }
     await ketThucStudySession(sessionId, current.sync.finish);
     assertOwner(owner);
     if (current.answers.length) await luuStudyAnswers(sessionId, current.answers);
     assertOwner(owner);
     if (current.sync.quiz && !current.sync.quizSaved) {
-      await luuQuizResult(current.sync.quiz);
+      await luuQuizResult({ ...current.sync.quiz, client_request_id: String(sessionId) });
       assertOwner(owner);
       capNhatStudySessionLocal(sessionId, { sync: { ...draft(sessionId).sync, quizSaved: true } });
     }

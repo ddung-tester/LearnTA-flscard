@@ -6,8 +6,8 @@ const { currentUserId } = require("./deckController");
 // Tiến độ đọc từ card_progress: "đã học" = có tiến độ, "đã thuộc" = Lv5.
 
 const SLUG_HOP_LE = /^[a-z0-9-]{1,80}$/;
-// Chỉ lấy bộ từ mà ai cũng đọc được, phòng khi lộ trình bị gắn nhầm bộ từ riêng tư
-const BO_TU_CONG_KHAI = "(d.user_id IS NULL OR d.is_public = TRUE)";
+// Khách đọc bộ mẫu; tài khoản chỉ đọc bộ thuộc chính mình, kể cả trong lộ trình.
+const BO_TU_DOC_DUOC = "d.user_id <=> ?";
 
 function soNguyen(value) {
   return Number(value || 0);
@@ -46,12 +46,12 @@ async function listRoadmaps(req, res) {
        COALESCE(SUM(cp.mastery_level >= 5), 0) AS mastered_count
      FROM roadmaps r
      LEFT JOIN roadmap_decks rd ON rd.roadmap_id = r.id
-     LEFT JOIN decks d ON d.id = rd.deck_id AND ${BO_TU_CONG_KHAI}
+     LEFT JOIN decks d ON d.id = rd.deck_id AND ${BO_TU_DOC_DUOC}
      LEFT JOIN cards c ON c.deck_id = d.id
      LEFT JOIN card_progress cp ON cp.card_id = c.id AND cp.user_id = ?
      GROUP BY r.id
      ORDER BY r.sort_order ASC, r.id ASC`,
-    [userId]
+    [userId, userId]
   );
 
   res.json(
@@ -95,10 +95,10 @@ async function getRoadmap(req, res) {
      JOIN decks d ON d.id = rd.deck_id
      LEFT JOIN cards c ON c.deck_id = d.id
      LEFT JOIN card_progress cp ON cp.card_id = c.id AND cp.user_id = ?
-     WHERE rd.roadmap_id = ? AND ${BO_TU_CONG_KHAI}
+     WHERE rd.roadmap_id = ? AND ${BO_TU_DOC_DUOC}
      GROUP BY d.id, rd.sort_order
      ORDER BY rd.sort_order ASC, d.id ASC`,
-    [userId, roadmap.id]
+    [userId, roadmap.id, userId]
   );
 
   res.json({

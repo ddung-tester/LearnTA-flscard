@@ -22,6 +22,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
+import ThanhTiepTuc from "../components/common/ThanhTiepTuc";
 import "./TrangOnTapHomNay.css";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
@@ -287,14 +288,14 @@ function KetQuaDungOnTap({ entry, onTiepTuc }) {
   return (
     <div className="review-card__result ui-feedback-pop">
       <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
-      {entry.example && <p className="review-card__example">{entry.example}</p>}
-      <button
-        type="button"
-        onClick={onTiepTuc}
-        className="ui-button ui-button--primary px-5 py-2 text-xs font-bold rounded-xl shadow-sm"
-      >
-        Tiếp tục (Enter ↵)
-      </button>
+      {entry.example && <p className="review-card__example" lang="en">{entry.example}</p>}
+      {entry.example && entry.exampleTranslation && <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>}
+      <ThanhTiepTuc dung onTiepTuc={onTiepTuc}>
+        <span className="ui-thanh-tiep-tuc__nhan">Chính xác!</span>
+        <span className="ui-thanh-tiep-tuc__dap-an">
+          <strong>{entry.word}</strong> · {entry.meaning}
+        </span>
+      </ThanhTiepTuc>
     </div>
   );
 }
@@ -508,7 +509,10 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             <EmojiDong tu={entry.word} className="review-card__emoji" />
             <p className="review-card__meaning">{entry.meaning}</p>
             {entry.example && (
-              <p className="review-card__example">{entry.example}</p>
+              <p className="review-card__example" lang="en">{entry.example}</p>
+            )}
+            {entry.example && entry.exampleTranslation && (
+              <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>
             )}
           </div>
         )}

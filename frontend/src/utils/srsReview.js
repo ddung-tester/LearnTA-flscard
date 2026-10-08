@@ -120,6 +120,7 @@ function chuanHoaSRSTuBackend(item) {
     word: item.term_en ?? "",
     meaning: item.meaning_vi ?? "",
     example: item.example_sentence ?? null,
+    exampleTranslation: item.example_translation ?? null,
     level,
     reviewCount: item.review_count ?? 0,
     lastReviewedAt: item.last_reviewed_at ?? null,
@@ -216,6 +217,7 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
         word: card.term_en ?? card.word ?? "",
         meaning: card.meaning_vi ?? card.meaning ?? "",
         example: card.example_sentence ?? card.example ?? null,
+        exampleTranslation: card.example_translation ?? card.exampleTranslation ?? null,
         source: source,
         level: 0,
         reviewCount: 0,
@@ -230,6 +232,9 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
         word: card.term_en ?? card.word ?? cu.word,
         meaning: card.meaning_vi ?? card.meaning ?? cu.meaning,
         example: card.example_sentence ?? card.example ?? cu.example,
+        exampleTranslation: card.example_translation !== undefined ? card.example_translation
+          : card.exampleTranslation !== undefined ? card.exampleTranslation
+          : (card.example_sentence ?? card.example ?? cu.example) === cu.example ? cu.exampleTranslation : null,
         deckTitle: deckTitle ?? cu.deckTitle,
         updatedAt: now,
       };

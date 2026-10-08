@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS cards (
   term_en VARCHAR(255) NOT NULL,
   meaning_vi VARCHAR(255) NOT NULL,
   example_sentence TEXT,
+  example_translation TEXT,
   note TEXT,
 
   pronunciation VARCHAR(255),
@@ -78,6 +79,8 @@ CREATE TABLE IF NOT EXISTS cards (
 CREATE TABLE IF NOT EXISTS study_sessions (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NULL,
+  client_request_id VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  request_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
   deck_id BIGINT UNSIGNED NOT NULL,
 
   mode ENUM(
@@ -113,6 +116,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
     FOREIGN KEY (deck_id) REFERENCES decks(id)
     ON DELETE CASCADE,
 
+  UNIQUE KEY uq_study_sessions_user_request (user_id, client_request_id),
   INDEX idx_study_sessions_user_id (user_id),
   INDEX idx_study_sessions_deck_id (deck_id),
   INDEX idx_study_sessions_user_mode (user_id, mode),
@@ -257,6 +261,8 @@ CREATE TABLE IF NOT EXISTS card_reviews (
 CREATE TABLE IF NOT EXISTS quiz_results (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NULL,
+  client_request_id VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  request_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
   deck_id BIGINT UNSIGNED NOT NULL,
 
   question_type ENUM(
@@ -281,6 +287,7 @@ CREATE TABLE IF NOT EXISTS quiz_results (
     ON DELETE CASCADE,
 
   INDEX idx_quiz_results_deck_id (deck_id),
+  UNIQUE KEY uq_quiz_results_user_request (user_id, client_request_id),
   INDEX idx_quiz_results_user_id (user_id),
   INDEX idx_quiz_results_created_at (created_at)
 ) ENGINE=InnoDB;

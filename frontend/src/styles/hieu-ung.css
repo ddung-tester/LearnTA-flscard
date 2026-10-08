@@ -92,8 +92,10 @@
   inset: -2px;
   border-radius: inherit;
   pointer-events: none;
-  box-shadow: 0 0 0 0 color-mix(in oklch, var(--hu-mau-dung) 70%, transparent);
-  animation: hu-vong-sang 900ms ease-out 80ms both;
+  /* Bóng vẽ sẵn một lần, chỉ phóng to + mờ dần (compositor lo) — không animate box-shadow từng khung */
+  box-shadow: 0 0 0 7px color-mix(in oklch, var(--hu-mau-dung) 55%, transparent);
+  opacity: 0;
+  animation: hu-vong-sang-lop 900ms ease-out 80ms both;
 }
 
 .ui-dap-an-3d.ui-answer-correct .ui-answer-dau {
@@ -168,6 +170,18 @@
 
   100% {
     box-shadow: 0 0 0 16px color-mix(in oklch, var(--hu-mau-dung) 0%, transparent);
+  }
+}
+
+@keyframes hu-vong-sang-lop {
+  0% {
+    opacity: 1;
+    transform: scale(0.99, 0.92);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.05, 1.32);
   }
 }
 
@@ -1481,10 +1495,6 @@ body.has-video-background--app .roadmap-card {
   transition: transform 180ms ease-out;
 }
 
-.meo-hoc__tai {
-  transform-box: fill-box;
-}
-
 /* Đầu, đuôi, mắt là cả lớp phủ khung 120×112: tâm xoay/co tính theo % khung,
    đúng điểm cũ của nhóm <g> (đầu: giữa cằm (60, 70.6); đuôi: gốc (84, 94); mắt: (60, 50)) */
 .meo-hoc__dau {
@@ -1495,12 +1505,13 @@ body.has-video-background--app .roadmap-card {
   transform-origin: 50% 44.6%;
 }
 
+/* Tai: lớp phủ khung, tâm xoay ở chân tai (trái (52.2, 42); phải (67.8, 42)) */
 .meo-hoc__tai--trai {
-  transform-origin: 80% 100%;
+  transform-origin: 43.5% 37.5%;
 }
 
 .meo-hoc__tai--phai {
-  transform-origin: 20% 100%;
+  transform-origin: 56.5% 37.5%;
 }
 
 .meo-hoc__duoi {
@@ -1540,18 +1551,9 @@ body.has-video-background--app .roadmap-card {
     animation: meo-nhay 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) 3;
   }
 
-  .meo-hoc__lap-lanh path {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
+  /* Tâm xoay + độ trễ từng ngôi sao đặt inline (MeoHocCung) */
+  .meo-hoc__lap-lanh {
     animation: meo-lap-lanh 0.9s ease-in-out infinite;
-  }
-
-  .meo-hoc__lap-lanh path:nth-child(2) {
-    animation-delay: 0.3s;
-  }
-
-  .meo-hoc__lap-lanh path:nth-child(3) {
-    animation-delay: 0.55s;
   }
 
   .meo-hoc--buon .meo-hoc__dau {
@@ -1586,16 +1588,8 @@ body.has-video-background--app .roadmap-card {
     animation: none;
   }
 
-  .meo-hoc__zzz text {
+  .meo-hoc__zzz {
     animation: meo-zzz 2.4s ease-in-out infinite;
-  }
-
-  .meo-hoc__zzz text:nth-child(2) {
-    animation-delay: 0.5s;
-  }
-
-  .meo-hoc__zzz text:nth-child(3) {
-    animation-delay: 1s;
   }
 }
 
@@ -1692,16 +1686,17 @@ body.has-video-background--app .roadmap-card {
   }
 }
 
+/* Dịch theo % khung 120×112 (3 và 6 đơn vị SVG) để lớp phủ đi đúng quãng như khi dịch trong SVG */
 @keyframes meo-mo-hoi {
   0% {
-    transform: translateY(-3px);
+    transform: translateY(-2.68%);
     opacity: 0;
   }
   30% {
     opacity: 1;
   }
   100% {
-    transform: translateY(6px);
+    transform: translateY(5.36%);
     opacity: 0;
   }
 }
@@ -1733,14 +1728,14 @@ body.has-video-background--app .roadmap-card {
 @keyframes meo-zzz {
   0% {
     opacity: 0;
-    transform: translate(0, 4px);
+    transform: translate(0, 3.57%);
   }
   40% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translate(4px, -6px);
+    transform: translate(3.33%, -5.36%);
   }
 }
 

@@ -1278,6 +1278,9 @@ function TrangChiTietBo() {
                       {the.example_sentence}
                     </p>
                   )}
+                  {the.example_sentence && the.example_translation && (
+                    <p className="mt-1 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{the.example_translation}</p>
+                  )}
 
                   {!dangBatChinhSua && (
                     <div className="ui-card-status-row">
@@ -1658,6 +1661,9 @@ function TrangChiTietBo() {
                 }}>
                   <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--mau-chinh)", marginBottom: "0.4rem" }}>Ví dụ</p>
                   <p style={{ fontSize: "0.92rem", color: "var(--mau-chu)", lineHeight: 1.6, fontStyle: "italic" }} lang="en">{chiTietTu.example_sentence}</p>
+                  {chiTietTu.example_translation && (
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{chiTietTu.example_translation}</p>
+                  )}
                 </div>
               )}
 

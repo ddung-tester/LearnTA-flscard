@@ -1851,6 +1851,214 @@ body.is-page-loading .page-transition-root {
   -webkit-appearance: none;
 }
 
+/* Ô số có nút −/+ (mốc thưởng) */
+.ui-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ui-stepper__nut {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.62rem;
+  background: var(--mau-input);
+  color: var(--mau-chu);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ui-stepper__nut:hover:not(:disabled) {
+  border-color: var(--mau-chinh);
+}
+
+.ui-stepper__nut:active:not(:disabled) {
+  background: color-mix(in srgb, var(--mau-chinh) 18%, var(--mau-input));
+}
+
+.ui-stepper__nut:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ui-stepper__nut:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.ui-stepper__o {
+  height: 2rem;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .ui-stepper__nut,
+  .ui-stepper__o {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* Thanh kết quả + Tiếp tục (ThanhTiepTuc). Máy tính: nằm trong luồng trang; màn hẹp: dính đáy màn hình */
+.ui-thanh-tiep-tuc {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem 1rem;
+  overflow: hidden;
+  text-align: center;
+}
+
+.ui-thanh-tiep-tuc__ket-qua {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ui-thanh-tiep-tuc__nhan {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.ui-thanh-tiep-tuc--dung .ui-thanh-tiep-tuc__nhan {
+  color: var(--mau-thanh-cong);
+}
+
+.ui-thanh-tiep-tuc--sai .ui-thanh-tiep-tuc__nhan {
+  color: var(--mau-loi);
+}
+
+.ui-thanh-tiep-tuc__dap-an {
+  overflow-wrap: anywhere;
+  color: var(--mau-chu);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.ui-thanh-tiep-tuc__nut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 1.4rem;
+  border-radius: 0.85rem;
+  font-weight: 700;
+}
+
+.ui-thanh-tiep-tuc__phim {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 0.3rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  opacity: 0.85;
+}
+
+/* Máy cảm ứng không có phím Enter */
+@media (hover: none) and (pointer: coarse) {
+  .ui-thanh-tiep-tuc__phim {
+    display: none;
+  }
+}
+
+/* Vạch đếm ngược khi trang tự chuyển câu */
+.ui-thanh-tiep-tuc__dem-nguoc {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: currentColor;
+  color: var(--mau-loi);
+  opacity: 0.55;
+  transform-origin: left;
+  animation: ui-dem-nguoc linear forwards;
+}
+
+@keyframes ui-dem-nguoc {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Màn hẹp: thanh dính đáy, nút to hết bề ngang trong tầm ngón cái */
+.ui-thanh-tiep-tuc--co-dinh {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 210;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 2px solid var(--mau-vien);
+  background: var(--mau-mat);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+  text-align: left;
+  animation: ui-thanh-truot-len 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-thanh-tiep-tuc--co-dinh.ui-thanh-tiep-tuc--dung {
+  border-top-color: var(--mau-thanh-cong);
+  background: color-mix(in srgb, var(--mau-thanh-cong) 8%, var(--mau-mat));
+}
+
+.ui-thanh-tiep-tuc--co-dinh.ui-thanh-tiep-tuc--sai {
+  border-top-color: var(--mau-loi);
+  background: color-mix(in srgb, var(--mau-loi) 7%, var(--mau-mat));
+}
+
+.ui-thanh-tiep-tuc--co-dinh .ui-thanh-tiep-tuc__ket-qua {
+  flex: 1;
+}
+
+.ui-thanh-tiep-tuc--co-dinh .ui-thanh-tiep-tuc__nut {
+  flex-shrink: 0;
+  min-width: 8.5rem;
+  min-height: 3rem;
+  font-size: 1rem;
+}
+
+.ui-thanh-tiep-tuc--co-dinh .ui-thanh-tiep-tuc__dem-nguoc {
+  top: 0;
+  bottom: auto;
+}
+
+/* Chừa chỗ trong trang để nội dung cuối không bị thanh che */
+.ui-thanh-tiep-tuc__cho-trong {
+  height: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+.chatbot-bubble.chatbot-bubble--nhuong-cho {
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+@keyframes ui-thanh-truot-len {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-thanh-tiep-tuc--co-dinh {
+    animation: none;
+  }
+}
+
 .ui-chip--control {
   min-height: 2rem;
   padding: 0.34rem 0.85rem;

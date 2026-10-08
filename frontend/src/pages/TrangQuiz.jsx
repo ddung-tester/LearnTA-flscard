@@ -299,8 +299,7 @@ function TrangQuiz({ loai }) {
     luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
   }
 
-  function capNhatMocReward(event) {
-    const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
+  function capNhatMocReward(giaTriMoi) {
     datLaiPhanThuong();
     setSoCauDungNhanThuong(giaTriMoi);
     luuCaiDatHocTap(cauHinh.khoaCaiDat, { cheDo, chiHocTuYeuThich, batRandom, soCauDungNhanThuong: giaTriMoi });
@@ -687,7 +686,11 @@ function TrangQuiz({ loai }) {
         )}
 
         {daTraLoi && !traLoiDung && (
-          <PhanHoiSaiTracNghiem dapAnDung={cauHienTai.dapAnDung} onTiepTuc={() => chuyenCauMem()} />
+          <PhanHoiSaiTracNghiem
+            dapAnDung={cauHienTai.dapAnDung}
+            onTiepTuc={() => chuyenCauMem()}
+            tuChuyenMs={phanThuong.dangBan ? 0 : 2000}
+          />
         )}
       </div>
     </>

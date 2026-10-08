@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { phatAm } from "../utils/amThanh";
-import { clipTuDiem, diemMepChay, em, taoDongCo, taoDuongBay } from "./reward/dongCoPhepThuat";
+import { em, taoDongCo, taoDuongBay } from "./reward/dongCoPhepThuat";
 import "./RewardMagicOverlay.css";
 
 /*
- * Hiệu ứng thưởng "vòng phép chữ":
- *  tụ phép xoáy ốc ở đầu thanh tiến độ (chờ video sẵn sàng) → tia năng lượng lụa bay cong → chạm đích bùng tia thần
- *  → vòng phép ghi chính từ vừa làm đúng tự viết ra tại cổng → vòng tia lửa xoáy mở cổng từ giữa ra → phát video.
- *  Đóng: vòng phép hiện lại, cổng khép, đốm sáng bay về thanh tiến độ.
+ * Hiệu ứng thưởng "rạch sáng":
+ *  tụ năng lượng ở đầu thanh tiến độ (chờ video sẵn sàng) → tia năng lượng lụa bay cong → chạm đích bùng tia thần
+ *  → một đường sáng dọc rạch đôi cổng, từ vừa làm đúng hiện giữa đường rạch → hai mép sáng tách sang hai bên lộ video.
+ *  Đóng: hai mép khép về giữa, đường rạch thu thành đốm, đốm sáng bay về thanh tiến độ.
  */
 
-const THOI_GIAN = { tu: 420, bay: 640, trieuHoi: 440, mo: 600, dong: 360, ve: 380 };
+const THOI_GIAN = { tu: 420, bay: 640, rach: 520, mo: 560, dong: 300, thu: 120, ve: 360 };
 const BAN_KINH_CONG = 22;
 
 const TENSE_LABEL = {
@@ -84,9 +84,6 @@ function RewardMagicOverlay({
           ...c,
           rect: r,
           tam: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
-          rMax: Math.hypot(r.width, r.height) / 2,
-          // Vòng phép vừa lòng cổng
-          R: Math.min(r.width, r.height) * 0.44,
         };
       });
   }
@@ -134,11 +131,10 @@ function RewardMagicOverlay({
     vongRef.current = window.requestAnimationFrame(khung);
   }
 
-  function veLoChay(cacCong, R, bienDo, pha, dongCo, chieu) {
+  // Lòng cổng lộ ra một dải dọc giữa, rộng mo (0→1) bề ngang cổng
+  function datKheMo(cacCong, mo) {
     for (const c of cacCong) {
-      const ds = diemMepChay(c.tam, R, bienDo, pha);
-      c.long.style.clipPath = clipTuDiem(ds, c.rect);
-      dongCo.veMepChay(ds, c.rect, c.tam, BAN_KINH_CONG, chieu);
+      c.long.style.clipPath = `inset(0 ${((c.rect.width / 2) * (1 - mo)).toFixed(1)}px round ${BAN_KINH_CONG}px)`;
     }
   }
 
@@ -176,7 +172,6 @@ function RewardMagicOverlay({
 
     const nguon = layDiemNguon(moiNhatRef.current.originRect);
     const k = 1 + Math.min(moiNhatRef.current.combo || 0, 10) * 0.06;
-    const phaMep = Math.random() * 10;
     let pha = "tu";
     let moc = 0;
 
@@ -209,7 +204,7 @@ function RewardMagicOverlay({
         if (u >= 1) {
           for (const c of cacCong) dongCo.no(c.tam, k);
           phatAm("phepNo");
-          pha = "trieuHoi";
+          pha = "rach";
           moc = t;
         }
         return true;
@@ -217,10 +212,12 @@ function RewardMagicOverlay({
 
       const tuVungHienTai = moiNhatRef.current.tuVung;
 
-      if (pha === "trieuHoi") {
-        const v = Math.min(1, (t - moc) / THOI_GIAN.trieuHoi);
+      if (pha === "rach") {
+        const v = Math.min(1, (t - moc) / THOI_GIAN.rach);
+        const dai = Math.min(1, v / 0.55);
         for (const c of cacCong) {
-          dongCo.veVongPhep(c.tam, c.R, t, { hien: em.raLapPhuong(v), co: 0.92 + 0.08 * em.raLapPhuong(v), tuVung: tuVungHienTai });
+          dongCo.veRach(c.tam, c.rect, BAN_KINH_CONG, em.raMu(dai));
+          dongCo.veChuGiua(c.tam, c.rect, tuVungHienTai, Math.min(1, Math.max(0, (v - 0.15) / 0.6)), t);
         }
         if (v >= 1) {
           pha = "mo";
@@ -231,14 +228,15 @@ function RewardMagicOverlay({
 
       if (pha === "mo") {
         const v = Math.min(1, (t - moc) / THOI_GIAN.mo);
-        const bienDo = 14 * (1 - v) + 3;
-        const rMax = Math.max(...cacCong.map((c) => c.rMax));
-        // Vòng phép phình ra, nhạt dần trong khi vòng lửa mở cổng
+        const mo = em.vaoRa(v);
+        datKheMo(cacCong, mo);
         for (const c of cacCong) {
-          dongCo.veVongPhep(c.tam, c.R, t, { sang: 1 - em.raLapPhuong(v), co: 1 + 0.4 * em.raLapPhuong(v), tuVung: tuVungHienTai });
+          // Chữ tan theo hai mép tách ra
+          dongCo.veChuGiua(c.tam, c.rect, tuVungHienTai, 1 - Math.min(1, v * 2.2), t);
+          dongCo.veTachDoi(c.tam, c.rect, BAN_KINH_CONG, mo, 1);
         }
-        veLoChay(cacCong, em.raLapPhuong(v) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo, 1);
         if (v >= 1) {
+          for (const c of cacCong) dongCo.loeKhung(c.rect, BAN_KINH_CONG);
           moCong();
           pha = "xong";
         }
@@ -272,8 +270,6 @@ function RewardMagicOverlay({
     const cacCong = layCacCong();
     const nguon = layDiemNguon(moiNhatRef.current.originRect);
     const k = 1 + Math.min(moiNhatRef.current.combo || 0, 10) * 0.06;
-    const rMax = Math.max(0, ...cacCong.map((c) => c.rMax));
-    const phaMep = Math.random() * 10;
     // Cổng chưa kịp mở (đóng sớm) thì không có gì để khép — chỉ tắt đèn
     let pha = daMoRef.current ? "dong" : "het";
     let moc = 0;
@@ -282,15 +278,23 @@ function RewardMagicOverlay({
     chay((t, dt, dongCo) => {
       if (pha === "dong") {
         const v = Math.min(1, t / THOI_GIAN.dong);
-        const bienDo = 3 + 12 * v;
-        // Vòng phép hiện lại, co vào cùng cổng
-        for (const c of cacCong) {
-          dongCo.veVongPhep(c.tam, c.R, t, { sang: Math.sin(v * Math.PI) * 0.9, co: 1.3 - 0.5 * v, tuVung: moiNhatRef.current.tuVung });
+        const mo = 1 - em.vaoLapPhuong(v);
+        datKheMo(cacCong, mo);
+        for (const c of cacCong) dongCo.veTachDoi(c.tam, c.rect, BAN_KINH_CONG, mo, -1);
+        if (v >= 1) {
+          for (const c of cacCong) c.long.style.clipPath = "";
+          pha = "thu";
+          moc = t;
         }
-        veLoChay(cacCong, (1 - em.vaoLapPhuong(v)) * (rMax + bienDo + 4), bienDo, t * 0.005 + phaMep, dongCo, -1);
+        return true;
+      }
+
+      if (pha === "thu") {
+        // Đường rạch còn lại thu ngắn về tâm
+        const v = Math.min(1, (t - moc) / THOI_GIAN.thu);
+        for (const c of cacCong) dongCo.veRach(c.tam, c.rect, BAN_KINH_CONG, 1 - em.vaoLapPhuong(v), 1 - v * 0.5);
         if (v >= 1) {
           for (const c of cacCong) {
-            c.long.style.clipPath = "";
             dongCo.chop(c.tam, k);
             c.duong = taoDuongBay(c.tam, nguon, compact ? "s" : "cung");
             c.truoc = c.tam;

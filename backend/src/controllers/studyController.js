@@ -14,6 +14,8 @@ const {
   parsePositiveInt,
 } = require("../utils/http");
 
+const { parseClientRequestId, requestFingerprint, insertOnce } = require("../utils/studyIdempotency");
+
 const VALID_MODES = new Set([
   "flashcard",
   "quiz",
@@ -206,7 +208,6 @@ function parseOptionalJsonPayload(value, fieldName) {
 }
 
 function assertSessionOwner(session, userId) {
-  if (session.user_id === null && userId === null) return;
   if (session.user_id !== null && String(session.user_id) === String(userId)) return;
 
   throw createHttpError(403, "Khong co quyen cap nhat phien hoc nay");
@@ -261,15 +262,24 @@ async function createStudySession(req, res) {
     throw createHttpError(400, "correct + review phai bang total");
   }
 
+  const requestId = parseClientRequestId(req.body.client_request_id);
+  const fingerprint = requestId ? requestFingerprint([
+    deckId, mode, direction, onlyFavorite, randomOrder,
+    startedAt, endedAt, durationSeconds, total, correct, review,
+    xpEarned, maxCombo, segmentSize, segmentTotal, segmentCompleted, progressSegments,
+  ]) : null;
   const connection = await pool.getConnection();
   let session;
+  let replayed = false;
 
   try {
     await connection.beginTransaction();
-    const [result] = await connection.execute(
+    const result = await insertOnce(connection, "study_sessions", userId, requestId, fingerprint, () => connection.execute(
       `INSERT INTO study_sessions
         (
           user_id,
+          client_request_id,
+          request_hash,
           deck_id,
           mode,
           direction,
@@ -288,9 +298,11 @@ async function createStudySession(req, res) {
           segment_completed,
           progress_segments
         )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
+        requestId,
+        fingerprint,
         deckId,
         mode,
         direction,
@@ -309,11 +321,12 @@ async function createStudySession(req, res) {
         segmentCompleted,
         progressSegments,
       ]
-    );
+    ));
 
-    session = await findSessionById(result.insertId, connection);
+    replayed = result.replayed;
+    session = await findSessionById(result.id, connection);
 
-    if (endedAt && userId && correct > 0) {
+    if (!replayed && endedAt && userId && correct > 0) {
       await updateUserStreak(connection, userId, {
         xpEarned,
         cardsReviewed: total,
@@ -329,7 +342,7 @@ async function createStudySession(req, res) {
     connection.release();
   }
 
-  res.status(201).json(session);
+  res.status(replayed ? 200 : 201).json(session);
 }
 
 async function finishStudySession(req, res) {
@@ -757,36 +770,29 @@ async function createQuizResult(req, res) {
     return;
   }
 
-  const [result] = await pool.execute(
-    `INSERT INTO quiz_results
-      (
-        user_id,
-        deck_id,
-        question_type,
-        direction,
-        correct,
-        review,
-        total,
-        progress_segments
-      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      userId,
-      deckId,
-      questionType,
-      direction,
-      correct,
-      review,
-      total,
-      progressSegments,
-    ]
-  );
-
-  const [rows] = await pool.query("SELECT * FROM quiz_results WHERE id = ?", [
-    result.insertId,
-  ]);
-
-  res.status(201).json(normalizeQuizResult(rows[0]));
+  const requestId = parseClientRequestId(req.body.client_request_id);
+  const fingerprint = requestId ? requestFingerprint([
+    deckId, questionType, direction, correct, review, total, progressSegments,
+  ]) : null;
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const result = await insertOnce(connection, "quiz_results", userId, requestId, fingerprint, () => connection.execute(
+      `INSERT INTO quiz_results
+        (user_id, client_request_id, request_hash, deck_id, question_type, direction,
+         correct, review, total, progress_segments)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, requestId, fingerprint, deckId, questionType, direction, correct, review, total, progressSegments]
+    ));
+    const [rows] = await connection.query("SELECT * FROM quiz_results WHERE id = ?", [result.id]);
+    await connection.commit();
+    res.status(result.replayed ? 200 : 201).json(normalizeQuizResult(rows[0]));
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function getLatestQuizResult(req, res) {

@@ -7,6 +7,29 @@ import useTTS from "../../hooks/useTTS";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 24, mass: 0.85 };
 
+export function CauNoiBat({ sentence = "", highlight = "" }) {
+  const lowerSentence = sentence.toLowerCase();
+  const lowerHighlight = highlight.toLowerCase();
+  let start = highlight ? lowerSentence.indexOf(lowerHighlight) : -1;
+  while (start >= 0) {
+    const before = sentence[start - 1] || "";
+    const after = sentence[start + highlight.length] || "";
+    if (!/[\p{L}\p{N}_]/u.test(before) && !/[\p{L}\p{N}_]/u.test(after)) break;
+    start = lowerSentence.indexOf(lowerHighlight, start + 1);
+  }
+  if (start < 0) return sentence;
+  const end = start + highlight.length;
+  return (
+    <>
+      {sentence.slice(0, start)}
+      <mark className="rounded bg-[var(--mau-chinh)]/15 px-0.5 font-bold text-[var(--mau-chinh)]">
+        {sentence.slice(start, end)}
+      </mark>
+      {sentence.slice(end)}
+    </>
+  );
+}
+
 /**
  * TenseItem — card một thì.
  * Phải là top-level component (không định nghĩa bên trong TenseExamplesCard)
@@ -52,7 +75,7 @@ function TenseItem({ item, side, delay = 0, onSpeak, isSpeaking }) {
       </div>
 
       <div className="tec-item__sentence-row">
-        <p className="tec-item__sentence">{item.sentence}</p>
+        <p className="tec-item__sentence"><CauNoiBat sentence={item.sentence} highlight={item.highlight} /></p>
         <button
           type="button"
           onClick={() => onSpeak(item.sentence)}
@@ -92,6 +115,8 @@ export default function TenseExamplesCard({
 }) {
   const { speak, isPlaying } = useTTS();
   const [readingSentence, setReadingSentence] = useState(null);
+  // Màn hẹp: mở sẵn 1 thì, còn lại bấm mới mở — phản hồi không dài cả trang
+  const [moHet, setMoHet] = useState(false);
   const [isWide, setIsWide] = useState(() => window.innerWidth >= 1100);
   const continueBtnRef = useRef(null);
 
@@ -249,7 +274,7 @@ export default function TenseExamplesCard({
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:gap-3.5">
-        {examples.map((item, idx) => {
+        {(moHet ? examples : examples.slice(0, 1)).map((item, idx) => {
           const meta = TENSE_META[item.tense] || {
             nameVi: item.tense, nameEn: "", badgeColor: "var(--mau-chinh)",
           };
@@ -285,7 +310,7 @@ export default function TenseExamplesCard({
               </div>
               <div className="flex items-start justify-between gap-2.5">
                 <p className="text-sm sm:text-base font-semibold text-[var(--mau-chu)] leading-snug">
-                  {item.sentence}
+                  <CauNoiBat sentence={item.sentence} highlight={item.highlight} />
                 </p>
                 <button
                   type="button"
@@ -312,6 +337,19 @@ export default function TenseExamplesCard({
           );
         })}
       </div>
+
+      {!moHet && examples.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setMoHet(true)}
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--mau-vien)] text-sm font-semibold text-[var(--mau-chinh)] transition-colors hover:border-[var(--mau-chinh)]/40 hover:bg-[var(--mau-mat-2)]"
+        >
+          Xem thêm {examples.length - 1} thì
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+      )}
 
       {showContinueButton && onTiepTuc && (
         <div className="mt-4 pt-3 border-t border-[var(--mau-vien)] flex items-center justify-between gap-3">

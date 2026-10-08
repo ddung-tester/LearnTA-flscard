@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { chonKhoHocTap } from "../utils/khoHocTap";
-import { layStudySessionsLocal } from "../utils/studySessionHistory";
+import { layStudySessionsLocal, taoStudySessionLocal } from "../utils/studySessionHistory";
 import { taoStudySession, luuKetQuaPhien, dongBoKetQuaPhien, dongBoKetQuaCho } from "./studyApi";
 
 const api = vi.hoisted(() => ({ post: vi.fn(), patch: vi.fn() }));
@@ -94,4 +94,80 @@ it("shares concurrent retries and does not repeat a saved quiz", async () => {
   await Promise.all([dongBoKetQuaPhien(session.id), dongBoKetQuaPhien(session.id)]);
   await dongBoKetQuaCho();
   expect(api.post.mock.calls.filter(([url]) => url === "/quiz-results")).toHaveLength(1);
+});
+
+
+it("keeps guest results locally without creating or mutating any server session", async () => {
+  chonKhoHocTap(null);
+  const session = await taoStudySession(create);
+  await luuKetQuaPhien(session.id, result);
+  await dongBoKetQuaCho();
+  expect(api.post).not.toHaveBeenCalled();
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(layStudySessionsLocal()[0]).toMatchObject({
+    answers: result.answers, correct: 1, saved: false,
+    sync: { localOnly: true, pending: false },
+  });
+  chonKhoHocTap(2);
+  expect(layStudySessionsLocal()).toEqual([]);
+});
+it("retains old pending guest sessions locally and never retries them against the server", async () => {
+  chonKhoHocTap(null);
+  taoStudySessionLocal({ ...result.finish, ended_at: new Date().toISOString(), answers: result.answers, sync: { create, remoteId: 42, finish: result.finish, pending: true } });
+  await dongBoKetQuaCho();
+  expect(api.post).not.toHaveBeenCalled();
+  expect(api.patch).not.toHaveBeenCalled();
+  expect(layStudySessionsLocal()[0].sync).toMatchObject({ localOnly: true, pending: false });
+});
+
+it("retries a lost create response after reload with the same persisted request key", async () => {
+  const requests = [];
+  let lost = false;
+  api.post.mockImplementation(async (url, payload) => {
+    if (url === "/study-sessions") {
+      requests.push({ ...payload });
+      if (!lost) { lost = true; throw new Error("response lost after commit"); }
+    }
+    return { data: { id: 42 } };
+  });
+  const session = await taoStudySession(create);
+  await expect(luuKetQuaPhien(session.id, result)).rejects.toThrow("response lost");
+  vi.resetModules();
+  (await import("../utils/khoHocTap")).chonKhoHocTap(1);
+  await (await import("./studyApi")).dongBoKetQuaCho();
+  expect(requests).toHaveLength(2);
+  expect(requests[0].client_request_id).toBe(session.id);
+  expect(requests[1]).toEqual(requests[0]);
+  expect(layStudySessionsLocal()[0].saved).toBe(true);
+});
+it("retries a lost quiz response after reload with the same key and different sessions have different keys", async () => {
+  const requests = [];
+  let lost = false;
+  api.post.mockImplementation(async (url, payload) => {
+    if (url === "/quiz-results") {
+      requests.push({ ...payload });
+      if (!lost) { lost = true; throw new Error("quiz response lost after commit"); }
+    }
+    return { data: { id: 42 } };
+  });
+  const session = await taoStudySession(create);
+  await expect(luuKetQuaPhien(session.id, result)).rejects.toThrow("quiz response lost");
+  vi.resetModules();
+  (await import("../utils/khoHocTap")).chonKhoHocTap(1);
+  const reloaded = await import("./studyApi");
+  await reloaded.dongBoKetQuaCho();
+  expect(requests).toHaveLength(2);
+  expect(requests[0].client_request_id).toBe(session.id);
+  expect(requests[1]).toEqual(requests[0]);
+  const next = await reloaded.taoStudySession(create);
+  await reloaded.luuKetQuaPhien(next.id, result);
+  expect(next.id).not.toBe(session.id);
+  expect(requests[2].client_request_id).toBe(next.id);
+});
+
+it("can replay a legacy numeric session id with a string quiz request key", async () => {
+  taoStudySessionLocal({ id: 42, ...result.finish, answers: result.answers, sync: { create, remoteId: 42, finish: result.finish, quiz: result.quiz, pending: true } });
+  await dongBoKetQuaCho();
+  expect(api.post).toHaveBeenCalledWith("/quiz-results", { ...result.quiz, client_request_id: "42" });
+  expect(layStudySessionsLocal()[0].saved).toBe(true);
 });

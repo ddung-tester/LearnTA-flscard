@@ -152,3 +152,12 @@ test("bulk sync only inserts missing progress and skips unreadable cards", async
   assert.equal(db.executed.length, 0);
   assert.equal(skipped.body.synced_count, 0);
 });
+
+test("review reads and card writes only query the authenticated owner's decks", async () => {
+  await reviewController.listDueReviews(fakeReq(), fakeRes());
+  await reviewController.updateReviewResultByCard(fakeReq({ params: { cardId: "5" }, body: { result: "wrong" } }), fakeRes());
+  for (const { sql } of db.queries.filter(call => call.sql.includes("JOIN decks"))) {
+    assert.match(sql, /d\.user_id = \?/);
+    assert.doesNotMatch(sql, /user_id IS NULL|is_public = TRUE/);
+  }
+});

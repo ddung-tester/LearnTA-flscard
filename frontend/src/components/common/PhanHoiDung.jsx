@@ -1,8 +1,10 @@
 import TenseExamplesCard from "./TenseExamplesCard";
+import ThanhTiepTuc from "./ThanhTiepTuc";
+import useManRong from "../../hooks/useManRong";
 import useTTS from "../../hooks/useTTS";
 import { tachCauMau } from "../../utils/phienHoc";
 
-function CauMau({ cau, tu }) {
+function CauMau({ cau, tu, banDich }) {
   const { speak, isPlaying } = useTTS();
   if (!cau) return null;
 
@@ -37,6 +39,9 @@ function CauMau({ cau, tu }) {
           </svg>
         </button>
       </div>
+      {banDich && (
+        <p lang="vi" className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]">{banDich}</p>
+      )}
     </figure>
   );
 }
@@ -46,19 +51,33 @@ function CauMau({ cau, tu }) {
  * "Chính xác!", câu mẫu của thẻ (nếu có) và ví dụ 6 thì kèm nút Tiếp tục.
  */
 export default function PhanHoiDung({ the, termEn, meaningVi, onTiepTuc, className = "" }) {
+  // Máy tính: TenseExamplesCard tự có nút Tiếp tục nổi giữa đáy. Màn hẹp: thanh dính đáy ở dưới.
+  const manRong = useManRong();
+
   return (
     <div className={className}>
       <div className="mb-3 text-center">
         <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
       </div>
-      <CauMau cau={the?.example_sentence} tu={termEn} />
+      <CauMau cau={the?.example_sentence} tu={termEn} banDich={the?.example_translation} />
       <TenseExamplesCard
         card={the}
         termEn={termEn}
         meaningVi={meaningVi}
         onTiepTuc={onTiepTuc}
-        showContinueButton={true}
+        showContinueButton={manRong}
       />
+      {!manRong && (
+        <ThanhTiepTuc dung onTiepTuc={onTiepTuc}>
+          <span className="ui-thanh-tiep-tuc__nhan">Chính xác!</span>
+          {termEn && (
+            <span className="ui-thanh-tiep-tuc__dap-an">
+              <strong>{termEn}</strong>
+              {meaningVi ? ` · ${meaningVi}` : ""}
+            </span>
+          )}
+        </ThanhTiepTuc>
+      )}
     </div>
   );
 }

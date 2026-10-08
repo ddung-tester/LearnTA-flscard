@@ -54,6 +54,7 @@ function normalizeCard(row) {
     term_en: row.term_en,
     meaning_vi: row.meaning_vi,
     example_sentence: row.example_sentence || "",
+    example_translation: row.example_translation || "",
     note: row.note || "",
     pronunciation: row.pronunciation,
     part_of_speech: row.part_of_speech,
@@ -220,6 +221,7 @@ function readCardPayload(body, { requireTerms = true } = {}) {
     term_en: termEn,
     meaning_vi: meaningVi,
     example_sentence: cleanText(body.example_sentence ?? body.example),
+    example_translation: cleanNullableTextWithLimit(body.example_translation, 2000, "example_translation"),
     note: cleanText(body.note),
     pronunciation: cleanNullableTextWithLimit(body.pronunciation, 255, "pronunciation"),
     part_of_speech: cleanNullableTextWithLimit(body.part_of_speech, 50, "part_of_speech"),
@@ -288,8 +290,8 @@ async function createCard(req, res) {
 
     const [result] = await connection.execute(
       `INSERT INTO cards
-        (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, tense_examples)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, tense_examples, example_translation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         deckId,
         payload.term_en,
@@ -301,6 +303,7 @@ async function createCard(req, res) {
         payload.is_favorite,
         0,
         payload.tense_examples ?? null,
+        payload.example_translation,
       ]
     );
 
@@ -356,8 +359,8 @@ async function importCards(req, res) {
       const card = validCards[index];
       const [result] = await connection.execute(
         `INSERT INTO cards
-          (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, example_translation)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           deckId,
           card.term_en,
@@ -368,6 +371,7 @@ async function importCards(req, res) {
           card.part_of_speech,
           card.is_favorite,
           baseOrder + index,
+          card.example_translation,
         ]
       );
 
@@ -474,6 +478,16 @@ async function updateCard(req, res) {
     if (req.body[field] === undefined) payload[field] = current[field];
   }
 
+  if (req.body.example_sentence === undefined && req.body.example === undefined) {
+    payload.example_sentence = current.example_sentence;
+  }
+  if (!payload.example_sentence) {
+    payload.example_translation = null;
+  } else if (req.body.example_translation === undefined) {
+    payload.example_translation = payload.example_sentence === current.example_sentence
+      ? current.example_translation || null : null;
+  }
+
   if (req.body.tense_examples === undefined) {
     const changed = ["term_en", "meaning_vi", "part_of_speech"]
       .some((field) => payload[field] !== current[field]);
@@ -485,7 +499,7 @@ async function updateCard(req, res) {
     `UPDATE cards
      SET term_en = ?, meaning_vi = ?, example_sentence = ?, note = ?,
          pronunciation = ?, part_of_speech = ?,
-         tense_examples = ?
+         tense_examples = ?, example_translation = ?
      WHERE id = ?`,
     [
       payload.term_en,
@@ -495,6 +509,7 @@ async function updateCard(req, res) {
       payload.pronunciation,
       payload.part_of_speech,
       payload.tense_examples ?? null,
+      payload.example_translation,
       cardId,
     ]
   );

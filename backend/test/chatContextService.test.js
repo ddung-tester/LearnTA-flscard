@@ -68,3 +68,11 @@ test("clips long fields", async () => {
   const noteLine = context.split("\n").find((line) => line.startsWith("- Learner's note"));
   assert.ok(noteLine.length < 330);
 });
+
+test("chat cannot expose a different owner's public deck or sample cards to logged-in users", async () => {
+  const db = fakeDb({ cards: { 5: PUBLIC_CARD }, decks: { 2: { id: 2, user_id: 99, is_public: 1, title: "Other owner" } } });
+  assert.equal(await buildChatContext(db, { userId: 7, cardId: 5 }), "");
+  assert.equal(await buildChatContext(db, { deckId: 2 }), "");
+  assert.equal(await buildChatContext(db, { userId: 7, deckId: 2 }), "");
+  assert.match(await buildChatContext(db, { userId: 99, deckId: 2 }), /Other owner/);
+});

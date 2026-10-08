@@ -64,6 +64,7 @@ function normalizeMistake(row) {
     term_en: row.term_en,
     meaning_vi: row.meaning_vi,
     example_sentence: row.example_sentence || null,
+    example_translation: row.example_translation || null,
     source: row.source,
     mistake_count: Number(row.mistake_count || 0),
     status: row.status,
@@ -108,7 +109,7 @@ async function resolveReadableCardLink(connection, userId, payload) {
        FROM cards c
        JOIN decks d ON d.id = c.deck_id
        WHERE c.id = ?
-         AND (d.user_id = ? OR d.user_id IS NULL OR d.is_public = TRUE)
+         AND d.user_id = ?
        LIMIT 1`,
       [payload.cardId, userId]
     );
@@ -128,7 +129,7 @@ async function resolveReadableCardLink(connection, userId, payload) {
     const [rows] = await connection.query(
       `SELECT id
        FROM decks
-       WHERE id = ? AND (user_id = ? OR user_id IS NULL OR is_public = TRUE)
+       WHERE id = ? AND user_id = ?
        LIMIT 1`,
       [payload.deckId, userId]
     );
@@ -155,9 +156,12 @@ async function resolveReadableCardLink(connection, userId, payload) {
 
 async function findMistakeById(connection, userId, mistakeId) {
   const [rows] = await connection.query(
-    `SELECT mw.*, d.title AS deck_title
+    `SELECT mw.*, d.title AS deck_title,
+       CASE WHEN BINARY c.example_sentence = BINARY mw.example_sentence
+         THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
+     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND d.user_id = mw.user_id
      WHERE mw.id = ? AND mw.user_id = ?
      LIMIT 1`,
     [mistakeId, userId]
@@ -311,9 +315,12 @@ async function listMistakes(req, res) {
   const offset = parseOffset(req.query.offset);
 
   const [rows] = await pool.query(
-    `SELECT mw.*, d.title AS deck_title
+    `SELECT mw.*, d.title AS deck_title,
+       CASE WHEN BINARY c.example_sentence = BINARY mw.example_sentence
+         THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
+     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND d.user_id = mw.user_id
      WHERE ${conditions.join(" AND ")}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,

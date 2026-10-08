@@ -47,7 +47,12 @@ function NutGhep({ noiDung, lang, thuTu, phim, daGhep, dangChon, dangSai, onChon
     <button
       type="button"
       lang={lang}
-      onClick={onChon}
+      onClick={(e) => {
+        // Chạm/click: bỏ focus trước — ô vừa ghép đúng bị disabled trong lúc commit sẽ bắt trình duyệt
+        // tính style + React khôi phục focus (đọc scroll mọi phần tử cha), ép layout cả trang. Bàn phím giữ focus.
+        if (e.detail > 0) e.currentTarget.blur();
+        onChon(e);
+      }}
       disabled={daGhep}
       aria-pressed={dangChon}
       aria-keyshortcuts={phim}
@@ -331,8 +336,7 @@ function TrangNoiTu() {
     luuCaiDatHocTap(KHOA_CAI_DAT, { chiHocTuYeuThich, batRandom, soCauDungNhanThuong, batReward: moi });
   }
 
-  function capNhatMocReward(event) {
-    const giaTriMoi = Math.max(1, Number(event.target.value) || 1);
+  function capNhatMocReward(giaTriMoi) {
     phanThuong.datLai();
     setSoCauDungNhanThuong(giaTriMoi);
     luuCaiDatHocTap(KHOA_CAI_DAT, { chiHocTuYeuThich, batRandom, soCauDungNhanThuong: giaTriMoi });

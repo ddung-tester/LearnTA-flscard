@@ -3,6 +3,7 @@ import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import StudyResult from "./StudyResult";
 
+vi.mock("../../services/api", () => ({ getStoredAuthToken: () => null }));
 vi.mock("../../services/reviewApi", () => ({}));
 vi.mock("../../utils/mistakeNotebook", () => ({
   luuTuSaiDongBo: vi.fn(),

@@ -24,8 +24,13 @@ function layConfetti() {
 export async function banPhaoGiay(el, manh = "nho") {
   if (nguoiDungGiamChuyenDong()) return;
 
+  const confetti = await layConfetti();
+  // Đọc vị trí ở đầu khung kế tiếp: gọi ngay trong effect (khi các effect khác còn chèn phản hồi, nét bút…)
+  // thì bắt trình duyệt tính layout cả trang giữa chừng rồi tính lại lần nữa cho khung hình
+  await new Promise((xong) => requestAnimationFrame(xong));
+
   let origin = { x: 0.5, y: 0.45 };
-  if (el?.getBoundingClientRect) {
+  if (el?.isConnected && el.getBoundingClientRect) {
     const r = el.getBoundingClientRect();
     origin = {
       x: (r.left + r.width / 2) / window.innerWidth,
@@ -33,7 +38,6 @@ export async function banPhaoGiay(el, manh = "nho") {
     };
   }
 
-  const confetti = await layConfetti();
   const chung = { origin, colors: MAU_PHAO_GIAY, disableForReducedMotion: true, zIndex: 9999 };
 
   if (manh === "lon") {

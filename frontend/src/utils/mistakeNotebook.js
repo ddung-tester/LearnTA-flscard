@@ -74,6 +74,7 @@ function chuanHoaTuSaiTuBackend(item) {
     word: item.term_en ?? "",
     meaning: item.meaning_vi ?? "",
     example: item.example_sentence ?? null,
+    exampleTranslation: item.example_translation ?? null,
     mistakeCount: item.mistake_count ?? 1,
     lastWrongAt: item.last_wrong_at ?? item.updated_at ?? new Date().toISOString(),
     lastReviewedAt: item.last_reviewed_at ?? null,
@@ -159,6 +160,8 @@ export function luuTuSai(cards, { deckId, deckTitle, source }) {
         word: card.term_en ?? cu.word,
         meaning: card.meaning_vi ?? cu.meaning,
         example: card.example_sentence ?? cu.example,
+        exampleTranslation: card.example_translation !== undefined ? card.example_translation
+          : (card.example_sentence ?? cu.example) === cu.example ? cu.exampleTranslation : null,
         deckTitle: deckTitle ?? cu.deckTitle,
         updatedAt: now,
       };
@@ -171,6 +174,7 @@ export function luuTuSai(cards, { deckId, deckTitle, source }) {
         word: card.term_en ?? "",
         meaning: card.meaning_vi ?? "",
         example: card.example_sentence ?? null,
+        exampleTranslation: card.example_translation ?? null,
         mistakeCount: 1,
         lastWrongAt: now,
         lastReviewedAt: null,

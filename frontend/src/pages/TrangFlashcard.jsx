@@ -23,6 +23,7 @@ import useNghieng3D from "../hooks/useNghieng3D";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
+import { getStoredAuthToken } from "../services/api";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
 import { luuKetQuaPhien, dongBoKetQuaPhien, taoStudySession } from "../services/studyApi";
@@ -116,6 +117,9 @@ function TheKeoDuoc({ ref, huong, giamChuyenDong, coTheTruoc, coTheSau, onVuot, 
       exit="ra"
       drag="x"
       dragMomentum={false}
+      // drag kéo theo bộ đo layout của motion; không có layoutDependency thì mỗi lần lật thẻ (render lại)
+      // nó đo lại cả cây + scroll, ép trình duyệt tính layout giữa chừng. Thẻ không animate layout nên giữ cố định.
+      layoutDependency={0}
       whileDrag={giamChuyenDong ? undefined : { scale: 1.02 }}
       onPointerDown={() => {
         daKeoRef.current = false;
@@ -784,6 +788,7 @@ function TrangFlashcard() {
         dongBoKetQuaPhien(studySessionId).then(() => setLoiLuuKetQua("")).catch((error) => setLoiLuuKetQua(error.message)).finally(() => setDangLuuKetQua(false));
       }}>Thử lưu lại</button>}
       {dangLuuKetQua && <p role="status">Đang đồng bộ kết quả...</p>}
+      {soTheDaHoanTat === tongSoTheMucTieu && !loiLuuKetQua && !dangLuuKetQua && !getStoredAuthToken() && <p role="status">Kết quả được lưu trên thiết bị này. Đăng nhập trước khi học để lưu vào tài khoản.</p>}
       <div className="ui-study-toolbar">
         <div>
           <Link
@@ -994,6 +999,11 @@ function TrangFlashcard() {
                           )
                         )}
                       </span>
+                    </p>
+                  )}
+                  {daLat && theHienTai?.example_sentence && theHienTai?.example_translation && (
+                    <p className="mt-2 max-w-md break-words text-center text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">
+                      {theHienTai.example_translation}
                     </p>
                   )}
                 </div>

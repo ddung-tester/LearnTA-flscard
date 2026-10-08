@@ -17,22 +17,22 @@ router.get(
 );
 router.post(
   "/study-sessions",
-  optionalAuth,
+  requireAuth,
   asyncHandler(studyController.createStudySession)
 );
 router.patch(
   "/study-sessions/:sessionId/finish",
-  optionalAuth,
+  requireAuth,
   asyncHandler(studyController.finishStudySession)
 );
 router.post(
   "/study-sessions/:sessionId/answers",
-  optionalAuth,
+  requireAuth,
   asyncHandler(studyController.addStudyAnswers)
 );
 router.post(
   "/quiz-results",
-  optionalAuth,
+  requireAuth,
   asyncHandler(studyController.createQuizResult)
 );
 router.get(

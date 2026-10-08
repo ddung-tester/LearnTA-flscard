@@ -1,7 +1,7 @@
 /**
- * Động cơ hạt cho hiệu ứng thưởng "vòng phép chữ": một canvas 2D phủ màn hình, vẽ cộng sáng ("lighter").
- * Mọi hình phức tạp (vòng phép ghi chữ, tia thần, quầng sáng) vẽ sẵn một lần thành sprite rồi chỉ xoay/co giãn,
- * nên mỗi khung chỉ là vài drawImage. Chỉ chạy lúc tụ phép / bay / triệu hồi / mở / đóng cổng (~2 s) rồi dừng hẳn.
+ * Động cơ hạt cho hiệu ứng thưởng "rạch sáng": một canvas 2D phủ màn hình, vẽ cộng sáng ("lighter").
+ * Hình phức tạp (tia thần, quầng sáng, vệt loé) vẽ sẵn một lần thành sprite rồi chỉ xoay/co giãn,
+ * nên mỗi khung chỉ là vài drawImage. Chỉ chạy lúc tụ năng lượng / bay / rạch / mở / đóng cổng (~2 s) rồi dừng hẳn.
  */
 
 export const MAU = {
@@ -122,184 +122,6 @@ function taoSpriteTiaThan() {
   return c;
 }
 
-/** Nét phát sáng: một nét rộng mờ (quầng) rồi một nét mảnh sáng (lõi) */
-function netSang(g, mau, rong, veDuong) {
-  g.strokeStyle = rgba(mau, 0.22);
-  g.lineWidth = rong * 4.5;
-  veDuong();
-  g.stroke();
-  g.strokeStyle = rgba(mau, 0.95);
-  g.lineWidth = rong;
-  veDuong();
-  g.stroke();
-}
-
-/** Rune tự vẽ: 2–3 nét trên lưới 3×3, sinh từ hạt giống để mỗi ký tự ổn định */
-function veRune(g, x, y, co, hatGiong) {
-  let s = hatGiong * 9301 + 49297;
-  const rand = () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-  const diem = (i) => [x + ((i % 3) - 1) * co * 0.5, y + (Math.floor(i / 3) - 1) * co * 0.62];
-  g.beginPath();
-  // Thân dọc giữa + 1–2 nét chéo, giống chữ khắc
-  g.moveTo(...diem(1));
-  g.lineTo(...diem(7));
-  const soNet = 1 + Math.floor(rand() * 2);
-  for (let i = 0; i < soNet; i += 1) {
-    const a = Math.floor(rand() * 9);
-    let b = Math.floor(rand() * 9);
-    if (b === a) b = (a + 4) % 9;
-    g.moveTo(...diem(a));
-    g.lineTo(...diem(b));
-  }
-}
-
-function veSao4(g, x, y, r) {
-  g.beginPath();
-  for (let i = 0; i < 8; i += 1) {
-    const goc = (i / 8) * TAU - Math.PI / 2;
-    const rr = i % 2 === 0 ? r : r * 0.28;
-    const px = x + Math.cos(goc) * rr;
-    const py = y + Math.sin(goc) * rr;
-    if (i === 0) g.moveTo(px, py);
-    else g.lineTo(px, py);
-  }
-  g.closePath();
-}
-
-/**
- * Vòng phép vẽ sẵn ở bán kính R (đơn vị CSS px, nhân dpr cho nét):
- *  ngoai — hai vòng tròn, vạch chia, và dải chữ: từ vừa học xen sao ✦ và rune chạy quanh vòng
- *  trong — sao bảy cánh {7/3}, vòng trong, bảy nút tròn ở đỉnh sao
- */
-function taoVongPhep(R, tuVung, dpr) {
-  const pad = 12;
-  const kich = (R + pad) * 2;
-  const tao = () => {
-    const c = taoCanvas(kich * dpr);
-    const g = c.getContext("2d");
-    g.scale(dpr, dpr);
-    g.translate(kich / 2, kich / 2);
-    g.globalCompositeOperation = "lighter";
-    g.lineCap = "round";
-    g.lineJoin = "round";
-    return { c, g };
-  };
-
-  const ngoai = tao();
-  {
-    const { g } = ngoai;
-    const vong = (r) => () => {
-      g.beginPath();
-      g.arc(0, 0, r, 0, TAU);
-    };
-    netSang(g, MAU.vang, 1.8, vong(R));
-    netSang(g, MAU.vang, 1, vong(R * 0.8));
-    netSang(g, MAU.tim, 0.8, vong(R * 0.765));
-
-    // Vạch chia như mặt đồng hồ thiên văn
-    netSang(g, MAU.vang, 0.9, () => {
-      g.beginPath();
-      for (let i = 0; i < 96; i += 1) {
-        const goc = (i / 96) * TAU;
-        const dai = i % 8 === 0 ? 0.06 : 0.025;
-        g.moveTo(Math.cos(goc) * R * 0.8, Math.sin(goc) * R * 0.8);
-        g.lineTo(Math.cos(goc) * R * (0.8 - dai), Math.sin(goc) * R * (0.8 - dai));
-      }
-    });
-
-    // Dải chữ: [TỪ] ✦ ᚱ ᚱ ✦ lặp kín vòng
-    const rChu = R * 0.9;
-    const co = R * 0.088;
-    g.font = `700 ${co}px "Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif`;
-    g.textAlign = "center";
-    g.textBaseline = "middle";
-    const tu = (tuVung || "").trim().toUpperCase().slice(0, 18);
-    const khoang = co * 0.16;
-    const manh = [];
-    if (tu) for (const kyTu of tu) manh.push({ loai: "chu", kyTu, rong: g.measureText(kyTu).width + khoang });
-    manh.push({ loai: "sao", rong: co * 1.5 });
-    for (let i = 0; i < (tu ? 2 : 3); i += 1) manh.push({ loai: "rune", rong: co * 0.95, hat: i });
-    manh.push({ loai: "sao", rong: co * 1.5 });
-    const daiMot = manh.reduce((tong, m) => tong + m.rong, 0);
-    const chuVi = TAU * rChu;
-    const soLan = Math.max(1, Math.floor(chuVi / daiMot));
-    const gian = chuVi / (soLan * daiMot); // giãn đều để khép kín vòng
-
-    let goc = -Math.PI / 2;
-    let lan = 0;
-    for (let n = 0; n < soLan; n += 1) {
-      for (const m of manh) {
-        const buoc = (m.rong * gian) / rChu;
-        const giua = goc + buoc / 2;
-        g.save();
-        g.rotate(giua);
-        g.translate(rChu, 0);
-        g.rotate(Math.PI / 2);
-        if (m.loai === "chu") {
-          g.fillStyle = rgba(MAU.vang, 0.25);
-          g.fillText(m.kyTu, 0, 0);
-          g.fillText(m.kyTu, 0.6, 0.6);
-          g.fillStyle = rgba(MAU.loi, 0.95);
-          g.fillText(m.kyTu, 0, 0);
-        } else if (m.loai === "sao") {
-          veSao4(g, 0, 0, co * 0.42);
-          g.fillStyle = rgba(MAU.loi, 0.95);
-          g.fill();
-        } else {
-          netSang(g, MAU.tim, 1, () => veRune(g, 0, 0, co * 0.8, m.hat + lan * 3 + n * 7));
-        }
-        g.restore();
-        goc += buoc;
-      }
-      lan += 1;
-    }
-  }
-
-  const trong = tao();
-  {
-    const { g } = trong;
-    const rSao = R * 0.7;
-    const dinh = Array.from({ length: 7 }, (_, i) => {
-      const goc = (i / 7) * TAU - Math.PI / 2;
-      return [Math.cos(goc) * rSao, Math.sin(goc) * rSao];
-    });
-    netSang(g, MAU.vang, 1.1, () => {
-      g.beginPath();
-      for (let i = 0; i <= 7; i += 1) {
-        const [x, y] = dinh[(i * 3) % 7];
-        if (i === 0) g.moveTo(x, y);
-        else g.lineTo(x, y);
-      }
-    });
-    netSang(g, MAU.tim, 0.9, () => {
-      g.beginPath();
-      for (let i = 0; i <= 7; i += 1) {
-        const [x, y] = dinh[(i * 2) % 7];
-        if (i === 0) g.moveTo(x * 0.62, y * 0.62);
-        else g.lineTo(x * 0.62, y * 0.62);
-      }
-    });
-    netSang(g, MAU.vang, 0.9, () => {
-      g.beginPath();
-      g.arc(0, 0, R * 0.3, 0, TAU);
-    });
-    for (const [x, y] of dinh) {
-      netSang(g, MAU.vang, 0.9, () => {
-        g.beginPath();
-        g.arc(x, y, R * 0.045, 0, TAU);
-      });
-    }
-    veSao4(g, 0, 0, R * 0.16);
-    g.fillStyle = rgba(MAU.loi, 0.9);
-    g.fill();
-  }
-
-  return { ngoai: ngoai.c, trong: trong.c, kich };
-}
-
 /**
  * Đường bay (Bézier bậc 3) từ a tới b, không văng ra ngoài màn hình.
  * "s": cong chữ S, uốn về phía giữa màn hình (một cổng). "cung": vồng lên rồi rơi xuống (hai cổng hai bên).
@@ -335,39 +157,12 @@ export function taoDuongBay(a, b, kieu = "s") {
   };
 }
 
-/** Mép cổng: vòng tròn bán kính R gợn nhẹ (vài sóng sin lệch nhịp), pha đổi theo thời gian → mép lập loè.
- *  Lúc vòng còn nhỏ thì gần như tròn hẳn, không méo thành hình răng cưa. */
-export function diemMepChay(tam, R, bienDo, pha, n = 72) {
-  const ds = [];
-  const gon = Math.min(bienDo, R * 0.08);
-  for (let i = 0; i < n; i += 1) {
-    const g = (i / n) * TAU;
-    const nhieu =
-      0.55 * Math.sin(3 * g + pha) +
-      0.3 * Math.sin(7 * g - pha * 1.6 + 2.1) +
-      0.15 * Math.sin(11 * g + pha * 2.3 + 4.4);
-    const r = Math.max(0, R + gon * nhieu);
-    ds.push(tam.x + r * Math.cos(g), tam.y + r * Math.sin(g));
-  }
-  return ds;
-}
-
-/** clip-path polygon theo toạ độ của phần tử (rect) */
-export function clipTuDiem(ds, rect) {
-  let s = "";
-  for (let i = 0; i < ds.length; i += 2) {
-    s += `${i ? "," : ""}${(ds[i] - rect.left).toFixed(1)}px ${(ds[i + 1] - rect.top).toFixed(1)}px`;
-  }
-  return `polygon(${s})`;
-}
-
 export function taoDongCo(canvas) {
   const ctx = canvas.getContext("2d");
   const sang = Object.fromEntries(Object.entries(MAU).map(([ten, mau]) => [ten, taoSpriteSang(mau)]));
   const sao = taoSpriteSao();
   const loe = taoSpriteLoe();
   const tiaThan = taoSpriteTiaThan();
-  const boNhoVong = new Map();
   // Máy yếu thật sự: ít hạt hơn, hình vẫn vậy
   const heSoHat = document.documentElement.classList.contains("may-yeu") ? 0.55 : 1;
   const hat = [];
@@ -385,15 +180,6 @@ export function taoDongCo(canvas) {
     cao = window.innerHeight;
     canvas.width = Math.round(rong * dpr);
     canvas.height = Math.round(cao * dpr);
-  }
-
-  function layVong(R, tuVung) {
-    const khoa = `${Math.round(R)}|${tuVung || ""}|${dpr}`;
-    if (!boNhoVong.has(khoa)) {
-      if (boNhoVong.size > 6) boNhoVong.clear();
-      boNhoVong.set(khoa, taoVongPhep(Math.round(R), tuVung, dpr));
-    }
-    return boNhoVong.get(khoa);
   }
 
   function them(p) {
@@ -509,66 +295,7 @@ export function taoDongCo(canvas) {
     ctx.globalAlpha = 1;
   }
 
-  /**
-   * Vòng phép ghi chữ tại tam, bán kính R.
-   * hien: 0→1 nét vòng ngoài được "viết" bằng ngòi sáng chạy quanh, sao bảy cánh nở ra sau;
-   * sang: độ sáng tổng; co: hệ số co giãn (mở cổng thì phình ra).
-   */
-  function veVongPhep(tam, R, t, { hien = 1, sang: doSang = 1, co = 1, tuVung = "" } = {}) {
-    if (doSang <= 0.01 || hien <= 0) return;
-    const vp = layVong(R, tuVung);
-    const s = vp.kich * co;
-    const gocBatDau = -Math.PI / 2;
-    const xoayNgoai = t * 0.00035;
-    const xoayTrong = -t * 0.0006;
-
-    // Vòng ngoài: lộ dần theo hình quạt (ngòi bút chạy quanh)
-    ctx.save();
-    if (hien < 1) {
-      ctx.beginPath();
-      ctx.moveTo(tam.x, tam.y);
-      ctx.arc(tam.x, tam.y, s, gocBatDau, gocBatDau + TAU * hien);
-      ctx.closePath();
-      ctx.clip();
-    }
-    veAnh(vp.ngoai, tam.x, tam.y, s, doSang, xoayNgoai);
-    ctx.restore();
-
-    // Sao bảy cánh: nở từ tâm khi vòng ngoài đã viết được 35%
-    const hienTrong = Math.min(1, Math.max(0, (hien - 0.35) / 0.65));
-    if (hienTrong > 0) veAnh(vp.trong, tam.x, tam.y, s * (0.55 + 0.45 * em.raLapPhuong(hienTrong)), doSang * hienTrong, xoayTrong);
-
-    // Ngòi bút sáng ở mép đang viết, rắc bụi sao theo
-    if (hien < 1) {
-      const goc = gocBatDau + TAU * hien;
-      const x = tam.x + Math.cos(goc) * R * co;
-      const y = tam.y + Math.sin(goc) * R * co;
-      veAnh(sang.tim, x, y, 70, 0.6 * doSang);
-      veAnh(sang.loi, x, y, 24, doSang);
-      veAnh(sao, x, y, 46, doSang, t * 0.01);
-      if (Math.random() < 0.8 * heSoHat) {
-        them({
-          kieu: CHAM,
-          x,
-          y,
-          vx: ngauNhien(-0.05, 0.05),
-          vy: ngauNhien(-0.06, 0.02),
-          g: 0.00008,
-          tho: ngauNhien(400, 800),
-          s0: ngauNhien(5, 10),
-          s1: 1,
-          a0: 0.9,
-          lap: 0.03,
-          anh: Math.random() < 0.4 ? sao : anhSang(),
-        });
-      }
-    }
-
-    // Lõi sáng nhẹ ở tâm vòng
-    veAnh(sang.cham, tam.x, tam.y, R * 1.3 * co, 0.18 * doSang);
-  }
-
-  /** Tụ phép ở đầu thanh tiến độ: bụi xoáy ốc vào tâm, vòng phép nhỏ xoay, quả cầu sáng + vệt loé ngang */
+  /** Tụ năng lượng ở đầu thanh tiến độ: bụi xoáy ốc vào tâm, quả cầu sáng đập nhịp + chữ thập loé quang học */
   function tuNangLuong(nguon, t, dt, k) {
     duTu += dt * 0.12 * k * heSoHat;
     for (; duTu >= 1; duTu -= 1) {
@@ -589,10 +316,10 @@ export function taoDongCo(canvas) {
     }
     const vao = Math.min(1, t / 320);
     const lon = vao * (1 + 0.12 * Math.sin(t * 0.018)) * k;
-    veVongPhep(nguon, 38 * k, t * 3, { hien: Math.min(1, t / 380), sang: 0.85 * vao });
     veAnh(sang.tim, nguon.x, nguon.y, 90 * lon, 0.55);
     veAnh(sang.vang, nguon.x, nguon.y, 36 * lon, 0.95);
     veAnh(loe, nguon.x, nguon.y, 150 * lon, 0.7 * vao, 0, 18 * lon);
+    veAnh(loe, nguon.x, nguon.y, 70 * lon, 0.35 * vao, Math.PI / 2, 10 * lon);
     veAnh(sao, nguon.x, nguon.y, 56 * lon, 0.9, t * 0.004);
   }
 
@@ -737,13 +464,21 @@ export function taoDongCo(canvas) {
     });
   }
 
-  /** Tia năng lượng chạm đích: chớp trắng, tia thần, hai sóng tròn, tia lửa văng, bụi sao lơ lửng */
+  /** Vệt loé ngang kiểu ống kính điện ảnh: duỗi dài ra rồi tắt */
+  function themLoe(tam, dai, cao, tho, a0) {
+    hieuUng.push({
+      tuoi: 0,
+      tho,
+      ve: (f) => veAnh(loe, tam.x, tam.y, dai * (0.35 + 0.65 * em.raMu(f)), a0 * (1 - f) ** 1.3, 0, cao * (1 - 0.5 * f)),
+    });
+  }
+
+  /** Tia năng lượng chạm đích: chớp trắng, tia thần, vệt loé ngang, tia lửa văng, bụi sao lơ lửng */
   function no(tam, k) {
     chopSang(tam, 60, 320 * k, 320, 0.95);
     chopSang(tam, 90, 460 * k, 600, 0.45, sang.tim);
     themTiaThan(tam, 620 * k, 1100);
-    themVong({ x: tam.x, y: tam.y, r0: 8, r1: 170 * k, tho: 560, w: 3, mau: MAU.vang });
-    themVong({ x: tam.x, y: tam.y, r0: 8, r1: 260 * k, tho: 860, w: 2, mau: MAU.tim });
+    themLoe(tam, 640 * k, 30 * k, 620, 0.9);
     tiaLua(tam, Math.round(54 * k * heSoHat), [0.3, 1.2], [450, 900], [24, 38]);
     for (let i = 0, so = Math.round(26 * k * heSoHat); i < so; i += 1) {
       const goc = Math.random() * TAU;
@@ -766,64 +501,164 @@ export function taoDongCo(canvas) {
     }
   }
 
-  /**
-   * Mép cổng đang mở/khép: ba nét cộng sáng (tím → vàng → trắng) chỉ trong khung cổng,
-   * và tia lửa văng theo phương tiếp tuyến như vòng lửa xoáy. chieu: 1 mở (văng ra), -1 khép (hút vào).
-   */
-  function veMepChay(ds, rect, tam, banKinh, chieu = 1) {
+  /** Một đường sáng dọc x, từ y0 tới y1: quầng tím rộng, thân chàm, hai sợi lệch màu (lam/hổ phách), lõi trắng */
+  function veDuongSang(x, y0, y1, doSang, day = 1) {
+    if (doSang <= 0.01 || y1 - y0 < 1) return;
+    const net = (mau, w, dx = 0) => {
+      ctx.strokeStyle = mau;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(x + dx, y0);
+      ctx.lineTo(x + dx, y1);
+      ctx.stroke();
+    };
+    // Quầng sáng nhất ở giữa, nhạt dần về hai đầu
+    const quang = ctx.createLinearGradient(x, y0, x, y1);
+    quang.addColorStop(0, rgba(MAU.tim, 0.06));
+    quang.addColorStop(0.5, rgba(MAU.tim, 0.34));
+    quang.addColorStop(1, rgba(MAU.tim, 0.06));
+    ctx.globalAlpha = Math.min(1, doSang);
+    net(quang, 30 * day);
+    net(rgba(MAU.cham, 0.4), 9 * day);
+    net(rgba(MAU.bang, 0.6), 1.6 * day, -2 * day);
+    net(rgba(MAU.hoPhach, 0.6), 1.6 * day, 2 * day);
+    net(rgba(MAU.loi, 1), 1.8 * day);
+    ctx.globalAlpha = 1;
+  }
+
+  function trongKhung(rect, banKinh, ve) {
     ctx.save();
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(rect.left, rect.top, rect.width, rect.height, banKinh);
     else ctx.rect(rect.left, rect.top, rect.width, rect.height);
     ctx.clip();
-    ctx.beginPath();
-    ctx.moveTo(ds[0], ds[1]);
-    for (let i = 2; i < ds.length; i += 2) ctx.lineTo(ds[i], ds[i + 1]);
-    ctx.closePath();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = rgba(MAU.tim, 0.4);
-    ctx.lineWidth = 18;
-    ctx.stroke();
-    ctx.strokeStyle = rgba(MAU.hoPhach, 0.7);
-    ctx.lineWidth = 7;
-    ctx.stroke();
-    ctx.strokeStyle = rgba(MAU.loi, 0.95);
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ve();
     ctx.restore();
+  }
 
-    for (let i = 0, so = Math.round(11 * heSoHat); i < so; i += 1) {
-      const j = Math.floor(Math.random() * (ds.length / 2)) * 2;
-      const x = ds[j];
-      const y = ds[j + 1];
-      if (x < rect.left + 4 || x > rect.right - 4 || y < rect.top + 4 || y > rect.bottom - 4) continue;
-      const dx = x - tam.x;
-      const dy = y - tam.y;
-      const d = Math.hypot(dx, dy) || 1;
-      // Tiếp tuyến (xoáy theo chiều kim đồng hồ) + chút hướng tâm
-      const v = ngauNhien(0.22, 0.55);
+  /** Từ vừa học hiện giữa đường rạch: chữ giãn rộng rồi khít lại, tách màu nhẹ hai bên như ống kính */
+  function veChuGiua(tam, rect, tuVung, hien, t) {
+    const tu = (tuVung || "").trim().toUpperCase().slice(0, 18);
+    if (!tu || hien <= 0.01) return;
+    const giai = 1 - em.raLapPhuong(Math.min(1, hien));
+    const font = (co) => `700 ${co}px "Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif`;
+    let co = Math.min(rect.width * 0.12, 46);
+    ctx.font = font(co);
+    const doRong = (c) => [...tu].reduce((tong, kt) => tong + ctx.measureText(kt).width + c * (0.12 + 0.5 * giai), -c * (0.12 + 0.5 * giai));
+    const toiDa = rect.width * 0.82;
+    const rong = doRong(co);
+    if (rong > toiDa) {
+      co *= toiDa / rong;
+      ctx.font = font(co);
+    }
+    const gian = co * (0.12 + 0.5 * giai);
+    const cacKyTu = [...tu].map((kt) => ({ kt, w: ctx.measureText(kt).width }));
+    const tong = cacKyTu.reduce((s, c) => s + c.w + gian, -gian);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const y = tam.y + Math.sin(t * 0.004) * 1.5;
+    const ve = (mau, dx = 0) => {
+      ctx.fillStyle = mau;
+      let x = tam.x - tong / 2 + dx;
+      for (const c of cacKyTu) {
+        ctx.fillText(c.kt, x, y);
+        x += c.w + gian;
+      }
+    };
+    ctx.globalAlpha = Math.min(1, hien);
+    ve(rgba(MAU.bang, 0.5), -1.5);
+    ve(rgba(MAU.hoPhach, 0.5), 1.5);
+    ve(rgba(MAU.loi, 0.95));
+    veAnh(loe, tam.x, tam.y, tong * 1.8, 0.35 * Math.min(1, hien), 0, co * 0.9);
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * Rạch sáng: đường sáng dọc mọc từ tâm cổng lên/xuống hai mép (v: 0→1), đầu mút loé sáng,
+   * vệt loé ngang ở giữa. Đóng cổng thì gọi ngược v: 1→0.
+   */
+  function veRach(tam, rect, banKinh, v, doSang = 1) {
+    const nua = (rect.height / 2) * v;
+    trongKhung(rect, banKinh, () => veDuongSang(tam.x, tam.y - nua, tam.y + nua, doSang));
+    if (v < 1) {
+      for (const dau of [-1, 1]) {
+        const y = tam.y + dau * nua;
+        veAnh(sang.tim, tam.x, y, 60, 0.5 * doSang);
+        veAnh(sang.loi, tam.x, y, 18, doSang);
+        veAnh(sao, tam.x, y, 34, 0.9 * doSang);
+      }
+    }
+    veAnh(loe, tam.x, tam.y, rect.width * 1.6, 0.6 * doSang, 0, 22);
+    veAnh(sang.loi, tam.x, tam.y, 26, doSang);
+  }
+
+  /**
+   * Màn sáng tách đôi: hai mép sáng dọc chạy từ đường rạch ra hai thành cổng (mo: 0→1), video lộ dần ở giữa.
+   * chieu: 1 mở (tia lửa văng ra ngoài), -1 khép (tia lửa hút vào giữa).
+   */
+  function veTachDoi(tam, rect, banKinh, mo, chieu = 1) {
+    const nua = (rect.width / 2) * mo;
+    // Mép càng gần thành cổng càng mờ đi, nhường cho viền cổng
+    const doSang = 1 - Math.max(0, (mo - 0.8) / 0.2) * 0.7;
+    trongKhung(rect, banKinh, () => {
+      // Hắt sáng mỏng ngay sau mép, như màn sáng vừa lướt qua
+      const loang = Math.min(nua, 60);
+      if (loang > 1) {
+        for (const huong of [-1, 1]) {
+          const x = tam.x + huong * nua;
+          const grad = ctx.createLinearGradient(x, 0, x - huong * loang, 0);
+          grad.addColorStop(0, rgba(MAU.tim, 0.28 * doSang));
+          grad.addColorStop(1, rgba(MAU.tim, 0));
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = grad;
+          ctx.fillRect(Math.min(x, x - huong * loang), rect.top, loang, rect.height);
+        }
+      }
+      veDuongSang(tam.x - nua, rect.top, rect.bottom, doSang, 1.1);
+      veDuongSang(tam.x + nua, rect.top, rect.bottom, doSang, 1.1);
+    });
+
+    for (let i = 0, so = Math.round(8 * heSoHat); i < so; i += 1) {
+      const huong = Math.random() < 0.5 ? -1 : 1;
+      const x = tam.x + huong * nua;
+      if (x < rect.left + 4 || x > rect.right - 4) continue;
       them({
         kieu: TIA,
         x,
-        y,
-        vx: (-dy / d) * v + (dx / d) * 0.08 * chieu,
-        vy: (dx / d) * v + (dy / d) * 0.08 * chieu,
-        drag: 0.92,
-        g: 0.0005,
-        tho: ngauNhien(200, 380),
-        s0: ngauNhien(1.2, 2.4),
-        dai: ngauNhien(14, 24),
+        y: ngauNhien(rect.top + 8, rect.bottom - 8),
+        vx: huong * chieu * ngauNhien(0.2, 0.5),
+        vy: ngauNhien(-0.12, 0.12),
+        drag: 0.9,
+        g: 0.0004,
+        tho: ngauNhien(180, 340),
+        s0: ngauNhien(1, 2.2),
+        dai: ngauNhien(12, 22),
         a0: 1,
-        mau: chon([MAU.loi, MAU.vang, MAU.hoPhach, MAU.hoPhach, MAU.tim]),
+        mau: chon([MAU.loi, MAU.bang, MAU.vang, MAU.tim]),
       });
     }
+  }
+
+  /** Cổng vừa mở trọn: một lớp sáng phủ khung cổng loé lên rồi tan */
+  function loeKhung(rect, banKinh) {
+    hieuUng.push({
+      tuoi: 0,
+      tho: 420,
+      ve: (f) =>
+        trongKhung(rect, banKinh, () => {
+          ctx.globalAlpha = 0.32 * (1 - f) ** 2;
+          ctx.fillStyle = MAU.loi;
+          ctx.fillRect(rect.left, rect.top, rect.width, rect.height);
+          ctx.globalAlpha = 1;
+        }),
+    });
   }
 
   /** Cổng khép lại thành một đốm */
   function chop(tam, k) {
     chopSang(tam, 30, 150 * k, 260, 0.9);
     chopSang(tam, 40, 220 * k, 380, 0.4, sang.tim);
-    themVong({ x: tam.x, y: tam.y, r0: 6, r1: 80 * k, tho: 320, w: 2, mau: MAU.vang });
+    themLoe(tam, 320 * k, 18 * k, 360, 0.8);
   }
 
   /** Đốm sáng về tới thanh tiến độ */
@@ -848,9 +683,11 @@ export function taoDongCo(canvas) {
     },
     tuNangLuong,
     veSaoChoi,
-    veVongPhep,
     no,
-    veMepChay,
+    veRach,
+    veTachDoi,
+    veChuGiua,
+    loeKhung,
     chop,
     chamVe,
   };
