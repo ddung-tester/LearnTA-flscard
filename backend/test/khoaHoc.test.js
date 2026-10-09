@@ -448,3 +448,14 @@ test("locGiaiThichHopLe keeps valid items and rejects wrong ids, options and mis
   ]);
   assert.equal(loi.length, 4);
 });
+
+test("tachPhanDungCuaGiaiThich turns the right-answer explanation into the 'Đúng vì' + 'Nhớ' lines", () => {
+  const { tachPhanDungCuaGiaiThich } = require("../src/utils/khoaHoc");
+  assert.equal(
+    tachPhanDungCuaGiaiThich("Đúng rồi: **was** đi với số ít.\nNhớ: he + **was**"),
+    "Đúng vì: **was** đi với số ít.\nNhớ: he + **was**"
+  );
+  assert.equal(tachPhanDungCuaGiaiThich("**Đúng rồi:** vì x\n**Nhớ:** y"), "Đúng vì: vì x\n**Nhớ:** y");
+  assert.equal(tachPhanDungCuaGiaiThich("Sai vì: x\nĐúng vì: y\nNhớ: z"), null);
+  assert.equal(tachPhanDungCuaGiaiThich("Đúng rồi:\nNhớ: y"), null);
+});

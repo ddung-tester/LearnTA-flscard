@@ -86,6 +86,24 @@ function cacTraLoiCanGiaiThich(cauHoi) {
   return ketQua;
 }
 
+/**
+ * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …") lấy ra hai dòng dùng lại
+ * cho một câu trả lời gõ sai: "Đúng vì: …" và "Nhớ: …". Khi đó AI chỉ cần viết dòng "Sai vì".
+ * Không đúng khuôn thì trả null (gọi AI viết đủ như cũ).
+ */
+function tachPhanDungCuaGiaiThich(giaiThich) {
+  const cacDong = String(giaiThich || "").split(/\n+/).map((dong) => dong.trim()).filter(Boolean);
+  // Nhãn có thể được in đậm: "Đúng rồi:", "**Đúng rồi:**", "**Đúng rồi**:"
+  const nhanDung = /^(\*\*)?đúng rồi(:\*\*|\*\*:|:)\s*/i;
+  const nhanNho = /^(\*\*)?nhớ(:\*\*|\*\*:|:)/i;
+  const dongDung = cacDong.find((dong) => nhanDung.test(dong));
+  const dongNho = cacDong.find((dong) => nhanNho.test(dong));
+  if (!dongDung || !dongNho) return null;
+  const lyDo = dongDung.replace(nhanDung, "").trim();
+  if (!lyDo) return null;
+  return `Đúng vì: ${lyDo}\n${dongNho}`;
+}
+
 const DO_DAI_GIAI_THICH_TOI_DA = 1200;
 
 /**
@@ -544,6 +562,7 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
 }
 
 module.exports = {
+  tachPhanDungCuaGiaiThich,
   cacTraLoiCanGiaiThich,
   locGiaiThichHopLe,
   chuanHoaTraLoi,

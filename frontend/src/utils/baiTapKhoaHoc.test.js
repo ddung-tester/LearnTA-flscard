@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  tachPhanDungCuaGiaiThich,
+  timGiaiThichSan,
   chiaDongBuoi,
   chuanHoaTraLoi,
   laTraLoiDung,
@@ -215,5 +217,35 @@ describe("phanTichLoiGo", () => {
     const { phanTichLoiGo } = await import("./baiTapKhoaHoc");
     expect(phanTichLoiGo("dont", ["do not", "don't"]).dapAn).toBe("don't");
     expect(phanTichLoiGo("banana", ["went"]).loai).toBe("khac");
+  });
+});
+
+
+describe("lời giải thích có sẵn trên máy", () => {
+  const tracNghiem = { type: "multiple_choice", answer_key: "A", options: [{ key: "A" }, { key: "B" }] };
+  const dienTu = { type: "fill_blank", accepted_answers: ["was"] };
+  const kho = {
+    A: "Đúng rồi: …",
+    B: "Sai vì: …",
+    was: "Đúng rồi: **was** đi với số ít.\nNhớ: he + **was**",
+    "were ": "không dùng",
+    weres: "Sai vì: thừa s",
+  };
+
+  it("trắc nghiệm và câu gõ đã soạn sẵn hiện ngay", () => {
+    expect(timGiaiThichSan(tracNghiem, "b", kho)).toEqual({ text: "Sai vì: …" });
+    expect(timGiaiThichSan(dienTu, " Weres. ", kho)).toEqual({ text: "Sai vì: thừa s" });
+    expect(timGiaiThichSan(dienTu, "WAS", kho)).toEqual({ text: kho.was });
+  });
+
+  it("câu gõ sai kiểu mới: dùng lại phần đáp án đúng, chỉ chờ dòng Sai vì", () => {
+    expect(timGiaiThichSan(dienTu, "is", kho)).toEqual({ phanSau: "Đúng vì: **was** đi với số ít.\nNhớ: he + **was**" });
+    expect(timGiaiThichSan(dienTu, "is", {})).toBeNull();
+    expect(timGiaiThichSan(tracNghiem, "A", {})).toBeNull();
+  });
+
+  it("tách phần đáp án đúng giống backend", () => {
+    expect(tachPhanDungCuaGiaiThich("**Đúng rồi**: vì x\nNhớ: y")).toBe("Đúng vì: vì x\nNhớ: y");
+    expect(tachPhanDungCuaGiaiThich("Sai vì: x\nNhớ: y")).toBeNull();
   });
 });

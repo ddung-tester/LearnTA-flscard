@@ -47,7 +47,7 @@ export async function chuanBiGiaiThich(questionId) {
  * onChunk (tuỳ chọn): nhận toàn bộ chữ đã có mỗi khi AI viết thêm (server gửi dần, ?stream=1).
  * Trả về { explanation } khi xong.
  */
-export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
+export async function giaiThichCauHoi(questionId, answer, { onChunk, chiDongSai = false } = {}) {
   const duongDan = `/course-questions/${encodeURIComponent(questionId)}/explain`;
   if (!onChunk || typeof ReadableStream === "undefined") {
     const response = await api.post(duongDan, { answer });
@@ -56,7 +56,8 @@ export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
 
   // axios không đọc được luồng trong trình duyệt, nên dùng fetch
   const token = getStoredAuthToken();
-  const response = await fetch(buildApiUrl(`/api${duongDan}?stream=1`), {
+  // chiDongSai: máy đã hiện sẵn "Đúng vì" + "Nhớ", server chỉ cần gửi dòng "Sai vì"
+  const response = await fetch(buildApiUrl(`/api${duongDan}?stream=1${chiDongSai ? "&chiDongSai=1" : ""}`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

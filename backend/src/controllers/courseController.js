@@ -9,6 +9,7 @@ const {
   laTraLoiDung,
   lichOnCauHoi,
   locGiaiThichHopLe,
+  tachPhanDungCuaGiaiThich,
 } = require("../utils/khoaHoc");
 
 // Khoá học riêng (tài liệu cá nhân): chỉ chủ khoá (courses.user_id) đọc được.
@@ -52,6 +53,45 @@ function normalizeQuestion(row) {
 
 function soNguyen(value) {
   return Number(value || 0);
+}
+
+// Lời giải thích soạn trước khi đổi prompt (aiService) bị coi là cũ: không gửi cho người học,
+// lần soạn trước sau sẽ viết lại bằng prompt mới (mỗi câu 1 lượt AI, rải dần theo lúc học).
+const GIAI_THICH_HOP_LE_TU = new Date("2026-10-09T15:30:00Z");
+
+/** Lời giải thích còn dùng được của các câu: Map question_id → { answer_norm: lời giải thích } */
+async function docGiaiThichCuaCacCau(questionIds) {
+  const ketQua = new Map();
+  if (questionIds.length === 0) return ketQua;
+  const [rows] = await pool.query(
+    `SELECT question_id, answer_norm, explanation FROM course_question_explanations
+     WHERE question_id IN (?) AND created_at >= ?`,
+    [questionIds, GIAI_THICH_HOP_LE_TU]
+  );
+  for (const row of rows) {
+    const theoCau = ketQua.get(row.question_id) ?? {};
+    theoCau[row.answer_norm] = row.explanation;
+    ketQua.set(row.question_id, theoCau);
+  }
+  return ketQua;
+}
+
+/**
+ * Câu hỏi gửi cho người học kèm lời giải thích đã soạn sẵn (`explanations`), để trả lời xong là
+ * hiện ngay không cần gọi server; `explanations_ready` = đã đủ mọi lựa chọn / đáp án đúng
+ * (client khỏi nhờ server soạn trước câu đó).
+ */
+async function ganGiaiThich(rows) {
+  const theoCau = await docGiaiThichCuaCacCau(rows.map((row) => row.id));
+  return rows.map((row) => {
+    const question = normalizeQuestion(row);
+    const explanations = theoCau.get(row.id) ?? {};
+    return {
+      ...question,
+      explanations,
+      explanations_ready: cacTraLoiCanGiaiThich(question).every((traLoi) => traLoi.answerNorm in explanations),
+    };
+  });
 }
 
 // Tiến độ mỗi buổi của chủ khoá: từ "đã học" = có card_progress, "đã thuộc" = Lv5 (giống lộ trình);
@@ -180,7 +220,7 @@ async function getLesson(req, res) {
       content: docJson(lesson.content, { grammar: [], notes: [] }),
     },
     words,
-    questions: questions.map(normalizeQuestion),
+    questions: await ganGiaiThich(questions),
     prev_lesson: viTri > 0 ? soBai[viTri - 1] : null,
     next_lesson: viTri >= 0 && viTri < soBai.length - 1 ? soBai[viTri + 1] : null,
   });
@@ -270,9 +310,10 @@ async function listDueQuestions(req, res) {
     [req.user.id, req.user.id]
   );
 
+  const cauHoi = await ganGiaiThich(rows);
   res.json(
-    rows.map((row) => ({
-      ...normalizeQuestion(row),
+    rows.map((row, viTri) => ({
+      ...cauHoi[viTri],
       lesson_number: row.lesson_number,
       course_id: row.course_id,
     }))
@@ -328,8 +369,8 @@ function soanTruocGiaiThich(questionId, row, question) {
 
   const viec = (async () => {
     const [daCo] = await pool.query(
-      "SELECT answer_norm FROM course_question_explanations WHERE question_id = ?",
-      [questionId]
+      "SELECT answer_norm FROM course_question_explanations WHERE question_id = ? AND created_at >= ?",
+      [questionId, GIAI_THICH_HOP_LE_TU]
     );
     const coRoi = new Set(daCo.map((dong) => dong.answer_norm));
     if (cacTraLoiCanGiaiThich(question).every((traLoi) => coRoi.has(traLoi.answerNorm))) return 0;
@@ -343,10 +384,7 @@ function soanTruocGiaiThich(questionId, row, question) {
     for (const muc of hopLe) {
       if (coRoi.has(muc.answerNorm)) continue;
       coRoi.add(muc.answerNorm);
-      await pool.query(
-        "INSERT IGNORE INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)",
-        [questionId, muc.answerNorm, muc.explanation]
-      );
+      await luuGiaiThich(questionId, muc.answerNorm, muc.explanation);
       soMoi += 1;
     }
     return soMoi;
@@ -356,23 +394,37 @@ function soanTruocGiaiThich(questionId, row, question) {
   return viec;
 }
 
-// POST /course-questions/:id/prepare — gọi khi câu hỏi hiện ra; lỗi AI không làm hỏng việc học
+// Bản cũ (prompt trước) của cùng câu trả lời thì ghi đè
+async function luuGiaiThich(questionId, answerNorm, explanation) {
+  await pool.query(
+    `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE explanation = VALUES(explanation), created_at = CURRENT_TIMESTAMP`,
+    [questionId, answerNorm, explanation]
+  );
+}
+
+// POST /course-questions/:id/prepare — gọi khi câu hỏi hiện ra; lỗi AI không làm hỏng việc học.
+// Trả luôn mọi lời giải thích của câu để client giữ sẵn: trả lời xong hiện ngay, không gọi server nữa.
 async function prepareQuestion(req, res) {
   const questionId = parsePositiveInt(req.params.questionId, "questionId");
   const { row, question } = await docCauCuaChuKhoa(questionId, req.user.id);
+  let ready = true;
+  let generated = 0;
   try {
-    const generated = await soanTruocGiaiThich(questionId, row, question);
-    res.json({ ready: true, generated });
+    generated = await soanTruocGiaiThich(questionId, row, question);
   } catch (error) {
     console.error("prepareQuestion failed:", error.message);
-    res.json({ ready: false, generated: 0 });
+    ready = false;
   }
+  const explanations = (await docGiaiThichCuaCacCau([questionId])).get(questionId) ?? {};
+  res.json({ ready, generated, explanations });
 }
 
 async function docGiaiThichDaLuu(questionId, answerNorm) {
   const [cached] = await pool.query(
-    "SELECT explanation FROM course_question_explanations WHERE question_id = ? AND answer_norm = ? LIMIT 1",
-    [questionId, answerNorm]
+    `SELECT explanation FROM course_question_explanations
+     WHERE question_id = ? AND answer_norm = ? AND created_at >= ? LIMIT 1`,
+    [questionId, answerNorm, GIAI_THICH_HOP_LE_TU]
   );
   return cached[0]?.explanation || null;
 }
@@ -413,13 +465,26 @@ async function explainQuestion(req, res) {
     return;
   }
 
+  // Câu điền từ gõ sai kiểu chưa soạn sẵn: nếu đáp án đúng đã có lời giải thích thì chỉ nhờ AI viết
+  // dòng "Sai vì" (client đã hiện sẵn "Đúng vì" + "Nhớ" từ lời của đáp án đúng, ?chiDongSai=1 khi stream).
+  const isCorrect = laTraLoiDung(question, answerNorm);
+  let phanDung = null;
+  if (!isMultipleChoice && !isCorrect) {
+    const daCo = (await docGiaiThichCuaCacCau([questionId])).get(questionId) ?? {};
+    const dapAnDung = cacTraLoiCanGiaiThich(question).find((traLoi) => daCo[traLoi.answerNorm]);
+    phanDung = dapAnDung ? tachPhanDungCuaGiaiThich(daCo[dapAnDung.answerNorm]) : null;
+  }
+  // Luồng chữ chỉ gồm dòng "Sai vì" khi client xin (?chiDongSai=1); còn lại trả bản đầy đủ đã ghép
+  const chiGuiDongSai = guiDan && Boolean(phanDung) && req.query?.chiDongSai === "1";
+
   let explanation;
   try {
     explanation = await aiService.explainCourseQuestion(
       {
         ...nguCanhAI(row, question),
         learnerAnswer: isMultipleChoice ? answerNorm : answer,
-        isCorrect: laTraLoiDung(question, answerNorm),
+        isCorrect,
+        phanDung,
       },
       guiDan
         ? {
@@ -452,11 +517,12 @@ async function explainQuestion(req, res) {
     throw createHttpError(502, "AI chua giai thich duoc, thu lai sau");
   }
 
-  await pool.query(
-    "INSERT IGNORE INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)",
-    [questionId, answerNorm, explanation]
-  );
+  const dongSai = explanation;
+  if (phanDung) explanation = `${dongSai.split(/\n+/)[0].trim()}\n${phanDung}`;
+  await luuGiaiThich(questionId, answerNorm, explanation);
   if (guiDan) {
+    // Đã gửi dần dòng "Sai vì"; client không xin chế độ này thì gửi nốt phần "Đúng vì" + "Nhớ"
+    if (phanDung && !chiGuiDongSai) res.write(`\n${phanDung}`);
     res.end();
     return;
   }

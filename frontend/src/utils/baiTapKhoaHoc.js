@@ -29,6 +29,49 @@ export function laTraLoiDung(cauHoi, traLoi) {
   );
 }
 
+/**
+ * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …") lấy ra hai dòng dùng lại
+ * cho một câu trả lời gõ sai: "Đúng vì: …" và "Nhớ: …". Khi đó AI chỉ cần viết dòng "Sai vì".
+ * Không đúng khuôn thì trả null (gọi AI viết đủ như cũ).
+ */
+export function tachPhanDungCuaGiaiThich(giaiThich) {
+  const cacDong = String(giaiThich || "").split(/\n+/).map((dong) => dong.trim()).filter(Boolean);
+  // Nhãn có thể được in đậm: "Đúng rồi:", "**Đúng rồi:**", "**Đúng rồi**:"
+  const nhanDung = /^(\*\*)?đúng rồi(:\*\*|\*\*:|:)\s*/i;
+  const nhanNho = /^(\*\*)?nhớ(:\*\*|\*\*:|:)/i;
+  const dongDung = cacDong.find((dong) => nhanDung.test(dong));
+  const dongNho = cacDong.find((dong) => nhanNho.test(dong));
+  if (!dongDung || !dongNho) return null;
+  const lyDo = dongDung.replace(nhanDung, "").trim();
+  if (!lyDo) return null;
+  return `Đúng vì: ${lyDo}\n${dongNho}`;
+}
+
+/** Khoá của một câu trả lời trong kho lời giải thích (giống answer_norm phía server) */
+export function khoaGiaiThich(cauHoi, traLoi) {
+  return cauHoi.type === "multiple_choice"
+    ? String(traLoi ?? "").trim().toUpperCase()
+    : chuanHoaTraLoi(traLoi);
+}
+
+/**
+ * Lời giải thích có sẵn trên máy cho một câu trả lời (kho: { answer_norm: lời giải thích }):
+ * - { text }: đã soạn đúng câu trả lời này → hiện ngay, không gọi server;
+ * - { phanSau }: câu điền từ gõ sai kiểu chưa soạn, nhưng đáp án đúng đã có lời → hiện ngay
+ *   "Đúng vì" + "Nhớ", chỉ chờ AI viết dòng "Sai vì";
+ * - null: phải nhờ AI viết cả lời.
+ */
+export function timGiaiThichSan(cauHoi, traLoi, kho = {}) {
+  const daCo = kho[khoaGiaiThich(cauHoi, traLoi)];
+  if (daCo) return { text: daCo };
+  if (cauHoi.type === "multiple_choice" || laTraLoiDung(cauHoi, traLoi)) return null;
+  for (const dapAn of cauHoi.accepted_answers || []) {
+    const phanSau = tachPhanDungCuaGiaiThich(kho[chuanHoaTraLoi(dapAn)]);
+    if (phanSau) return { phanSau };
+  }
+  return null;
+}
+
 /** Đáp án đúng để hiển thị: "wasn’t" hoặc "did not pay / didn’t pay" */
 export function layDapAnHienThi(cauHoi) {
   if (cauHoi.type === "multiple_choice") {

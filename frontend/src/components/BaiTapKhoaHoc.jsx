@@ -12,6 +12,7 @@ import {
   phanBaiTap,
   phanTichLoiGo,
   tachChuDam,
+  timGiaiThichSan,
 } from "../utils/baiTapKhoaHoc";
 
 const TAT_CA = "tat-ca";
@@ -49,8 +50,42 @@ function DoanChuDam({ text }) {
   );
 }
 
+// Server gửi bản đầy đủ (đã soạn sẵn đúng câu này, hoặc AI viết lại cả lời) thì bỏ phần hiện sẵn
+const CO_PHAN_DUNG = /(^|\n)\s*(\*\*)?(Đúng vì|Nhớ)/;
+
 function GiaiThichAI({ trangThai, onThuLai }) {
   if (!trangThai) return null;
+  // Câu gõ sai kiểu mới: "Đúng vì" + "Nhớ" hiện ngay, dòng "Sai vì" hiện dần khi AI viết xong
+  if (trangThai.phanSau) {
+    return (
+      <section className="kh-ai" aria-busy={!trangThai.text && !trangThai.loi} aria-live="polite">
+        <h4 className="kh-ai__tieu-de">
+          <IconGiaiThich className="kh-ai__icon" />
+          Giải thích của AI
+        </h4>
+        {trangThai.text ? null : trangThai.loi ? (
+          <p className="kh-ai__loi">
+            {trangThai.loi}{" "}
+            <button type="button" className="kh-lien-ket" onClick={onThuLai}>
+              Thử lại
+            </button>
+          </p>
+        ) : (
+          <>
+            <div className="kh-ai__cho" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="sr-only">Đang soạn lời giải thích</span>
+          </>
+        )}
+        <p className="kh-ai__van-ban">
+          <DoanChuDam text={trangThai.text ? `${trangThai.text.trim()}\n${trangThai.phanSau}` : trangThai.phanSau} />
+        </p>
+      </section>
+    );
+  }
   return (
     <section className="kh-ai" aria-busy={trangThai.dangTai} aria-live="polite">
       <h4 className="kh-ai__tieu-de">
@@ -212,6 +247,10 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
  */
 export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, onTap = false }) {
   const { speak, isPlaying } = useTTS();
+  // Lời giải thích đã soạn sẵn, giữ trên máy: { [questionId]: { answer_norm: lời } } — từ dữ liệu bài
+  // (server gửi kèm) và kết quả soạn trước. Trả lời trúng câu đã có thì hiện ngay, không gọi server.
+  const khoGiaiThichRef = useRef({});
+  const khoCua = (cau) => (khoGiaiThichRef.current[cau.id] ??= { ...(cau.explanations || {}) });
   // "Tất cả" / "Còn lại" chỉ gồm câu của tài liệu; câu luyện thêm (AI) chọn riêng ở nhóm "Luyện thêm"
   const cauChinh = onTap ? cauHoi : layCauBaiChinh(cauHoi);
   const cauConLai = cauChinh.filter((c) => ketQuaGanNhat[c.id] !== true);
@@ -235,17 +274,33 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const soDung = Object.values(ketQua).filter((k) => k.dung).length;
   const soSai = Object.keys(ketQua).length - soDung;
 
-  // Soạn trước lời giải thích của câu đang hiện và câu kế tiếp trong lúc người học đọc đề,
-  // để khi trả lời thì lời giải thích hiện ngay (server bỏ qua câu đã soạn đủ)
-  const idCauNay = danhSach[chiSo]?.id;
-  const idCauSau = danhSach[chiSo + 1]?.id;
+  // Soạn trước lời giải thích của câu đang hiện và 2 câu kế tiếp trong lúc người học đọc đề (câu đã đủ
+  // lời thì bỏ qua), lời soạn xong gửi luôn về máy → trả lời xong hiện ngay. Lần lượt từng câu, câu đang
+  // hiện trước, để không dồn nhiều lượt gọi AI cùng lúc (hạn mức Gemini).
+  const cacCauSapToi = danhSach.slice(chiSo, chiSo + 3).filter((c) => !c.explanations_ready);
+  const khoaCauSapToi = cacCauSapToi.map((c) => c.id).join(",");
   useEffect(() => {
-    for (const id of [idCauNay, idCauSau]) {
-      if (!id || daChuanBiRef.current.has(id)) continue;
-      daChuanBiRef.current.add(id);
-      chuanBiGiaiThich(id).catch(() => daChuanBiRef.current.delete(id));
-    }
-  }, [idCauNay, idCauSau]);
+    let huy = false;
+    (async () => {
+      for (const cauSoan of cacCauSapToi) {
+        const id = cauSoan.id;
+        if (huy) return;
+        if (daChuanBiRef.current.has(id)) continue;
+        daChuanBiRef.current.add(id);
+        try {
+          const ketQuaSoan = await chuanBiGiaiThich(id);
+          Object.assign(khoCua(cauSoan), ketQuaSoan?.explanations || {});
+          if (!ketQuaSoan?.ready) daChuanBiRef.current.delete(id);
+        } catch {
+          daChuanBiRef.current.delete(id);
+        }
+      }
+    })();
+    return () => {
+      huy = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy lại khi nhóm câu sắp tới đổi
+  }, [khoaCauSapToi]);
 
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
   useEffect(() => {
@@ -288,20 +343,24 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   }
 
   function hoiAI(cauHienTai, traLoi) {
-    setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: true, text: "", loi: "" } }));
+    const datTrangThai = (trangThai) => setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: trangThai }));
+    const coSan = timGiaiThichSan(cauHienTai, traLoi, khoCua(cauHienTai));
+    if (coSan?.text) {
+      datTrangThai({ dangTai: false, text: coSan.text, loi: "" });
+      return;
+    }
+    const phanSau = coSan?.phanSau || "";
+    // Server trả bản đầy đủ (soạn sẵn ở instance khác, hoặc AI viết cả lời) thì không ghép thêm
+    const ghep = (text) => ({ dangTai: false, text, loi: "", phanSau: CO_PHAN_DUNG.test(text) ? "" : phanSau });
+    datTrangThai({ dangTai: !phanSau, text: "", loi: "", phanSau });
     giaiThichCauHoi(cauHienTai.id, traLoi, {
+      chiDongSai: Boolean(phanSau),
       // Chữ hiện dần ngay khi AI viết ra
-      onChunk: (text) =>
-        setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text, loi: "" } })),
+      onChunk: (text) => datTrangThai(ghep(text)),
     })
-      .then((data) =>
-        setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { dangTai: false, text: data.explanation, loi: "" } }))
-      )
+      .then((data) => datTrangThai(ghep(data.explanation)))
       .catch((error) =>
-        setGiaiThich((cu) => ({
-          ...cu,
-          [cauHienTai.id]: { dangTai: false, text: "", loi: error.message || "AI chưa giải thích được." },
-        }))
+        datTrangThai({ dangTai: false, text: "", loi: error.message || "AI chưa giải thích được.", phanSau })
       );
   }
 
