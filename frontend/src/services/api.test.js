@@ -53,3 +53,36 @@ it("aborts A's in-flight requests and ignores its stale 401 after switching to B
   await expect(pending).rejects.toThrow();
   expect(getStoredAuthToken()).toBe("B");
 });
+
+it("caches reads briefly, gives each caller its own copy and forgets after writes or account switches", async () => {
+  const { default: api, layCoBoNho, storeAuthToken } = await import("./api");
+  let soLanDoc = 0;
+  api.defaults.adapter = async (config) => {
+    if (config.method === "get") soLanDoc += 1;
+    return { data: { cards: [{ id: 1 }], lan: soLanDoc }, status: 200, config };
+  };
+  storeAuthToken("A");
+  const dau = await layCoBoNho("/decks/1/cards");
+  dau.cards.push({ id: 2 });
+  const sau = await layCoBoNho("/decks/1/cards");
+  expect(soLanDoc).toBe(1);
+  expect(sau.cards).toEqual([{ id: 1 }]);
+
+  await api.post("/study-sessions", {});
+  expect((await layCoBoNho("/decks/1/cards")).lan).toBe(2);
+
+  storeAuthToken("B");
+  expect((await layCoBoNho("/decks/1/cards")).lan).toBe(3);
+});
+
+it("does not keep failed reads in the cache", async () => {
+  const { default: api, layCoBoNho } = await import("./api");
+  let lan = 0;
+  api.defaults.adapter = async (config) => {
+    lan += 1;
+    if (lan === 1) throw Object.assign(new Error("offline"), { config });
+    return { data: { ok: true }, status: 200, config };
+  };
+  await expect(layCoBoNho("/courses")).rejects.toThrow();
+  await expect(layCoBoNho("/courses")).resolves.toEqual({ ok: true });
+});

@@ -15,9 +15,20 @@ function readTokenFromStorage() {
 let inMemoryAuthToken = readTokenFromStorage();
 let authRequests = new AbortController();
 
+// Bộ nhớ đệm GET ngắn hạn cho dữ liệu đọc nhiều (bộ từ, thẻ, khoá học, thống kê): quay lại trang
+// hoặc mở trang vừa được tải trước khi chạm link thì có dữ liệu ngay. Mọi request ghi
+// (POST/PUT/PATCH/DELETE) và đổi tài khoản xoá sạch nên không bao giờ thấy dữ liệu cũ sau khi ghi.
+const BO_NHO_GET_MS = 20000;
+const boNhoGet = new Map();
+
+export function xoaBoNhoGet() {
+  boNhoGet.clear();
+}
+
 function updateToken(token) {
   const nextToken = token || null;
   if (nextToken === inMemoryAuthToken) return;
+  xoaBoNhoGet();
   authRequests.abort();
   authRequests = new AbortController();
   inMemoryAuthToken = nextToken;
@@ -72,9 +83,21 @@ api.interceptors.request.use((config) => {
   return config;
 }, undefined, { synchronous: true });
 
+const laRequestGhi = (config) => !["get", "head", "options"].includes(String(config?.method || "get").toLowerCase());
+
+api.interceptors.request.use((config) => {
+  if (laRequestGhi(config)) xoaBoNhoGet();
+  return config;
+}, undefined, { synchronous: true });
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Xoá cả lúc ghi xong: GET chạy song song với request ghi có thể đã lưu bản trước khi ghi
+    if (laRequestGhi(response.config)) xoaBoNhoGet();
+    return response;
+  },
   (error) => {
+    if (laRequestGhi(error.config)) xoaBoNhoGet();
     const status = error.response?.status;
     const requestUrl = String(error.config?.url || "");
     const isCredentialAttempt = /^\/auth\/(login|register|google)$/.test(requestUrl);
@@ -97,5 +120,23 @@ api.interceptors.response.use(
     return Promise.reject(normalizedError);
   }
 );
+
+/**
+ * GET có bộ nhớ đệm 20 giây (theo tài khoản + url + params). Mỗi lần gọi nhận một bản sao riêng
+ * để trang này sửa mảng/đối tượng không ảnh hưởng trang khác. Lỗi thì không lưu.
+ */
+export function layCoBoNho(url, config) {
+  const khoa = `${inMemoryAuthToken || ""}|${url}|${JSON.stringify(config?.params || {})}`;
+  const daCo = boNhoGet.get(khoa);
+  if (daCo && Date.now() - daCo.luc < BO_NHO_GET_MS) {
+    return daCo.hua.then((data) => structuredClone(data));
+  }
+  const hua = api.get(url, config).then((response) => response.data);
+  boNhoGet.set(khoa, { luc: Date.now(), hua });
+  hua.catch(() => {
+    if (boNhoGet.get(khoa)?.hua === hua) boNhoGet.delete(khoa);
+  });
+  return hua.then((data) => structuredClone(data));
+}
 
 export default api;

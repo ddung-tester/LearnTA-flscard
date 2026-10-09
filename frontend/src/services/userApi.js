@@ -1,9 +1,8 @@
-import api from "./api";
+import api, { layCoBoNho } from "./api";
 
 /** Lấy thống kê streak + xp của user đang đăng nhập. */
 export async function getUserStats() {
-  const { data } = await api.get("/user/stats");
-  return data;
+  return layCoBoNho("/user/stats");
 }
 
 /** Lấy settings của user (bao gồm email_reminders). */

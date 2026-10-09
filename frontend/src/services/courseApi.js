@@ -1,16 +1,12 @@
-import api, { getStoredAuthToken } from "./api";
+import api, { getStoredAuthToken, layCoBoNho } from "./api";
 import { buildApiUrl } from "../config/api";
 
 export async function layDanhSachKhoaHoc() {
-  const response = await api.get("/courses");
-  return response.data;
+  return layCoBoNho("/courses");
 }
 
 export async function layBaiHoc(courseId, soBai) {
-  const response = await api.get(
-    `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}`
-  );
-  return response.data;
+  return layCoBoNho(`/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}`);
 }
 
 /** Câu bài tập đến hạn ôn (từng làm sai) của mọi khoá, mỗi câu kèm lesson_number và course_id */

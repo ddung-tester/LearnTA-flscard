@@ -1,14 +1,12 @@
-import api from "./api";
+import api, { layCoBoNho } from "./api";
 
 /** scope "learnable": mọi bộ học được (tự tạo + khoá học + lộ trình), dùng cho trang Luyện tập */
 export async function layDanhSachDeck({ scope } = {}) {
-  const response = await api.get("/decks", scope ? { params: { scope } } : undefined);
-  return response.data;
+  return layCoBoNho("/decks", scope ? { params: { scope } } : undefined);
 }
 
 export async function layDeckTheoId(deckId) {
-  const response = await api.get(`/decks/${deckId}`);
-  return response.data;
+  return layCoBoNho(`/decks/${deckId}`);
 }
 
 export async function taoDeck(payload) {

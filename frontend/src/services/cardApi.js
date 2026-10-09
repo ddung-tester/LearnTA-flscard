@@ -1,8 +1,7 @@
-import api from "./api";
+import api, { layCoBoNho } from "./api";
 
 export async function layCardsTheoDeck(deckId) {
-  const response = await api.get(`/decks/${deckId}/cards`);
-  return response.data;
+  return layCoBoNho(`/decks/${deckId}/cards`);
 }
 
 export async function taoCard(deckId, payload) {

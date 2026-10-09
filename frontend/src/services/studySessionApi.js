@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { layCoBoNho } from "./api";
 import { layPhienKhoHocTap, laPhienKhoHienTai } from "../utils/khoHocTap";
 import {
   layStudySessionsLocal,
@@ -23,8 +23,7 @@ export async function layStudySessions(params = {}) {
 
 export async function layStudySessionSummary() {
   try {
-    const response = await api.get("/study-sessions/summary");
-    return response.data;
+    return await layCoBoNho("/study-sessions/summary");
   } catch {
     return layStudySessionSummaryLocal();
   }
