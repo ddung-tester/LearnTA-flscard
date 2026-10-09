@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { LA_BO_LO_TRINH_SQL } = require("./deckController");
 const {
   cleanNullableText,
   cleanTextWithLimit,
@@ -109,7 +110,7 @@ async function resolveReadableCardLink(connection, userId, payload) {
        FROM cards c
        JOIN decks d ON d.id = c.deck_id
        WHERE c.id = ?
-         AND d.user_id = ?
+         AND (d.user_id = ? OR ${LA_BO_LO_TRINH_SQL})
        LIMIT 1`,
       [payload.cardId, userId]
     );
@@ -161,7 +162,7 @@ async function findMistakeById(connection, userId, mistakeId) {
          THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
-     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND d.user_id = mw.user_id
+     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND (d.user_id = mw.user_id OR ${LA_BO_LO_TRINH_SQL})
      WHERE mw.id = ? AND mw.user_id = ?
      LIMIT 1`,
     [mistakeId, userId]
@@ -320,7 +321,7 @@ async function listMistakes(req, res) {
          THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
-     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND d.user_id = mw.user_id
+     LEFT JOIN cards c ON c.id = mw.card_id AND c.deck_id = mw.deck_id AND (d.user_id = mw.user_id OR ${LA_BO_LO_TRINH_SQL})
      WHERE ${conditions.join(" AND ")}
      ORDER BY ${orderBy}
      LIMIT ? OFFSET ?`,

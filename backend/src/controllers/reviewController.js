@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { LA_BO_LO_TRINH_SQL } = require("./deckController");
 const {
   cleanText,
   createHttpError,
@@ -22,7 +23,8 @@ const CORRECT_RESULTS = new Set(["correct", "hard", "good", "easy"]);
 const WRONG_RESULTS = new Set(["wrong", "again"]);
 const VALID_STATUSES = new Set(["active", "mastered"]);
 
-const READABLE_DECK = "d.user_id = ?";
+// Bộ của mình hoặc bộ lộ trình (deckController.canReadDeck)
+const READABLE_DECK = `(d.user_id = ? OR ${LA_BO_LO_TRINH_SQL})`;
 
 const REVIEW_SELECT = `SELECT
        cp.id,

@@ -6,8 +6,8 @@ const { currentUserId } = require("./deckController");
 // Tiến độ đọc từ card_progress: "đã học" = có tiến độ, "đã thuộc" = Lv5.
 
 const SLUG_HOP_LE = /^[a-z0-9-]{1,80}$/;
-// Khách đọc bộ mẫu; tài khoản chỉ đọc bộ thuộc chính mình, kể cả trong lộ trình.
-const BO_TU_DOC_DUOC = "d.user_id <=> ?";
+// Bộ của lộ trình là bộ mẫu (user_id NULL): khách và tài khoản đều đọc được (deckController.canReadDeck)
+const BO_TU_DOC_DUOC = "(d.user_id IS NULL OR d.user_id <=> ?)";
 
 function soNguyen(value) {
   return Number(value || 0);

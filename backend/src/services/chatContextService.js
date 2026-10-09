@@ -19,7 +19,9 @@ function clip(value) {
 
 async function findReadableDeck(db, deckId, userId) {
   const [rows] = await db.query(
-    "SELECT id, user_id, is_public, title FROM decks WHERE id = ? LIMIT 1",
+    `SELECT d.id, d.user_id, d.is_public, d.title,
+       EXISTS (SELECT 1 FROM roadmap_decks rd WHERE rd.deck_id = d.id) AS is_roadmap
+     FROM decks d WHERE d.id = ? LIMIT 1`,
     [deckId]
   );
   const deck = rows[0];
@@ -30,7 +32,8 @@ async function loadCard(db, cardId, userId) {
   const [rows] = await db.query(
     `SELECT c.id, c.deck_id, c.term_en, c.meaning_vi, c.example_sentence, c.note,
             c.pronunciation, c.part_of_speech,
-            d.user_id, d.is_public, d.title AS deck_title
+            d.user_id, d.is_public, d.title AS deck_title,
+            EXISTS (SELECT 1 FROM roadmap_decks rd WHERE rd.deck_id = d.id) AS is_roadmap
      FROM cards c
      JOIN decks d ON d.id = c.deck_id
      WHERE c.id = ?

@@ -124,10 +124,20 @@ function sameId(left, right) {
   return String(left) === String(right);
 }
 
+// Bộ lộ trình (bộ mẫu user_id NULL nằm trong roadmap_decks): mọi người đọc được, kể cả tài khoản
+// đang đăng nhập (tiến độ vẫn riêng theo card_progress.user_id); không ai sửa được (không có chủ).
+// Bộ mẫu ngoài lộ trình và bộ của người khác: tài khoản không đọc được.
+const LA_BO_LO_TRINH_SQL =
+  "(d.user_id IS NULL AND EXISTS (SELECT 1 FROM roadmap_decks rd_doc WHERE rd_doc.deck_id = d.id))";
+
+function laBoLoTrinh(deck) {
+  return deck.user_id === null && (deck.source === "roadmap" || Boolean(Number(deck.is_roadmap)));
+}
+
 function canReadDeck(deck, userId) {
   return userId === null || userId === undefined
     ? deck.user_id === null
-    : sameId(deck.user_id, userId);
+    : sameId(deck.user_id, userId) || laBoLoTrinh(deck);
 }
 
 function isDeckOwner(deck, userId) {
@@ -190,13 +200,13 @@ async function assertUniqueDeckTitle(userId, title, excludeDeckId = null) {
 // Bộ từ thuộc lộ trình / khoá học chỉ hiện ở trang Khoá học, không lẫn vào "Bộ từ"
 const KHONG_THUOC_LO_TRINH_HAY_KHOA_HOC = "rd.id IS NULL AND cl.id IS NULL";
 
-// scope=learnable (trang Luyện tập): khách đọc bộ mẫu, tài khoản đọc bộ của mình,
+// scope=learnable (trang Luyện tập): khách đọc bộ mẫu, tài khoản đọc bộ của mình + bộ lộ trình,
 // xếp theo nhóm nguồn: bộ tự tạo, bộ mẫu, khoá học (theo buổi), lộ trình (theo chặng)
 async function listLearnableDecks(req, res) {
   const userId = currentUserId(req);
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE d.user_id <=> ?
+     WHERE (d.user_id <=> ? OR (d.user_id IS NULL AND rd.id IS NOT NULL))
      ORDER BY
        CASE WHEN cl.id IS NOT NULL THEN 2 WHEN rd.id IS NOT NULL THEN 3 WHEN d.user_id IS NULL THEN 1 ELSE 0 END,
        cl.course_id, cl.lesson_number, r.sort_order, r.id, rd.sort_order,
@@ -395,6 +405,7 @@ module.exports = {
   findDeckById,
   currentUserId,
   canReadDeck,
+  LA_BO_LO_TRINH_SQL,
   canWriteDeck,
   isDeckOwner,
   assertDeckReadable,

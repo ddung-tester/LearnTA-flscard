@@ -85,12 +85,12 @@ test("listDecks for guests excludes roadmap and course decks", async () => {
   assert.deepEqual(calls[0].params, [null]);
 });
 
-test("scope=learnable limits decks to the viewer ownership, grouped by source", async () => {
+test("scope=learnable: own decks plus roadmap decks, grouped by source", async () => {
   const calls = fakePool([[{ ...BO_KHOA_HOC }]]);
   const res = fakeRes();
   await listDecks({ query: { scope: "learnable" }, user: { id: 7 } }, res);
 
-  assert.match(calls[0].sql, /WHERE d\.user_id <=> \?/);
+  assert.match(calls[0].sql, /WHERE \(d\.user_id <=> \? OR \(d\.user_id IS NULL AND rd\.id IS NOT NULL\)\)/);
   assert.match(calls[0].sql, /ORDER BY\s+CASE WHEN cl\.id IS NOT NULL/);
   assert.deepEqual(calls[0].params, [7, 7]);
   assert.equal(res.body[0].source, "course");
@@ -148,4 +148,15 @@ test("deck read policy allows only guest samples or the authenticated owner's de
     }
   }
   assert.equal(canReadDeck({ user_id: 7 }, "7"), true);
+});
+
+test("roadmap decks (sample decks inside a roadmap) are readable by guests and every account, never writable", async () => {
+  for (const userId of [null, 7, 8]) {
+    assert.equal(canReadDeck({ user_id: null, source: "roadmap" }, userId), true);
+    assert.equal(canReadDeck({ user_id: null, is_roadmap: 1 }, userId), true);
+    assert.equal(canWriteDeck({ user_id: null, source: "roadmap" }, userId), false);
+  }
+  // Bộ mẫu ngoài lộ trình và bộ riêng của người khác vẫn đóng với tài khoản
+  assert.equal(canReadDeck({ user_id: null, source: "sample" }, 7), false);
+  assert.equal(canReadDeck({ user_id: 8, source: "roadmap" }, 7), false);
 });
