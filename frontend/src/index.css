@@ -2592,6 +2592,14 @@ body.is-page-loading .page-transition-root {
   transform: none;
 }
 
+/* Danh sách từ dài (trăm hàng): trình duyệt chỉ tính bố cục/vẽ hàng gần màn hình; hàng đang thấy y hệt.
+   Lần vẽ đầu chi tiết bộ 120 từ trên điện thoại: tác vụ dài nhất 1,3 s → 0,4 s. "auto" nhớ chiều cao thật đã đo;
+   99px là phần nội dung của một hàng có câu ví dụ (cộng padding + viền = 125px) để thanh cuộn đúng ngay từ đầu. */
+.ui-word-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 99px;
+}
+
 .ui-word-row,
 .ui-word-row:hover {
   position: relative;

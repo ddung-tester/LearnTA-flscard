@@ -91,10 +91,12 @@ export default function ChatbotWidget() {
       : "Hỏi đáp tiếng Anh miễn phí";
   const goiY = taoGoiY({ tuDangHoc: theDangHoc?.tu, coDeck: Boolean(deckId), daDangNhap: isAuthenticated });
 
-  // Auto-scroll khi có tin mới
+  // Auto-scroll khi có tin mới hoặc vừa mở khung. Khung đóng thì bỏ qua: scrollIntoView ép tính
+  // bố cục cả trang (~100 ms trên điện thoại) ngay lúc trang đang tải
   useEffect(() => {
+    if (!open) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, open]);
 
   // Focus textarea khi mở — chỉ khi có chuột: trên điện thoại bàn phím bật lên sẽ che khung chat
   useEffect(() => {
