@@ -1,88 +1,104 @@
 # Kế hoạch nâng cấp LearnTA — 10/2026
 
-> Lập 2026-10-09 từ `HANDOFF.md` (mục 1–48), `docs/BUG_AUDIT_2026-10-05.md`, `docs/STUDY_IDEMPOTENCY_2026-10-08.md` và một lần chạy kiểm tra trên checkout hiện tại. Làm theo `CLAUDE.md`: mỗi giai đoạn thay đổi tối thiểu, có test, chạy đủ kiểm tra rồi mới push.
+> Lập 2026-10-09 từ `HANDOFF.md` (mục 1–48), `docs/BUG_AUDIT_2026-10-05.md`, `docs/STUDY_IDEMPOTENCY_2026-10-08.md` và một lần chạy kiểm tra trên checkout hiện tại. Bản này viết để **chạy tự động một lượt**: mọi quyết định đã có phương án mặc định (mục 2), mọi việc có điều kiện xong (mục 3). Việc cần người dùng/production tách riêng ở mục 4.
 
 ## 0. Hiện trạng đo được (2026-10-09)
 
 | Hạng mục | Kết quả |
 |---|---|
-| Backend `node --test test/*.test.js` | 118 đạt / **2 lỗi** / 1 bỏ qua — `test/nhapCauMau.test.js` đọc `database/private-content/cau-mau/tu-vung-day-du.csv` (thư mục `.gitignore`) → **CI backend (`npm test`) sẽ đỏ** trên máy không có nội dung riêng |
+| Backend `node --test test/*.test.js` | 118 đạt / **2 lỗi** / 1 bỏ qua — `test/nhapCauMau.test.js` đọc `database/private-content/cau-mau/tu-vung-day-du.csv` (`.gitignore`) → **CI backend đỏ** trên máy không có nội dung riêng |
 | Frontend `vitest` | 154/154 đạt |
-| Frontend lint | 0 lỗi / 23 cảnh báo (`set-state-in-effect`, `exhaustive-deps`) |
+| Frontend lint | 0 lỗi / 23 cảnh báo |
 | Build | Đạt; cảnh báo chunk > 500 KB và `eval` (Lottie) |
-| Chunk lớn nhất | `CanhThe3D` 531 KB (three.js, chỉ trang chủ), **`index` 437 KB (tải ở mọi trang)**, `index.umd` 316 KB, `LoginMascot` 164 KB (Rive), `CauChuyenCuon` 121 KB |
-| `npm audit --omit=dev` backend | 5 lỗ hổng: **critical** `proxy-addr`, **high** `nodemailer`, moderate `mysql2`, `qs`, `body-parser` — đều có `npm audit fix` |
-| Thư mục `public/media` | 68 MB video thưởng (người dùng chọn giữ) |
+| Chunk lớn | `CanhThe3D` 531 KB (chỉ trang chủ), **`index` 437 KB (mọi trang)**, `index.umd` 316 KB, `LoginMascot` 164 KB, `CauChuyenCuon` 121 KB |
+| `npm audit --omit=dev` backend | **critical** `proxy-addr`, **high** `nodemailer`, moderate `mysql2`, `qs`, `body-parser` — có `npm audit fix` |
+| Lộ trình khi đăng nhập | **Trống**: `canReadDeck` + `roadmapController` (`d.user_id <=> ?`) chặn bộ mẫu `user_id NULL` với người đăng nhập (hệ quả chính sách A, Đợt 3 audit) |
 
-## 1. Vấn đề cần người dùng chốt trước (chặn một số mục bên dưới)
+## 1. Quy tắc chạy
 
-1. **Lộ trình khi đã đăng nhập đang trống.** Chính sách A (Đợt 3 của audit) cho người đăng nhập chỉ đọc bộ của mình (`deckController.canReadDeck`, `roadmapController` dùng `d.user_id <=> ?`). Nhưng bộ lộ trình là bộ mẫu `user_id NULL` → tab **Từ vựng → Lộ trình** và `/roadmap/:slug` không còn từ cho người đăng nhập, trái với `HANDOFF.md` mục 2. Phương án:
-   - (a) Ngoại lệ: người đăng nhập đọc được bộ `user_id NULL` **thuộc lộ trình** (chỉ đọc, tiến độ vẫn theo `card_progress.user_id`). *Đề xuất* — ít code, giữ đúng tinh thần "không đọc bộ của người khác".
-   - (b) Giữ A, ẩn tab Lộ trình khi đăng nhập.
-   - (c) Nút "Sao chép sang bộ của tôi" (HANDOFF 4.5) thay cho đọc trực tiếp.
-2. **Game hoá** (HANDOFF 4.3) vẫn mâu thuẫn `PRODUCT.md` (anti-reference coin/shop/leaderboard). Kế hoạch này **không** làm game hoá; nếu muốn thì chốt và sửa `PRODUCT.md` trước.
-3. **Nguồn mở rộng từ vựng** (NGSL/TSL, CC BY-SA) — chưa chốt (HANDOFF 4.4).
+- Làm trên nhánh `claude/confident-curie-s3b6ch`, **mỗi giai đoạn 1 commit**, push sau mỗi giai đoạn; cuối cùng mở 1 PR vào `main` để người dùng merge (merge = deploy, HANDOFF mục 5).
+- Trước mỗi commit: `backend: node --test test/*.test.js` · `frontend: npx vitest run && npm run lint && npx vite build`. Đỏ thì sửa, không bỏ qua test.
+- **Không** chạy migration lên Cloud SQL, **không** ghi DB production, **không** gọi Gemini hàng loạt. Code mới phải **tương thích ngược**: chạy được khi migration mới chưa áp dụng (bắt lỗi cột/ENUM thiếu → bỏ qua tính năng, không 500).
+- Mỗi giai đoạn: thêm dòng vào bảng mục 3 của `HANDOFF.md`; sửa `PROJECT_CONTEXT.md` khi đổi route/bảng/luồng.
+- Giữ ràng buộc `CLAUDE.md`: tên tiếng Việt không dấu trong code, UI có dấu; không thêm tài khoản demo; dùng `ui-*` + token sẵn có.
+- Gặp việc không xác định được (thiếu quyền, kết quả đo bất thường) → ghi vào "Còn treo" của giai đoạn đó, làm tiếp việc khác.
 
-## 2. Giai đoạn đề xuất (làm lần lượt, push sau mỗi giai đoạn)
+## 2. Quyết định cần người dùng — kèm khuyến nghị (mặc định nếu không trả lời)
 
-### GĐ 1 — Sửa lỗi & an toàn (ưu tiên cao nhất, nhỏ, ít rủi ro)
+| # | Câu hỏi | Khuyến nghị (mặc định) | Lý do |
+|---|---|---|---|
+| D1 | Lộ trình khi đăng nhập đang trống — xử lý thế nào? | **(a)** Người đăng nhập **đọc** được bộ `user_id NULL` thuộc `roadmap_decks` (chỉ đọc, tiến độ theo `card_progress.user_id`); vẫn không đọc bộ riêng của người khác | Ít code nhất, khôi phục đúng HANDOFF mục 2; (b) ẩn tab làm mất nội dung; (c) sao chép tạo dữ liệu trùng |
+| D2 | Làm game hoá (coin/shop/leaderboard)? | **Không** | Trái `PRODUCT.md`; ưu tiên trí nhớ thật hơn phần thưởng |
+| D3 | Mở rộng từ vựng lộ trình (NGSL/TSL)? | **Hoãn**, không nằm trong lượt chạy | Cần chốt nguồn + soát nghĩa Việt thủ công |
+| D4 | Thông báo đẩy (Web Push)? | **Không**; nâng cấp email nhắc có sẵn | Cần service worker, HANDOFF 42 cố ý tránh (kẹt bản cũ) |
+| D5 | Mục tiêu ngày tính theo gì? | **Số lượt trả lời** (thẻ + câu), mặc định **20**, chọn 10/20/30/50 | Đếm chính xác từ dữ liệu có sẵn; phút dễ sai khi treo tab |
+| D6 | Giới hạn từ mới/ngày? | **15**, chọn 5/10/15/20/30/Không giới hạn | Tránh hàng ôn phình sau 1–2 tuần |
+| D7 | Luyện câu có ghi vào tiến độ SRS? | **Có, chỉ khi đạt** (Nghe chép ≥80%, Đặt câu `dung_tu && dung_ngu_phap`) → +1 cấp; không đạt **không** ghi; Nói theo **không** ghi | Câu sai thường do ngữ pháp/nghe, không phải quên từ; nhận dạng giọng không ổn định |
+| D8 | Migration mới cho production? | Tôi viết file migration + cập nhật `schema.sql`; **bạn chạy trước khi merge PR** | Session không có quyền Cloud SQL |
+| D9 | Thay `lottie-react` bằng bản `lottie_light` để hết `eval`? | **Thử**; nếu animation dùng expression hiển thị khác (so ảnh) thì giữ nguyên | An toàn, có đường lùi |
+| D10 | Xoá `RewardProgressBar.jsx` (không còn dùng)? | **Xoá** | Code chết, HANDOFF 45 đã ghi |
+| D11 | Nén lại 68 MB video thưởng? | **Không** trong lượt này | Bạn đã chọn giữ; cần soát chất lượng bằng mắt |
+| D12 | IPA cho 240 từ lộ trình lấy từ đâu? | **Tôi tự soạn** (giọng Mỹ), đánh dấu cần soát; bạn soát 20 từ mẫu | Không tốn hạn mức Gemini, không vướng bản quyền |
+| D13 | Import Excel: hỗ trợ `.xlsx`? | **Không**; nhận `.csv` / `.tsv` + dán từ Excel (đã có) | Thư viện xlsx nặng, bản npm có lỗ hổng chưa vá |
+| D14 | Hàng ôn hợp nhất | `/review` thêm nhóm "Câu bài tập" **sau** thẻ đến hạn; giữ trang `/khoa-hoc/on-tap` | Một điểm vào, không đổi 2 nơi ghi SRS |
+| D15 | Cảnh báo lint | Chỉ dọn trong file đang sửa | Tránh diff lan rộng (`CLAUDE.md` §3) |
 
-| # | Việc | Kiểm chứng |
+## 3. Danh sách việc theo thứ tự chạy
+
+### GĐ 1 — Sửa lỗi & an toàn
+
+| # | Việc | Xong khi |
 |---|---|---|
-| 1.1 | `nhapCauMau.test.js`: bỏ qua (`t.skip`) các test cần file CSV riêng khi file không tồn tại, giống test MySQL opt-in. Không xoá test. | `npm test` backend sạch trên checkout không có `private-content` |
-| 1.2 | `npm audit fix` backend (không `--force`), rồi chạy lại test. `nodemailer` vẫn dùng cho email nhắc học → sau khi nâng cấp, thử gửi 1 email. | audit 0 critical/high; 121 test đạt |
-| 1.3 | Lộ trình khi đăng nhập theo phương án chốt ở mục 1.1. | test quyền: khách/A/B đọc bộ lộ trình, A không đọc bộ riêng của B |
-| 1.4 | Timeout cho request API (audit P2 còn lại): axios `timeout` + UI thoát loading, có "Thử lại". | test hook: request treo → báo lỗi; request cũ trả muộn không ghi đè |
-| 1.5 | Nghiệm thu còn treo trên tài khoản thật (audit P1, HANDOFF 4.2): CRUD metadata thẻ, audio Cloud Storage, lưu phiên sau deploy migration 015/016, Google OAuth đúng origin. **Người dùng tự đăng nhập**; tôi chuẩn bị checklist. | checklist ký từng dòng |
-| 1.6 | Xác nhận migration 014/015/016 đã chạy trên Cloud SQL production (HANDOFF mục 5 chỉ ghi tới 013). | `SHOW COLUMNS` / `SHOW INDEX` khớp `schema.sql` |
+| 1.1 | `nhapCauMau.test.js`: test cần CSV riêng → `{ skip: !fs.existsSync(...) }` | `npm test` backend 0 lỗi trên checkout sạch |
+| 1.2 | `npm audit fix` backend (không `--force`) | 0 critical/high; test backend đạt; `require('nodemailer')` + `createTransport` chạy |
+| 1.3 | D1: `canReadDeck` cho phép bộ `user_id NULL` thuộc lộ trình; `roadmapController` đọc bộ lộ trình cho người đăng nhập; ghi vẫn chặn | Test: khách/A/B đọc bộ lộ trình; A không đọc bộ riêng của B, không đọc bộ mẫu ngoài lộ trình; A không sửa bộ lộ trình |
+| 1.4 | Axios `timeout` (15s thường, 60s cho AI/stream không áp) + trang học có trạng thái lỗi "Thử lại" khi hết giờ | Test: request treo → báo lỗi; phản hồi muộn của request cũ không ghi đè |
+| 1.5 | Cập nhật `CLAUDE.md` §5 câu chính sách đọc bộ cho khớp D1 | — |
 
-### GĐ 2 — Trải nghiệm học (giá trị chính cho người học)
+### GĐ 2 — Trải nghiệm học
 
-Mục tiêu: mỗi lần mở app biết ngay "hôm nay học gì, mất bao lâu", và thời gian học chuyển thành trí nhớ thật.
-
-| # | Việc | Ghi chú |
+| # | Việc | Xong khi |
 |---|---|---|
-| 2.1 | **Hàng đợi ôn hợp nhất**: `/review` gộp thẻ đến hạn + câu bài tập khoá học đến hạn (HANDOFF 4.5), một nút "Ôn hôm nay (N)". | Không đổi luật SRS; chỉ gộp hàng đợi ở FE, hai nơi ghi giữ nguyên |
-| 2.2 | **Mục tiêu ngày** (vd. 10/20/30 từ hoặc 10/20 phút) trên Dashboard, vòng tiến độ đầy dần; nhớ ở `user_settings`. | Không phải game hoá: không coin/xếp hạng |
-| 2.3 | **Giới hạn từ mới/ngày** (mặc định 10–20) để hàng ôn không phình; Dashboard ưu tiên "ôn đến hạn → từ mới". | Một tham số cài đặt, đọc ở `useBoTuHoc` |
-| 2.4 | **Luyện câu ghi vào tiến độ**: Nghe chép/Đặt câu đạt → tính là một lần trả lời đúng của thẻ (đi qua `POST /study-sessions/:id/answers`, ENUM mới qua migration). | Cần migration + `VALID_MODES`; theo checklist HANDOFF mục 6 |
-| 2.5 | Nút "Dịch câu" ở Ngữ cảnh (migration 016 đã thêm bản dịch ví dụ) và gợi ý từng bước (chữ cái đầu → số ký tự) ở Gõ từ trước khi coi là sai. | |
-| 2.6 | Màn kết quả: "Từ hay nhầm hôm nay" + một nút ôn ngay 5 từ yếu nhất. | Dùng dữ liệu `mistakeNotebook` sẵn có |
-| 2.7 | Bộ lộ trình chưa có `pronunciation` (HANDOFF 34) → bổ sung IPA cho 240 từ tự soạn để sóng âm/IPA hiện đủ. | Nội dung, cập nhật `lo-trinh.json` + `seed:roadmaps` |
-| 2.8 | Công tắc ẩn mèo học cùng (HANDOFF 36 ghi chưa có) trong Cài đặt giao diện. | |
+| 2.1 | D14 hàng ôn hợp nhất: `/review` lấy `GET /course-questions/due`, hiện sau thẻ đến hạn, dùng `BaiTapKhoaHoc onTap`; badge menu = thẻ + câu | Test đếm; người không có khoá → không gọi API khoá |
+| 2.2 | D5 mục tiêu ngày: cài đặt `muc_tieu_ngay`, vòng tiến độ ở Dashboard + màn kết quả ("Còn N lượt") | Test đếm lượt hôm nay theo giờ VN; giảm chuyển động → không animate |
+| 2.3 | D6 giới hạn từ mới/ngày: `useBoTuHoc`/`/practice` lọc "Chưa học" tôn trọng hạn còn lại; Dashboard ưu tiên "Ôn đến hạn → Từ mới" | Test: đã học 15 từ mới → phiên mới chỉ có từ đã học |
+| 2.4 | D7 Luyện câu ghi SRS: migration 017 thêm `luyen-cau` vào ENUM `mode`, `nghe-chep`/`dat-cau` vào `question_type`; `VALID_MODES`; `TrangLuyenCau` tạo phiên + gửi đáp án đạt; nhãn `TEN_CHE_DO`/`modeLabel`. Thiếu ENUM → FE vẫn chạy, chỉ không ghi | Test controller + hook; theo checklist HANDOFF mục 6 |
+| 2.5 | Nút "Dịch câu" ở Ngữ cảnh (cột bản dịch migration 016; chưa có thì ẩn nút) | Test hiện/ẩn |
+| 2.6 | Gõ từ: gợi ý từng bước (chữ đầu → số ký tự → nửa từ); dùng gợi ý thì câu đúng không +1 cấp (giống tắt gợi ý ở Lv≥3) | Test `phienHoc` |
+| 2.7 | Màn kết quả: "Từ yếu nhất" (5 từ sai nhiều nhất từ `mistakeNotebook`) + nút ôn ngay | Test chọn 5 từ |
+| 2.8 | D12 IPA 240 từ trong `lo-trinh.json` + test định dạng `/.../` | `noiDungLoTrinh.test.js` đạt; cần `seed:roadmaps` (mục 4) |
+| 2.9 | Công tắc "Hiện mèo học cùng" ở Cài đặt giao diện | Tắt → không tải chunk mèo |
 
 ### GĐ 3 — Chức năng
 
-| # | Việc | Ghi chú |
+| # | Việc | Xong khi |
 |---|---|---|
-| 3.1 | Import CSV/Excel vào bộ của tôi (mở rộng "Thêm nhanh" đang nhận dán). | Parse ở FE, gửi theo lô có sẵn |
-| 3.2 | Xuất bộ ra CSV (sao lưu). | |
-| 3.3 | "Sao chép sang bộ của tôi" cho bộ lộ trình (nếu chọn 1.1c thì làm ở GĐ1). Bộ khoá học **không** sao chép (nội dung trả phí). | |
-| 3.4 | Nhắc học: email nhắc/khen đã có (`reminderService` + `cronRoutes`, 23:00 và 18:00 VN). Bổ sung: nội dung nêu số từ đến hạn + buổi học tiếp, công tắc tắt email và giờ nhắc trong Cài đặt. Web Push cần service worker (HANDOFF 42 cố ý không dùng) — **chốt với người dùng**. | Kiểm tra Cloud Scheduler còn gọi 2 endpoint |
-| 3.5 | Sinh bài luyện thêm cho bài 1–12, 14–48 (`sinh:luyen-them`) khi hạn mức Gemini cho phép. | Nội dung riêng, không commit |
+| 3.1 | D13 nhập `.csv`/`.tsv` trong "Thêm nhanh" (đọc file → cùng parser dán danh sách) | Test parser: dấu phẩy trong ngoặc kép, BOM UTF-8, trùng từ |
+| 3.2 | Xuất bộ ra CSV (UTF-8 BOM để Excel đọc đúng tiếng Việt) ở chi tiết bộ | Test xuất → nhập lại ra cùng dữ liệu |
+| 3.3 | Email nhắc: nêu số từ đến hạn + buổi học tiếp; cài đặt tắt email (cột `user_preferences`, migration 018 nếu cần; thiếu cột → coi như bật) | Test template + lọc người tắt |
 
-### GĐ 4 — Hiệu năng
+### GĐ 4 — Hiệu năng (đo → sửa → đo lại)
 
-| # | Việc | Kiểm chứng |
+| # | Việc | Xong khi |
 |---|---|---|
-| 4.1 | Phân tích chunk `index` 437 KB (tải ở mọi trang) bằng `rollup-plugin-visualizer`/`vite --debug`; tách thư viện chỉ dùng ở vài trang (`motion`, `tenseExamples`, `axios` cũ…) và route khách không cần. | chunk đầu giảm, đo trước/sau |
-| 4.2 | `index.umd` 316 KB: xác định thư viện (nhiều khả năng Lottie/Rive), đảm bảo chỉ tải lười. Thay `lottie-react` bằng bản `lottie_light` để hết cảnh báo `eval` nếu không dùng expression. | build không còn cảnh báo `eval` |
-| 4.3 | Đo Web Vitals (LCP/INP/CLS) trên production bằng Lighthouse mobile cho `/`, `/dashboard`, một trang học; đặt ngân sách trong README. | số liệu ghi vào HANDOFF |
-| 4.4 | Backend: rà các truy vấn `GET /courses`, `/decks?scope=learnable`, `/reviews` (EXPLAIN) và index còn thiếu; backend chưa dùng `compression` — thêm nếu Cloud Run/Vercel chưa nén JSON (kiểm tra header `content-encoding` trước). | EXPLAIN không full scan bảng lớn |
-| 4.5 | Video thưởng 68 MB: chỉ đề xuất nén lại (AV1/HEVC + H.264 dự phòng) nếu người dùng đồng ý; đang chọn giữ. | |
+| 4.1 | Đo trước: build + `rollup-plugin-visualizer` (devDependency), Lighthouse mobile chạy local bản `vite preview` + API giả cho `/`, `/decks`, một trang học | Bảng số trước/sau ghi vào HANDOFF |
+| 4.2 | Tách chunk `index` 437 KB: thư viện chỉ vài trang dùng → `lazy`/`import()`; mục tiêu chunk đầu < 300 KB | Build đo được |
+| 4.3 | D9 `lottie_light` | Hết cảnh báo `eval`, ảnh màn chờ/streak không đổi |
+| 4.4 | Backend: thêm `compression`; rà truy vấn `/courses`, `/decks?scope=learnable`, `/reviews` theo `schema.sql`, index thiếu → migration 019 | Test; liệt kê index đề xuất |
+| 4.5 | D10 xoá `RewardProgressBar.jsx` | Build/lint đạt |
 
-### GĐ 5 — Nợ kỹ thuật (làm xen kẽ, chỉ khi đụng tới file đó)
+### GĐ 5 — Kết thúc
 
-- Tách `TrangChiTietBo.jsx` (1776 dòng), `TrangTuLuan.jsx` (1557), `TrangFlashcard.jsx` (1082), `TrangOnTapHomNay.jsx` (1013) theo khung phiên dùng chung (`HANDOFF` mục 2), chỉ khi có tính năng cần sửa ở đó.
-- 23 cảnh báo lint: dọn dần trong file đang sửa.
-- `RewardProgressBar.jsx` không còn dùng (HANDOFF 45) — xoá khi người dùng đồng ý.
+| # | Việc |
+|---|---|
+| 5.1 | Cập nhật `HANDOFF.md` (bảng mục 3, mục 4 việc treo, mục 5 migration chưa chạy 017–019), `PROJECT_CONTEXT.md` |
+| 5.2 | Mở PR vào `main`, ghi rõ: migration cần chạy trước merge, lệnh `seed:roadmaps`, checklist mục 4 |
 
-## 3. Thứ tự đề xuất
+## 4. Việc không tự động được — cần người dùng
 
-1. Chốt 3 câu hỏi ở mục 1.
-2. GĐ 1 (1.1 → 1.2 → 1.3 → 1.4; 1.5/1.6 cùng người dùng).
-3. GĐ 2 theo thứ tự 2.1 → 2.2/2.3 → 2.4 → còn lại.
-4. GĐ 4.1–4.3 (đo trước khi tối ưu).
-5. GĐ 3 theo nhu cầu.
-
-Mỗi giai đoạn xong: `npm test` (BE) + `npx vitest run` + `npx vite build` + `npm run lint` (FE), cập nhật bảng mục 3 của `HANDOFF.md` và `PROJECT_CONTEXT.md` khi đổi route/bảng/luồng.
+1. Chạy migration 014–016 (nếu chưa) và **017–019** lên Cloud SQL **trước khi merge PR**.
+2. `npm run seed:roadmaps` sau merge (nạp IPA lộ trình).
+3. Nghiệm thu trên tài khoản thật: sửa thẻ giữ metadata, file nghe khoá học, Google OAuth đúng origin, lưu phiên sau deploy, Luyện câu ghi tiến độ, hàng ôn hợp nhất.
+4. Kiểm tra Cloud Scheduler còn gọi `/api/cron/daily-reminders` và `/api/cron/praise`.
+5. Sinh luyện thêm bài 1–12, 14–48 (`sinh:luyen-them`) khi hạn mức Gemini cho phép — nội dung riêng, không commit.
+6. Soát 20 IPA mẫu (D12).
