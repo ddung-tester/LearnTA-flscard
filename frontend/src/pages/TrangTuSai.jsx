@@ -1,6 +1,6 @@
 import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import EmptyState from "../components/common/EmptyState";
 import AnimatedModal from "../components/common/AnimatedModal";
 import { useToast } from "../contexts/ToastContext";
@@ -185,7 +185,7 @@ function MistakeCard({ entry, vuaOn, onMarkReviewed, onRemove }) {
   const isReviewed = entry.status === "reviewed";
 
   return (
-    <motion.li
+    <m.li
       layout
       exit={THE_XOA_BAY_RA}
       transition={{ layout: { type: "spring", stiffness: 420, damping: 36 } }}
@@ -251,7 +251,7 @@ function MistakeCard({ entry, vuaOn, onMarkReviewed, onRemove }) {
           Xoá
         </button>
       </div>
-    </motion.li>
+    </m.li>
   );
 }
 

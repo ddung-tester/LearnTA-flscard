@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 
 // Tải lottie-web khi overlay cần hiện lần đầu, không nằm trong bundle chính
 const Lottie = lazy(() =>
@@ -77,7 +77,7 @@ function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
   const hienLottie = giuLottie && loadingAnimation && !giamChuyenDong;
 
   return (
-    <motion.div
+    <m.div
       className={`page-loading-overlay${dangHienThi ? " page-loading-overlay--visible" : ""}`}
       initial={false}
       animate={{ opacity: dangHienThi ? 1 : 0 }}
@@ -100,7 +100,7 @@ function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
         )}
         <p className="page-loading-overlay__text">Đang tải...</p>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 

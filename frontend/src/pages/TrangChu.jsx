@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   animate,
-  motion,
+  m,
   useMotionValue,
   useReducedMotion,
   useTransform,
@@ -113,7 +113,7 @@ function TheMau({
   }
 
   return (
-    <motion.div
+    <m.div
       className="home-the"
       style={{ zIndex: soThe - tang, pointerEvents: dangBay ? "none" : undefined }}
       initial={giam ? false : { y: 320, rotate: 0, scale: 0.9, opacity: 0 }}
@@ -131,7 +131,7 @@ function TheMau({
       }
       onAnimationComplete={laTrenCung && !daChiaXong ? onChiaXong : undefined}
     >
-      <motion.div
+      <m.div
         className="home-the__keo"
         style={{ x, rotate: giam ? 0 : nghieng }}
         drag={laTrenCung && !dangBay ? "x" : false}
@@ -174,8 +174,8 @@ function TheMau({
             </span>
           </span>
         </button>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
 

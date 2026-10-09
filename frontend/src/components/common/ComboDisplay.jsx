@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import {
   AnimatePresence,
-  motion,
+  m,
   useAnimationControls,
   useReducedMotion,
 } from "motion/react";
@@ -93,7 +93,7 @@ function ComboDisplay({ combo, phase, progressPercent = 0 }) {
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
+        <m.div
           key="combo-badge"
           aria-live="polite"
           aria-atomic="true"
@@ -103,17 +103,17 @@ function ComboDisplay({ combo, phase, progressPercent = 0 }) {
           style={{ "--combo-current-color": comboColor }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
         >
-          <motion.span
+          <m.span
             className="ui-combo__glow"
             animate={glowControls}
             initial={false}
           />
-          <motion.span
+          <m.span
             className="ui-combo__shimmer"
             animate={shimmerControls}
             initial={false}
           />
-          <motion.span
+          <m.span
             className="ui-combo__wave"
             animate={waveControls}
             initial={false}
@@ -123,15 +123,15 @@ function ComboDisplay({ combo, phase, progressPercent = 0 }) {
           </span>
           <span className="ui-combo__label">
             Combo{" "}
-            <motion.span
+            <m.span
               className="ui-combo__count"
               animate={countControls}
               initial={false}
             >
               x{combo}
-            </motion.span>
+            </m.span>
           </span>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

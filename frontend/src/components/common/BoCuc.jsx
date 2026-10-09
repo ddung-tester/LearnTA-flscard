@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { motion, useReducedMotion } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
@@ -188,7 +188,7 @@ function BoCuc() {
                       </span>
                     )}
                     {dangActive && (
-                      <motion.span
+                      <m.span
                         layoutId="dash-nav-gach-chan"
                         className="dash-nav__indicator"
                         transition={

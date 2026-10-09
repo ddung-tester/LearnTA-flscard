@@ -2,7 +2,7 @@
 import {
   AnimatePresence,
   animate,
-  motion,
+  m,
   useMotionValue,
   useReducedMotion,
   useTransform,
@@ -106,7 +106,7 @@ function TheKeoDuoc({ ref, huong, giamChuyenDong, coTheTruoc, coTheSau, onVuot, 
   const thamSo = { huong, giam: giamChuyenDong };
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       className="fc-the-keo"
       style={{ x, rotate: giamChuyenDong ? 0 : nghieng }}
@@ -152,7 +152,7 @@ function TheKeoDuoc({ ref, huong, giamChuyenDong, coTheTruoc, coTheSau, onVuot, 
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -947,7 +947,7 @@ function TrangFlashcard() {
               onPointerLeave={thoiNghiengThe}
               className="ui-card-interactive ui-flashcard-card ui-nghieng-3d relative h-full min-h-[19rem] w-full rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] sm:min-h-[24rem] cursor-pointer"
             >
-              <motion.div
+              <m.div
                 className="ui-flashcard-card__inner absolute inset-0 rounded-xl"
                 initial={false}
                 animate={{ rotateY: daLat ? 180 : 0 }}
@@ -1007,7 +1007,7 @@ function TrangFlashcard() {
                     </p>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             </div>
           </TheKeoDuoc>
         </AnimatePresence>

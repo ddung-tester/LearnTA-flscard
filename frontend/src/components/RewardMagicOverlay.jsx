@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { phatAm } from "../utils/amThanh";
 import { em, taoDongCo, taoDuongBay } from "./reward/dongCoPhepThuat";
 import "./RewardMagicOverlay.css";
@@ -403,7 +403,7 @@ function RewardMagicOverlay({
         <div className="reward-magic__san-khau">
           <AnimatePresence>
             {hienGiua && (
-              <motion.div
+              <m.div
                 key={sequenceKey}
                 className="reward-magic__the-giua"
                 initial={{ opacity: 0, y: 28, scale: 0.94 }}
@@ -419,7 +419,7 @@ function RewardMagicOverlay({
                   <div className="reward-magic__cau-mau">
                     <p className="reward-magic__cau-mau-nhan">Câu mẫu với từ vừa học</p>
                     {cauMau.map((item, i) => (
-                      <motion.div
+                      <m.div
                         key={item.tense}
                         className="reward-magic__tense-item"
                         initial={{ opacity: 0, y: 14 }}
@@ -430,11 +430,11 @@ function RewardMagicOverlay({
                         {item.formula && <span className="reward-magic__tense-formula">{item.formula}</span>}
                         <p className="reward-magic__tense-sentence">{item.sentence}</p>
                         {item.translation && <p className="reward-magic__tense-translation">{item.translation}</p>}
-                      </motion.div>
+                      </m.div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
