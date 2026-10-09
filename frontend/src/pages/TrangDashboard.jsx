@@ -155,20 +155,20 @@ function TrangDashboard() {
   useEffect(() => {
     let active = true;
 
-    Promise.all([
-      layDanhSachDeck(),
-      getUserStats(),
-      layStudySessionSummary(),
-      taiTuSaiDongBo({ limit: 200 }),
-      taiSRSDongBo({ limit: 200 }),
-    ])
+    // Số "Cần ôn"/"Từ hay nhầm" hiện ngay từ bản trên máy; đồng bộ với server chạy song song,
+    // không giữ màn chờ (tải đủ tiến độ của tài khoản nhiều thẻ mất vài vòng mạng)
+    Promise.all([taiTuSaiDongBo({ limit: 200 }), taiSRSDongBo({ limit: 200 })]).then(() => {
+      if (!active) return;
+      setMistakeStats(layThongKeTuSai());
+      setSrsStats(layThongKeSRS());
+    });
+
+    Promise.all([layDanhSachDeck(), getUserStats(), layStudySessionSummary()])
       .then(([ds, st, sessionData]) => {
         if (!active) return;
         setDecks(ds);
         setStats(st);
         setSessionSummary(sessionData);
-        setMistakeStats(layThongKeTuSai());
-        setSrsStats(layThongKeSRS());
       })
       .catch(() => {
         if (!active) return;

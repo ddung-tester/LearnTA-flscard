@@ -127,6 +127,8 @@ function chuanHoaSRSTuBackend(item) {
     nextReviewAt: item.next_review_at ?? new Date().toISOString(),
     status: trangThaiTheoLevel(level),
     updatedAt: item.updated_at ?? item.last_reviewed_at ?? new Date().toISOString(),
+    // Đã có tiến độ trên server: không cần đẩy lên lại (dongBoSRSLenBackend)
+    trenServer: true,
   };
 }
 
@@ -414,42 +416,74 @@ export function ghiNhanSaiVaoSRS(cards, opts) {
   ghiNhanKetQuaLocal(cards, "wrong", opts);
 }
 
-async function taiTatCaTrangReviews(load, params, phienKho) {
-  const limit = 200;
+const SO_DONG_MOI_TRANG = 200;
+// Lượt tải đang chạy theo (loại, tham số, kho): các trang mở cùng lúc (Dashboard, badge menu...) dùng chung
+const dangTai = new Map();
+
+// Tải đủ mọi trang. Số trang ước theo kho local (lần trước tải về bao nhiêu) để gọi song song
+// một lượt thay vì nối tiếp từng trang — trên 4G mỗi vòng mạng ~150–300 ms. Hụt thì tải tiếp từng trang.
+// Một trang lỗi → bỏ cả lượt (không gộp dữ liệu thiếu).
+async function taiTatCaTrangReviews(load, params, phienKho, uocLuong = 0) {
+  const limit = SO_DONG_MOI_TRANG;
   const items = [];
-  for (let offset = 0; ; offset += limit) {
-    const page = await load({ ...params, limit, offset });
+  let offset = 0;
+  let soTrang = Math.max(1, Math.ceil((uocLuong + 1) / limit));
+  for (;;) {
+    const pages = await Promise.all(
+      Array.from({ length: soTrang }, (_, i) => load({ ...params, limit, offset: offset + i * limit }))
+    );
     if (!laPhienKhoHienTai(phienKho)) return [];
-    items.push(...page);
-    if (page.length < limit) return items;
+    for (const page of pages) items.push(...page);
+    if (pages[pages.length - 1].length < limit) return items;
+    offset += soTrang * limit;
+    soTrang = 1;
   }
+}
+
+function taiChung(loai, params, phienKho, tai) {
+  const khoa = `${loai}|${phienKho}|${JSON.stringify(params)}`;
+  if (!dangTai.has(khoa)) {
+    dangTai.set(khoa, tai().finally(() => dangTai.delete(khoa)));
+  }
+  return dangTai.get(khoa);
 }
 
 export async function taiSRSDongBo(params = {}) {
   const phienKho = layPhienKhoHocTap();
-  try {
-    const items = await taiTatCaTrangReviews(layReviews, params, phienKho);
-    if (!laPhienKhoHienTai(phienKho)) return [];
-    return hopNhatSRSTuBackend(items);
-  } catch {
-    return laPhienKhoHienTai(phienKho) ? layTatCaSRS() : [];
-  }
+  return taiChung("tat-ca", params, phienKho, async () => {
+    try {
+      const uocLuong = Object.keys(docTatCa()).length;
+      const items = await taiTatCaTrangReviews(layReviews, params, phienKho, uocLuong);
+      if (!laPhienKhoHienTai(phienKho)) return [];
+      return hopNhatSRSTuBackend(items);
+    } catch {
+      return laPhienKhoHienTai(phienKho) ? layTatCaSRS() : [];
+    }
+  });
 }
 
 export async function taiCardsDenHanDongBo(params = {}) {
   const phienKho = layPhienKhoHocTap();
-  try {
-    const items = await taiTatCaTrangReviews(layReviewsDenHan, params, phienKho);
-    if (!laPhienKhoHienTai(phienKho)) return [];
-    return hopNhatSRSTuBackend(items).filter(laDenHanHomNay);
-  } catch {
-    return laPhienKhoHienTai(phienKho) ? layCardsDenHan() : [];
-  }
+  return taiChung("den-han", params, phienKho, async () => {
+    try {
+      const uocLuong = layCardsDenHan().length;
+      const items = await taiTatCaTrangReviews(layReviewsDenHan, params, phienKho, uocLuong);
+      if (!laPhienKhoHienTai(phienKho)) return [];
+      return hopNhatSRSTuBackend(items).filter(laDenHanHomNay);
+    } catch {
+      return laPhienKhoHienTai(phienKho) ? layCardsDenHan() : [];
+    }
+  });
 }
+
+// Server nhận tối đa 200 mục mỗi lần (reviewController.bulkUpsertReviews)
+const SO_MUC_MOI_LO_DONG_BO = 200;
 
 /**
  * Đẩy các từ học lúc chưa đăng nhập lên backend. Từ đã có tiến độ trên server
  * được giữ nguyên phía server, rồi ghi đè lại bản local.
+ * Chỉ gửi từ chưa từng nhận về từ server (trước đây gửi cả kho mỗi lần mở app: tài khoản
+ * trên 200 từ luôn bị từ chối, và tốn ~100–200 KB tải lên trên điện thoại). Chia lô 200.
  */
 export async function dongBoSRSLenBackend() {
   const phienKho = layPhienKhoHocTap();
@@ -457,15 +491,19 @@ export async function dongBoSRSLenBackend() {
     .filter((session) => session.sync?.pending)
     .flatMap((session) => session.answers.map((answer) => String(answer.card_id))));
   const items = layTatCaSRS()
+    .filter((entry) => !entry.trenServer)
     .filter((entry) => laCardIdHopLe(entry.id))
     .filter((entry) => !cardsChoDapAn.has(String(entry.id)))
     .map(chuanHoaSRSChoBackend);
   if (items.length === 0) return layTatCaSRS();
 
   try {
-    const result = await dongBoReviews(items);
-    if (!laPhienKhoHienTai(phienKho)) return [];
-    return hopNhatSRSTuBackend(result.reviews || []);
+    for (let i = 0; i < items.length; i += SO_MUC_MOI_LO_DONG_BO) {
+      const result = await dongBoReviews(items.slice(i, i + SO_MUC_MOI_LO_DONG_BO));
+      if (!laPhienKhoHienTai(phienKho)) return [];
+      hopNhatSRSTuBackend(result.reviews || []);
+    }
+    return layTatCaSRS();
   } catch {
     return layTatCaSRS();
   }

@@ -67,3 +67,22 @@ it("does not seed SRS from answers awaiting sync, preventing a second level incr
   await dongBoSRSLenBackend();
   expect(api.dongBoReviews.mock.calls.at(-1)[0].map((item) => item.card_id)).toEqual([102]);
 });
+
+it("pushes only words the server has not seen, in batches the API accepts", async () => {
+  chonKhoHocTap(1);
+  api.layReviews.mockResolvedValueOnce([{ card_id: 1, level: 2 }]);
+  await taiSRSDongBo();
+  themVaoSRS(Array.from({ length: 250 }, (_, i) => ({ id: 1000 + i, term_en: `w${i}` })), { deckId: 10 });
+  api.dongBoReviews.mockReset().mockImplementation(async (items) => ({
+    reviews: items.map((item) => ({ card_id: item.card_id, level: 0 })),
+  }));
+
+  await dongBoSRSLenBackend();
+  const lo = api.dongBoReviews.mock.calls.map(([items]) => items.map((item) => item.card_id));
+  expect(lo.map((items) => items.length)).toEqual([200, 50]);
+  expect(lo.flat()).not.toContain(1);
+
+  api.dongBoReviews.mockClear();
+  await dongBoSRSLenBackend();
+  expect(api.dongBoReviews).not.toHaveBeenCalled();
+});

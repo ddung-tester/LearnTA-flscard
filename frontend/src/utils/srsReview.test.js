@@ -230,6 +230,37 @@ describe("complete SRS pagination", () => {
 });
 
 
+describe("SRS sync speed", () => {
+  const taoTrang = (count) => Array.from({ length: count }, (_, i) => ({ card_id: i + 1, deck_id: 10, level: 1, next_review_at: NOW.toISOString() }));
+
+  it("requests every expected page at once when the local store already knows the size", async () => {
+    const cards = taoTrang(450);
+    reviews.all.mockReset().mockImplementation(async ({ limit, offset }) => cards.slice(offset, offset + limit));
+    await taiSRSDongBo({ limit: 200 });
+    reviews.all.mockClear();
+    let dangCho = 0;
+    let toiDa = 0;
+    reviews.all.mockImplementation(async ({ limit, offset }) => {
+      dangCho += 1;
+      toiDa = Math.max(toiDa, dangCho);
+      await Promise.resolve();
+      dangCho -= 1;
+      return cards.slice(offset, offset + limit);
+    });
+    await taiSRSDongBo({ limit: 200 });
+    expect(reviews.all.mock.calls.map(([params]) => params.offset)).toEqual([0, 200, 400]);
+    expect(toiDa).toBe(3);
+    expect(layThongKeSRS().total).toBe(450);
+  });
+
+  it("shares one download between callers that start together", async () => {
+    reviews.all.mockReset().mockResolvedValue([{ card_id: 1, level: 1, next_review_at: NOW.toISOString() }]);
+    const [a, b] = await Promise.all([taiSRSDongBo({ limit: 200 }), taiSRSDongBo({ limit: 200 })]);
+    expect(reviews.all).toHaveBeenCalledTimes(1);
+    expect(a).toEqual(b);
+  });
+});
+
 it("discards pagination when the account changes between pages", async () => {
   chonKhoHocTap(77);
   const page = Array.from({ length: 200 }, (_, i) => ({ card_id: i + 1 }));

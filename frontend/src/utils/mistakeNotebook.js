@@ -356,9 +356,13 @@ export async function dongBoTuSaiLenBackend() {
   if (items.length === 0) return layTatCaTuSai();
 
   try {
-    const result = await dongBoMistakes(items);
-    if (!laPhienKhoHienTai(phienKho)) return [];
-    return hopNhatTuSaiTuBackend(result.mistakes || []);
+    // Server nhận tối đa 200 mục mỗi lần (mistakeController): sổ trên 200 từ chia lô, không bị từ chối cả sổ
+    for (let i = 0; i < items.length; i += 200) {
+      const result = await dongBoMistakes(items.slice(i, i + 200));
+      if (!laPhienKhoHienTai(phienKho)) return [];
+      hopNhatTuSaiTuBackend(result.mistakes || []);
+    }
+    return layTatCaTuSai();
   } catch {
     return layTatCaTuSai();
   }
