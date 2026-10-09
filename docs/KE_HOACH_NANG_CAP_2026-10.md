@@ -1,104 +1,105 @@
-# Kế hoạch nâng cấp LearnTA — 10/2026
+# Kế hoạch tối đa hiệu năng + trải nghiệm — 10/2026
 
-> Lập 2026-10-09 từ `HANDOFF.md` (mục 1–48), `docs/BUG_AUDIT_2026-10-05.md`, `docs/STUDY_IDEMPOTENCY_2026-10-08.md` và một lần chạy kiểm tra trên checkout hiện tại. Bản này viết để **chạy tự động một lượt**: mọi quyết định đã có phương án mặc định (mục 2), mọi việc có điều kiện xong (mục 3). Việc cần người dùng/production tách riêng ở mục 4.
+> Lập 2026-10-09. Mục tiêu người dùng: **nhanh và mượt nhất có thể, KHÔNG giảm chất lượng** — giữ nguyên mọi hiệu ứng, 3D, video thưởng, Lottie, font, âm thanh (đúng tinh thần HANDOFF mục 45: không tắt hiệu ứng để đổi lấy tốc độ). Chỉ đổi *cách* tải/vẽ/lấy dữ liệu, không đổi *thứ* người học nhìn thấy.
 
-## 0. Hiện trạng đo được (2026-10-09)
+## 0. Số liệu đo được (build 2026-10-09)
 
-| Hạng mục | Kết quả |
-|---|---|
-| Backend `node --test test/*.test.js` | 118 đạt / **2 lỗi** / 1 bỏ qua — `test/nhapCauMau.test.js` đọc `database/private-content/cau-mau/tu-vung-day-du.csv` (`.gitignore`) → **CI backend đỏ** trên máy không có nội dung riêng |
-| Frontend `vitest` | 154/154 đạt |
-| Frontend lint | 0 lỗi / 23 cảnh báo |
-| Build | Đạt; cảnh báo chunk > 500 KB và `eval` (Lottie) |
-| Chunk lớn | `CanhThe3D` 531 KB (chỉ trang chủ), **`index` 437 KB (mọi trang)**, `index.umd` 316 KB, `LoginMascot` 164 KB, `CauChuyenCuon` 121 KB |
-| `npm audit --omit=dev` backend | **critical** `proxy-addr`, **high** `nodemailer`, moderate `mysql2`, `qs`, `body-parser` — có `npm audit fix` |
-| Lộ trình khi đăng nhập | **Trống**: `canReadDeck` + `roadmapController` (`d.user_id <=> ?`) chặn bộ mẫu `user_id NULL` với người đăng nhập (hệ quả chính sách A, Đợt 3 audit) |
+| Điểm | Đo được | Hệ quả |
+|---|---|---|
+| Chunk `index` (mọi trang) | 437 KB min; nguồn: react-dom 533 KB, react-router 355 KB, **motion-dom + framer-motion 440 KB**, axios 117 KB | Mọi trang phải tải + parse cả bộ animation trước khi vẽ |
+| `index.umd` | 316 KB = `lottie-web` bản đầy đủ (có `eval`) | Tải khi màn chờ/streak/emoji động cần |
+| `CanhThe3D` | 531 KB (three.js), đã lazy, chỉ trang chủ | Giữ |
+| Cache tĩnh Vercel | `vercel.json` chỉ đặt cache cho `/media/*`; `/assets/*` (file có hash) **không** có `immutable` | Mỗi lần mở app trình duyệt hỏi lại server cho từng chunk |
+| Font | 3 họ Google Fonts (Be Vietnam Pro 7 kiểu, Bricolage, JetBrains Mono) qua 2 domain ngoài | Thêm 2 kết nối + CSS chặn vẽ |
+| Backend | **Không nén** response (không `compression`) | JSON bộ từ/khoá học gửi nguyên |
+| Dashboard | `Promise.all` 5 request; `taiSRSDongBo` + `taiTuSaiDongBo` tải **tuần tự từng trang 200 dòng** (`taiTatCaTrangReviews`) — tài khoản ~1.300+ thẻ = 7+ vòng mạng nối tiếp; màn chờ giữ tới khi xong hết | Dashboard chậm tỉ lệ với số thẻ đã học |
+| Cache dữ liệu | Không có; mỗi lần quay lại trang tải lại từ đầu | Quay lại = chờ lại |
+| Ghi SRS local | `localStorage.setItem` cả kho JSON mỗi lần ghi | Có thể khựng khi trả lời ở kho lớn (cần đo) |
+| `card_progress` | Có `updated_at` nhưng **không index theo (user_id, updated_at)** | Đồng bộ tăng dần cần thêm index |
+| CI backend | `test/nhapCauMau.test.js` cần file trong `private-content` → **đỏ** trên CI | Mất cổng chặn chất lượng |
 
-## 1. Quy tắc chạy
+## 1. Nguyên tắc "không giảm chất lượng" (cổng kiểm tra mọi bước)
 
-- Làm trên nhánh `claude/confident-curie-s3b6ch`, **mỗi giai đoạn 1 commit**, push sau mỗi giai đoạn; cuối cùng mở 1 PR vào `main` để người dùng merge (merge = deploy, HANDOFF mục 5).
-- Trước mỗi commit: `backend: node --test test/*.test.js` · `frontend: npx vitest run && npm run lint && npx vite build`. Đỏ thì sửa, không bỏ qua test.
-- **Không** chạy migration lên Cloud SQL, **không** ghi DB production, **không** gọi Gemini hàng loạt. Code mới phải **tương thích ngược**: chạy được khi migration mới chưa áp dụng (bắt lỗi cột/ENUM thiếu → bỏ qua tính năng, không 500).
-- Mỗi giai đoạn: thêm dòng vào bảng mục 3 của `HANDOFF.md`; sửa `PROJECT_CONTEXT.md` khi đổi route/bảng/luồng.
-- Giữ ràng buộc `CLAUDE.md`: tên tiếng Việt không dấu trong code, UI có dấu; không thêm tài khoản demo; dùng `ui-*` + token sẵn có.
-- Gặp việc không xác định được (thiếu quyền, kết quả đo bất thường) → ghi vào "Còn treo" của giai đoạn đó, làm tiếp việc khác.
+1. **So ảnh**: chụp các màn chính ở thời điểm animation cố định (desktop 1440 + 390px DPR 3, sáng + đèn bàn) trước và sau; lệch ≤ khử răng cưa (cách đã làm ở HANDOFF 45).
+2. **Giữ nguyên** hành vi `prefers-reduced-motion`, `.may-yeu`, âm thanh, thứ tự hiệu ứng đúng/sai.
+3. Đo trước → sửa → đo lại; thay đổi không cải thiện số đo thì **hoàn tác**.
+4. Trước mỗi commit: backend `node --test test/*.test.js`; frontend `npx vitest run && npm run lint && npx vite build`.
+5. Không ghi DB production, không chạy migration lên Cloud SQL (người dùng chạy).
 
 ## 2. Quyết định cần người dùng — kèm khuyến nghị (mặc định nếu không trả lời)
 
-| # | Câu hỏi | Khuyến nghị (mặc định) | Lý do |
+| # | Câu hỏi | Khuyến nghị | Lý do |
 |---|---|---|---|
-| D1 | Lộ trình khi đăng nhập đang trống — xử lý thế nào? | **(a)** Người đăng nhập **đọc** được bộ `user_id NULL` thuộc `roadmap_decks` (chỉ đọc, tiến độ theo `card_progress.user_id`); vẫn không đọc bộ riêng của người khác | Ít code nhất, khôi phục đúng HANDOFF mục 2; (b) ẩn tab làm mất nội dung; (c) sao chép tạo dữ liệu trùng |
-| D2 | Làm game hoá (coin/shop/leaderboard)? | **Không** | Trái `PRODUCT.md`; ưu tiên trí nhớ thật hơn phần thưởng |
-| D3 | Mở rộng từ vựng lộ trình (NGSL/TSL)? | **Hoãn**, không nằm trong lượt chạy | Cần chốt nguồn + soát nghĩa Việt thủ công |
-| D4 | Thông báo đẩy (Web Push)? | **Không**; nâng cấp email nhắc có sẵn | Cần service worker, HANDOFF 42 cố ý tránh (kẹt bản cũ) |
-| D5 | Mục tiêu ngày tính theo gì? | **Số lượt trả lời** (thẻ + câu), mặc định **20**, chọn 10/20/30/50 | Đếm chính xác từ dữ liệu có sẵn; phút dễ sai khi treo tab |
-| D6 | Giới hạn từ mới/ngày? | **15**, chọn 5/10/15/20/30/Không giới hạn | Tránh hàng ôn phình sau 1–2 tuần |
-| D7 | Luyện câu có ghi vào tiến độ SRS? | **Có, chỉ khi đạt** (Nghe chép ≥80%, Đặt câu `dung_tu && dung_ngu_phap`) → +1 cấp; không đạt **không** ghi; Nói theo **không** ghi | Câu sai thường do ngữ pháp/nghe, không phải quên từ; nhận dạng giọng không ổn định |
-| D8 | Migration mới cho production? | Tôi viết file migration + cập nhật `schema.sql`; **bạn chạy trước khi merge PR** | Session không có quyền Cloud SQL |
-| D9 | Thay `lottie-react` bằng bản `lottie_light` để hết `eval`? | **Thử**; nếu animation dùng expression hiển thị khác (so ảnh) thì giữ nguyên | An toàn, có đường lùi |
-| D10 | Xoá `RewardProgressBar.jsx` (không còn dùng)? | **Xoá** | Code chết, HANDOFF 45 đã ghi |
-| D11 | Nén lại 68 MB video thưởng? | **Không** trong lượt này | Bạn đã chọn giữ; cần soát chất lượng bằng mắt |
-| D12 | IPA cho 240 từ lộ trình lấy từ đâu? | **Tôi tự soạn** (giọng Mỹ), đánh dấu cần soát; bạn soát 20 từ mẫu | Không tốn hạn mức Gemini, không vướng bản quyền |
-| D13 | Import Excel: hỗ trợ `.xlsx`? | **Không**; nhận `.csv` / `.tsv` + dán từ Excel (đã có) | Thư viện xlsx nặng, bản npm có lỗ hổng chưa vá |
-| D14 | Hàng ôn hợp nhất | `/review` thêm nhóm "Câu bài tập" **sau** thẻ đến hạn; giữ trang `/khoa-hoc/on-tap` | Một điểm vào, không đổi 2 nơi ghi SRS |
-| D15 | Cảnh báo lint | Chỉ dọn trong file đang sửa | Tránh diff lan rộng (`CLAUDE.md` §3) |
+| Q1 | Hiện ngay dữ liệu đã lưu lần trước rồi cập nhật ngầm (stale-while-revalidate)? | **Có** | Quay lại trang tức thì; số liệu cũ chỉ tồn tại ~1 giây và tự cập nhật |
+| Q2 | Tự host font (cùng file, cùng họ/độ đậm, giấy phép OFL) thay Google Fonts? | **Có** | Hình chữ y hệt, bỏ 2 kết nối ngoài, preload được |
+| Q3 | Cloud Run `min-instances=1` để hết khởi động lạnh? | **Đo trước**; nếu cold start > 2 s thì **bật** (tốn khoảng vài USD/tháng; bạn đổi trên GCP) | Khởi động lạnh là độ trễ lớn nhất của lần mở đầu trong ngày |
+| Q4 | Migration 017: index `card_progress (user_id, updated_at)` + đồng bộ SRS tăng dần | **Có**; code vẫn chạy khi chưa có index (tải đủ như cũ, song song) | Đồng bộ chỉ còn vài dòng thay vì toàn bộ |
+| Q5 | Sửa luôn lỗi tab **Lộ trình trống khi đăng nhập** (`canReadDeck` chặn bộ mẫu `user_id NULL`) | **Có**: người đăng nhập *đọc* được bộ thuộc `roadmap_decks`, không ghi | Trải nghiệm đang hỏng; thay đổi nhỏ |
+| Q6 | Nén lại video thưởng 68 MB | **Không** | Nguy cơ giảm chất lượng hình |
+| Q7 | Giao kết quả | **Nhánh `claude/confident-curie-s3b6ch`, mỗi giai đoạn 1 commit, cuối cùng 1 PR** để bạn merge (merge = deploy) | Có điểm xem lại trước khi lên production |
 
-## 3. Danh sách việc theo thứ tự chạy
+## 3. Các giai đoạn (thứ tự chạy)
 
-### GĐ 1 — Sửa lỗi & an toàn
-
+### GĐ 0 — Đo mốc + cổng chất lượng
 | # | Việc | Xong khi |
 |---|---|---|
-| 1.1 | `nhapCauMau.test.js`: test cần CSV riêng → `{ skip: !fs.existsSync(...) }` | `npm test` backend 0 lỗi trên checkout sạch |
-| 1.2 | `npm audit fix` backend (không `--force`) | 0 critical/high; test backend đạt; `require('nodemailer')` + `createTransport` chạy |
-| 1.3 | D1: `canReadDeck` cho phép bộ `user_id NULL` thuộc lộ trình; `roadmapController` đọc bộ lộ trình cho người đăng nhập; ghi vẫn chặn | Test: khách/A/B đọc bộ lộ trình; A không đọc bộ riêng của B, không đọc bộ mẫu ngoài lộ trình; A không sửa bộ lộ trình |
-| 1.4 | Axios `timeout` (15s thường, 60s cho AI/stream không áp) + trang học có trạng thái lỗi "Thử lại" khi hết giờ | Test: request treo → báo lỗi; phản hồi muộn của request cũ không ghi đè |
-| 1.5 | Cập nhật `CLAUDE.md` §5 câu chính sách đọc bộ cho khớp D1 | — |
+| 0.1 | Sửa CI: test `nhapCauMau` bỏ qua khi thiếu file nội dung riêng | `npm test` backend 0 lỗi trên checkout sạch |
+| 0.2 | API giả (Node `http`, scratchpad) với dữ liệu tự soạn cỡ thật (~1.300 thẻ có tiến độ, 48 buổi), trễ 150 ms/request | Các trang đăng nhập chạy được với `localStorage` token giả |
+| 0.3 | Script Playwright đo: FCP, LCP, CLS, long task, tổng JS tải, số request, thời gian tới khi màn chờ tắt — cho `/`, `/dashboard`, `/decks`, chi tiết bộ, Flashcard, Quiz, Tự luận, `/review`, bài học khoá học; 390px DPR 3 CPU 4× + desktop | Bảng số "trước" |
+| 0.4 | Bộ ảnh chụp mốc cho so ảnh (mục 1.1) | Lưu trong scratchpad |
 
-### GĐ 2 — Trải nghiệm học
-
+### GĐ 1 — Tải nhanh (không đổi giao diện)
 | # | Việc | Xong khi |
 |---|---|---|
-| 2.1 | D14 hàng ôn hợp nhất: `/review` lấy `GET /course-questions/due`, hiện sau thẻ đến hạn, dùng `BaiTapKhoaHoc onTap`; badge menu = thẻ + câu | Test đếm; người không có khoá → không gọi API khoá |
-| 2.2 | D5 mục tiêu ngày: cài đặt `muc_tieu_ngay`, vòng tiến độ ở Dashboard + màn kết quả ("Còn N lượt") | Test đếm lượt hôm nay theo giờ VN; giảm chuyển động → không animate |
-| 2.3 | D6 giới hạn từ mới/ngày: `useBoTuHoc`/`/practice` lọc "Chưa học" tôn trọng hạn còn lại; Dashboard ưu tiên "Ôn đến hạn → Từ mới" | Test: đã học 15 từ mới → phiên mới chỉ có từ đã học |
-| 2.4 | D7 Luyện câu ghi SRS: migration 017 thêm `luyen-cau` vào ENUM `mode`, `nghe-chep`/`dat-cau` vào `question_type`; `VALID_MODES`; `TrangLuyenCau` tạo phiên + gửi đáp án đạt; nhãn `TEN_CHE_DO`/`modeLabel`. Thiếu ENUM → FE vẫn chạy, chỉ không ghi | Test controller + hook; theo checklist HANDOFF mục 6 |
-| 2.5 | Nút "Dịch câu" ở Ngữ cảnh (cột bản dịch migration 016; chưa có thì ẩn nút) | Test hiện/ẩn |
-| 2.6 | Gõ từ: gợi ý từng bước (chữ đầu → số ký tự → nửa từ); dùng gợi ý thì câu đúng không +1 cấp (giống tắt gợi ý ở Lv≥3) | Test `phienHoc` |
-| 2.7 | Màn kết quả: "Từ yếu nhất" (5 từ sai nhiều nhất từ `mistakeNotebook`) + nút ôn ngay | Test chọn 5 từ |
-| 2.8 | D12 IPA 240 từ trong `lo-trinh.json` + test định dạng `/.../` | `noiDungLoTrinh.test.js` đạt; cần `seed:roadmaps` (mục 4) |
-| 2.9 | Công tắc "Hiện mèo học cùng" ở Cài đặt giao diện | Tắt → không tải chunk mèo |
+| 1.1 | `vercel.json`: `/assets/*` → `public, max-age=31536000, immutable`; `/animation/*`, `/sound/*`, `/icons/*` → 7 ngày + SWR | Header đúng khi `vite preview` qua cấu hình tương đương; kiểm tra lại sau deploy |
+| 1.2 | Q2 tự host font woff2 (latin + vietnamese, đúng các độ đậm đang dùng), `preload` 2 kiểu dùng ở màn đầu, giữ `font-display: swap` | So ảnh chữ không lệch; không còn request tới fonts.googleapis.com |
+| 1.3 | `motion`: `LazyMotion` + `m` (tính năng `domMax` để giữ `layout`/`AnimatePresence`) — phần tính năng tải lười, chunk đầu nhẹ hơn | Chunk `index` giảm; so ảnh + test animation không đổi |
+| 1.4 | Tải trước chunk trang: lúc rảnh (`requestIdleCallback`) tải chunk các mục menu chính; hover/chạm link (và thẻ `data-mo-rong`) tải chunk trang đích | Chuyển trang không còn chờ tải JS (đo bằng trace) |
+| 1.5 | Lottie: chỉ chuyển `lottie_light` nếu **cả 3 file** `public/animation/*.json` và emoji Noto mẫu **không** dùng expression; so ảnh từng khung | Hết cảnh báo `eval`; nếu có expression → giữ nguyên, ghi lý do |
+| 1.6 | Backend `compression` (gzip/br), **loại trừ** `?stream=1` của giải thích AI và stream audio | Test: JSON có `content-encoding`; stream vẫn ra chữ dần |
 
-### GĐ 3 — Chức năng
-
+### GĐ 2 — Dữ liệu nhanh (cảm nhận tốc độ)
 | # | Việc | Xong khi |
 |---|---|---|
-| 3.1 | D13 nhập `.csv`/`.tsv` trong "Thêm nhanh" (đọc file → cùng parser dán danh sách) | Test parser: dấu phẩy trong ngoặc kép, BOM UTF-8, trùng từ |
-| 3.2 | Xuất bộ ra CSV (UTF-8 BOM để Excel đọc đúng tiếng Việt) ở chi tiết bộ | Test xuất → nhập lại ra cùng dữ liệu |
-| 3.3 | Email nhắc: nêu số từ đến hạn + buổi học tiếp; cài đặt tắt email (cột `user_preferences`, migration 018 nếu cần; thiếu cột → coi như bật) | Test template + lọc người tắt |
+| 2.1 | Dashboard: màn chờ chỉ chờ `decks` + `stats`; SRS/từ sai đồng bộ ngầm, số "Cần ôn" hiện từ kho local ngay rồi cập nhật | Thời gian tắt màn chờ không còn phụ thuộc số thẻ |
+| 2.2 | `taiTatCaTrangReviews`: Q4 có index → `?updated_since=` chỉ tải dòng đổi; chưa có → tải song song các trang (backend trả tổng số) | Test hợp nhất SRS + chống ghi đè chéo tài khoản (giữ test audit Đợt 1) |
+| 2.3 | Q1 cache GET nhẹ (bộ nhớ + `sessionStorage`, khoá theo user): decks, courses, stats, chi tiết bộ; ghi/xoá/đổi tài khoản → xoá đúng khoá | Test: đổi user không thấy dữ liệu người trước; ghi xong thấy dữ liệu mới |
+| 2.4 | Tải trước dữ liệu khi hover/chạm thẻ bộ/buổi (song song với tờ giấy `TheMoRong` 420 ms) | Mở chi tiết bộ/bài học không còn màn chờ khi mạng bình thường |
+| 2.5 | Header `Server-Timing` (thời gian DB) cho các GET chính; rà truy vấn `/decks`, `/courses`, `/study-sessions/summary`, `/user/stats` theo `schema.sql` (N+1, thiếu index) | Danh sách index đề xuất gộp vào migration 017 |
+| 2.6 | Timeout request (15 s; không áp cho AI/stream) + nút "Thử lại" ở trang đang chờ | Request treo không giữ màn chờ mãi |
 
-### GĐ 4 — Hiệu năng (đo → sửa → đo lại)
-
+### GĐ 3 — Mượt khi học (giữ nguyên hiệu ứng)
 | # | Việc | Xong khi |
 |---|---|---|
-| 4.1 | Đo trước: build + `rollup-plugin-visualizer` (devDependency), Lighthouse mobile chạy local bản `vite preview` + API giả cho `/`, `/decks`, một trang học | Bảng số trước/sau ghi vào HANDOFF |
-| 4.2 | Tách chunk `index` 437 KB: thư viện chỉ vài trang dùng → `lazy`/`import()`; mục tiêu chunk đầu < 300 KB | Build đo được |
-| 4.3 | D9 `lottie_light` | Hết cảnh báo `eval`, ảnh màn chờ/streak không đổi |
-| 4.4 | Backend: thêm `compression`; rà truy vấn `/courses`, `/decks?scope=learnable`, `/reviews` theo `schema.sql`, index thiếu → migration 019 | Test; liệt kê index đề xuất |
-| 4.5 | D10 xoá `RewardProgressBar.jsx` | Build/lint đạt |
+| 3.1 | Trace mọi màn học ở 390px CPU 4×: tìm animation lặp không phải `transform`/`opacity`, layout thrash, long task khi trả lời | Danh sách điểm nóng có số đo |
+| 3.2 | Sửa điểm nóng theo cách HANDOFF 45–47: đưa lên compositor (lớp riêng + `opacity`/`transform`), không đổi hình | So ảnh lệch ≤ khử răng cưa; Paint/StyleRecalc giảm |
+| 3.3 | Khởi động phiên học: tải + giải mã trước âm thanh, `canvas-confetti`, `rough-notation`, emoji động của câu đầu → câu trả lời đầu tiên không khựng | Long task lần trả lời đầu < 50 ms |
+| 3.4 | Ghi local SRS/từ sai/lịch sử: gộp nhiều lần ghi trong một nhịp, ghi sau khi vẽ phản hồi (`requestIdleCallback`/sau rAF), không chặn hiệu ứng đúng/sai | INP khi trả lời giảm; test dữ liệu không mất khi đóng tab (`pagehide` ghi ngay) |
+| 3.5 | Danh sách dài (chi tiết bộ, Từ vựng theo buổi, Sổ từ sai): `content-visibility: auto` + `contain-intrinsic-size` cho hàng ngoài màn | Không đổi hình; cuộn/khởi tạo nhanh hơn |
+| 3.6 | Phiên dài 200 câu: heap ổn định, không rò listener/rAF/timer | Heap sau 200 câu ≈ sau 20 câu |
 
-### GĐ 5 — Kết thúc
+### GĐ 4 — Trải nghiệm
+| # | Việc | Xong khi |
+|---|---|---|
+| 4.1 | Q5 lộ trình khi đăng nhập | Test quyền: đọc được bộ lộ trình, không đọc bộ riêng người khác, không ghi bộ lộ trình |
+| 4.2 | CLS ≈ 0 ở các trang đo: giữ chỗ cho emoji động, số đếm, ảnh, khối tải sau | CLS < 0,05 mọi trang |
+| 4.3 | Sửa các lỗi trải nghiệm phát hiện trong GĐ 0–3 (ghi lại từng lỗi + cách tái hiện) | Mỗi lỗi có test hoặc ảnh trước/sau |
 
+### GĐ 5 — Đo lại + bàn giao
 | # | Việc |
 |---|---|
-| 5.1 | Cập nhật `HANDOFF.md` (bảng mục 3, mục 4 việc treo, mục 5 migration chưa chạy 017–019), `PROJECT_CONTEXT.md` |
-| 5.2 | Mở PR vào `main`, ghi rõ: migration cần chạy trước merge, lệnh `seed:roadmaps`, checklist mục 4 |
+| 5.1 | Chạy lại toàn bộ đo GĐ 0, bảng **trước/sau** + so ảnh |
+| 5.2 | Cập nhật `HANDOFF.md` (bảng mục 3, migration 017 chưa chạy), `PROJECT_CONTEXT.md` (cache, đồng bộ tăng dần) |
+| 5.3 | Mở PR: số đo trước/sau, việc người dùng cần làm (mục 4) |
 
-## 4. Việc không tự động được — cần người dùng
+## 4. Việc người dùng làm sau khi chạy
 
-1. Chạy migration 014–016 (nếu chưa) và **017–019** lên Cloud SQL **trước khi merge PR**.
-2. `npm run seed:roadmaps` sau merge (nạp IPA lộ trình).
-3. Nghiệm thu trên tài khoản thật: sửa thẻ giữ metadata, file nghe khoá học, Google OAuth đúng origin, lưu phiên sau deploy, Luyện câu ghi tiến độ, hàng ôn hợp nhất.
-4. Kiểm tra Cloud Scheduler còn gọi `/api/cron/daily-reminders` và `/api/cron/praise`.
-5. Sinh luyện thêm bài 1–12, 14–48 (`sinh:luyen-them`) khi hạn mức Gemini cho phép — nội dung riêng, không commit.
-6. Soát 20 IPA mẫu (D12).
+1. Chạy migration 017 (index `card_progress`) trên Cloud SQL **trước khi merge**.
+2. Q3: xem cold start trong log Cloud Run; nếu > 2 s đặt `min-instances=1`.
+3. Sau deploy: mở app trên điện thoại Samsung thật, kiểm tra header cache `/assets/*`, Dashboard, một phiên học, video thưởng.
+
+## 5. Không làm (vì giảm chất lượng hoặc không đáng)
+
+- Không tắt/giảm hiệu ứng, 3D, video, Lottie trên bất kỳ máy nào (ngoài cơ chế `.may-yeu`/giảm chuyển động đã có).
+- Không thay `axios` bằng `fetch` (~13 KB gzip, đụng interceptor auth/idempotency — rủi ro cao hơn lợi ích).
+- Không thêm service worker (HANDOFF 42).
