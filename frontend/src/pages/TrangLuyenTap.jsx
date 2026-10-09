@@ -28,6 +28,7 @@ const CAC_CHE_DO = [
   { path: "ngu-canh", ten: "Ngữ cảnh", moTa: "Chọn từ phù hợp với câu", canBonTu: true, canViDu: true },
   { path: "noi-tu", ten: "Nối từ", moTa: "Ghép đôi từ vựng và nghĩa" },
   { path: "hon-hop", ten: "Hỗn hợp", moTa: "Trắc nghiệm, gõ nghĩa, gõ từ, nghe viết" },
+  { path: "luyen-cau", ten: "Luyện câu", moTa: "Nghe chép cả câu, nói theo, tự đặt câu cho AI chấm" },
 ];
 
 const BO_LOC = [

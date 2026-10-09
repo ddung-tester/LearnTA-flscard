@@ -975,6 +975,7 @@ function TrangChiTietBo() {
             },
             { key: "noi-tu", label: "Nối từ", path: "noi-tu" },
             { key: "hon-hop", label: "Hỗn hợp", path: "hon-hop" },
+            { key: "luyen-cau", label: "Luyện câu", path: "luyen-cau" },
           ].map((cach) => {
             const lyDoKhoa = soTuSeHoc === 0 ? "Không có từ nào khớp bộ lọc" : cach.lyDoKhoa;
             const lop = `ui-action-card ui-study-launch__btn${cach.primary ? " ui-study-launch__btn--primary" : ""}`;

@@ -50,6 +50,19 @@ export async function sinhCauMauAI(payload) {
 }
 
 /**
+ * Nhờ AI chấm một câu người học tự đặt với từ đang học.
+ * @returns {Promise<{ dung_tu: boolean, dung_ngu_phap: boolean, nhan_xet: string, cau_sua: string }>}
+ */
+export async function chamCauAI({ termEn, meaningVi, cau }) {
+  const response = await api.post("/cards/check-sentence", {
+    term_en: termEn,
+    meaning_vi: meaningVi,
+    cau,
+  });
+  return response.data;
+}
+
+/**
  * Gọi AI tạo danh sách từ vựng theo chủ đề hoặc trích từ một đoạn văn (chưa lưu vào bộ từ).
  * @returns {Promise<Array>} [{ term_en, pronunciation, part_of_speech, meaning_vi, example_sentence, note }]
  */

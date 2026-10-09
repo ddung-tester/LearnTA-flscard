@@ -22,6 +22,7 @@ const TrangFlashcard = lazy(() => import("./pages/TrangFlashcard"));
 const TrangQuiz = lazy(() => import("./pages/TrangQuiz"));
 const TrangTuLuan = lazy(() => import("./pages/TrangTuLuan"));
 const TrangNoiTu = lazy(() => import("./pages/TrangNoiTu"));
+const TrangLuyenCau = lazy(() => import("./pages/TrangLuyenCau"));
 const TrangLuyenTap = lazy(() => import("./pages/TrangLuyenTap"));
 const TrangChiTietLoTrinh = lazy(() => import("./pages/TrangChiTietLoTrinh"));
 const TrangTuSai = lazy(() => import("./pages/TrangTuSai"));
@@ -105,6 +106,7 @@ function UngDung() {
           <Route path="/decks/:deckId/nghe-viet" element={<TrangTuLuan loai="nghe-viet" />} />
           <Route path="/decks/:deckId/ngu-canh" element={<TrangQuiz loai="ngu-canh" />} />
           <Route path="/decks/:deckId/noi-tu" element={<TrangNoiTu />} />
+          <Route path="/decks/:deckId/luyen-cau" element={<TrangLuyenCau />} />
           <Route path="/decks/:deckId/hon-hop" element={<TrangTuLuan loai="hon-hop" />} />
           <Route path="*" element={<TrangKhongTimThay />} />
         </Route>

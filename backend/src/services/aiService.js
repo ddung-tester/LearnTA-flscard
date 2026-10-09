@@ -463,6 +463,69 @@ async function generateExtraPractice(input) {
   throw lastError;
 }
 
+// ── Chấm câu người học tự đặt với một từ (chế độ Luyện câu → Đặt câu) ───────────
+
+function buildSentenceCheckPrompt({ termEn, meaningVi, sentence }) {
+  return `Bạn là giáo viên tiếng Anh cho người Việt. Người học phải tự đặt MỘT câu tiếng Anh dùng từ "${termEn}" (nghĩa: ${meaningVi}).
+
+Câu của người học: """${sentence}"""
+
+Chấm câu:
+- dung_tu: true nếu câu có dùng "${termEn}" (hoặc dạng chia của nó) đúng nghĩa trên.
+- dung_ngu_phap: true nếu câu đúng ngữ pháp và tự nhiên (lỗi viết hoa/dấu chấm cuối câu không tính là sai).
+- nhan_xet: 1–2 câu tiếng Việt có dấu, nói rõ lỗi chính (nếu có) hoặc khen ngắn chỗ dùng hay.
+- cau_sua: câu đã sửa tự nhiên nhất, giữ ý người học; nếu câu đã đúng thì chép lại nguyên câu.
+Nếu câu không phải tiếng Anh hoặc không liên quan, đặt cả hai false và nhắc người học viết lại.
+
+TRẢ VỀ JSON THUẦN: {"dung_tu":true,"dung_ngu_phap":false,"nhan_xet":"...","cau_sua":"..."}`;
+}
+
+/** Lọc kết quả AI về dạng an toàn để trả cho người học; null nếu không dùng được. */
+function parseSentenceCheck(text) {
+  const duLieu = docJsonAI(text);
+  if (!duLieu || typeof duLieu !== "object" || Array.isArray(duLieu)) return null;
+  const nhanXet = String(duLieu.nhan_xet ?? "").trim().slice(0, 600);
+  if (!nhanXet) return null;
+  return {
+    dung_tu: duLieu.dung_tu === true,
+    dung_ngu_phap: duLieu.dung_ngu_phap === true,
+    nhan_xet: nhanXet,
+    cau_sua: String(duLieu.cau_sua ?? "").trim().slice(0, 500),
+  };
+}
+
+async function checkLearnerSentence(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildSentenceCheckPrompt(input);
+  let lastError;
+  for (const mucModel of xepTheoLuot(models)) {
+    try {
+      const model = genAI.getGenerativeModel(
+        {
+          model: mucModel.model,
+          generationConfig: {
+            maxOutputTokens: 400,
+            responseMimeType: "application/json",
+            ...mucModel.generationConfig,
+          },
+        },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      const result = await model.generateContent(prompt);
+      const ketQua = parseSentenceCheck(result.response.text());
+      if (!ketQua) throw new Error("AI trả về JSON không dùng được");
+      return ketQua;
+    } catch (error) {
+      ghiNhanLoi(mucModel, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
   generateTenseExamples,
   generateVocabulary,
@@ -475,4 +538,7 @@ module.exports = {
   buildExtraPracticePrompt,
   parseExtraPracticeResponse,
   generateExtraPractice,
+  buildSentenceCheckPrompt,
+  parseSentenceCheck,
+  checkLearnerSentence,
 };

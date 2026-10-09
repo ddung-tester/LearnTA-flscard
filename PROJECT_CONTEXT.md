@@ -130,6 +130,7 @@ Tab header khi dang nhap: Hom nay (`/dashboard`) Â· Khoa 48 ngay (`/khoa-hoc`) Â
 /decks/:deckId/nghe-viet  TrangTuLuan loai="nghe-viet"  public (nghe roi go tu)
 /decks/:deckId/ngu-canh   TrangQuiz loai="ngu-canh"     public (cau vi du bi che tu, chon tu)
 /decks/:deckId/noi-tu     TrangNoiTu          public (ghep Anh-Viet theo vong 5 cap)
+/decks/:deckId/luyen-cau  TrangLuyenCau       public (?kieu=nghe-chep|noi-theo|dat-cau; dat-cau can dang nhap; khong ghi SRS)
 /decks/:deckId/hon-hop    TrangTuLuan loai="hon-hop"    public (moi cau 1 dang: trac nghiem/go nghia/go tu/nghe viet)
 /dashboard                TrangDashboard      can dang nhap
 /tu-sai                   TrangTuSai          can dang nhap (so tu sai)
@@ -164,6 +165,7 @@ POST   /decks/:deckId/cards | /decks/:deckId/cards/import
 PATCH  /decks/:deckId/cards/reorder
 PUT|DELETE /cards/:cardId, PATCH /cards/:cardId/favorite  (favorite: chi can la chu bo, ke ca bo khoa hoc)
 POST   /cards/generate-examples                         Gemini sinh cau vi du theo thi
+POST   /cards/check-sentence                            auth, rate limit 60 req/10 phut; body {term_en, meaning_vi, cau <=300}; Gemini cham cau tu dat
 POST   /cards/generate-words                            auth, rate limit 15 req/10 phut; body {chu_de | doan_van, so_luong 5-30}; Gemini tao tu (chua luu)
 
 GET    /roadmaps | /roadmaps/:slug                      optional auth; lo trinh + chang (bo tu) + tien do nguoi hoc

@@ -587,7 +587,26 @@ async function generateVocabularyCards(req, res) {
   res.json({ words });
 }
 
+async function checkSentence(req, res) {
+  const termEn = cleanTextWithLimit(req.body.term_en, 255, "term_en");
+  const meaningVi = cleanTextWithLimit(req.body.meaning_vi, 500, "meaning_vi");
+  const sentence = cleanTextWithLimit(req.body.cau ?? req.body.sentence, 300, "cau");
+
+  if (!termEn || !sentence) {
+    throw createHttpError(400, "Can co tu va cau can cham");
+  }
+
+  try {
+    const ketQua = await aiService.checkLearnerSentence({ termEn, meaningVi, sentence });
+    res.json(ketQua);
+  } catch (error) {
+    console.error("[checkSentence]", error.message);
+    throw createHttpError(502, "AI chua cham duoc cau, thu lai sau");
+  }
+}
+
 module.exports = {
+  checkSentence,
   listCardsByDeck,
   createCard,
   importCards,

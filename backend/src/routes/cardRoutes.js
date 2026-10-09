@@ -15,6 +15,15 @@ const aiWordsLimiter = rateLimit({
   message: { message: "Bạn đã tạo từ bằng AI nhiều lần, thử lại sau ít phút nhé" },
 });
 
+// Chấm câu tự đặt: mỗi câu một lượt gọi Gemini
+const aiSentenceLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Bạn đã nhờ AI chấm nhiều câu, nghỉ vài phút rồi thử lại nhé" },
+});
+
 router.get(
   "/decks/:deckId/cards",
   optionalAuth,
@@ -56,6 +65,12 @@ router.post(
   requireAuth,
   aiWordsLimiter,
   asyncHandler(cardController.generateVocabularyCards)
+);
+router.post(
+  "/cards/check-sentence",
+  requireAuth,
+  aiSentenceLimiter,
+  asyncHandler(cardController.checkSentence)
 );
 
 module.exports = router;

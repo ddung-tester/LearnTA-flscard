@@ -83,7 +83,7 @@ function BoCuc() {
   const laTrangDashboard = viTri.pathname === "/dashboard";
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
-  const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop)$/.test(viTri.pathname);
+  const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop|luyen-cau)$/.test(viTri.pathname);
   // Mèo học cùng: mọi màn có câu hỏi / thẻ để trả lời
   const coMeoHocCung =
     laPhienHoc ||
