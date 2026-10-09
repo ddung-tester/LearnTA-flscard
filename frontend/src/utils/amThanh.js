@@ -184,6 +184,25 @@ const BAN_AM = {
  * Phát một tiếng: "dung" | "sai" | "xong" | "lat" | "giay" | "dongDau" | "congTac" | "phepBay" | "phepNo".
  * Không làm gì khi đã tắt âm thanh hoặc trình duyệt không có Web Audio.
  */
+/**
+ * Màn học vừa mở: tạo sẵn AudioContext + bộ đệm nhiễu lúc trình duyệt rảnh, để lần chạm đầu tiên
+ * (lật thẻ, chọn đáp án) không phải gánh thêm ~45 ms khởi tạo trên điện thoại. Context tạo trước
+ * thao tác của người dùng ở trạng thái "suspended"; phatAm vẫn resume() như cũ.
+ */
+export function chuanBiAmThanh() {
+  if (typeof window === "undefined" || ctx || !amThanhDangBat()) return () => {};
+  const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 300));
+  const huyRanh = window.cancelIdleCallback ?? window.clearTimeout;
+  const id = henRanh(() => {
+    try {
+      layCtx();
+    } catch {
+      // Trình duyệt không hỗ trợ — phatAm tự bỏ qua
+    }
+  }, { timeout: 2000 });
+  return () => huyRanh(id);
+}
+
 export function phatAm(ten) {
   if (typeof window === "undefined" || !amThanhDangBat()) return;
   try {

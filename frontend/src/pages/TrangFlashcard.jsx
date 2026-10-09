@@ -55,6 +55,23 @@ const SO_TU_MOI_TIEN_TRINH = 10;
 // Kéo quá ngưỡng này (px) thì chuyển thẻ
 const NGUONG_VUOT_THE = 110;
 
+// Bề rộng cửa sổ cho biến thể bay thẻ: đọc window.innerWidth ngay lúc đổi thẻ ép trình duyệt tính lại
+// bố cục cả trang (~130 ms trên điện thoại) → nhớ sẵn, cập nhật khi đổi cỡ cửa sổ. Giá trị y hệt.
+let beRongCuaSo = typeof window === "undefined" ? 720 : window.innerWidth;
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => {
+    beRongCuaSo = window.innerWidth;
+  }, { passive: true });
+}
+
+// Thẻ cũ và hàng nút đánh giá sắp bị gỡ: bỏ focus trước. Phần tử đang focus bị gỡ trong lúc commit thì
+// React "khôi phục focus" bằng cách đọc scroll của mọi phần tử cha — ép layout cả trang (~250 ms trên
+// điện thoại). Kết quả cuối như cũ: phần tử bị gỡ vốn mất focus.
+function boFocusTruocKhiDoiThe() {
+  const dangFocus = document.activeElement;
+  if (dangFocus instanceof HTMLElement && dangFocus !== document.body) dangFocus.blur();
+}
+
 const BIEN_THE_THE = {
   // huong > 0: thẻ sau nổi lên từ xấp, thẻ cũ bay qua bên trái (nằm trên cùng).
   // huong < 0: thẻ trước bay về từ bên trái, thẻ cũ chìm xuống xấp (nằm dưới).
@@ -63,7 +80,7 @@ const BIEN_THE_THE = {
       ? { opacity: 0 }
       : huong > 0
         ? { x: 0, y: 18, scale: 0.94, opacity: 1, zIndex: 1 }
-        : { x: -Math.min(window.innerWidth, 720), y: 0, scale: 1, opacity: 1, zIndex: 2 },
+        : { x: -Math.min(beRongCuaSo, 720), y: 0, scale: 1, opacity: 1, zIndex: 2 },
   giua: ({ giam }) => ({
     x: 0,
     y: 0,
@@ -79,7 +96,7 @@ const BIEN_THE_THE = {
       ? { opacity: 0, transition: { duration: 0 } }
       : huong > 0
         ? {
-            x: -Math.min(window.innerWidth, 720),
+            x: -Math.min(beRongCuaSo, 720),
             opacity: 1,
             zIndex: 3,
             transition: { duration: 0.34, ease: [0.4, 0, 0.7, 0.2] },
@@ -94,6 +111,30 @@ const BIEN_THE_THE = {
           },
 };
 
+// Kéo thẻ tự xử lý bằng pointer events thay cho prop `drag` của motion: `drag` kéo theo bộ đo layout
+// (projection) — mỗi lần thẻ mới gắn vào / render lại nó đọc scroll của trang giữa lúc DOM vừa đổi, ép
+// trình duyệt tính lại bố cục cả trang (~250 ms mỗi lần đổi thẻ trên điện thoại yếu). Cảm giác kéo giữ
+// nguyên như motion: bắt đầu sau 3px, thẻ đi theo ngón tay 1:1, vận tốc đo trên 100ms cuối, phóng 1.02
+// khi đang kéo (lò xo mặc định của motion cho scale), nhả chưa đủ thì lò xo về giữa.
+const NGUONG_BAT_DAU_KEO = 3;
+const LO_XO_PHONG_KEO = { type: "spring", stiffness: 550, damping: 30, restSpeed: 10 };
+
+function vanTocCuoi(lichSu) {
+  // Giống PanSession.getVelocity của motion (khoảng 0.1s)
+  if (lichSu.length < 2) return 0;
+  const cuoi = lichSu[lichSu.length - 1];
+  let i = lichSu.length - 1;
+  let diem = null;
+  while (i >= 0) {
+    diem = lichSu[i];
+    if (cuoi.t - diem.t > 100) break;
+    i -= 1;
+  }
+  if (diem === lichSu[0] && lichSu.length > 2 && cuoi.t - diem.t > 200) diem = lichSu[1];
+  const giay = (cuoi.t - diem.t) / 1000;
+  return giay === 0 ? 0 : (cuoi.x - diem.x) / giay;
+}
+
 /**
  * TheKeoDuoc — một thẻ flashcard có thể kéo ngang.
  * Kéo trái: thẻ sau. Kéo phải: thẻ trước. Nhả chưa đủ lực thì bật về giữa.
@@ -101,48 +142,95 @@ const BIEN_THE_THE = {
  */
 function TheKeoDuoc({ ref, huong, giamChuyenDong, coTheTruoc, coTheSau, onVuot, children }) {
   const x = useMotionValue(0);
+  const scale = useMotionValue(1);
   const nghieng = useTransform(x, [-320, 0, 320], [-11, 0, 11]);
   const daKeoRef = useRef(false);
+  const phienKeoRef = useRef(null);
   const thamSo = { huong, giam: giamChuyenDong };
+
+  useEffect(() => () => phienKeoRef.current?.go(), []);
+
+  function ketThucKeo(diemCuoi) {
+    const phien = phienKeoRef.current;
+    if (!phien) return;
+    phien.go();
+    phienKeoRef.current = null;
+    if (!phien.daBatDau) return;
+
+    if (!giamChuyenDong) {
+      animate(scale, 1, { type: "spring", stiffness: 420, damping: 34, mass: 0.9 });
+    }
+    // Vượt ngưỡng khoảng cách, hoặc hất nhanh sau khi đã kéo được một đoạn
+    const doDoi = diemCuoi - phien.x0;
+    const vanToc = vanTocCuoi(phien.lichSu);
+    const sangTrai = doDoi < -NGUONG_VUOT_THE || (doDoi < -48 && vanToc < -600);
+    const sangPhai = doDoi > NGUONG_VUOT_THE || (doDoi > 48 && vanToc > 600);
+    if (sangTrai && coTheSau) {
+      onVuot(1);
+      return;
+    }
+    if (sangPhai && coTheTruoc) {
+      onVuot(-1);
+      return;
+    }
+    animate(x, 0, { type: "spring", stiffness: 520, damping: 32 });
+  }
+
+  function batDauPhien(event) {
+    daKeoRef.current = false;
+    if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+    phienKeoRef.current?.go();
+
+    const phien = {
+      id: event.pointerId,
+      x0: event.clientX,
+      y0: event.clientY,
+      xCuoi: event.clientX,
+      goc: 0,
+      daBatDau: false,
+      lichSu: [{ x: event.clientX, t: performance.now() }],
+    };
+    const diChuyen = (e) => {
+      if (e.pointerId !== phien.id) return;
+      phien.xCuoi = e.clientX;
+      if (!phien.daBatDau) {
+        if (Math.hypot(e.clientX - phien.x0, e.clientY - phien.y0) < NGUONG_BAT_DAU_KEO) return;
+        phien.daBatDau = true;
+        daKeoRef.current = true;
+        x.stop();
+        phien.goc = x.get();
+        if (!giamChuyenDong) animate(scale, 1.02, LO_XO_PHONG_KEO);
+      }
+      phien.lichSu.push({ x: e.clientX, t: performance.now() });
+      x.set(phien.goc + (e.clientX - phien.x0));
+    };
+    const nha = (e) => {
+      if (e.pointerId !== phien.id) return;
+      // pointercancel (trình duyệt chuyển sang cuộn dọc): dùng vị trí cuối cùng đã thấy, như motion
+      ketThucKeo(e.type === "pointercancel" ? phien.xCuoi : e.clientX);
+    };
+    phien.go = () => {
+      window.removeEventListener("pointermove", diChuyen);
+      window.removeEventListener("pointerup", nha);
+      window.removeEventListener("pointercancel", nha);
+    };
+    window.addEventListener("pointermove", diChuyen, { passive: true });
+    window.addEventListener("pointerup", nha);
+    window.addEventListener("pointercancel", nha);
+    phienKeoRef.current = phien;
+  }
 
   return (
     <m.div
       ref={ref}
       className="fc-the-keo"
-      style={{ x, rotate: giamChuyenDong ? 0 : nghieng }}
+      style={{ x, scale, rotate: giamChuyenDong ? 0 : nghieng }}
       custom={thamSo}
       variants={BIEN_THE_THE}
       initial="vao"
       animate="giua"
       exit="ra"
-      drag="x"
-      dragMomentum={false}
-      // drag kéo theo bộ đo layout của motion; không có layoutDependency thì mỗi lần lật thẻ (render lại)
-      // nó đo lại cả cây + scroll, ép trình duyệt tính layout giữa chừng. Thẻ không animate layout nên giữ cố định.
-      layoutDependency={0}
-      whileDrag={giamChuyenDong ? undefined : { scale: 1.02 }}
-      onPointerDown={() => {
-        daKeoRef.current = false;
-      }}
-      onDragStart={() => {
-        daKeoRef.current = true;
-      }}
-      onDragEnd={(_, info) => {
-        // Vượt ngưỡng khoảng cách, hoặc hất nhanh sau khi đã kéo được một đoạn
-        const { x: doDoi } = info.offset;
-        const { x: vanToc } = info.velocity;
-        const sangTrai = doDoi < -NGUONG_VUOT_THE || (doDoi < -48 && vanToc < -600);
-        const sangPhai = doDoi > NGUONG_VUOT_THE || (doDoi > 48 && vanToc > 600);
-        if (sangTrai && coTheSau) {
-          onVuot(1);
-          return;
-        }
-        if (sangPhai && coTheTruoc) {
-          onVuot(-1);
-          return;
-        }
-        animate(x, 0, { type: "spring", stiffness: 520, damping: 32 });
-      }}
+      onPointerDown={batDauPhien}
       onClickCapture={(event) => {
         if (daKeoRef.current) {
           event.stopPropagation();
@@ -466,6 +554,7 @@ function TrangFlashcard() {
   }
 
   function diChuyen(buoc) {
+    boFocusTruocKhiDoiThe();
     setHuongChuyenThe(buoc);
     setChiSo((chiSoHienTai) => {
       const chiSoMoi = chiSoHienTai + buoc;

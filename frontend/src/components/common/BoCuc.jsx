@@ -4,6 +4,7 @@ import { m, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
+import { chuanBiAmThanh } from "../../utils/amThanh";
 import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
 
@@ -110,6 +111,11 @@ function BoCuc() {
   useEffect(() => {
     setDangMoMenuTaiKhoan(false);
   }, [viTri.pathname]);
+
+  useEffect(() => {
+    if (coMeoHocCung) return chuanBiAmThanh();
+    return undefined;
+  }, [coMeoHocCung]);
 
 
 
