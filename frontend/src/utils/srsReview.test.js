@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   capNhatKetQuaOn,
   datLaiSRS,
+  ghiNgayKhoSRS,
   ghiNhanDungVaoSRS,
   ghiNhanSaiVaoSRS,
   hopNhatSRSTuBackend,
@@ -61,6 +62,7 @@ describe("themVaoSRS", () => {
     themVaoSRS([CARD], OPTS);
     const updated = capNhatKetQuaOn(1, "correct");
     themVaoSRS([{ ...CARD, meaning_vi: "táo" }], OPTS);
+    ghiNgayKhoSRS();
 
     const entry = JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"];
     expect(entry.meaning).toBe("táo");
@@ -123,6 +125,7 @@ describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
   it("adds unseen cards then applies the answer", () => {
     ghiNhanDungVaoSRS([CARD], OPTS);
     ghiNhanSaiVaoSRS([{ id: 2, term_en: "pear", meaning_vi: "quả lê" }], OPTS);
+    ghiNgayKhoSRS();
 
     const tatCa = JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"));
     expect(tatCa["1"]).toMatchObject({ level: 1, nextReviewAt: nuaDemSau(1) });
@@ -133,6 +136,7 @@ describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
     themVaoSRS([CARD], OPTS);
     capNhatKetQuaOn(1, 3);
     ghiNhanSaiVaoSRS([CARD], OPTS);
+    ghiNgayKhoSRS();
 
     expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(2);
   });
@@ -185,9 +189,11 @@ describe("layLevelSRS / levelSauKetQua", () => {
   it("reads current levels without writing and predicts the next level", () => {
     themVaoSRS([CARD], OPTS);
     capNhatKetQuaOn(1, 3);
+    ghiNgayKhoSRS();
     const truoc = localStorage.getItem("streak_drop_srs_v1:guest");
 
     expect(layLevelSRS([1, 2])).toEqual({ 1: 3, 2: null });
+    ghiNgayKhoSRS();
     expect(localStorage.getItem("streak_drop_srs_v1:guest")).toBe(truoc);
     expect(levelSauKetQua(3, "correct")).toBe(4);
     expect(levelSauKetQua(3, "wrong")).toBe(2);
@@ -271,4 +277,30 @@ it("discards pagination when the account changes between pages", async () => {
   expect(await taiSRSDongBo()).toEqual([]);
   expect(layThongKeSRS().total).toBe(0);
   chonKhoHocTap(null);
+});
+
+
+describe("ghi kho SRS sau khi phản hồi đã vẽ", () => {
+  it("gộp nhiều lần ghi trong một lượt thành một lần ghi localStorage, đọc lại vẫn thấy ngay", () => {
+    const setItem = vi.spyOn(localStorage, "setItem");
+    ghiNhanDungVaoSRS([CARD], OPTS);
+    capNhatKetQuaOn(1, "correct");
+    expect(layLevelSRS([1])).toEqual({ 1: 2 });
+    expect(setItem).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1000);
+    expect(setItem).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(2);
+  });
+
+  it("đổi tài khoản khi còn chờ ghi: phần cũ ghi vào đúng kho cũ", () => {
+    chonKhoHocTap(5);
+    themVaoSRS([CARD], OPTS);
+    chonKhoHocTap(6);
+    themVaoSRS([{ id: 9, term_en: "kiwi" }], OPTS);
+    ghiNgayKhoSRS();
+    expect(Object.keys(JSON.parse(localStorage.getItem("streak_drop_srs_v1:user-5")))).toEqual(["1"]);
+    expect(Object.keys(JSON.parse(localStorage.getItem("streak_drop_srs_v1:user-6")))).toEqual(["9"]);
+    chonKhoHocTap(null);
+  });
 });

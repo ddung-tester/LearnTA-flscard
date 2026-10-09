@@ -45,25 +45,90 @@ export const KHOANG_ON_NGAY = [0, 1, 3, 7, 14, 30];
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-function docTatCa() {
+// Kho SRS của tài khoản nhiều từ ~0,5 MB JSON: parse ~6 ms, stringify + ghi ~35 ms mỗi lần (CPU điện thoại),
+// mà mỗi lần trả lời đọc 4–5 lần và ghi 2 lần ngay trong lúc bấm → khựng ~100 ms trước khi phản hồi hiện ra.
+// Nên: giữ bản đã parse trong bộ nhớ (tab khác ghi → sự kiện "storage" → đọc lại),
+// và ghi xuống localStorage lúc rảnh sau khi phản hồi đã vẽ — gộp nhiều lần ghi thành một;
+// rời trang / ẩn tab thì ghi ngay.
+let banDaDoc = null; // { kho, khoa, data }
+let choGhi = null; // { kho, khoa, data }
+let henGhi = null;
+
+function layKho() {
   try {
-    const raw = localStorage.getItem(khoaKhoHocTap(KHO_SRS));
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    return data && typeof data === "object" ? data : {};
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function docTatCa() {
+  const kho = layKho();
+  if (!kho) return {};
+  const khoa = khoaKhoHocTap(KHO_SRS);
+  if (choGhi && choGhi.kho === kho && choGhi.khoa === khoa) return choGhi.data;
+  if (banDaDoc && banDaDoc.kho === kho && banDaDoc.khoa === khoa) return banDaDoc.data;
+  try {
+    const raw = kho.getItem(khoa);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const data = parsed && typeof parsed === "object" ? parsed : {};
+    banDaDoc = { kho, khoa, data };
+    return data;
   } catch {
     return {};
   }
+}
+
+/** Ghi ngay phần đang chờ xuống localStorage (rời trang, ẩn tab, test). */
+export function ghiNgayKhoSRS() {
+  if (henGhi) {
+    henGhi.huy();
+    henGhi = null;
+  }
+  const viec = choGhi;
+  choGhi = null;
+  if (!viec) return;
+  try {
+    viec.kho.setItem(viec.khoa, JSON.stringify(viec.data));
+    banDaDoc = { kho: viec.kho, khoa: viec.khoa, data: viec.data };
+  } catch {
+    // localStorage full — bỏ qua
+  }
+}
+
+function henGhiKhiRanh() {
+  if (henGhi) return;
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(ghiNgayKhoSRS, { timeout: 1000 });
+    henGhi = { huy: () => window.cancelIdleCallback(id) };
+  } else {
+    const id = setTimeout(ghiNgayKhoSRS, 200);
+    henGhi = { huy: () => clearTimeout(id) };
+  }
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  // Tab khác ghi kho (hoặc xoá hết localStorage): bỏ bản trong bộ nhớ, lần đọc sau đọc lại
+  window.addEventListener("storage", (event) => {
+    if (event.key === null || event.key === banDaDoc?.khoa) banDaDoc = null;
+  });
+  window.addEventListener("pagehide", ghiNgayKhoSRS);
+  document.addEventListener?.("visibilitychange", () => {
+    if (document.visibilityState === "hidden") ghiNgayKhoSRS();
+  });
 }
 
 // Phát mỗi lần bản SRS local đổi, để badge "Ôn tập" trên menu cập nhật ngay
 export const SU_KIEN_SRS_DOI = "srs-thay-doi";
 
 function ghiTatCa(data) {
-  try {
-    localStorage.setItem(khoaKhoHocTap(KHO_SRS), JSON.stringify(data));
-  } catch {
-    // localStorage full — bỏ qua
+  const kho = layKho();
+  if (kho) {
+    const khoa = khoaKhoHocTap(KHO_SRS);
+    // Đổi tài khoản giữa chừng: ghi xong phần của tài khoản cũ vào đúng khoá cũ trước
+    if (choGhi && (choGhi.kho !== kho || choGhi.khoa !== khoa)) ghiNgayKhoSRS();
+    choGhi = { kho, khoa, data };
+    henGhiKhiRanh();
   }
   if (typeof window !== "undefined") window.dispatchEvent(new Event(SU_KIEN_SRS_DOI));
 }
@@ -250,10 +315,11 @@ export function themVaoSRS(cards, { deckId, deckTitle, source = "mistake" }) {
  * Lấy tất cả SRS entries dưới dạng mảng, sắp xếp theo nextReviewAt.
  */
 export function layTatCaSRS() {
-  const tatCa = docTatCa();
-  return Object.values(tatCa).sort(
-    (a, b) => new Date(a.nextReviewAt) - new Date(b.nextReviewAt)
-  );
+  // Đổi ngày giờ ra số một lần cho mỗi mục rồi mới sắp xếp (không tạo Date trong hàm so sánh — ~30.000 lần với 1.400 từ)
+  return Object.values(docTatCa())
+    .map((entry) => [new Date(entry.nextReviewAt).getTime(), entry])
+    .sort((a, b) => a[0] - b[0])
+    .map(([, entry]) => entry);
 }
 
 /**
@@ -379,10 +445,17 @@ export function datLaiSRS(id) {
  * @returns {{ total, duHomNay, active, mastered, khoHoc }}
  */
 export function layThongKeSRS() {
-  const ds = layTatCaSRS();
-  const duHomNay = ds.filter(laDenHanHomNay).length;
-  const active = ds.filter((e) => e.status === "active").length;
-  const mastered = ds.filter((e) => e.status === "mastered").length;
+  // Badge "Ôn tập" gọi hàm này mỗi lần SRS đổi: đếm một lượt, không cần sắp xếp
+  const ds = Object.values(docTatCa());
+  const now = Date.now();
+  let duHomNay = 0;
+  let active = 0;
+  let mastered = 0;
+  for (const e of ds) {
+    if (!e.nextReviewAt || new Date(e.nextReviewAt).getTime() <= now) duHomNay += 1;
+    if (e.status === "active") active += 1;
+    else if (e.status === "mastered") mastered += 1;
+  }
   // khoHoc = chưa đến hạn ôn
   const khoHoc = ds.length - duHomNay;
   return { total: ds.length, duHomNay, active, mastered, khoHoc };
