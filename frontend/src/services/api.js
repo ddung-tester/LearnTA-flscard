@@ -65,8 +65,14 @@ export function clearStoredAuthToken() {
   storeAuthToken(null);
 }
 
+// Mạng điện thoại chập chờn có thể giữ request treo nhiều phút → trang đứng ở màn chờ.
+// 25 s đủ cho Cloud Run khởi động lạnh + 4G chậm; lệnh gọi AI tự đặt THOI_GIAN_CHO_AI_MS.
+// Lưu kết quả học hết giờ thì vào hàng chờ gửi lại như lỗi mạng (có mã chống ghi trùng).
+export const THOI_GIAN_CHO_AI_MS = 90000;
+
 const api = axios.create({
   baseURL: buildApiUrl("/api"),
+  timeout: 25000,
 });
 
 api.interceptors.request.use((config) => {
@@ -110,7 +116,9 @@ api.interceptors.response.use(
 
     const message =
       error.response?.data?.message ||
-      "Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.";
+      (error.code === "ECONNABORTED"
+        ? "Mạng chậm, chưa nhận được phản hồi. Thử lại nhé."
+        : "Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.");
 
     const normalizedError = new Error(message);
     normalizedError.status = status;

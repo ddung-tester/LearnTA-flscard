@@ -86,3 +86,13 @@ it("does not keep failed reads in the cache", async () => {
   await expect(layCoBoNho("/courses")).rejects.toThrow();
   await expect(layCoBoNho("/courses")).resolves.toEqual({ ok: true });
 });
+
+it("gives up on hung requests with a clear message, but lets AI calls wait longer", async () => {
+  const { default: api, THOI_GIAN_CHO_AI_MS } = await import("./api");
+  expect(api.defaults.timeout).toBe(25000);
+  expect(THOI_GIAN_CHO_AI_MS).toBeGreaterThan(api.defaults.timeout);
+  api.defaults.adapter = async (config) => {
+    throw Object.assign(new Error("timeout of 25000ms exceeded"), { code: "ECONNABORTED", config });
+  };
+  await expect(api.get("/decks")).rejects.toThrow("Mạng chậm, chưa nhận được phản hồi. Thử lại nhé.");
+});

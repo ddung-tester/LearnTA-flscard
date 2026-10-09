@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { matchPath, useLocation } from "react-router-dom";
-import api from "../services/api";
+import api, { THOI_GIAN_CHO_AI_MS } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheDangHoc } from "../contexts/ChatbotContext";
 import "./ChatbotWidget.css";
@@ -144,7 +144,7 @@ export default function ChatbotWidget() {
         const { data } = await api.post("/chat", {
           messages: updatedMessages.filter((tin) => !tin.laLoi).slice(-20),
           context: { deckId, cardId },
-        });
+        }, { timeout: THOI_GIAN_CHO_AI_MS });
 
         setMessages((prev) => [
           ...prev,

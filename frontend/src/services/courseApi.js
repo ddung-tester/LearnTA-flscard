@@ -1,4 +1,4 @@
-import api, { getStoredAuthToken, layCoBoNho } from "./api";
+import api, { getStoredAuthToken, layCoBoNho, THOI_GIAN_CHO_AI_MS } from "./api";
 import { buildApiUrl } from "../config/api";
 
 export async function layDanhSachKhoaHoc() {
@@ -36,7 +36,9 @@ export async function luuTraLoiCauHoi(questionId, answer) {
  * để lúc người học trả lời thì lời giải thích đã có sẵn. Lỗi không ảnh hưởng việc học.
  */
 export async function chuanBiGiaiThich(questionId) {
-  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`);
+  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`, undefined, {
+    timeout: THOI_GIAN_CHO_AI_MS,
+  });
   return response.data;
 }
 
