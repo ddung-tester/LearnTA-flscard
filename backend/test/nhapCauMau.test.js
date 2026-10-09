@@ -4,13 +4,15 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { parseCsv, parseBatch, loadDataset, sameContent, planImport, run } = require("../scripts/nhap-cau-mau");
 const root = path.resolve(__dirname, "../database/private-content/cau-mau");
+// Dữ liệu nguồn nằm trong private-content (.gitignore): máy/CI không có thì bỏ qua test cần nó
+const canDuLieu = { skip: !fs.existsSync(path.join(root, "tu-vung-day-du.csv")) && "thiếu private-content/cau-mau" };
 
 test("CSV giữ dấu phẩy, dấu ngoặc kép và dòng mới trong trường", () => {
   const parsed = parseCsv('\uFEFFid,term_en,meaning_vi\r\n"1","say","nói, kể \\"'.replace('\\"', '""') + 'chuyện""\nở nhà"\r\n');
   assert.equal(parsed[0].meaning_vi, 'nói, kể "chuyện"\nở nhà');
 });
 
-test("1328 thẻ nguồn được chuyển chính xác, giữ dạng đã chia và IPA", () => {
+test("1328 thẻ nguồn được chuyển chính xác, giữ dạng đã chia và IPA", canDuLieu, () => {
   const cards = loadDataset(root);
   assert.equal(cards.length, 1328);
   const first = cards.find((card) => card.id === 1);
@@ -46,7 +48,7 @@ test("chạy lại không đổi dữ liệu vì thứ tự khóa JSON; phân bi
   assert(!sameContent({ tense_examples: null, saved_tense_examples: "null", pronunciation: null }, { tense_examples: null, pronunciation: null }));
 });
 
-test("lỗi khi cập nhật sẽ rollback, không commit và vẫn giữ bản sao lưu", async () => {
+test("lỗi khi cập nhật sẽ rollback, không commit và vẫn giữ bản sao lưu", canDuLieu, async () => {
   const rows = loadDataset(root).map((card) => ({ ...card, saved_tense_examples: card.tense_examples }));
   rows[0] = { ...rows[0], tense_examples: null, saved_tense_examples: null, pronunciation: null };
   const calls = [];
