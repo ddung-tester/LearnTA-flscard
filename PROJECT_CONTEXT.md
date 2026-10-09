@@ -195,11 +195,11 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 
 ### Quyen doc/ghi deck (`deckController`)
 
-- Doc (`canReadDeck`): deck mau (`user_id IS NULL`), deck `is_public = TRUE`, hoac deck cua chinh user.
+- Doc (`canReadDeck`): khach doc deck mau (`user_id IS NULL`); tai khoan doc deck cua chinh minh + bo lo trinh (bo mau co trong `roadmap_decks`, SQL dung chung `LA_BO_LO_TRINH_SQL`, 2026-10-09). `is_public` khong cap quyen doc. Bo mau ngoai lo trinh va bo nguoi khac: 404 voi tai khoan. Ap dung o deck/card/progress/study, `/reviews` (`READABLE_DECK`), `/mistakes`, `/roadmaps`, chatbot.
 - Nguon cua deck (`source`, suy ra tu bang noi, khong luu cot): `course` (tu vung 1 buoi cua khoa hoc rieng, co `course_lessons.deck_id`), `roadmap` (chang lo trinh, co `roadmap_decks`), `user` (bo tu tao), `sample` (bo mau cu `user_id NULL` ngoai lo trinh). `parent`: `{course_id, course_title, lesson_number, lesson_title}` hoac `{slug, title}` hoac null. FE: `utils/nguonBoTu.js` (nut quay lai o trang chi tiet bo; nhom bo o /practice).
-- Anonymous: `GET /decks` tra deck mau + deck public (tru bo lo trinh/khoa hoc).
+- Anonymous: `GET /decks` tra deck mau (tru bo lo trinh/khoa hoc).
 - Da dang nhap: `GET /decks` chi tra bo tu tao cua minh (khong gom bo khoa hoc, bo lo trinh, bo mau, bo public cua nguoi khac).
-- `GET /decks?scope=learnable`: nguon hoc cho /practice — `user_id IS NULL` (lo trinh + mau) va bo cua minh (gom bo khoa hoc).
+- `GET /decks?scope=learnable`: nguon hoc cho /practice — khach: `user_id IS NULL` (lo trinh + mau); tai khoan: bo cua minh (gom bo khoa hoc) + bo lo trinh.
 - Ghi (`canWriteDeck`, sua/xoa deck, them/sua/xoa/sap xep card): chi chu deck VA `source != course` (bo khoa hoc do script nhap quan ly; xoa bo se mat tien do SRS). Yeu thich chi can la chu bo (`isDeckOwner`). Deck mau khong ai sua duoc qua API.
 
 ### Chatbot `/api/chat`
@@ -281,9 +281,12 @@ Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.
 | `hocTA.cardFavorites` | `data/duLieuMau.js` | favorite cua mock data |
 | `hoc_tu_vung_progress` | `utils/tienDoHocTap.js` | tien do flashcard/quiz gan nhat theo deck |
 | `learnta_user_study_settings` | `utils/caiDatHocTap.js` | cai dat hoc theo mode |
-| `streak_drop_srs_v1` | `utils/srsReview.js` | ban sao SRS (cung luat voi `srs.js`); khi dang nhap, du lieu tu `/reviews` ghi de ban local |
+| `streak_drop_srs_v1` | `utils/srsReview.js` | ban sao SRS (cung luat voi `srs.js`); khi dang nhap, du lieu tu `/reviews` ghi de ban local. Doc tu ban da parse trong bo nho (su kien `storage` cua tab khac -> doc lai); ghi xuong localStorage luc ranh (toi da 1 s, gop nhieu lan ghi), `pagehide`/an tab ghi ngay (`ghiNgayKhoSRS`). Muc nhan tu server co `trenServer: true` -> `dongBoSRSLenBackend` khong gui lai (chia lo 200) |
 | `streak_drop_mistake_notebook_v1` | `utils/mistakeNotebook.js` | so tu sai; khi dang nhap dong bo voi `/mistakes` (khach chi luu local) |
 | `streak_drop_study_sessions_v1` | `utils/studySessionHistory.js` | lich su phien hoc |
+| `learnta_hang_doi_video` | `components/RewardTikTokEffect.jsx` | hang doi video thuong da xao (vao lai trang hoc dung dung file da co trong cache HTTP) |
+
+Bo nho dem GET trong RAM (`services/api.js` `layCoBoNho`, 20 s, theo token + url + params): `/decks`, `/decks/:id`, `/decks/:id/cards`, `/courses`, `/courses/:id/lessons/:n`, `/user/stats`, `/study-sessions/summary`. Moi request ghi (POST/PUT/PATCH/DELETE) va doi tai khoan xoa sach. Them GET doc nhieu moi -> dung `layCoBoNho`.
 
 Tien do va ket qua bai tap khoa hoc KHONG luu local — chi tren server (`course_question_progress`).
 
@@ -354,6 +357,16 @@ Deploy (push `main`):
 - Migration: chay tay truoc khi push (muc 7).
 
 ---
+
+## 11b. Hieu nang (2026-10-09, xem `docs/KE_HOACH_NANG_CAP_2026-10.md`)
+
+- Tai trang: `utils/taiTruocTrang.js` — route moi dang ky trong `App.jsx` bang `lazy(dangKyTrang(duongDan, tai, taiDuLieu?))`: re/cham link tai truoc JS, cham tai truoc du lieu (vao `layCoBoNho`), mo app tai JS + du lieu trang hien tai song song voi `/auth/me`, luc ranh tai dan trang hay vao.
+- `motion` dung `LazyMotion` (`main.jsx`, `utils/tinhNangMotion.js`): component dung `<m.*>`, KHONG dung `<motion.*>` (keo ca goi tinh nang vao chunk chinh).
+- Tranh `drag`/`layout`/`layoutId` cua motion o man hoc: kem bo do layout (projection) doc scroll trang giua luc DOM doi -> ep layout. Flashcard tu xu ly keo bang pointer events (`TheKeoDuoc`).
+- Danh sach dai: `content-visibility: auto` + `contain-intrinsic-size` (vd `.ui-word-row`); khong dat cho phan tu co menu/tooltip tran ra ngoai (paint containment cat mat).
+- Truoc khi phan tu dang focus bi go/disabled: `blur()` truoc (React doc scroll moi phan tu cha de khoi phuc focus).
+- Font tu host trong `public/fonts` (OFL), `@font-face` nhung trong `index.html`; Vercel `/assets` + `/fonts` immutable.
+- Backend: `compression` (luong giai thich AI dat `no-transform`), CORS `maxAge` 7200. axios timeout 25 s, goi AI 90 s (`THOI_GIAN_CHO_AI_MS`).
 
 ## 12. Nguyen tac khi sua code
 

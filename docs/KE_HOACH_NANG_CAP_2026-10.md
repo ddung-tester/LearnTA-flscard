@@ -1,5 +1,7 @@
 # Kế hoạch tối đa hiệu năng + trải nghiệm — 10/2026
 
+> **Trạng thái 2026-10-09: đã chạy xong** trên nhánh `claude/confident-curie-s3b6ch` (kết quả đo ở mục 6). Q1–Q7 theo khuyến nghị; Q3 (Cloud Run min-instances) và việc ở mục 4 do người dùng làm.
+
 > Lập 2026-10-09. Mục tiêu người dùng: **nhanh và mượt nhất có thể, KHÔNG giảm chất lượng** — giữ nguyên mọi hiệu ứng, 3D, video thưởng, Lottie, font, âm thanh (đúng tinh thần HANDOFF mục 45: không tắt hiệu ứng để đổi lấy tốc độ). Chỉ đổi *cách* tải/vẽ/lấy dữ liệu, không đổi *thứ* người học nhìn thấy.
 
 ## 0. Số liệu đo được (build 2026-10-09)
@@ -103,3 +105,13 @@
 - Không tắt/giảm hiệu ứng, 3D, video, Lottie trên bất kỳ máy nào (ngoài cơ chế `.may-yeu`/giảm chuyển động đã có).
 - Không thay `axios` bằng `fetch` (~13 KB gzip, đụng interceptor auth/idempotency — rủi ro cao hơn lợi ích).
 - Không thêm service worker (HANDOFF 42).
+
+## 6. Kết quả (đo 2026-10-09)
+
+Môi trường đo: backend thật + MariaDB cục bộ với dữ liệu tự sinh cỡ thật (1.464 thẻ có tiến độ, 48 buổi × 40 câu, 60 phiên học), frontend build production phục vụ như Vercel (nén br, header `vercel.json`), Playwright Chromium 390×844 DPR 3, **CPU chậm 4×, mạng 4G chậm (150 ms, 1,6 Mbps)**. Không đo được GPU/điện thoại thật và giải mã H.264.
+
+Đã làm (theo commit): sửa CI backend; nén JSON + nhớ preflight CORS; cache `/assets` immutable; tự host font; `LazyMotion`; tải trước JS/dữ liệu trang; bộ nhớ đệm GET 20 s; Dashboard không chờ đồng bộ SRS; đồng bộ SRS song song; **sửa lỗi cũ** gửi cả kho SRS mỗi lần mở app (bị từ chối khi > 200 từ); `content-visibility` cho danh sách từ; chatbot không ép layout; video thưởng tải sau khi trang xong + nhớ hàng đợi; kho SRS đọc từ bộ nhớ, ghi lúc rảnh; Flashcard tự xử lý kéo (bỏ projection của motion), bỏ focus trước khi đổi thẻ, khởi tạo âm thanh trước; lộ trình đọc được khi đăng nhập; timeout request.
+
+Không đổi giao diện: so ảnh 12 trang × (390px + 1440px) và 4 trang giảm chuyển động — lệch 0,000% (trừ ảnh chụp toàn trang chi tiết bộ: hàng ngoài màn chưa vẽ do `content-visibility`; khi cuộn thật hiện đủ, lệch chỉ khử răng cưa).
+
+Xem bảng số trong `HANDOFF.md` mục 3 (dòng 49).
