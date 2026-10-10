@@ -1,6 +1,7 @@
 import axios from "axios";
 import { buildApiUrl } from "../config/api";
 import { chonKhoHocTap } from "../utils/khoHocTap";
+import { baoLoi } from "../utils/baoLoi";
 
 export const AUTH_TOKEN_STORAGE_KEY = "hocTA.authToken";
 
@@ -105,6 +106,9 @@ api.interceptors.response.use(
   (error) => {
     if (laRequestGhi(error.config)) xoaBoNhoGet();
     const status = error.response?.status;
+    if (status >= 500) {
+      baoLoi("api", `${String(error.config?.method || "get").toUpperCase()} ${error.config?.url} → ${status}`);
+    }
     const requestUrl = String(error.config?.url || "");
     const isCredentialAttempt = /^\/auth\/(login|register|google)$/.test(requestUrl);
 

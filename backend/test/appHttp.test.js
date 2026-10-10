@@ -60,3 +60,29 @@ test("POST không có body không bị chặn ở bước kiểm tra body (prepa
   });
   assert.equal(mang.statusCode, 400);
 });
+
+test("lỗi trên máy người dùng được ghi log (đã cắt gọn, bỏ query của URL)", async () => {
+  const ghi = [];
+  const goc = console.error;
+  console.error = (dong) => ghi.push(dong);
+  try {
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request(
+        { host: "127.0.0.1", port, method: "POST", path: "/api/client-errors", headers: { "Content-Type": "application/json" } },
+        (r) => {
+          r.resume();
+          r.on("end", () => resolve(r));
+        }
+      );
+      req.on("error", reject);
+      req.end(JSON.stringify({ errors: [{ kieu: "js", noiDung: "x".repeat(900), trang: "/decks?q=bi-mat" }] }));
+    });
+    assert.equal(res.statusCode, 204);
+  } finally {
+    console.error = goc;
+  }
+  const log = JSON.parse(ghi[0]);
+  assert.equal(log.message, "client_error");
+  assert.equal(log.noiDung.length, 500);
+  assert.equal(log.trang, "/decks");
+});

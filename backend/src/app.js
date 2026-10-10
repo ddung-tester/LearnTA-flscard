@@ -15,6 +15,7 @@ const cronRoutes = require("./routes/cronRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const roadmapRoutes = require("./routes/roadmapRoutes");
 const courseRoutes = require("./routes/courseRoutes");
+const clientErrorRoutes = require("./routes/clientErrorRoutes");
 
 const app = express();
 // Cloud Run đứng sau 1 proxy — cần để rate limit đọc đúng IP client
@@ -94,6 +95,7 @@ app.use("/api/cron", cronRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api", courseRoutes);
+app.use("/api/client-errors", clientErrorRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

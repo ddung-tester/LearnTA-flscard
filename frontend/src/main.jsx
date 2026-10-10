@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { LazyMotion, MotionConfig } from "motion/react";
 import UngDung from "./App.jsx";
+import LoiGiaoDien from "./components/common/LoiGiaoDien.jsx";
+import { batBaoLoi } from "./utils/baoLoi";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import { ChatbotProvider } from "./contexts/ChatbotContext.jsx";
 import { PageTransitionProvider } from "./contexts/PageTransitionContext.jsx";
@@ -12,6 +14,8 @@ import "./styles/hieu-ung.css";
 import "./styles/den-ban.css";
 
 const taiTinhNangMotion = () => import("./utils/tinhNangMotion.js").then((mod) => mod.default);
+
+batBaoLoi();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -23,7 +27,9 @@ createRoot(document.getElementById("root")).render(
           <ToastProvider>
             <AuthProvider>
               <ChatbotProvider>
-                <UngDung />
+                <LoiGiaoDien>
+                  <UngDung />
+                </LoiGiaoDien>
               </ChatbotProvider>
             </AuthProvider>
           </ToastProvider>

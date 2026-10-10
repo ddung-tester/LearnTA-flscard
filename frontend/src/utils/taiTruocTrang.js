@@ -1,4 +1,5 @@
 import { matchPath } from "react-router-dom";
+import { taiTrangAnToan } from "./baoLoi";
 
 /**
  * taiTruocTrang — tải trước JS của trang trước khi người học tới đó.
@@ -12,9 +13,11 @@ import { matchPath } from "react-router-dom";
 const tuyen = [];
 const daTai = new Set();
 
+// Trả về hàm import() cho lazy(): gặp file JS của bản cũ (vừa deploy) thì tải lại trang một lần.
+// Tải trước chạy nền dùng hàm gốc — lỗi ở đó không được làm tải lại trang khi người học đang học.
 export function dangKyTrang(duongDan, tai, taiDuLieu = null) {
   tuyen.push({ duongDan, tai, taiDuLieu });
-  return tai;
+  return taiTrangAnToan(tai);
 }
 
 function taiMot(tai) {
