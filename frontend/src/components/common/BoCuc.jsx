@@ -4,6 +4,7 @@ import { m, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
+import { layDanhSachKhoaHoc } from "../../services/courseApi";
 import { chuanBiAmThanh } from "../../utils/amThanh";
 import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
@@ -94,7 +95,31 @@ function BoCuc() {
   const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
   // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), cập nhật mỗi lần SRS đổi
   const soTuDenHanLocal = useSyncExternalStore(theoDoiSRS, () => layThongKeSRS().duHomNay);
-  const soTuDenHan = isAuthenticated ? soTuDenHanLocal : 0;
+  // Câu bài tập khoá học đến hạn cũng ôn ở /review: cộng vào số trên tab. Đọc lúc rảnh (không tranh
+  // mạng với dữ liệu trang); danh sách khoá học được nhớ 20 s nên chuyển trang liên tục không gọi lại.
+  const [soCauDenHan, setSoCauDenHan] = useState(0);
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+    let conHieuLuc = true;
+    const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 1200));
+    henRanh(() => {
+      layDanhSachKhoaHoc()
+        .then((dsKhoa) => {
+          if (!conHieuLuc) return;
+          setSoCauDenHan(
+            dsKhoa.reduce(
+              (tong, khoa) => tong + (khoa.lessons || []).reduce((tongBai, bai) => tongBai + (bai.due_count || 0), 0),
+              0
+            )
+          );
+        })
+        .catch(() => {});
+    });
+    return () => {
+      conHieuLuc = false;
+    };
+  }, [isAuthenticated, viTri.pathname]);
+  const soTuDenHan = isAuthenticated ? soTuDenHanLocal + soCauDenHan : 0;
   // Đổi tab chính: trang mới trượt theo hướng tab (trái/phải); còn lại nổi lên
   const chiSoTab = dsTab.findIndex((tab) => tab.laActive(viTri.pathname));
   const [tabTruoc, setTabTruoc] = useState({ path: viTri.pathname, chiSo: chiSoTab, huong: "len" });
@@ -189,7 +214,7 @@ function BoCuc() {
                       tab.nhan
                     )}
                     {tab.coSoDenHan && soTuDenHan > 0 && (
-                      <span className="dash-nav__so" aria-label={`${soTuDenHan} từ đến hạn ôn`}>
+                      <span className="dash-nav__so" aria-label={`${soTuDenHan} mục đến hạn ôn`}>
                         {soTuDenHan > 99 ? "99+" : soTuDenHan}
                       </span>
                     )}

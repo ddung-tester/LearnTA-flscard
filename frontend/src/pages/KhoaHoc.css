@@ -520,6 +520,8 @@
 /* ── Bài tập ── */
 .kh-bt {
   display: grid;
+  /* Cột co theo khung: không để ô nhập / hàng đếm đẩy câu hỏi tràn ngang màn điện thoại */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 

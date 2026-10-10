@@ -15,6 +15,8 @@ import {
   useRef,
   useEffect,
   useLayoutEffect,
+  lazy,
+  Suspense,
 } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
@@ -47,6 +49,8 @@ import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
 import { chuanHoaDapAn, MUC_GOI_Y_TOI_DA, taoGoiY } from "../utils/phienHoc";
 import GachVeTay from "../components/common/GachVeTay";
 import { laDangGoChu } from "../utils/phimTat";
+
+const OnCauBaiTapDenHan = lazy(() => import("../components/OnCauBaiTapDenHan"));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -632,7 +636,7 @@ function TrangOnTapHomNay() {
     () => docCaiDatHocTap("onTap").cheDoTheoLevel ?? CHE_DO_THEO_LEVEL_MAC_DINH
   );
   const [entryOverrides, setEntryOverrides] = useState({});
-  // Câu bài tập khoá học đến hạn ôn nằm ở trang riêng (/khoa-hoc/on-tap); ở đây chỉ báo số lượng
+  // Câu bài tập khoá học đến hạn ôn: hiện tiếp ngay dưới khi ôn xong từ (hoặc không có từ đến hạn)
   const [soCauCanOn, setSoCauCanOn] = useState(0);
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
@@ -999,6 +1003,12 @@ function TrangOnTapHomNay() {
           />
         )
       ) : null}
+
+      {(nothingDue || isComplete) && soCauCanOn > 0 && (
+        <Suspense fallback={<p className="review-sync-note">Đang tải câu bài tập...</p>}>
+          <OnCauBaiTapDenHan soCau={soCauCanOn} />
+        </Suspense>
+      )}
 
       {/* Queue list preview (collapsed) */}
       {!nothingDue && !isComplete && queue.length > 1 && (
