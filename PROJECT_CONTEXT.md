@@ -368,6 +368,10 @@ Deploy (push `main`):
 - Font tu host trong `public/fonts` (OFL), `@font-face` nhung trong `index.html`; Vercel `/assets` + `/fonts` immutable.
 - Backend: `compression` (luong giai thich AI dat `no-transform`), CORS `maxAge` 7200. axios timeout 25 s, goi AI 90 s (`THOI_GIAN_CHO_AI_MS`).
 
+- Kho JSON lon tren may: dung `utils/khoTrenMay.js` (`taoKhoTrenMay(ten)` → doc tu bo nho, ghi luc ranh, `ghiNgay` khi roi trang) — dang dung cho SRS va so tu sai. Lich su phien (`studySessionHistory`) ghi dong bo (hang cho gui lai can an toan), chi giu dap an 30 phien gan nhat.
+- Loi: `components/common/LoiGiaoDien` (ErrorBoundary o `main.jsx`); route lazy dang ky qua `dangKyTrang` tu tai lai trang 1 lan khi gap file JS cu sau deploy; `utils/baoLoi.js` gui loi ve `POST /api/client-errors` (log Cloud Run `client_error`). Backend log `slow_request` (>= 800 ms, `middleware/logRequestCham.js`).
+- Quet loi moi trang: `cd frontend && npm run quet-loi -- <url> [token]`.
+
 ## 12. Nguyen tac khi sua code
 
 1. Doc `CLAUDE.md` va chay `git status --short` truoc khi sua.

@@ -169,3 +169,22 @@ Bảng trước/sau, so ảnh, cập nhật `HANDOFF.md` / `PROJECT_CONTEXT.md`.
 | Q3 | Tự host `rive.wasm` 1,9 MB trong repo (A4)? | **Có** |
 | Q4 | `npm audit fix` backend (A3)? | **Có** |
 | Q5 | Cloud Run `min-instances=1` (D3)? | Đo log trước, bạn quyết |
+
+## Kết quả đợt 2 (2026-10-10)
+
+| Mục | Kết quả |
+|---|---|
+| A1 prepare 400 | Đã sửa (`101d252`) |
+| A2 báo lỗi + ErrorBoundary + tự tải lại khi file JS cũ | Đã làm (`b39949f`); thử thật: deploy giữa chừng → tự tải lại 1 lần, mở đúng trang; lỗi lần 2 → màn báo lỗi; lỗi JS/API 5xx lên log |
+| A3 npm audit | 0 lỗ hổng (`519a4e3`) |
+| A4 rive.wasm tự host | Đã làm (`e9ebe14`), mascot không còn gọi CDN ngoài |
+| A5 script quét lỗi | `npm run quet-loi` (`ab7ffa4`) |
+| B1 rò listener Flashcard | Không phải rò (chỉ tăng 1 lần khi màn thưởng chạy lần đầu, 25 hay 45 thẻ đều 361) — không sửa |
+| B2 Nối từ / Tự luận | Đo lại: tệ nhất 96 / 72 ms (số cũ là đột biến khi bật profiler) — không sửa |
+| B3 Ôn tập | TB 57 ms, tệ nhất 128 ms — không sửa |
+| B4 sổ từ sai + lịch sử phiên | Đã làm (`d138201`) |
+| B5 màn thưởng | Không làm: luồng chính chỉ vài khung ~60 ms, phần rớt khung do vẽ canvas (GPU); sửa động cơ hạt dễ đổi hình |
+| C1/C2 Dashboard, Lottie | Chặn luồng chính lần đầu ~284 ms (trước 480); phần còn lại là lần tính bố cục đầu + Lottie của màn chờ — giữ |
+| D1 log request chậm | Đã làm (`1376ab6`) |
+| D2 truy vấn DB | Mọi API ≤ 20 ms, đúng index — không cần migration |
+| D3 cold start | Máy cloud không có quyền GCP — người dùng xem log |
