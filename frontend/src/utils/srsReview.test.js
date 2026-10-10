@@ -239,7 +239,8 @@ describe("complete SRS pagination", () => {
     reviews.all.mockReset().mockImplementation(async ({ limit, offset }) => cards.slice(offset, offset + limit));
     await taiSRSDongBo({ limit: 200, deck_id: 10 });
     expect(layThongKeSRS().total).toBe(count);
-    expect(reviews.all.mock.calls.map(([params]) => params.offset)).toEqual(count === 400 ? [0, 200, 400] : [0, 200]);
+    // Vòng 1: 1 trang; còn nữa thì vòng sau gấp đôi (200, 400)
+    expect(reviews.all.mock.calls.map(([params]) => params.offset)).toEqual([0, 200, 400]);
     expect(reviews.all.mock.calls.every(([params]) => params.deck_id === 10)).toBe(true);
   });
   it("paginates due cards too and never merges an incomplete download", async () => {
@@ -247,7 +248,11 @@ describe("complete SRS pagination", () => {
     reviews.due.mockReset().mockResolvedValueOnce(page).mockRejectedValueOnce(new Error("offline"));
     expect(await taiCardsDenHanDongBo({ limit: 200 })).toEqual([]);
     expect(layThongKeSRS().total).toBe(0);
-    reviews.due.mockReset().mockResolvedValueOnce(page).mockResolvedValueOnce([{ card_id: 201, level: 0, next_review_at: NOW.toISOString() }]);
+    reviews.due
+      .mockReset()
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce([{ card_id: 201, level: 0, next_review_at: NOW.toISOString() }])
+      .mockResolvedValueOnce([]);
     expect(await taiCardsDenHanDongBo({ limit: 200 })).toHaveLength(201);
   });
 });

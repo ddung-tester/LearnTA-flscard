@@ -1,7 +1,15 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { ghiNgayKhoTuSai, layTatCaTuSai, luuTuSai, xoaTatCaTuSai } from "./mistakeNotebook";
+import {
+  dongBoTuSaiLenBackend,
+  ghiNgayKhoTuSai,
+  hopNhatTuSaiTuBackend,
+  layTatCaTuSai,
+  luuTuSai,
+  xoaTatCaTuSai,
+} from "./mistakeNotebook";
 
-vi.mock("../services/mistakeApi", () => ({}));
+const api = vi.hoisted(() => ({ dongBoMistakes: vi.fn() }));
+vi.mock("../services/mistakeApi", () => api);
 
 let store;
 beforeEach(() => {
@@ -24,4 +32,26 @@ it("ghi sổ từ sai: đọc lại thấy ngay, xuống localStorage sau; xoá 
   xoaTatCaTuSai();
   expect(layTatCaTuSai()).toEqual([]);
   expect(store.get("streak_drop_mistake_notebook_v1:guest")).toBe("{}");
+});
+
+it("chỉ đẩy lên từ sai server chưa có hoặc vừa đổi trên máy, không gửi lại cả sổ mỗi lần mở app", async () => {
+  xoaTatCaTuSai();
+  // Server đã có "apple"; "pear" mới sai trên máy
+  hopNhatTuSaiTuBackend([{ id: 5, card_id: 1, term_en: "apple", updated_at: "2026-09-01T00:00:00.000Z" }]);
+  luuTuSai([{ id: 2, term_en: "pear", meaning_vi: "lê" }], { deckId: 10, deckTitle: "Fruits", source: "quiz" });
+  api.dongBoMistakes.mockReset().mockImplementation(async (items) => ({
+    mistakes: items.map((item, i) => ({ id: 100 + i, card_id: item.card_id, term_en: "x", updated_at: "2026-09-02T00:00:00.000Z" })),
+  }));
+
+  await dongBoTuSaiLenBackend();
+  expect(api.dongBoMistakes.mock.calls.map(([items]) => items.map((item) => item.card_id))).toEqual([[2]]);
+
+  api.dongBoMistakes.mockClear();
+  await dongBoTuSaiLenBackend();
+  expect(api.dongBoMistakes).not.toHaveBeenCalled();
+
+  // Sai lại "apple" trên máy (vd. mất mạng lúc lưu): lần sau đẩy đúng từ đó
+  luuTuSai([{ id: 1, term_en: "apple", meaning_vi: "táo" }], { deckId: 10, deckTitle: "Fruits", source: "quiz" });
+  await dongBoTuSaiLenBackend();
+  expect(api.dongBoMistakes.mock.calls.map(([items]) => items.map((item) => item.card_id))).toEqual([[1]]);
 });

@@ -1,10 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { m, useReducedMotion } from "motion/react";
 
-// Tải lottie-web khi overlay cần hiện lần đầu, không nằm trong bundle chính
-const Lottie = lazy(() =>
-  import("lottie-react").then((m) => ({ default: m.default?.default ?? m.default })),
-);
+// lottie-web ~300 KB (80 KB gzip): không nằm trong bundle chính, và không tải lúc mở app — khi đó
+// nó tranh băng thông với chính dữ liệu trang. Tải nền lúc rảnh sau khi trang đầu xong; màn chờ
+// đã hiện lâu mà chưa có thì mới tải ngay.
+let lottieDaTai = false;
+const taiLottie = () =>
+  import("lottie-react").then((m) => {
+    lottieDaTai = true;
+    return { default: m.default?.default ?? m.default };
+  });
+const Lottie = lazy(taiLottie);
+const CHO_LOTTIE_KHI_CHUA_TAI_MS = 700;
 const LOADING_REVEAL_DELAY_MS = 120;
 // Trì hoãn nhỏ khi ẩn overlay: safety net cho double-rAF bridge,
 // tránh flicker nếu data-loading key chưa kịp đăng ký trên thiết bị chậm.
@@ -21,6 +28,7 @@ function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
   const [dangHienThi, setDangHienThi] = useState(false);
   // Giữ Lottie mount đến sau khi animation fade-out hoàn tất, tránh bị cắt đứt giữa chừng
   const [giuLottie, setGiuLottie] = useState(false);
+  const [choLauLottie, setChoLauLottie] = useState(false);
   const lottieTimerRef = useRef(null);
   const giamChuyenDong = useReducedMotion();
 
@@ -48,6 +56,29 @@ function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
     };
   }, [giamChuyenDong]);
 
+  // Trang đầu đã tải xong dữ liệu (màn chờ tắt): tải nền lottie lúc rảnh cho các lần chuyển trang sau
+  useEffect(() => {
+    if (giamChuyenDong || hienThi || lottieDaTai) return undefined;
+    const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 1500));
+    const huyRanh = window.cancelIdleCallback ?? window.clearTimeout;
+    let id = 0;
+    // Chờ thêm 1 s: trang vừa tắt màn chờ thường còn tải ảnh / chunk phụ
+    const timer = window.setTimeout(() => {
+      id = henRanh(() => taiLottie().catch(() => {}), { timeout: 5000 });
+    }, 1000);
+    return () => {
+      window.clearTimeout(timer);
+      huyRanh(id);
+    };
+  }, [giamChuyenDong, hienThi]);
+
+  // Màn chờ hiện lâu mà lottie chưa tải nền xong: tải luôn (mạng rất chậm)
+  useEffect(() => {
+    if (!dangHienThi || lottieDaTai) return undefined;
+    const timer = window.setTimeout(() => setChoLauLottie(true), CHO_LOTTIE_KHI_CHUA_TAI_MS);
+    return () => window.clearTimeout(timer);
+  }, [dangHienThi]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDangHienThi(hienThi);
@@ -74,7 +105,7 @@ function PageLoadingOverlay({ hienThi, treHien = LOADING_REVEAL_DELAY_MS }) {
     };
   }, [hienThi]);
 
-  const hienLottie = giuLottie && loadingAnimation && !giamChuyenDong;
+  const hienLottie = giuLottie && loadingAnimation && !giamChuyenDong && (lottieDaTai || choLauLottie);
 
   return (
     <m.div

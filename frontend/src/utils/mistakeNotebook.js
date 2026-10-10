@@ -107,12 +107,19 @@ function hopNhatEntry(localEntry, incomingEntry) {
   };
 }
 
-export function hopNhatTuSaiTuBackend(items = []) {
+/**
+ * vuaDay: items là phản hồi của chính lần đẩy lên (server đã nhận bản trên máy) → coi như đã khớp.
+ * `dongBoLuc` = updatedAt của bản đã khớp với server; khác updatedAt nghĩa là máy có thay đổi chưa đẩy.
+ */
+export function hopNhatTuSaiTuBackend(items = [], { vuaDay = false } = {}) {
   const tatCa = docTatCa();
 
   for (const item of items) {
     const incoming = chuanHoaTuSaiTuBackend(item);
-    tatCa[incoming.id] = hopNhatEntry(tatCa[incoming.id], incoming);
+    const local = tatCa[incoming.id];
+    const merged = hopNhatEntry(local, incoming);
+    const daKhop = vuaDay || !local || toDateValue(incoming.updatedAt) >= toDateValue(local.updatedAt);
+    tatCa[incoming.id] = { ...merged, dongBoLuc: daKhop ? merged.updatedAt : local.dongBoLuc };
   }
 
   ghiTatCa(tatCa);
@@ -195,7 +202,7 @@ export async function luuTuSaiDongBo(cards, opts) {
       .map(chuanHoaTuSaiChoBackend);
     const result = await dongBoMistakes(items);
     if (!laPhienKhoHienTai(phienKho)) return;
-    hopNhatTuSaiTuBackend(result.mistakes || []);
+    hopNhatTuSaiTuBackend(result.mistakes || [], { vuaDay: true });
   } catch {
     // Backend sync la best-effort. localStorage van la cache/fallback chinh.
   }
@@ -249,7 +256,7 @@ export async function danhDauDaOnDongBo(id) {
   try {
     const updated = await capNhatMistake(entry.backendId, { status: "reviewed" });
     if (!laPhienKhoHienTai(phienKho)) return;
-    hopNhatTuSaiTuBackend([updated]);
+    hopNhatTuSaiTuBackend([updated], { vuaDay: true });
   } catch {
     // Local update da thanh cong.
   }
@@ -337,9 +344,18 @@ export async function taiTuSaiDongBo(params = {}) {
   }
 }
 
+// Chưa từng lên server, hoặc đổi trên máy (học lúc mất mạng...) sau lần khớp cuối
+function canDayLen(entry) {
+  return !entry.backendId || entry.dongBoLuc !== entry.updatedAt;
+}
+
+/**
+ * Đẩy phần sổ từ sai server chưa có. Trước đây gửi cả sổ mỗi lần mở app (~600 ms trên điện thoại,
+ * và request ghi làm mất dữ liệu trang đã tải trước trong bộ nhớ đệm GET → trang phải tải lại).
+ */
 export async function dongBoTuSaiLenBackend() {
   const phienKho = layPhienKhoHocTap();
-  const items = layTatCaTuSai().map(chuanHoaTuSaiChoBackend);
+  const items = layTatCaTuSai().filter(canDayLen).map(chuanHoaTuSaiChoBackend);
   if (items.length === 0) return layTatCaTuSai();
 
   try {
@@ -347,7 +363,7 @@ export async function dongBoTuSaiLenBackend() {
     for (let i = 0; i < items.length; i += 200) {
       const result = await dongBoMistakes(items.slice(i, i + 200));
       if (!laPhienKhoHienTai(phienKho)) return [];
-      hopNhatTuSaiTuBackend(result.mistakes || []);
+      hopNhatTuSaiTuBackend(result.mistakes || [], { vuaDay: true });
     }
     return layTatCaTuSai();
   } catch {

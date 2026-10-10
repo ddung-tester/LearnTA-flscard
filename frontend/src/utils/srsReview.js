@@ -433,7 +433,8 @@ const SO_DONG_MOI_TRANG = 200;
 const dangTai = new Map();
 
 // Tải đủ mọi trang. Số trang ước theo kho local (lần trước tải về bao nhiêu) để gọi song song
-// một lượt thay vì nối tiếp từng trang — trên 4G mỗi vòng mạng ~150–300 ms. Hụt thì tải tiếp từng trang.
+// một lượt thay vì nối tiếp từng trang — trên 4G mỗi vòng mạng ~150–300 ms. Hụt (máy mới, kho trống)
+// thì mỗi vòng gấp đôi số trang: 1.300 từ xong trong 3 vòng thay vì 7, đổi lại có thể thừa 1 trang trống.
 // Một trang lỗi → bỏ cả lượt (không gộp dữ liệu thiếu).
 async function taiTatCaTrangReviews(load, params, phienKho, uocLuong = 0) {
   const limit = SO_DONG_MOI_TRANG;
@@ -448,7 +449,7 @@ async function taiTatCaTrangReviews(load, params, phienKho, uocLuong = 0) {
     for (const page of pages) items.push(...page);
     if (pages[pages.length - 1].length < limit) return items;
     offset += soTrang * limit;
-    soTrang = 1;
+    soTrang *= 2;
   }
 }
 
