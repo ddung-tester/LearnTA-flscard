@@ -36,7 +36,7 @@ export async function luuTraLoiCauHoi(questionId, answer) {
  * để lúc người học trả lời thì lời giải thích đã có sẵn. Lỗi không ảnh hưởng việc học.
  */
 export async function chuanBiGiaiThich(questionId) {
-  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`, undefined, {
+  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`, {}, {
     timeout: THOI_GIAN_CHO_AI_MS,
   });
   return response.data;

@@ -48,6 +48,10 @@ app.use(
 app.use(compression());
 app.use(express.json());
 app.use((req, res, next) => {
+  // POST không gửi body (vd. /course-questions/:id/prepare) coi như {} — trước đây bị trả 400 nên
+  // app chưa bao giờ soạn trước được lời giải thích AI. Body JSON không phải object vẫn bị từ chối.
+  const khongCoBody = !Number(req.headers["content-length"]) && !req.headers["transfer-encoding"];
+  if (req.body === undefined && khongCoBody) req.body = {};
   if (
     !req.path.startsWith("/api/cron/") &&
     ["POST", "PUT", "PATCH"].includes(req.method) &&

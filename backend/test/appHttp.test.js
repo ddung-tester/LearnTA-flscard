@@ -41,3 +41,22 @@ test("JSON lớn được nén khi trình duyệt nhận gzip/br", async () => {
   assert.equal(res.statusCode, 200);
   assert.equal(res.headers["content-encoding"], "gzip");
 });
+
+test("POST không có body không bị chặn ở bước kiểm tra body (prepare gửi không kèm body)", async () => {
+  const khongBody = await goi("POST", "/api/course-questions/1/prepare");
+  // Đi tới bước xác thực (401) thay vì bị trả 400 "Request body phai la JSON object"
+  assert.equal(khongBody.statusCode, 401);
+
+  const mang = await new Promise((resolve, reject) => {
+    const req = http.request(
+      { host: "127.0.0.1", port, method: "POST", path: "/api/course-questions/1/prepare", headers: { "Content-Type": "application/json" } },
+      (res) => {
+        res.resume();
+        res.on("end", () => resolve(res));
+      }
+    );
+    req.on("error", reject);
+    req.end("[1,2]");
+  });
+  assert.equal(mang.statusCode, 400);
+});
