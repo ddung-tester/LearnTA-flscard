@@ -56,7 +56,11 @@ export const ghiNgayKhoSRS = khoSRS.ghiNgay;
 // Phát mỗi lần bản SRS local đổi, để badge "Ôn tập" trên menu cập nhật ngay
 export const SU_KIEN_SRS_DOI = "srs-thay-doi";
 
+// Tăng mỗi lần ghi kho (kho được sửa tại chỗ nên không so được bằng tham chiếu)
+let phienBanKho = 0;
+
 function ghiTatCa(data) {
+  phienBanKho += 1;
   khoSRS.ghi(data);
   if (typeof window !== "undefined") window.dispatchEvent(new Event(SU_KIEN_SRS_DOI));
 }
@@ -144,6 +148,8 @@ function laCardIdHopLe(id) {
  * Backend là nguồn đúng: ghi đè bản local, chỉ giữ trường backend không có (source).
  */
 export function hopNhatSRSTuBackend(items = []) {
+  // Đồng bộ phần thay đổi thường trả 0 dòng: không ghi lại cả kho (~0,5 MB) và không báo "SRS đổi"
+  if (items.length === 0) return layTatCaSRS();
   const tatCa = docTatCa();
 
   for (const item of items) {
@@ -383,10 +389,24 @@ export function datLaiSRS(id) {
  * Thống kê SRS queue.
  * @returns {{ total, duHomNay, active, mastered, khoHoc }}
  */
+// Badge "Ôn tập" (useSyncExternalStore) gọi hàm này mỗi lần menu render; duyệt 1.300 từ ~25 ms trên
+// CPU điện thoại → nhớ kết quả tới khi kho đổi (hoặc 30 s, vì từ đến hạn theo giờ)
+const THONG_KE_HET_HAN_MS = 30 * 1000;
+let thongKeDaTinh = null; // { kho, phienBan, luc, ketQua }
+
 export function layThongKeSRS() {
-  // Badge "Ôn tập" gọi hàm này mỗi lần SRS đổi: đếm một lượt, không cần sắp xếp
-  const ds = Object.values(docTatCa());
+  const kho = docTatCa();
   const now = Date.now();
+  if (
+    thongKeDaTinh &&
+    thongKeDaTinh.kho === kho &&
+    thongKeDaTinh.phienBan === phienBanKho &&
+    now - thongKeDaTinh.luc < THONG_KE_HET_HAN_MS
+  ) {
+    return thongKeDaTinh.ketQua;
+  }
+  // Đếm một lượt, không cần sắp xếp
+  const ds = Object.values(kho);
   let duHomNay = 0;
   let active = 0;
   let mastered = 0;
@@ -397,7 +417,9 @@ export function layThongKeSRS() {
   }
   // khoHoc = chưa đến hạn ôn
   const khoHoc = ds.length - duHomNay;
-  return { total: ds.length, duHomNay, active, mastered, khoHoc };
+  const ketQua = { total: ds.length, duHomNay, active, mastered, khoHoc };
+  thongKeDaTinh = { kho, phienBan: phienBanKho, luc: now, ketQua };
+  return ketQua;
 }
 
 function ghiNhanKetQuaLocal(cards, ketQua, opts) {
