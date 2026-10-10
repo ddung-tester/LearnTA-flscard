@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
+const { logRequestCham } = require("./middleware/logRequestCham");
 const pool = require("./config/db");
 const { corsOrigins } = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
@@ -20,6 +21,7 @@ const clientErrorRoutes = require("./routes/clientErrorRoutes");
 const app = express();
 // Cloud Run đứng sau 1 proxy — cần để rate limit đọc đúng IP client
 app.set("trust proxy", 1);
+app.use(logRequestCham);
 const allowedCorsOrigins = new Set(corsOrigins);
 
 app.use(
