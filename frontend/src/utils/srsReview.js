@@ -35,7 +35,8 @@ import {
   layReviewsDenHan,
   xoaReviewTheoCard,
 } from "../services/reviewApi";
-import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { taoKhoTrenMay } from "./khoTrenMay";
 import { layStudySessionsLocal } from "./studySessionHistory";
 
 const KHO_SRS = "streak_drop_srs_v1";
@@ -45,91 +46,18 @@ export const KHOANG_ON_NGAY = [0, 1, 3, 7, 14, 30];
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-// Kho SRS của tài khoản nhiều từ ~0,5 MB JSON: parse ~6 ms, stringify + ghi ~35 ms mỗi lần (CPU điện thoại),
-// mà mỗi lần trả lời đọc 4–5 lần và ghi 2 lần ngay trong lúc bấm → khựng ~100 ms trước khi phản hồi hiện ra.
-// Nên: giữ bản đã parse trong bộ nhớ (tab khác ghi → sự kiện "storage" → đọc lại),
-// và ghi xuống localStorage lúc rảnh sau khi phản hồi đã vẽ — gộp nhiều lần ghi thành một;
-// rời trang / ẩn tab thì ghi ngay.
-let banDaDoc = null; // { kho, khoa, data }
-let choGhi = null; // { kho, khoa, data }
-let henGhi = null;
-
-function layKho() {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
-}
-
-function docTatCa() {
-  const kho = layKho();
-  if (!kho) return {};
-  const khoa = khoaKhoHocTap(KHO_SRS);
-  if (choGhi && choGhi.kho === kho && choGhi.khoa === khoa) return choGhi.data;
-  if (banDaDoc && banDaDoc.kho === kho && banDaDoc.khoa === khoa) return banDaDoc.data;
-  try {
-    const raw = kho.getItem(khoa);
-    const parsed = raw ? JSON.parse(raw) : {};
-    const data = parsed && typeof parsed === "object" ? parsed : {};
-    banDaDoc = { kho, khoa, data };
-    return data;
-  } catch {
-    return {};
-  }
-}
+// Đọc từ bộ nhớ, ghi xuống localStorage lúc rảnh (utils/khoTrenMay.js)
+const khoSRS = taoKhoTrenMay(KHO_SRS);
+const docTatCa = khoSRS.doc;
 
 /** Ghi ngay phần đang chờ xuống localStorage (rời trang, ẩn tab, test). */
-export function ghiNgayKhoSRS() {
-  if (henGhi) {
-    henGhi.huy();
-    henGhi = null;
-  }
-  const viec = choGhi;
-  choGhi = null;
-  if (!viec) return;
-  try {
-    viec.kho.setItem(viec.khoa, JSON.stringify(viec.data));
-    banDaDoc = { kho: viec.kho, khoa: viec.khoa, data: viec.data };
-  } catch {
-    // localStorage full — bỏ qua
-  }
-}
-
-function henGhiKhiRanh() {
-  if (henGhi) return;
-  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
-    const id = window.requestIdleCallback(ghiNgayKhoSRS, { timeout: 1000 });
-    henGhi = { huy: () => window.cancelIdleCallback(id) };
-  } else {
-    const id = setTimeout(ghiNgayKhoSRS, 200);
-    henGhi = { huy: () => clearTimeout(id) };
-  }
-}
-
-if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
-  // Tab khác ghi kho (hoặc xoá hết localStorage): bỏ bản trong bộ nhớ, lần đọc sau đọc lại
-  window.addEventListener("storage", (event) => {
-    if (event.key === null || event.key === banDaDoc?.khoa) banDaDoc = null;
-  });
-  window.addEventListener("pagehide", ghiNgayKhoSRS);
-  document.addEventListener?.("visibilitychange", () => {
-    if (document.visibilityState === "hidden") ghiNgayKhoSRS();
-  });
-}
+export const ghiNgayKhoSRS = khoSRS.ghiNgay;
 
 // Phát mỗi lần bản SRS local đổi, để badge "Ôn tập" trên menu cập nhật ngay
 export const SU_KIEN_SRS_DOI = "srs-thay-doi";
 
 function ghiTatCa(data) {
-  const kho = layKho();
-  if (kho) {
-    const khoa = khoaKhoHocTap(KHO_SRS);
-    // Đổi tài khoản giữa chừng: ghi xong phần của tài khoản cũ vào đúng khoá cũ trước
-    if (choGhi && (choGhi.kho !== kho || choGhi.khoa !== khoa)) ghiNgayKhoSRS();
-    choGhi = { kho, khoa, data };
-    henGhiKhiRanh();
-  }
+  khoSRS.ghi(data);
   if (typeof window !== "undefined") window.dispatchEvent(new Event(SU_KIEN_SRS_DOI));
 }
 

@@ -26,3 +26,18 @@ it("assigns activity to the Vietnam day at the UTC day boundary", () => {
   expect(days.at(-1)).toMatchObject({ date: "2026-10-06", cards_studied: 1 });
   expect(days.at(-2)).toMatchObject({ date: "2026-10-05", cards_studied: 0 });
 });
+
+it("keeps answers only for pending sessions and the 30 newest synced ones; totals stay for all", () => {
+  const dapAn = [{ card_id: 1, is_correct: true }, { card_id: 2, is_correct: false }];
+  for (let i = 0; i < 40; i += 1) {
+    const row = taoStudySessionLocal({ total: 2, mode: "quiz", answers: dapAn });
+    ketThucStudySessionLocal(row.id, { correct: 1, review: 1 });
+  }
+  const choGui = taoStudySessionLocal({ total: 2, mode: "quiz", answers: dapAn, sync: { pending: true } });
+
+  const ds = layStudySessionsLocal();
+  expect(ds.find((s) => s.id === choGui.id).answers).toHaveLength(2);
+  const daDongBo = ds.filter((s) => !s.sync?.pending && s.answers.length);
+  expect(daDongBo).toHaveLength(30);
+  expect(layStudySessionSummaryLocal().total_sessions).toBe(40);
+});

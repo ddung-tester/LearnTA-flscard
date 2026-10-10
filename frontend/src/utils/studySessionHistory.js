@@ -18,12 +18,23 @@ function docSessions() {
   }
 }
 
+const SO_PHIEN_GIU_DAP_AN = 30;
+
 function ghiSessions(sessions) {
   if (!coTheDungLocalStorage()) throw new Error("Không thể giữ kết quả: trình duyệt không cho lưu dữ liệu.");
 
   try {
     const pending = sessions.filter((session) => session.sync?.pending);
-    const history = sessions.filter((session) => !session.sync?.pending).slice(0, 300);
+    // Đáp án của phiên đã đồng bộ không còn được đọc lại (chỉ hàng chờ gửi lại cần): chỉ giữ ở
+    // 30 phiên gần nhất. Trước đây giữ đủ 300 phiên kèm đáp án (phiên Flashcard 120 thẻ ~24 KB)
+    // → kho có thể chạm giới hạn ~5 MB của trình duyệt (không lưu được kết quả) và mỗi lần lưu
+    // phải ghi lại vài MB. Điểm, thời gian, chế độ… vẫn giữ đủ 300 phiên.
+    const history = sessions
+      .filter((session) => !session.sync?.pending)
+      .slice(0, 300)
+      .map((session, viTri) =>
+        viTri < SO_PHIEN_GIU_DAP_AN || !session.answers?.length ? session : { ...session, answers: [] }
+      );
     window.localStorage.setItem(khoaKhoHocTap(KHO_STUDY_SESSIONS), JSON.stringify([...pending, ...history]));
   } catch {
     throw new Error("Không thể giữ kết quả: kho trình duyệt đã đầy hoặc bị chặn.");
