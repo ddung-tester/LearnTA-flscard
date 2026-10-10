@@ -3,9 +3,16 @@ import {
   Alignment,
   Fit,
   Layout,
+  RuntimeLoader,
   useRive,
   useStateMachineInput,
 } from "@rive-app/react-canvas";
+// Bộ chạy Rive (WASM ~1,9 MB) phục vụ từ chính web (/assets, có hash → cache lâu dài) thay vì unpkg:
+// CDN ngoài lỗi / bị chặn thì mascot hỏng, và thêm kết nối tới domain lạ lúc mở trang đăng nhập.
+// Bản dự phòng (trình duyệt cũ) vẫn lấy từ CDN mặc định của Rive.
+import riveWasmUrl from "@rive-app/canvas/rive.wasm?url";
+
+RuntimeLoader.setWasmUrl(riveWasmUrl);
 
 const STATE_MACHINE_NAME = "Login Machine";
 const RIVE_SRC = "/animation/login.riv";
