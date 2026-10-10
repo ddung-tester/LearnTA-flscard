@@ -24,6 +24,15 @@ const aiSentenceLimiter = rateLimit({
   message: { message: "Bạn đã nhờ AI chấm nhiều câu, nghỉ vài phút rồi thử lại nhé" },
 });
 
+// Dịch câu ví dụ: mỗi câu chỉ gọi AI một lần (bản dịch được lưu lại)
+const aiTranslateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Bạn đã nhờ dịch nhiều câu, nghỉ vài phút rồi thử lại nhé" },
+});
+
 router.get(
   "/decks/:deckId/cards",
   optionalAuth,
@@ -71,6 +80,12 @@ router.post(
   requireAuth,
   aiSentenceLimiter,
   asyncHandler(cardController.checkSentence)
+);
+router.post(
+  "/cards/:cardId/translate-example",
+  optionalAuth,
+  aiTranslateLimiter,
+  asyncHandler(cardController.translateExample)
 );
 
 module.exports = router;

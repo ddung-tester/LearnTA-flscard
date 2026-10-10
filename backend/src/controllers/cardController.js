@@ -605,7 +605,45 @@ async function checkSentence(req, res) {
   }
 }
 
+// POST /cards/:cardId/translate-example — bản dịch câu ví dụ: có sẵn thì trả luôn, chưa có thì AI dịch
+// rồi lưu lại cho mọi người học thẻ này. Chỉ thẻ thuộc bộ người này được đọc.
+async function translateExample(req, res) {
+  const cardId = parsePositiveInt(req.params.cardId, "cardId");
+  const card = await findCardById(cardId);
+  if (!card) {
+    throw createHttpError(404, "Khong tim thay tu vung");
+  }
+  await ensureDeckReadable(card.deck_id, req);
+
+  if (card.example_translation) {
+    res.json({ example_translation: card.example_translation, cached: true });
+    return;
+  }
+  if (!card.example_sentence) {
+    throw createHttpError(400, "Tu nay chua co cau vi du");
+  }
+
+  let banDich;
+  try {
+    banDich = await aiService.translateExampleSentence({
+      sentence: card.example_sentence,
+      termEn: card.term_en,
+      meaningVi: card.meaning_vi,
+    });
+  } catch (error) {
+    console.error("[translateExample]", error.message);
+    throw createHttpError(502, "AI chua dich duoc cau, thu lai sau");
+  }
+  // Câu ví dụ vừa bị sửa trong lúc AI dịch thì không lưu bản dịch của câu cũ
+  await pool.query(
+    "UPDATE cards SET example_translation = ? WHERE id = ? AND example_translation IS NULL AND example_sentence = ?",
+    [banDich, cardId, card.example_sentence]
+  );
+  res.json({ example_translation: banDich, cached: false });
+}
+
 module.exports = {
+  translateExample,
   checkSentence,
   listCardsByDeck,
   createCard,

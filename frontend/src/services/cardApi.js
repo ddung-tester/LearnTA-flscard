@@ -73,3 +73,11 @@ export async function taoTuBangAI({ chuDe = "", doanVan = "", soLuong = 15 }) {
   }, { timeout: THOI_GIAN_CHO_AI_MS });
   return response.data.words;
 }
+
+/** Bản dịch câu ví dụ của thẻ: server trả bản có sẵn, chưa có thì AI dịch rồi lưu lại. */
+export async function dichCauViDu(cardId) {
+  const response = await api.post(`/cards/${encodeURIComponent(cardId)}/translate-example`, {}, {
+    timeout: THOI_GIAN_CHO_AI_MS,
+  });
+  return response.data.example_translation;
+}

@@ -567,7 +567,42 @@ async function checkLearnerSentence(input, { models = MODEL_GIAI_THICH_NHANH } =
   throw lastError;
 }
 
+// ── Dịch câu ví dụ của thẻ (chế độ Ngữ cảnh → "Dịch câu") ───────────────────────
+
+function buildExampleTranslationPrompt({ sentence, termEn, meaningVi }) {
+  return `Dịch câu tiếng Anh sau sang tiếng Việt tự nhiên, dễ hiểu cho người mới học. Trong câu, từ "${termEn}" mang nghĩa "${meaningVi}".
+Câu: """${sentence}"""
+Chỉ trả về MỘT dòng là câu tiếng Việt đã dịch, không giải thích, không ngoặc kép.`;
+}
+
+async function translateExampleSentence(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildExampleTranslationPrompt(input);
+  let lastError;
+  for (const mucModel of xepTheoLuot(models)) {
+    try {
+      const model = genAI.getGenerativeModel(
+        { model: mucModel.model, generationConfig: { maxOutputTokens: 200, ...mucModel.generationConfig } },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      const result = await model.generateContent(prompt);
+      const banDich = result.response.text().trim().split(/\n+/)[0].replace(/^["“]|["”]$/g, "").trim();
+      if (!banDich) throw new Error("AI trả về bản dịch trống");
+      return banDich.slice(0, 500);
+    } catch (error) {
+      ghiNhanLoi(mucModel, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
+  buildExampleTranslationPrompt,
+  translateExampleSentence,
   MODEL_VIET_LAI,
   generateTenseExamples,
   generateVocabulary,
