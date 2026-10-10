@@ -248,6 +248,10 @@ describe("chuanHoaDapAn / taoGoiY", () => {
     expect(taoGoiY("apple")).toBe("ap___");
     expect(taoGoiY("give up")).toBe("giv_ __");
     expect(taoGoiY("a")).toBe("a");
+    // Bấm thêm thì lộ thêm: chữ đầu mỗi từ → 40% → 70%
+    expect(taoGoiY("give up", 1)).toBe("g___ u_");
+    expect(taoGoiY("give up", 3)).toBe("give u_");
+    expect(taoGoiY("apple", 3)).toBe("appl_");
     expect(taoGoiY("")).toBe("");
   });
 });

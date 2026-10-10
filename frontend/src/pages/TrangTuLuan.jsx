@@ -31,6 +31,7 @@ import {
   tachKetQuaPhien,
   taoDanhSachTienTrinh,
   taoGoiY,
+  MUC_GOI_Y_TOI_DA,
   taoHatGiong,
   tinhTienTrinh,
 } from "../utils/phienHoc";
@@ -124,6 +125,9 @@ function TrangTuLuan({ loai }) {
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
   const [hienGoiY, setHienGoiY] = useState(false);
+  // Mức gợi ý đang hiện (1–3), chỉ có nghĩa khi hienGoiY; bấm "Gợi ý" lần nữa thì lộ thêm chữ
+  const [mucGoiY, setMucGoiY] = useState(1);
+  const conGoiYThem = !hienGoiY || mucGoiY < MUC_GOI_Y_TOI_DA;
   const [hienCanhBaoNhap, setHienCanhBaoNhap] = useState(false);
   const [noiDungCanhBaoNhap, setNoiDungCanhBaoNhap] = useState("Vui lòng nhập đáp án");
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
@@ -413,7 +417,7 @@ function TrangTuLuan({ loai }) {
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
         const dangHoiCau = !daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active;
         const lenh = {
-          KeyG: dangHoiCau && !hienGoiY ? hienThiGoiY : null,
+          KeyG: dangHoiCau && conGoiYThem ? hienThiGoiY : null,
           KeyD: dangHoiCau ? xemDapAn : null,
           KeyN: docCauHoiHienTai,
         }[e.code];
@@ -943,6 +947,7 @@ function TrangTuLuan({ loai }) {
 
   function hienThiGoiY() {
     if (dangChuyenCau || hienReward || dangChoReward || ketQuaDung) return;
+    setMucGoiY(hienGoiY ? Math.min(MUC_GOI_Y_TOI_DA, mucGoiY + 1) : 1);
     setHienGoiY(true);
     inputRef.current?.focus();
   }
@@ -1430,7 +1435,7 @@ function TrangTuLuan({ loai }) {
                   className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-chinh)]"
                   style={{ wordSpacing: "0.35em" }}
                 >
-                  {taoGoiY(layDapAnDung(danhSachThe[chiSo]))}
+                  {taoGoiY(layDapAnDung(danhSachThe[chiSo]), mucGoiY)}
                 </span>
               </m.div>
             ) : null}
@@ -1487,10 +1492,10 @@ function TrangTuLuan({ loai }) {
               <button
                 type="button"
                 onClick={hienThiGoiY}
-                disabled={hienGoiY}
+                disabled={!conGoiYThem}
                 className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-60"
               >
-                Gợi ý
+                {hienGoiY ? "Gợi ý thêm" : "Gợi ý"}
               </button>
               <button
                 type="button"
