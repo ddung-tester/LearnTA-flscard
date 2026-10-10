@@ -237,7 +237,7 @@ const LUAT_NOI_DUNG = `- Chỉ giải thích đúng điểm mà CÂU NÀY kiểm
  * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
  *           learnerAnswer: string, isCorrect: boolean }} input — câu hỏi đọc từ DB
  */
-function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect }) {
+function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect, banCu }) {
   const answer =
     question.type === "multiple_choice"
       ? `${learnerAnswer}. ${textOfOption(question, learnerAnswer)}`
@@ -246,7 +246,7 @@ function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerA
   return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy giải thích một câu bài tập người học vừa làm.
 
 ${moTaDeBai({ lessonTitle, grammar, question })}Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
-
+${banCu ? `\nBản giải thích trước người học thấy CHƯA ỔN (sai, lan man hoặc khó hiểu):\n${banCu}\nHãy viết lại: kiểm tra kỹ kiến thức, sửa chỗ chưa đúng, đi thẳng vào điểm câu này kiểm tra, diễn đạt khác bản trước.\n` : ""}
 Trả lời bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "2" : "3"} dòng theo mẫu:
 ${isCorrect ? MAU_GIAI_THICH_DUNG : MAU_GIAI_THICH_SAI}
 ${LUAT_NOI_DUNG}
@@ -315,6 +315,16 @@ const MODEL_GIAI_THICH_NHANH = [
   { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
 ];
 const THOI_HAN_GIAI_THICH_MS = 8000;
+// Viết lại khi người học chê: ưu tiên chất lượng hơn tốc độ (model flash, suy nghĩ "low";
+// token suy nghĩ tính vào maxOutputTokens nên nới trần để lời giải thích không bị cắt)
+const MODEL_VIET_LAI = [
+  {
+    model: "gemini-3.6-flash",
+    generationConfig: { maxOutputTokens: 1200, thinkingConfig: { thinkingLevel: "low" } },
+  },
+  { model: "gemini-3.5-flash", generationConfig: THINKING_TOI_THIEU },
+  { model: "gemini-flash-lite-latest" },
+];
 const TOKEN_GIAI_THICH_TOI_DA = 260;
 
 /**
@@ -558,6 +568,7 @@ async function checkLearnerSentence(input, { models = MODEL_GIAI_THICH_NHANH } =
 }
 
 module.exports = {
+  MODEL_VIET_LAI,
   generateTenseExamples,
   generateVocabulary,
   parseVocabularyResponse,

@@ -43,6 +43,19 @@ export async function chuanBiGiaiThich(questionId) {
 }
 
 /**
+ * Người học chấm lời giải thích AI. tot=true: chỉ ghi nhận (trả null).
+ * tot=false: AI viết lại, trả { explanation } bản mới (server đã ghi đè bản cũ).
+ */
+export async function danhGiaGiaiThich(questionId, answer, tot) {
+  const response = await api.post(
+    `/course-questions/${encodeURIComponent(questionId)}/explanation-feedback`,
+    { answer, tot },
+    { timeout: THOI_GIAN_CHO_AI_MS }
+  );
+  return tot ? null : response.data;
+}
+
+/**
  * answer: chữ cái lựa chọn (trắc nghiệm) hoặc câu trả lời đã gõ (điền từ).
  * onChunk (tuỳ chọn): nhận toàn bộ chữ đã có mỗi khi AI viết thêm (server gửi dần, ?stream=1).
  * Trả về { explanation } khi xong.

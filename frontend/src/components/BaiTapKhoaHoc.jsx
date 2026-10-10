@@ -3,9 +3,17 @@ import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
-import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
-import { dungSoanNen, khoGiaiThichCua, napCauHoi, soanNen, uuTienSoan } from "../utils/soanTruocGiaiThich";
+import { danhGiaGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
+  capNhatGiaiThich,
+  dungSoanNen,
+  khoGiaiThichCua,
+  napCauHoi,
+  soanNen,
+  uuTienSoan,
+} from "../utils/soanTruocGiaiThich";
+import {
+  khoaGiaiThich,
   laTraLoiDung,
   layCauBaiChinh,
   layDapAnHienThi,
@@ -54,7 +62,27 @@ function DoanChuDam({ text }) {
 // Server gửi bản đầy đủ (đã soạn sẵn đúng câu này, hoặc AI viết lại cả lời) thì bỏ phần hiện sẵn
 const CO_PHAN_DUNG = /(^|\n)\s*(\*\*)?(Đúng vì|Nhớ)/;
 
-function GiaiThichAI({ trangThai, onThuLai }) {
+// 👍/👎 dưới lời giải thích đã viết xong; 👎 thì AI viết lại (mỗi câu một lần trong lượt)
+function DanhGiaGiaiThich({ trangThai, onDanhGia }) {
+  if (!trangThai.xong || !onDanhGia) return null;
+  const { danhGia } = trangThai;
+  if (danhGia === "tot") return <p className="kh-ai__danh-gia-ghi-chu">Cảm ơn bạn đã đánh giá!</p>;
+  if (danhGia === "da-viet") return <p className="kh-ai__danh-gia-ghi-chu">AI đã viết lại lời giải thích.</p>;
+  if (danhGia === "dang-viet") return <p className="kh-ai__danh-gia-ghi-chu">AI đang viết lại…</p>;
+  return (
+    <div className="kh-ai__danh-gia">
+      <span>{danhGia === "loi" ? "Chưa viết lại được, thử lại?" : "Giải thích này dễ hiểu không?"}</span>
+      <button type="button" className="kh-ai__nut-danh-gia" onClick={() => onDanhGia(true)} aria-label="Dễ hiểu">
+        👍
+      </button>
+      <button type="button" className="kh-ai__nut-danh-gia" onClick={() => onDanhGia(false)} aria-label="Chưa ổn, nhờ AI viết lại">
+        👎
+      </button>
+    </div>
+  );
+}
+
+function GiaiThichAI({ trangThai, onThuLai, onDanhGia }) {
   if (!trangThai) return null;
   // Câu gõ sai kiểu mới: "Đúng vì" + "Nhớ" hiện ngay, dòng "Sai vì" hiện dần khi AI viết xong
   if (trangThai.phanSau) {
@@ -84,6 +112,7 @@ function GiaiThichAI({ trangThai, onThuLai }) {
         <p className="kh-ai__van-ban">
           <DoanChuDam text={trangThai.text ? `${trangThai.text.trim()}\n${trangThai.phanSau}` : trangThai.phanSau} />
         </p>
+        <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} />
       </section>
     );
   }
@@ -110,9 +139,12 @@ function GiaiThichAI({ trangThai, onThuLai }) {
           </button>
         </p>
       ) : (
-        <p className="kh-ai__van-ban">
-          <DoanChuDam text={trangThai.text} />
-        </p>
+        <>
+          <p className="kh-ai__van-ban">
+            <DoanChuDam text={trangThai.text} />
+          </p>
+          <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} />
+        </>
       )}
     </section>
   );
@@ -334,7 +366,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     const datTrangThai = (trangThai) => setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: trangThai }));
     const coSan = timGiaiThichSan(cauHienTai, traLoi, khoCua(cauHienTai));
     if (coSan?.text) {
-      datTrangThai({ dangTai: false, text: coSan.text, loi: "" });
+      datTrangThai({ dangTai: false, text: coSan.text, loi: "", xong: true });
       return;
     }
     const phanSau = coSan?.phanSau || "";
@@ -346,10 +378,28 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
       // Chữ hiện dần ngay khi AI viết ra
       onChunk: (text) => datTrangThai(ghep(text)),
     })
-      .then((data) => datTrangThai(ghep(data.explanation)))
+      .then((data) => datTrangThai({ ...ghep(data.explanation), xong: true }))
       .catch((error) =>
         datTrangThai({ dangTai: false, text: "", loi: error.message || "AI chưa giải thích được.", phanSau })
       );
+  }
+
+  function danhGiaAI(cauHienTai, traLoi, tot) {
+    const sua = (thayDoi) =>
+      setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { ...cu[cauHienTai.id], ...thayDoi } }));
+    if (tot) {
+      sua({ danhGia: "tot" });
+      danhGiaGiaiThich(cauHienTai.id, traLoi, true).catch(() => {});
+      return;
+    }
+    sua({ danhGia: "dang-viet" });
+    danhGiaGiaiThich(cauHienTai.id, traLoi, false)
+      .then(({ explanation }) => {
+        // Server đã ghi đè bản cũ; cập nhật kho trên máy để lần sau gặp lại câu này cũng thấy bản mới
+        capNhatGiaiThich(cauHienTai.id, khoaGiaiThich(cauHienTai, traLoi), explanation);
+        sua({ text: explanation, phanSau: "", danhGia: "da-viet" });
+      })
+      .catch(() => sua({ danhGia: "loi" }));
   }
 
   function traLoiCau(traLoi) {
@@ -653,7 +703,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
             </p>
           )}
           {cau.explanation && <p className="kh-phan-hoi__goi-y">{cau.explanation}</p>}
-          <GiaiThichAI trangThai={giaiThich[cau.id]} onThuLai={() => hoiAI(cau, daTraLoi.traLoi)} />
+          <GiaiThichAI
+            trangThai={giaiThich[cau.id]}
+            onThuLai={() => hoiAI(cau, daTraLoi.traLoi)}
+            onDanhGia={(tot) => danhGiaAI(cau, daTraLoi.traLoi, tot)}
+          />
           <div className="kh-phan-hoi__cuoi">
             <button type="button" className="ui-button ui-button--primary px-5 py-2.5 kh-phan-hoi__tiep" onClick={sangCauTiep}>
               {chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}

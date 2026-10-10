@@ -11,6 +11,7 @@ const {
   explainQuestion,
   getLesson,
   prepareQuestion,
+  rateExplanation,
   getQuestionAudio,
   listCourses,
   listDueQuestions,
@@ -619,4 +620,65 @@ test("explanation prompts stick to what this question tests instead of re-teachi
   });
   assert.match(dongSai, /Viết ĐÚNG 1 dòng/);
   assert.match(dongSai, /Đúng vì: x/);
+});
+
+test("rateExplanation: a thumbs-up only logs, without calling AI", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }]]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("không được gọi AI");
+  };
+  let status;
+  const res = { status(code) { status = code; return this; }, end() {} };
+
+  await rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B", tot: true } }, res);
+
+  assert.equal(status, 204);
+  assert.equal(calls.length, 2);
+});
+
+test("rateExplanation: a thumbs-down rewrites with the old text in the prompt and overwrites the cache", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }], {}]);
+  let input;
+  let models;
+  aiService.explainCourseQuestion = async (value, opts) => {
+    input = value;
+    models = opts.models;
+    return "Bản mới";
+  };
+  const res = fakeRes();
+
+  await rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "b", tot: false } }, res);
+
+  assert.equal(input.banCu, "Bản cũ");
+  assert.equal(input.learnerAnswer, "B");
+  assert.equal(models, aiService.MODEL_VIET_LAI);
+  assert.deepEqual(calls[2].params, [5, "B", "Bản mới"]);
+  assert.deepEqual(res.body, { explanation: "Bản mới" });
+
+  // AI lỗi: báo 502, không ghi đè bản cũ
+  const callsLoi = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }]]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("quota");
+  };
+  await assert.rejects(
+    rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, fakeRes()),
+    (error) => error.statusCode === 502
+  );
+  assert.equal(callsLoi.length, 2);
+});
+
+test("the rewrite prompt shows the rejected explanation and asks for a different one", () => {
+  const prompt = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [],
+    question: CAU_TRAC_NGHIEM,
+    learnerAnswer: "B",
+    isCorrect: false,
+    banCu: "Bản cũ lan man",
+  });
+  assert.match(prompt, /CHƯA ỔN[\s\S]*Bản cũ lan man[\s\S]*Hãy viết lại/);
+  assert.doesNotMatch(
+    aiService.buildCourseExplanationPrompt({ lessonTitle: "x", grammar: [], question: CAU_TRAC_NGHIEM, learnerAnswer: "A", isCorrect: true }),
+    /CHƯA ỔN/
+  );
 });

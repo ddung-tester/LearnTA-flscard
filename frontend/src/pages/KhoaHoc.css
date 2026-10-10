@@ -1022,6 +1022,34 @@
   text-underline-offset: 3px;
 }
 
+.kh-ai__danh-gia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--mau-chu-phu);
+}
+
+.kh-ai__nut-danh-gia {
+  min-width: 2.75rem;
+  min-height: 2.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-mat);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.kh-ai__nut-danh-gia:hover {
+  border-color: var(--mau-chinh);
+}
+
+.kh-ai__danh-gia-ghi-chu {
+  font-size: 0.85rem;
+  color: var(--mau-chu-phu);
+}
+
 .kh-ai__loi {
   font-size: 0.9rem;
   color: var(--mau-chu-phu);

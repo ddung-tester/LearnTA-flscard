@@ -529,7 +529,39 @@ async function explainQuestion(req, res) {
   res.json({ explanation, cached: false });
 }
 
+// POST /course-questions/:id/explanation-feedback { answer, tot } — người học chấm lời giải thích.
+// tot=true: chỉ ghi log. tot=false: AI viết lại (bản cũ đưa vào prompt để tránh), ghi đè cache, trả bản mới.
+async function rateExplanation(req, res) {
+  const { questionId, answer, row, question, isMultipleChoice, answerNorm } = await docCauTraLoi(req);
+  const tot = req.body?.tot === true;
+  const banCu = await docGiaiThichDaLuu(questionId, answerNorm);
+  console.log(JSON.stringify({ message: "ai_feedback", questionId, answerNorm, tot, coBanCu: Boolean(banCu) }));
+  if (tot) {
+    res.status(204).end();
+    return;
+  }
+
+  let explanation;
+  try {
+    explanation = await aiService.explainCourseQuestion(
+      {
+        ...nguCanhAI(row, question),
+        learnerAnswer: isMultipleChoice ? answerNorm : answer,
+        isCorrect: laTraLoiDung(question, answerNorm),
+        banCu,
+      },
+      { models: aiService.MODEL_VIET_LAI }
+    );
+  } catch (error) {
+    console.error("rateExplanation rewrite failed:", error.message);
+  }
+  if (!explanation) throw createHttpError(502, "AI chưa viết lại được, thử lại sau");
+  await luuGiaiThich(questionId, answerNorm, explanation);
+  res.json({ explanation });
+}
+
 module.exports = {
+  rateExplanation,
   listCourses,
   getLesson,
   answerQuestion,
