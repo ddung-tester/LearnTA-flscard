@@ -5,6 +5,7 @@ import {
   datLaiSRS,
   ghiNgayKhoSRS,
   ghiNhanDungVaoSRS,
+  ghiNhanLuyenCauDat,
   ghiNhanSaiVaoSRS,
   hopNhatSRSTuBackend,
   layCardsDenHan,
@@ -139,6 +140,19 @@ describe("ghiNhanDungVaoSRS / ghiNhanSaiVaoSRS", () => {
     ghiNgayKhoSRS();
 
     expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(2);
+  });
+});
+
+describe("ghiNhanLuyenCauDat", () => {
+  it("levels up a new or due card once, but not one that is not due yet", async () => {
+    await ghiNhanLuyenCauDat(CARD, OPTS);
+    ghiNgayKhoSRS();
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(1);
+
+    // Vừa lên Lv1, hẹn ôn ngày mai: luyện câu lại hôm nay không leo thêm
+    expect(await ghiNhanLuyenCauDat(CARD, OPTS)).toBeNull();
+    ghiNgayKhoSRS();
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(1);
   });
 });
 

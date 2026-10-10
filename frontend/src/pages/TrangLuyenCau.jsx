@@ -6,6 +6,7 @@ import useBoTuHoc from "../hooks/useBoTuHoc";
 import { chamCauAI } from "../services/cardApi";
 import * as tts from "../services/ttsService";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
+import { ghiNhanLuyenCauDat } from "../utils/srsReview";
 import { layNhanDangGiongNoi, soSanhTungTu, TI_LE_DAT } from "../utils/luyenCau";
 import { chonTheChoPhien, taoHatGiong } from "../utils/phienHoc";
 
@@ -58,7 +59,7 @@ function ThongTinTu({ the }) {
 
 /**
  * TrangLuyenCau — luyện dùng từ trong câu: nghe chép cả câu ví dụ, nói theo (nhận giọng nói của trình duyệt)
- * và tự đặt câu cho AI chấm. Không ghi vào SRS: đây là bước luyện thêm sau khi đã thuộc nghĩa.
+ * và tự đặt câu cho AI chấm. Câu nghe chép / đặt câu đạt tính như một lần ôn đúng nếu từ đã đến hạn ôn.
  */
 function TrangLuyenCau() {
   const { deckId } = useParams();
@@ -130,8 +131,12 @@ function TrangLuyenCau() {
 
   function cauTiep() {
     tts.stop();
-    if (kieu !== "dat-cau") setDiemCacCau((ds) => [...ds, ketQua?.tiLe ?? 0]);
-    else setDiemCacCau((ds) => [...ds, chamAI?.dung_tu && chamAI?.dung_ngu_phap ? 100 : 0]);
+    const diem = kieu === "dat-cau" ? (chamAI?.dung_tu && chamAI?.dung_ngu_phap ? 100 : 0) : ketQua?.tiLe ?? 0;
+    setDiemCacCau((ds) => [...ds, diem]);
+    // Nghe chép / đặt câu đạt tính như một lần ôn đúng; nói theo phụ thuộc máy nhận giọng nên không tính
+    if (kieu !== "noi-theo" && diem >= TI_LE_DAT) {
+      ghiNhanLuyenCauDat(the, { deckId: boId, deckTitle: bo.title, source: "luyen-cau" }).catch(() => {});
+    }
     setViTri((v) => v + 1);
     datLaiCau();
   }

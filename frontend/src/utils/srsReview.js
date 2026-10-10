@@ -330,6 +330,17 @@ export async function ghiNhanKetQuaDongBo(card, ketQua, opts) {
 }
 
 /**
+ * Luyện câu đạt (nghe chép ≥ 80%, đặt câu đúng): tính như một lần ôn đúng (+1 level), nhưng chỉ khi
+ * từ chưa có lịch ôn hoặc đã đến hạn — luyện thêm lúc chưa đến hạn thì không leo level.
+ * @returns {Promise<Object|null>} null nếu chưa đến hạn (không ghi gì)
+ */
+export async function ghiNhanLuyenCauDat(card, opts) {
+  const cu = docTatCa()[String(card.id)];
+  if (cu?.nextReviewAt && new Date(cu.nextReviewAt) > new Date()) return null;
+  return ghiNhanKetQuaDongBo(card, "correct", opts);
+}
+
+/**
  * Xoá một entry khỏi SRS queue.
  */
 export function xoaKhoiSRS(id) {
