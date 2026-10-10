@@ -31,11 +31,11 @@
 import {
   capNhatReviewResultTheoCard,
   dongBoReviews,
-  layReviews,
   layReviewsDenHan,
+  layReviewsKemMoc,
   xoaReviewTheoCard,
 } from "../services/reviewApi";
-import { layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
 import { taoKhoTrenMay } from "./khoTrenMay";
 import { layStudySessionsLocal } from "./studySessionHistory";
 
@@ -460,14 +460,79 @@ function taiChung(loai, params, phienKho, tai) {
   return dangTai.get(khoa);
 }
 
+// Mốc đồng bộ cả kho với server: { moc: giờ server lần tải trước, dayDuLuc: lần tải đủ gần nhất (giờ máy) }
+const KHO_MOC_SRS = "streak_drop_srs_moc_v1";
+// Thỉnh thoảng tải đủ: thẻ bị xoá khỏi lịch ôn ở máy khác không hiện trong phần thay đổi
+const TAI_DAY_DU_SAU_MS = 24 * 60 * 60 * 1000;
+
+function docMocDongBo(phienKho) {
+  try {
+    return JSON.parse(localStorage.getItem(khoaKhoHocTap(KHO_MOC_SRS, phienKho))) || null;
+  } catch {
+    return null;
+  }
+}
+
+function ghiMocDongBo(phienKho, giaTri) {
+  try {
+    localStorage.setItem(khoaKhoHocTap(KHO_MOC_SRS, phienKho), JSON.stringify(giaTri));
+  } catch {
+    // localStorage bị chặn: lần sau tải đủ như cũ
+  }
+}
+
+// Đồng bộ cả kho (không lọc theo bộ / level...): chỉ khi đó mốc mới đúng cho cả kho
+function laDongBoCaKho(params) {
+  return Object.keys(params).every((khoa) => khoa === "limit");
+}
+
+// Chỉ hỏi phần thay đổi (?since) khi đồng bộ cả kho, máy đã có kho và lần tải đủ chưa quá 24 giờ
+function layMocDungDuoc(params, phienKho) {
+  const daLuu = docMocDongBo(phienKho);
+  if (!laDongBoCaKho(params) || !daLuu?.moc || Object.keys(docTatCa()).length === 0) return null;
+  return Date.now() - daLuu.dayDuLuc < TAI_DAY_DU_SAU_MS ? daLuu : null;
+}
+
+async function taiPhanThayDoi(daLuu, params, phienKho) {
+  const limit = params.limit || SO_DONG_MOI_TRANG;
+  const items = [];
+  let mocMoi = null;
+  for (let offset = 0; ; offset += limit) {
+    const trang = await layReviewsKemMoc({ ...params, limit, offset, since: daLuu.moc });
+    if (!laPhienKhoHienTai(phienKho)) return null;
+    mocMoi ??= trang.moc;
+    items.push(...trang.items);
+    if (trang.items.length < limit) return { items, moc: mocMoi };
+  }
+}
+
 export async function taiSRSDongBo(params = {}) {
   const phienKho = layPhienKhoHocTap();
   return taiChung("tat-ca", params, phienKho, async () => {
     try {
+      const daLuu = layMocDungDuoc(params, phienKho);
+      if (daLuu) {
+        // Thường chỉ vài dòng thay vì cả kho (~1.300 từ ≈ 600 KB JSON, 7 request)
+        const thayDoi = await taiPhanThayDoi(daLuu, params, phienKho);
+        if (!thayDoi) return [];
+        const ketQua = hopNhatSRSTuBackend(thayDoi.items);
+        if (thayDoi.moc) ghiMocDongBo(phienKho, { ...daLuu, moc: thayDoi.moc });
+        return ketQua;
+      }
+
       const uocLuong = Object.keys(docTatCa()).length;
-      const items = await taiTatCaTrangReviews(layReviews, params, phienKho, uocLuong);
+      // Mốc lấy ở trang đầu (trước khi đọc), các trang sau đọc muộn hơn → không sót thay đổi
+      let mocDayDu = null;
+      const taiTrang = async (p) => {
+        const trang = await layReviewsKemMoc(p);
+        if (p.offset === 0) mocDayDu = trang.moc;
+        return trang.items;
+      };
+      const items = await taiTatCaTrangReviews(taiTrang, params, phienKho, uocLuong);
       if (!laPhienKhoHienTai(phienKho)) return [];
-      return hopNhatSRSTuBackend(items);
+      const ketQua = hopNhatSRSTuBackend(items);
+      if (laDongBoCaKho(params) && mocDayDu) ghiMocDongBo(phienKho, { moc: mocDayDu, dayDuLuc: Date.now() });
+      return ketQua;
     } catch {
       return laPhienKhoHienTai(phienKho) ? layTatCaSRS() : [];
     }

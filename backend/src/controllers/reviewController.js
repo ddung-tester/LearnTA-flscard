@@ -67,6 +67,8 @@ function parseOffset(value) {
   return parsed;
 }
 
+const DO_LUI_MOC_DONG_BO_MS = 5000;
+
 function parseDate(value, fallback = null) {
   if (!value) return fallback;
   const date = new Date(value);
@@ -196,8 +198,21 @@ async function queryReviews(req, res, { dueOnly }) {
     params.push(`%${search}%`, `%${search}%`);
   }
 
+  // ?since=<mốc>: chỉ các dòng đổi từ mốc (tiến độ, nội dung thẻ hoặc tên bộ) — client đã có bản cũ,
+  // chỉ cần phần thay đổi. Lùi 5 s: giao dịch ghi xong ngay sau lúc lấy mốc lần trước vẫn được gửi.
+  const since = parseDate(query.since);
+  if (since) {
+    const tu = new Date(since.getTime() - DO_LUI_MOC_DONG_BO_MS);
+    conditions.push("(cp.updated_at >= ? OR c.updated_at >= ? OR d.updated_at >= ?)");
+    params.push(tu, tu, tu);
+  }
+
   const limit = parseLimit(query.limit);
   const offset = parseOffset(query.offset);
+
+  // Mốc cho lần đồng bộ sau, theo giờ DB (không phụ thuộc đồng hồ máy người học), lấy trước khi đọc
+  const [[{ bayGio }]] = await pool.query("SELECT CURRENT_TIMESTAMP AS bayGio");
+  res.set("X-Dong-Bo-Luc", new Date(bayGio).toISOString());
 
   const [rows] = await pool.query(
     `${REVIEW_SELECT}

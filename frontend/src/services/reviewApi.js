@@ -6,9 +6,13 @@ function cleanParams(params = {}) {
   );
 }
 
-export async function layReviews(params = {}) {
+/**
+ * Danh sách tiến độ ôn, kèm mốc đồng bộ của server (header X-Dong-Bo-Luc, null nếu server chưa gửi):
+ * lần sau gửi lại làm `since` để chỉ nhận các dòng đã đổi.
+ */
+export async function layReviewsKemMoc(params = {}) {
   const response = await api.get("/reviews", { params: cleanParams(params) });
-  return response.data;
+  return { items: response.data, moc: response.headers?.["x-dong-bo-luc"] || null };
 }
 
 export async function layReviewsDenHan(params = {}) {

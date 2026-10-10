@@ -20,7 +20,10 @@ import {
 } from "./srsReview";
 
 const reviews = vi.hoisted(() => ({ all: vi.fn(), due: vi.fn() }));
-vi.mock("../services/reviewApi", () => ({ layReviews: reviews.all, layReviewsDenHan: reviews.due }));
+vi.mock("../services/reviewApi", () => ({
+  layReviewsKemMoc: async (params) => ({ items: await reviews.all(params), moc: reviews.moc?.(params) ?? null }),
+  layReviewsDenHan: reviews.due,
+}));
 
 function taoLocalStorage() {
   const store = new Map();
@@ -293,6 +296,49 @@ it("discards pagination when the account changes between pages", async () => {
   chonKhoHocTap(null);
 });
 
+
+describe("đồng bộ phần thay đổi", () => {
+  afterEach(() => {
+    reviews.moc = undefined;
+  });
+
+  it("downloads everything once, then only asks for rows changed since the server cursor", async () => {
+    const cards = Array.from({ length: 450 }, (_, i) => ({ card_id: i + 1, deck_id: 10, level: 1, next_review_at: NOW.toISOString() }));
+    reviews.moc = ({ since }) => (since ? "2026-09-26T03:05:00.000Z" : "2026-09-26T03:00:00.000Z");
+    reviews.all.mockReset().mockImplementation(async ({ limit, offset, since }) =>
+      since ? [{ card_id: 7, deck_id: 10, level: 3, next_review_at: NOW.toISOString() }] : cards.slice(offset, offset + limit)
+    );
+
+    await taiSRSDongBo({ limit: 200 });
+    expect(reviews.all).toHaveBeenCalledTimes(3);
+
+    reviews.all.mockClear();
+    await taiSRSDongBo({ limit: 200 });
+    expect(reviews.all.mock.calls.map(([p]) => p)).toEqual([{ limit: 200, offset: 0, since: "2026-09-26T03:00:00.000Z" }]);
+    expect(layThongKeSRS().total).toBe(450);
+    expect(layLevelSRS(["7"])["7"]).toBe(3);
+
+    // Mốc tiến theo server sau mỗi lần
+    reviews.all.mockClear();
+    await taiSRSDongBo({ limit: 200 });
+    expect(reviews.all.mock.calls[0][0].since).toBe("2026-09-26T03:05:00.000Z");
+  });
+
+  it("downloads everything again after 24 hours, when filtering by deck, or when the server sends no cursor", async () => {
+    reviews.moc = () => "2026-09-26T03:00:00.000Z";
+    reviews.all.mockReset().mockResolvedValue([{ card_id: 1, deck_id: 10, level: 1, next_review_at: NOW.toISOString() }]);
+    await taiSRSDongBo({ limit: 200 });
+
+    reviews.all.mockClear();
+    await taiSRSDongBo({ limit: 200, deck_id: 10 });
+    expect(reviews.all.mock.calls[0][0].since).toBeUndefined();
+
+    vi.setSystemTime(new Date(NOW.getTime() + 25 * 60 * 60 * 1000));
+    reviews.all.mockClear();
+    await taiSRSDongBo({ limit: 200 });
+    expect(reviews.all.mock.calls[0][0].since).toBeUndefined();
+  });
+});
 
 describe("ghi kho SRS sau khi phản hồi đã vẽ", () => {
   it("gộp nhiều lần ghi trong một lượt thành một lần ghi localStorage, đọc lại vẫn thấy ngay", () => {
