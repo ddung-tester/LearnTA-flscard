@@ -178,6 +178,7 @@ POST      /quiz-results, GET /decks/:deckId/quiz-results/latest
 
 GET|POST|DELETE /mistakes, POST /mistakes/bulk, PATCH|DELETE /mistakes/:id
 GET /reviews, /reviews/due; POST /reviews, /reviews/bulk     auth, doc/ghi card_progress
+GET /reviews?since=<ISO>                                 chi dong doi tu moc (cp/cards/decks.updated_at, lui 5 s); moi response co header X-Dong-Bo-Luc (gio DB) lam moc lan sau
 PATCH /reviews/by-card/:cardId/result  body {result:"correct"|"wrong"} hoac {level:0-5}
 DELETE /reviews/by-card/:cardId
 
