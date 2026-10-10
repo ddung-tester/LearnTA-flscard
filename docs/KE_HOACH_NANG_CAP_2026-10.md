@@ -115,3 +115,57 @@ Môi trường đo: backend thật + MariaDB cục bộ với dữ liệu tự s
 Không đổi giao diện: so ảnh 12 trang × (390px + 1440px) và 4 trang giảm chuyển động — lệch 0,000% (trừ ảnh chụp toàn trang chi tiết bộ: hàng ngoài màn chưa vẽ do `content-visibility`; khi cuộn thật hiện đủ, lệch chỉ khử răng cưa).
 
 Xem bảng số trong `HANDOFF.md` mục 3 (dòng 49).
+
+---
+
+# Đợt 2 — mượt hơn, ít lag, ít lỗi toàn hệ thống (khảo sát 2026-10-10)
+
+## Khảo sát (backend thật + MariaDB cục bộ, dữ liệu cỡ thật, 390px, CPU 4×)
+
+| Hạng mục | Kết quả |
+|---|---|
+| Quét lỗi 26 trang khi đăng nhập + 11 trang khách (console, lỗi JS, request ≥ 400) | **Lỗi production: `POST /course-questions/:id/prepare` luôn trả 400 từ 2026-09-29** (middleware chặn POST không có body, app gọi prepare không kèm body) → AI chưa từng được soạn trước, mọi câu phải chờ AI. **Đã sửa + push `101d252`.** Mascot Rive ở trang đăng nhập tải WASM 1,9 MB từ unpkg/jsdelivr (CDN ngoài: lỗi/chặn là mascot hỏng, thêm 2 kết nối). `PATCH /user/settings` 500 chỉ do MariaDB cục bộ (production MySQL 8 không bị). Không có lỗi JS nào. |
+| Cuộn (trang chủ, chi tiết bộ, sổ từ sai, thống kê, khoá học, từ vựng theo buổi, lý thuyết) | 59–60 fps, 0 khung rớt — không cần làm. |
+| Phản hồi khi học (TB / tệ nhất) | Flashcard 111/144 ms · Tự luận 29/**216** ms (lúc nộp) · Nối từ 64/**256** ms · Bài tập khoá học 47/88 ms · Ôn tập chưa đo được (cần bấm "bắt đầu" trước). |
+| Bộ nhớ phiên dài (45 lượt) | Quiz ổn định. **Flashcard: event listener 224 → 363** (~3,5/thẻ), heap +0,9 MB → rò nhỏ. |
+| Kho trên máy | Lịch sử phiên giữ tới 300 phiên **kèm toàn bộ đáp án**, mỗi lần lưu ghi lại cả kho → có thể chạm giới hạn ~5 MB (app báo "kho trình duyệt đã đầy", không lưu được kết quả) và khựng cuối phiên. Sổ từ sai cũng ghi cả kho mỗi lần sai. |
+| Tải trang lần đầu | Dashboard còn tổng chặn luồng chính ~480 ms (tác vụ dài nhất ~240 ms). |
+| Bảo mật phụ thuộc | Backend `npm audit`: 1 critical (`proxy-addr`), 1 high (`nodemailer`), 3 moderate. |
+| Quan sát lỗi production | Không có: lỗi JS ở máy người dùng không ai thấy. |
+
+## Plan (làm lần lượt, mỗi mục: đo trước → sửa → đo lại → so ảnh → test/lint/build → push `main`)
+
+### A. Lỗi
+1. ~~prepare 400~~ — đã sửa.
+2. **Ghi nhận lỗi ở máy người dùng**: `window.onerror` + `unhandledrejection` + lỗi API ≥ 500 → `POST /api/client-errors` (gộp, tối đa vài lỗi/phút/máy) → ghi log Cloud Run (không thêm bảng). Xem bằng `gcloud logging read`.
+3. `npm audit fix` backend (không `--force`), chạy lại test + thử gửi 1 email nhắc học.
+4. Tự host `rive.wasm` (`public/rive/`, `RuntimeLoader.setWasmUrl`), cache immutable.
+5. Script quét lỗi (Playwright, mọi trang × khách/tài khoản) đưa vào `frontend/scripts/` để chạy lại mỗi đợt.
+
+### B. Lag khi học
+1. Flashcard rò listener: tìm nguồn (nghi màn thưởng / `TheKeoDuoc` / `useNghieng3D` / emoji động), sửa đến khi 45 lượt không tăng.
+2. Nối từ (256 ms) và Tự luận lúc nộp (216 ms): profile từng thao tác, sửa phần nặng (giống cách đã làm với Flashcard).
+3. Ôn tập `/review`: đo đủ luồng Xem nghĩa → Thuộc/Quên, sửa nếu > 150 ms.
+4. Sổ từ sai + lịch sử phiên: đọc từ bộ nhớ, ghi lúc rảnh (cùng cách kho SRS); lịch sử chỉ giữ đáp án của phiên chưa đồng bộ + ~30 phiên gần nhất (kiểm tra trước chỗ nào đọc đáp án cũ).
+5. Màn thưởng: giảm rác bộ nhớ (GC ~150–200 ms mỗi lần thưởng) trong động cơ hạt, không đổi hình.
+
+### C. Tải trang
+1. Dashboard lần đầu: profile ~480 ms chặn, tách việc không cần cho khung đầu.
+2. `lottie-web` (316 KB) chỉ tải khi màn chờ / streak thật sự hiện.
+
+### D. Backend
+1. Header `Server-Timing` + log request > 500 ms (tìm API chậm trên production).
+2. Rà truy vấn của các API chính bằng `EXPLAIN`, thêm index nếu cần (migration sẽ báo trước).
+3. Cloud Run cold start: đọc log; nếu > 2 s cân nhắc `min-instances=1` (người dùng quyết, có phí).
+
+### E. Đo lại + bàn giao
+Bảng trước/sau, so ảnh, cập nhật `HANDOFF.md` / `PROJECT_CONTEXT.md`.
+
+## Cần người dùng chọn (mặc định = khuyến nghị)
+| # | Câu hỏi | Khuyến nghị |
+|---|---|---|
+| Q1 | Gửi lỗi ở máy người dùng về server (A2)? | **Có** — chỉ ghi log, không lưu nội dung học |
+| Q2 | Lịch sử phiên trên máy chỉ giữ đáp án ~30 phiên gần nhất (B4)? | **Có** — số liệu tổng (điểm, thời gian) vẫn giữ 300 phiên |
+| Q3 | Tự host `rive.wasm` 1,9 MB trong repo (A4)? | **Có** |
+| Q4 | `npm audit fix` backend (A3)? | **Có** |
+| Q5 | Cloud Run `min-instances=1` (D3)? | Đo log trước, bạn quyết |
