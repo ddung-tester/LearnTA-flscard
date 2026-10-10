@@ -80,6 +80,31 @@ export function layDapAnHienThi(cauHoi) {
   return (cauHoi.accepted_answers || []).join(" / ");
 }
 
+// Một tin nhắn LearnBot tối đa 2000 ký tự (chatRoutes): cắt đề và lời giải thích dài
+const catNgan = (text, toiDa) => (text.length > toiDa ? `${text.slice(0, toiDa)}…` : text);
+
+/**
+ * Tin nhắn nhờ LearnBot giảng thêm một câu bài tập: đề, lựa chọn, câu trả lời, đáp án đúng
+ * và lời giải thích AI người học vừa đọc — để LearnBot nói tiếp đúng câu này.
+ */
+export function taoCauHoiLearnBot(cauHoi, traLoi, giaiThich) {
+  const laTracNghiem = cauHoi.type === "multiple_choice";
+  const dung = laTraLoiDung(cauHoi, traLoi);
+  const chuTraLoi = laTracNghiem
+    ? `${traLoi}. ${(cauHoi.options || []).find((luaChon) => luaChon.key === traLoi)?.text ?? ""}`
+    : traLoi;
+  const dong = [
+    "Mình đang làm câu bài tập này:",
+    catNgan(String(cauHoi.prompt ?? ""), 600),
+    laTracNghiem &&
+      catNgan((cauHoi.options || []).map((luaChon) => `${luaChon.key}. ${luaChon.text}`).join(" / "), 300),
+    `Mình trả lời: ${chuTraLoi} (${dung ? "đúng" : "sai"}). Đáp án đúng: ${layDapAnHienThi(cauHoi)}.`,
+    giaiThich && `Lời giải thích mình đã đọc:\n${catNgan(giaiThich, 600)}`,
+    "Bạn giảng kỹ hơn giúp mình, kèm 2 ví dụ tương tự để mình luyện nhé.",
+  ];
+  return dong.filter(Boolean).join("\n");
+}
+
 const TEN_NGUON = { lesson: "Trong bài", exam: "Bài thi", extra: "Luyện thêm" };
 const TEN_PHAN = {
   practice: "Practice",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  taoCauHoiLearnBot,
   tachPhanDungCuaGiaiThich,
   timGiaiThichSan,
   chiaDongBuoi,
@@ -247,5 +248,32 @@ describe("lời giải thích có sẵn trên máy", () => {
   it("tách phần đáp án đúng giống backend", () => {
     expect(tachPhanDungCuaGiaiThich("**Đúng rồi**: vì x\nNhớ: y")).toBe("Đúng vì: vì x\nNhớ: y");
     expect(tachPhanDungCuaGiaiThich("Sai vì: x\nNhớ: y")).toBeNull();
+  });
+});
+
+describe("taoCauHoiLearnBot", () => {
+  const cau = {
+    type: "multiple_choice",
+    prompt: "She ___ to school.",
+    options: [
+      { key: "A", text: "go" },
+      { key: "B", text: "goes" },
+    ],
+    answer_key: "B",
+  };
+
+  it("kèm đề, lựa chọn, câu trả lời, đáp án đúng và lời giải thích", () => {
+    const tin = taoCauHoiLearnBot(cau, "A", "Sai vì: go đi với I/you.");
+    expect(tin).toContain("She ___ to school.");
+    expect(tin).toContain("A. go / B. goes");
+    expect(tin).toContain("Mình trả lời: A. go (sai). Đáp án đúng: goes.");
+    expect(tin).toContain("Sai vì: go đi với I/you.");
+  });
+
+  it("không vượt giới hạn 2000 ký tự của LearnBot", () => {
+    const dai = "x".repeat(5000);
+    const tin = taoCauHoiLearnBot({ type: "fill_blank", prompt: dai, accepted_answers: ["went"] }, "go", dai);
+    expect(tin.length).toBeLessThanOrEqual(2000);
+    expect(tin).toContain("Đáp án đúng: went.");
   });
 });

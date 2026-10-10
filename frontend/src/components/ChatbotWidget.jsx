@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import api, { THOI_GIAN_CHO_AI_MS } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheDangHoc } from "../contexts/ChatbotContext";
+import { useTheDangHoc, useYeuCauHoiLearnBot } from "../contexts/ChatbotContext";
 import "./ChatbotWidget.css";
 
 // Dấu chân mèo: đệm chân + 4 đệm ngón (avatar của LearnBot)
@@ -82,6 +82,7 @@ export default function ChatbotWidget() {
   const { pathname } = useLocation();
   const { isAuthenticated } = useAuth();
   const theDangHoc = useTheDangHoc();
+  const { yeuCauHoi, xongYeuCauHoi } = useYeuCauHoiLearnBot();
   const deckId = Number(matchPath("/decks/:deckId/*", pathname)?.params.deckId) || null;
   const cardId = theDangHoc?.id ?? null;
   const nhanNguCanh = theDangHoc?.tu
@@ -169,6 +170,14 @@ export default function ChatbotWidget() {
     },
     [messages, loading, open, deckId, cardId]
   );
+
+  // Trang học nhờ hỏi (vd "Hỏi LearnBot thêm" dưới lời giải thích): mở khung và gửi luôn
+  useEffect(() => {
+    if (!yeuCauHoi || loading) return;
+    xongYeuCauHoi();
+    setOpen(true);
+    sendMessage(yeuCauHoi.text);
+  }, [yeuCauHoi, loading, xongYeuCauHoi, sendMessage]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {

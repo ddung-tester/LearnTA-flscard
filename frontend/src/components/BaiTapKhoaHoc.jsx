@@ -3,6 +3,7 @@ import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
+import { useHoiLearnBot } from "../contexts/ChatbotContext";
 import { danhGiaGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
 import {
   capNhatGiaiThich,
@@ -21,6 +22,7 @@ import {
   phanBaiTap,
   phanTichLoiGo,
   tachChuDam,
+  taoCauHoiLearnBot,
   timGiaiThichSan,
 } from "../utils/baiTapKhoaHoc";
 
@@ -63,11 +65,21 @@ function DoanChuDam({ text }) {
 const CO_PHAN_DUNG = /(^|\n)\s*(\*\*)?(Đúng vì|Nhớ)/;
 
 // 👍/👎 dưới lời giải thích đã viết xong; 👎 thì AI viết lại (mỗi câu một lần trong lượt)
-function DanhGiaGiaiThich({ trangThai, onDanhGia }) {
+function DanhGiaGiaiThich({ trangThai, onDanhGia, onHoiThem }) {
   if (!trangThai.xong || !onDanhGia) return null;
   const { danhGia } = trangThai;
-  if (danhGia === "tot") return <p className="kh-ai__danh-gia-ghi-chu">Cảm ơn bạn đã đánh giá!</p>;
-  if (danhGia === "da-viet") return <p className="kh-ai__danh-gia-ghi-chu">AI đã viết lại lời giải thích.</p>;
+  const hoiThem = onHoiThem && (
+    <button type="button" className="kh-lien-ket" onClick={onHoiThem}>
+      Hỏi LearnBot thêm
+    </button>
+  );
+  if (danhGia === "tot" || danhGia === "da-viet") {
+    return (
+      <p className="kh-ai__danh-gia-ghi-chu">
+        {danhGia === "tot" ? "Cảm ơn bạn đã đánh giá!" : "AI đã viết lại lời giải thích."} {hoiThem}
+      </p>
+    );
+  }
   if (danhGia === "dang-viet") return <p className="kh-ai__danh-gia-ghi-chu">AI đang viết lại…</p>;
   return (
     <div className="kh-ai__danh-gia">
@@ -78,11 +90,12 @@ function DanhGiaGiaiThich({ trangThai, onDanhGia }) {
       <button type="button" className="kh-ai__nut-danh-gia" onClick={() => onDanhGia(false)} aria-label="Chưa ổn, nhờ AI viết lại">
         👎
       </button>
+      {hoiThem}
     </div>
   );
 }
 
-function GiaiThichAI({ trangThai, onThuLai, onDanhGia }) {
+function GiaiThichAI({ trangThai, onThuLai, onDanhGia, onHoiThem }) {
   if (!trangThai) return null;
   // Câu gõ sai kiểu mới: "Đúng vì" + "Nhớ" hiện ngay, dòng "Sai vì" hiện dần khi AI viết xong
   if (trangThai.phanSau) {
@@ -112,7 +125,7 @@ function GiaiThichAI({ trangThai, onThuLai, onDanhGia }) {
         <p className="kh-ai__van-ban">
           <DoanChuDam text={trangThai.text ? `${trangThai.text.trim()}\n${trangThai.phanSau}` : trangThai.phanSau} />
         </p>
-        <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} />
+        <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} onHoiThem={onHoiThem} />
       </section>
     );
   }
@@ -143,7 +156,7 @@ function GiaiThichAI({ trangThai, onThuLai, onDanhGia }) {
           <p className="kh-ai__van-ban">
             <DoanChuDam text={trangThai.text} />
           </p>
-          <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} />
+          <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} onHoiThem={onHoiThem} />
         </>
       )}
     </section>
@@ -293,6 +306,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const [chiSo, setChiSo] = useState(0);
   const [ketQua, setKetQua] = useState({});
   const [giaiThich, setGiaiThich] = useState({});
+  const hoiLearnBot = useHoiLearnBot();
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
   const deBaiRef = useRef(null);
@@ -707,6 +721,14 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
             trangThai={giaiThich[cau.id]}
             onThuLai={() => hoiAI(cau, daTraLoi.traLoi)}
             onDanhGia={(tot) => danhGiaAI(cau, daTraLoi.traLoi, tot)}
+            onHoiThem={
+              hoiLearnBot &&
+              (() => {
+                const trangThai = giaiThich[cau.id];
+                const text = [trangThai?.text?.trim(), trangThai?.phanSau].filter(Boolean).join("\n");
+                hoiLearnBot(taoCauHoiLearnBot(cau, daTraLoi.traLoi, text));
+              })
+            }
           />
           <div className="kh-phan-hoi__cuoi">
             <button type="button" className="ui-button ui-button--primary px-5 py-2.5 kh-phan-hoi__tiep" onClick={sangCauTiep}>
