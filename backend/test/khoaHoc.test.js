@@ -424,16 +424,28 @@ test("cacTraLoiCanGiaiThich lists accepted answers of a fill-blank question once
 test("locGiaiThichHopLe keeps valid items and rejects wrong ids, options and mis-graded answers", () => {
   const { locGiaiThichHopLe } = require("../src/utils/khoaHoc");
   const cauTheoKey = new Map([
-    ["q_mc", { id: 11, type: "multiple_choice", options: [{ key: "A" }, { key: "B" }], answer_key: "B" }],
+    [
+      "q_mc",
+      {
+        id: 11,
+        type: "multiple_choice",
+        options: [
+          { key: "A", text: "go" },
+          { key: "B", text: "goes" },
+        ],
+        answer_key: "B",
+      },
+    ],
     ["q_fill", { id: 12, type: "fill_blank", accepted_answers: ["went"] }],
   ]);
   const { hopLe, loi } = locGiaiThichHopLe(
     [
-      { question_id: "q_mc", tra_loi: "a", dung: false, giai_thich: "Sai vì: ..." },
-      { question_id: "q_mc", tra_loi: "B", dung: true, giai_thich: "Đúng rồi: ..." },
+      { question_id: "q_mc", tra_loi: "a", dung: false, giai_thich: "Sai vì: **go** ..." },
+      { question_id: "q_mc", tra_loi: "B", dung: true, giai_thich: "Đúng rồi: **Goes** ..." },
       { question_id: "q_mc", tra_loi: "C", dung: false, giai_thich: "x" }, // không có lựa chọn C
-      { question_id: "q_fill", tra_loi: "Went.", dung: true, giai_thich: "Đúng rồi: ..." },
-      { question_id: "q_fill", tra_loi: "goed", dung: false, giai_thich: "Sai vì: ..." },
+      { question_id: "q_fill", tra_loi: "Went.", dung: true, giai_thich: "Đúng rồi: went ..." },
+      { question_id: "q_fill", tra_loi: "goed", dung: false, giai_thich: "Sai vì: không có goed, dùng went" },
+      { question_id: "q_fill", tra_loi: "goes", dung: false, giai_thich: "Sai vì: thì hiện tại" }, // lạc đề
       { question_id: "q_fill", tra_loi: "gone", dung: true, giai_thich: "x" }, // ChatGPT chấm nhầm
       { question_id: "khong_co", tra_loi: "A", dung: false, giai_thich: "x" },
       { question_id: "q_mc", tra_loi: "A", dung: false, giai_thich: "" }, // trống
@@ -441,12 +453,13 @@ test("locGiaiThichHopLe keeps valid items and rejects wrong ids, options and mis
     cauTheoKey
   );
   assert.deepEqual(hopLe, [
-    { questionId: 11, answerNorm: "A", explanation: "Sai vì: ..." },
-    { questionId: 11, answerNorm: "B", explanation: "Đúng rồi: ..." },
-    { questionId: 12, answerNorm: "went", explanation: "Đúng rồi: ..." },
-    { questionId: 12, answerNorm: "goed", explanation: "Sai vì: ..." },
+    { questionId: 11, answerNorm: "A", explanation: "Sai vì: **go** ..." },
+    { questionId: 11, answerNorm: "B", explanation: "Đúng rồi: **Goes** ..." },
+    { questionId: 12, answerNorm: "went", explanation: "Đúng rồi: went ..." },
+    { questionId: 12, answerNorm: "goed", explanation: "Sai vì: không có goed, dùng went" },
   ]);
-  assert.equal(loi.length, 4);
+  assert.equal(loi.length, 5);
+  assert.match(loi.at(-4), /không nhắc tới đáp án/);
 });
 
 test("tachPhanDungCuaGiaiThich turns the right-answer explanation into the 'Đúng vì' + 'Nhớ' lines", () => {

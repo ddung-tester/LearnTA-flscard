@@ -9,6 +9,7 @@ const {
   laTraLoiDung,
   lichOnCauHoi,
   locGiaiThichHopLe,
+  giaiThichNhacDapAn,
   tachPhanDungCuaGiaiThich,
 } = require("../utils/khoaHoc");
 
@@ -395,6 +396,12 @@ function soanTruocGiaiThich(questionId, row, question) {
 }
 
 // Bản cũ (prompt trước) của cùng câu trả lời thì ghi đè
+function luuNeuDat(question, answer, explanation) {
+  if (giaiThichNhacDapAn(question, answer, explanation)) return true;
+  console.log(JSON.stringify({ message: "ai_explanation_off_topic", questionId: question.id }));
+  return false;
+}
+
 async function luuGiaiThich(questionId, answerNorm, explanation) {
   await pool.query(
     `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
@@ -519,7 +526,8 @@ async function explainQuestion(req, res) {
 
   const dongSai = explanation;
   if (phanDung) explanation = `${dongSai.split(/\n+/)[0].trim()}\n${phanDung}`;
-  await luuGiaiThich(questionId, answerNorm, explanation);
+  // Lời lạc đề vẫn cho người học xem, nhưng không lưu: lần sau AI viết lại
+  if (luuNeuDat(question, answer, explanation)) await luuGiaiThich(questionId, answerNorm, explanation);
   if (guiDan) {
     // Đã gửi dần dòng "Sai vì"; client không xin chế độ này thì gửi nốt phần "Đúng vì" + "Nhớ"
     if (phanDung && !chiGuiDongSai) res.write(`\n${phanDung}`);
@@ -556,7 +564,7 @@ async function rateExplanation(req, res) {
     console.error("rateExplanation rewrite failed:", error.message);
   }
   if (!explanation) throw createHttpError(502, "AI chưa viết lại được, thử lại sau");
-  await luuGiaiThich(questionId, answerNorm, explanation);
+  if (luuNeuDat(question, answer, explanation)) await luuGiaiThich(questionId, answerNorm, explanation);
   res.json({ explanation });
 }
 

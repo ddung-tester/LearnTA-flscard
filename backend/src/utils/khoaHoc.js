@@ -106,10 +106,32 @@ function tachPhanDungCuaGiaiThich(giaiThich) {
 
 const DO_DAI_GIAI_THICH_TOI_DA = 1200;
 
+// Đáp án dài (cả câu) thì AI hay diễn đạt lại, không đòi trích nguyên văn
+const DO_DAI_DAP_AN_KIEM_TOI_DA = 40;
+
+/**
+ * Lời giải thích có nhắc tới chữ của đáp án đúng hoặc câu người học trả lời không — bắt lời AI
+ * lạc đề (giảng chuyện khác, nhầm câu). Không có chữ nào đủ ngắn để kiểm thì coi là đạt.
+ */
+function giaiThichNhacDapAn(cau, traLoi, explanation) {
+  const chuCuaLuaChon = (key) => (cau.options || []).find((option) => option.key === key)?.text;
+  const cacChu =
+    cau.type === "multiple_choice"
+      ? [chuCuaLuaChon(cau.answer_key), chuCuaLuaChon(chuoi(traLoi).toUpperCase())]
+      : [...(cau.accepted_answers || []), traLoi];
+  const canKiem = cacChu
+    .map(chuanHoaTraLoi)
+    .filter((chu) => chu && chu.length <= DO_DAI_DAP_AN_KIEM_TOI_DA);
+  if (canKiem.length === 0) return true;
+  const vanBan = chuanHoaTraLoi(String(explanation ?? "").replace(/\*\*/g, ""));
+  return canKiem.some((chu) => vanBan.includes(chu));
+}
+
 /**
  * Lọc lời giải thích AI soạn sẵn ({ question_id, tra_loi, dung, giai_thich }) trước khi lưu cache.
  * cauTheoKey: Map question_id → câu hỏi ({ id, type, options, answer_key, accepted_answers }).
- * Chấm lại bằng luật của server: dòng ghi "dung" sai sự thật, sai id, sai lựa chọn hay trống đều bị bỏ.
+ * Chấm lại bằng luật của server: dòng ghi "dung" sai sự thật, sai id, sai lựa chọn, trống
+ * hay không nhắc gì tới đáp án đều bị bỏ.
  */
 function locGiaiThichHopLe(items, cauTheoKey) {
   const hopLe = [];
@@ -129,6 +151,9 @@ function locGiaiThichHopLe(items, cauTheoKey) {
     }
     if (Boolean(item.dung) !== laTraLoiDung(cau, traLoi)) {
       return loi.push(`${nhan}: ghi "dung": ${Boolean(item.dung)} nhưng chấm thật là ${!item.dung}`);
+    }
+    if (!giaiThichNhacDapAn(cau, traLoi, explanation)) {
+      return loi.push(`${nhan}: lời giải thích không nhắc tới đáp án`);
     }
     hopLe.push({ questionId: cau.id, answerNorm, explanation });
   });
@@ -565,6 +590,7 @@ module.exports = {
   tachPhanDungCuaGiaiThich,
   cacTraLoiCanGiaiThich,
   locGiaiThichHopLe,
+  giaiThichNhacDapAn,
   chuanHoaTraLoi,
   laTraLoiDung,
   lichOnCauHoi,

@@ -112,7 +112,7 @@ test("explainQuestion grades from the DB, asks AI once and caches the result", a
   let input;
   aiService.explainCourseQuestion = async (value) => {
     input = value;
-    return "Giải thích mới";
+    return "Sai vì: are dùng cho số nhiều.";
   };
   const res = fakeRes();
 
@@ -122,8 +122,8 @@ test("explainQuestion grades from the DB, asks AI once and caches the result", a
   assert.equal(input.learnerAnswer, "B");
   assert.deepEqual(input.grammar, CAU_TRAC_NGHIEM.lesson_content.grammar);
   assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON DUPLICATE KEY UPDATE/);
-  assert.deepEqual(calls[2].params, [5, "B", "Giải thích mới"]);
-  assert.deepEqual(res.body, { explanation: "Giải thích mới", cached: false });
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì: are dùng cho số nhiều."]);
+  assert.deepEqual(res.body, { explanation: "Sai vì: are dùng cho số nhiều.", cached: false });
 });
 
 test("explainQuestion rejects options that do not exist and other users' questions", async () => {
@@ -177,8 +177,8 @@ test("explainQuestion streams AI text chunk by chunk when stream=1 and caches th
   const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}]);
   aiService.explainCourseQuestion = async (_value, { onChunk }) => {
     onChunk("Sai vì ");
-    onChunk("chủ ngữ số ít.");
-    return "Sai vì chủ ngữ số ít.";
+    onChunk("chủ ngữ số ít dùng is.");
+    return "Sai vì chủ ngữ số ít dùng is.";
   };
   const res = fakeStreamRes();
 
@@ -188,9 +188,9 @@ test("explainQuestion streams AI text chunk by chunk when stream=1 and caches th
   );
 
   assert.match(res.headers["Content-Type"], /text\/plain/);
-  assert.deepEqual(res.chunks, ["Sai vì ", "chủ ngữ số ít."]);
+  assert.deepEqual(res.chunks, ["Sai vì ", "chủ ngữ số ít dùng is."]);
   assert.equal(res.ended, true);
-  assert.deepEqual(calls[2].params, [5, "B", "Sai vì chủ ngữ số ít."]);
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì chủ ngữ số ít dùng is."]);
 });
 
 test("explainQuestion falls back to the question's own hint when AI fails", async () => {
@@ -282,8 +282,8 @@ test("explainQuestion waits for an in-flight prepare instead of calling AI again
   aiService.explainAllAnswers = async () => {
     await soanXong;
     return [
-      { tra_loi: "A", dung: true, giai_thich: "Đúng" },
-      { tra_loi: "B", dung: false, giai_thich: "Soạn sẵn" },
+      { tra_loi: "A", dung: true, giai_thich: "Đúng: is" },
+      { tra_loi: "B", dung: false, giai_thich: "Soạn sẵn: are sai" },
     ];
   };
   aiService.explainCourseQuestion = async () => {
@@ -643,7 +643,7 @@ test("rateExplanation: a thumbs-down rewrites with the old text in the prompt an
   aiService.explainCourseQuestion = async (value, opts) => {
     input = value;
     models = opts.models;
-    return "Bản mới";
+    return "Sai vì: are là số nhiều.";
   };
   const res = fakeRes();
 
@@ -652,8 +652,8 @@ test("rateExplanation: a thumbs-down rewrites with the old text in the prompt an
   assert.equal(input.banCu, "Bản cũ");
   assert.equal(input.learnerAnswer, "B");
   assert.equal(models, aiService.MODEL_VIET_LAI);
-  assert.deepEqual(calls[2].params, [5, "B", "Bản mới"]);
-  assert.deepEqual(res.body, { explanation: "Bản mới" });
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì: are là số nhiều."]);
+  assert.deepEqual(res.body, { explanation: "Sai vì: are là số nhiều." });
 
   // AI lỗi: báo 502, không ghi đè bản cũ
   const callsLoi = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }]]);
@@ -681,4 +681,15 @@ test("the rewrite prompt shows the rejected explanation and asks for a different
     aiService.buildCourseExplanationPrompt({ lessonTitle: "x", grammar: [], question: CAU_TRAC_NGHIEM, learnerAnswer: "A", isCorrect: true }),
     /CHƯA ỔN/
   );
+});
+
+test("an off-topic AI explanation is shown but not cached, so it is rewritten next time", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], []]);
+  aiService.explainCourseQuestion = async () => "Thì hiện tại đơn dùng cho thói quen.";
+  const res = fakeRes();
+
+  await explainQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, res);
+
+  assert.deepEqual(res.body, { explanation: "Thì hiện tại đơn dùng cho thói quen.", cached: false });
+  assert.equal(calls.length, 2);
 });
