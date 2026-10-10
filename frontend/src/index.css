@@ -5483,6 +5483,7 @@ body.is-page-loading .page-transition-root {
 
 /* Right-side nav items row */
 .dash-nav__links {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0;
@@ -5627,14 +5628,36 @@ body.has-video-background--app .app-shell-header {
   transform: scaleX(0);
 }
 
+/* Gạch chân tab đang mở: một thanh cho cả menu, BoCuc đặt --x/--rong theo tab (đo sau khi vẽ) */
 .dash-nav__indicator {
+  --le: 0.875rem;
   position: absolute;
   bottom: 0;
-  left: 0.875rem;
-  right: 0.875rem;
+  left: 0;
+  width: var(--rong, 0);
   height: 3px;
+  transform: translateX(var(--x, 0));
+  pointer-events: none;
+}
+
+.dash-nav__indicator::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--le);
   border-radius: 3px 3px 0 0;
   background: var(--mau-chinh);
+}
+
+.dash-nav__indicator--truot {
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-nav__indicator--truot {
+    transition: none;
+  }
 }
 
 .dash-nav__avatar {
@@ -5653,8 +5676,7 @@ body.has-video-background--app .app-shell-header {
 
 @media (max-width: 560px) {
   .dash-nav__indicator {
-    left: 0.625rem;
-    right: 0.625rem;
+    --le: 0.625rem;
   }
 
   .dash-nav__user-btn > .truncate {

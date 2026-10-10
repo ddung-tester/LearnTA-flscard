@@ -194,12 +194,14 @@ function TrangChiTietBo() {
       setFilterConTheCuonPhai(el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
     }
 
-    capNhatTrangThaiCuonFilter();
+    // ResizeObserver gọi lần đầu (và khi đổi cỡ) sau khi trình duyệt tự tính bố cục — đọc scrollWidth
+    // ngay trong effect ép tính bố cục cả trang vừa render (~100 ms với bộ 120 từ, CPU điện thoại)
+    const theoDoi = new ResizeObserver(capNhatTrangThaiCuonFilter);
+    theoDoi.observe(el);
     el.addEventListener("scroll", capNhatTrangThaiCuonFilter, { passive: true });
-    window.addEventListener("resize", capNhatTrangThaiCuonFilter);
     return () => {
+      theoDoi.disconnect();
       el.removeEventListener("scroll", capNhatTrangThaiCuonFilter);
-      window.removeEventListener("resize", capNhatTrangThaiCuonFilter);
     };
   }, [danhSach.length, dangTaiDuLieu]);
 

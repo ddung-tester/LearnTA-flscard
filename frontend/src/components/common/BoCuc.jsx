@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { m, useReducedMotion } from "motion/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
@@ -76,7 +75,6 @@ function BoCuc() {
   const viTri = useLocation();
   const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();
-  const giamChuyenDong = useReducedMotion();
   const [dangMoMenuTaiKhoan, setDangMoMenuTaiKhoan] = useState(false);
   const menuTaiKhoanRef = useRef(null);
   const laTrangChu = viTri.pathname === "/";
@@ -120,6 +118,41 @@ function BoCuc() {
     };
   }, [isAuthenticated, viTri.pathname]);
   const soTuDenHan = isAuthenticated ? soTuDenHanLocal + soCauDenHan : 0;
+  // Gạch chân trượt theo tab đang mở. Đo vị trí tab sau khi trình duyệt đã vẽ (bố cục đã tính sẵn,
+  // không ép tính lại); trước đây layoutId của motion đo cả trang ngay lúc render (~80 ms trên
+  // trang dài, CPU điện thoại). Lần đặt đầu không trượt.
+  const navRef = useRef(null);
+  const gachChanRef = useRef(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const gach = gachChanRef.current;
+    if (!nav || !gach) return undefined;
+    let khung = 0;
+    const datViTri = () => {
+      const tab = nav.querySelector(".dash-nav__link--active");
+      if (!tab) return;
+      gach.style.setProperty("--x", `${tab.offsetLeft}px`);
+      gach.style.setProperty("--rong", `${tab.offsetWidth}px`);
+    };
+    khung = requestAnimationFrame(() => {
+      khung = requestAnimationFrame(() => {
+        datViTri();
+        // Bật trượt sau lần đặt đầu tiên
+        if (!gach.classList.contains("dash-nav__indicator--truot")) {
+          khung = requestAnimationFrame(() => gach.classList.add("dash-nav__indicator--truot"));
+        }
+      });
+    });
+    // Đổi cỡ (xoay màn hình, menu xuống dòng): callback chạy sau khi bố cục đã tính
+    const theoDoi = new ResizeObserver(datViTri);
+    theoDoi.observe(nav);
+    return () => {
+      cancelAnimationFrame(khung);
+      theoDoi.disconnect();
+    };
+    // soTuDenHan: số trên tab Ôn tập đổi độ rộng tab
+  }, [viTri.pathname, isAuthenticated, soTuDenHan]);
+
   // Đổi tab chính: trang mới trượt theo hướng tab (trái/phải); còn lại nổi lên
   const chiSoTab = dsTab.findIndex((tab) => tab.laActive(viTri.pathname));
   const [tabTruoc, setTabTruoc] = useState({ path: viTri.pathname, chiSo: chiSoTab, huong: "len" });
@@ -195,7 +228,9 @@ function BoCuc() {
             <nav
               className={`dash-nav__links dash-nav__tabs${isAuthenticated ? " dash-nav__tabs--day-du" : ""}`}
               aria-label="Điều hướng chính"
+              ref={navRef}
             >
+              <span ref={gachChanRef} className="dash-nav__indicator" aria-hidden="true" hidden={chiSoTab < 0} />
               {dsTab.map((tab) => {
                 const dangActive = tab.laActive(viTri.pathname);
                 return (
@@ -217,17 +252,6 @@ function BoCuc() {
                       <span className="dash-nav__so" aria-label={`${soTuDenHan} mục đến hạn ôn`}>
                         {soTuDenHan > 99 ? "99+" : soTuDenHan}
                       </span>
-                    )}
-                    {dangActive && (
-                      <m.span
-                        layoutId="dash-nav-gach-chan"
-                        className="dash-nav__indicator"
-                        transition={
-                          giamChuyenDong
-                            ? { duration: 0 }
-                            : { type: "spring", stiffness: 520, damping: 38 }
-                        }
-                      />
                     )}
                   </Link>
                 );
