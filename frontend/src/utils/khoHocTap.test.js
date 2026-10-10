@@ -4,7 +4,7 @@ import { themVaoSRS, layTatCaSRS, taiSRSDongBo, dongBoSRSLenBackend } from "./sr
 import { luuTienDoQuiz, layTienDoDeck } from "./tienDoHocTap";
 import { taoStudySessionLocal } from "./studySessionHistory";
 
-const api = vi.hoisted(() => ({ layReviews: vi.fn(), dongBoReviews: vi.fn() }));
+const api = vi.hoisted(() => ({ layReviewsKemMoc: vi.fn(), dongBoReviews: vi.fn() }));
 vi.mock("../services/reviewApi", () => api);
 
 beforeEach(() => {
@@ -42,10 +42,10 @@ it("does not assign legacy unowned data to a new account or erase it", () => {
 it("ignores A's delayed backend response after switching to B", async () => {
   chonKhoHocTap(1);
   let resolve;
-  api.layReviews.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+  api.layReviewsKemMoc.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
   const request = taiSRSDongBo();
   chonKhoHocTap(2);
-  resolve([{ card_id: 101, term_en: "private A", level: 2 }]);
+  resolve({ items: [{ card_id: 101, term_en: "private A", level: 2 }], moc: null });
   await request;
   expect(layTatCaSRS()).toEqual([]);
   expect(localStorage.getItem(khoaKhoHocTap("streak_drop_srs_v1")) ?? "").not.toContain("private A");
@@ -70,7 +70,7 @@ it("does not seed SRS from answers awaiting sync, preventing a second level incr
 
 it("pushes only words the server has not seen, in batches the API accepts", async () => {
   chonKhoHocTap(1);
-  api.layReviews.mockResolvedValueOnce([{ card_id: 1, level: 2 }]);
+  api.layReviewsKemMoc.mockResolvedValueOnce({ items: [{ card_id: 1, level: 2 }], moc: null });
   await taiSRSDongBo();
   themVaoSRS(Array.from({ length: 250 }, (_, i) => ({ id: 1000 + i, term_en: `w${i}` })), { deckId: 10 });
   api.dongBoReviews.mockReset().mockImplementation(async (items) => ({
