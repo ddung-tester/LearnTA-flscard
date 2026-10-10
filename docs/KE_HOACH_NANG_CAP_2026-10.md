@@ -188,3 +188,22 @@ Bảng trước/sau, so ảnh, cập nhật `HANDOFF.md` / `PROJECT_CONTEXT.md`.
 | D1 log request chậm | Đã làm (`1376ab6`) |
 | D2 truy vấn DB | Mọi API ≤ 20 ms, đúng index — không cần migration |
 | D3 cold start | Máy cloud không có quyền GCP — người dùng xem log |
+
+---
+
+# Đợt 3 — học hiệu quả hơn + tối đa AI (2026-10-10)
+
+Người dùng chọn 1, 3, 4, 5, 6, 7, 8 + "tập trung cải thiện tối đa AI và tiện ích AI". Mỗi mục: test → build → lint → push `main`.
+Máy thử không có khoá Gemini: phần AI kiểm bằng test giả lập + trình duyệt với API giả; chất lượng lời AI thật cần người dùng xem trên production.
+
+| # | Việc | Cách làm (tối thiểu, không migration) |
+|---|---|---|
+| AI-1 (mục 5) | Soạn trước lời giải thích cả buổi | `utils/soanTruocGiaiThich.js`: hàng đợi phía máy, ưu tiên câu đang hiện + 2 câu kế, sau đó lần lượt các câu còn lại của buổi (cách nhau 4 s, ≤ 15 lượt/phút theo hạn mức Gemini miễn phí), dừng khi lỗi liên tiếp. Chạy từ lúc mở buổi học (cả khi đang ở tab Từ vựng / Lý thuyết). Kho lời dùng chung cho bài tập. (Cloud Run không chạy việc nền sau khi trả lời request nên hàng đợi đặt ở máy.) |
+| AI-2 (mục 4) | 👍 / 👎 lời giải thích | 👎 = "Viết lại": server gọi AI viết lại (prompt nhắc tránh lỗi bản cũ), ghi đè cache, trả bản mới; 👍 ghi log `ai_feedback`. Giới hạn lượt. |
+| AI-3 | Tự kiểm lời AI trước khi lưu | Lọc thêm: lời giải thích phải nhắc tới đáp án (chữ của lựa chọn / đáp án đúng hoặc câu người học gõ); không đạt thì bỏ, lần sau soạn lại. |
+| AI-4 | "Hỏi AI thêm" | Dưới lời giải thích: mở LearnBot với câu hỏi + câu trả lời + lời giải thích làm ngữ cảnh. |
+| AI-5 (mục 6) | Dịch câu ở Ngữ cảnh | Nút "Dịch câu": dùng `example_translation` có sẵn; chưa có thì AI dịch (`POST /cards/:id/translate-example`, lưu vào cột có sẵn từ migration 016). |
+| 8 | Gợi ý từng bước khi gõ | Tự luận + Ôn tập: chữ đầu → 40% → 70%; dùng gợi ý thì không lên cấp (Ôn tập giữ nguyên cấp). |
+| 3 | Luyện câu tính vào tiến độ | Nghe chép / Đặt câu đạt → từ lên 1 cấp qua API ôn tập có sẵn (giống Flashcard); không đạt không ghi; Nói theo không ghi. Không cần migration. |
+| 1 | Gộp hàng ôn | `/review` thêm nhóm "Câu bài tập đến hạn" sau thẻ đến hạn (dùng `BaiTapKhoaHoc onTap`); badge menu = thẻ + câu. Giữ trang `/khoa-hoc/on-tap`. |
+| 7 | IPA 240 từ lộ trình | Bổ sung phiên âm (giọng Mỹ) vào `lo-trinh.json`; người dùng chạy `npm run seed:roadmaps` sau deploy. |
