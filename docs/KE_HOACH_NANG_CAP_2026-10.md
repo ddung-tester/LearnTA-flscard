@@ -207,3 +207,20 @@ Máy thử không có khoá Gemini: phần AI kiểm bằng test giả lập + t
 | 3 | Luyện câu tính vào tiến độ | Nghe chép / Đặt câu đạt → từ lên 1 cấp qua API ôn tập có sẵn (giống Flashcard); không đạt không ghi; Nói theo không ghi. Không cần migration. |
 | 1 | Gộp hàng ôn | `/review` thêm nhóm "Câu bài tập đến hạn" sau thẻ đến hạn (dùng `BaiTapKhoaHoc onTap`); badge menu = thẻ + câu. Giữ trang `/khoa-hoc/on-tap`. |
 | 7 | IPA 240 từ lộ trình | Bổ sung phiên âm (giọng Mỹ) vào `lo-trinh.json`; người dùng chạy `npm run seed:roadmaps` sau deploy. |
+
+## Kết quả đợt 3
+
+Đã làm đủ 9 việc, mỗi việc một commit trên `main` (test backend 135 pass, frontend 180 pass, lint không lỗi mới, build OK). Kiểm trên trình duyệt 390px với API thật cục bộ (phần AI dùng API giả vì máy thử không có khoá Gemini):
+
+| Việc | Kiểm |
+|---|---|
+| AI-1 soạn trước cả buổi | Trả lời xong hiện lời giải thích sau ~77 ms, 0 lần gọi `/explain`; rời buổi thì hàng đợi dừng |
+| AI-2 👍/👎 | 👎 → "AI đang viết lại…" → bản mới thay chỗ, kho trên máy cập nhật; 👍 → "Cảm ơn"; body gửi `{answer, tot}` đúng |
+| AI-3 tự kiểm | Test: lời không nhắc đáp án bị bỏ khi soạn trước, không lưu khi giải thích từng câu |
+| AI-4 Hỏi LearnBot thêm | Bấm → khung chat mở, tin nhắn gồm đề, 4 lựa chọn, câu trả lời (sai), đáp án đúng, lời giải thích |
+| AI-5 Dịch câu | Có sẵn → hiện ngay (0 request); chưa có → "Đang dịch…" → bản dịch; quyền đọc: bộ mẫu ngoài lộ trình 404 với tài khoản |
+| 8 Gợi ý 3 nấc | `n____ 0` → `ngh__ _` → `nghĩa _`, nút "Gợi ý thêm" khoá ở nấc 3; Ôn tập đúng nhờ gợi ý gửi `{level: 1}` (giữ Lv1) |
+| 3 Luyện câu → SRS | Nghe chép đúng 100% → `PATCH /reviews/by-card/:id/result {result: "correct"}`; chưa đến hạn thì không ghi (test) |
+| 1 Hàng ôn chung | Tab Ôn tập hiện 423 (từ + câu); hết từ → "Tiếp theo: 136 câu bài tập đến hạn" ngay dưới |
+| 7 IPA | `npm run seed:roadmaps` cục bộ: 240/240 từ có phiên âm |
+
