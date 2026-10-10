@@ -3,7 +3,8 @@ import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
-import { chuanBiGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
+import { giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
+import { dungSoanNen, khoGiaiThichCua, napCauHoi, soanNen, uuTienSoan } from "../utils/soanTruocGiaiThich";
 import {
   laTraLoiDung,
   layCauBaiChinh,
@@ -247,10 +248,9 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
  */
 export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, onTap = false }) {
   const { speak, isPlaying } = useTTS();
-  // Lời giải thích đã soạn sẵn, giữ trên máy: { [questionId]: { answer_norm: lời } } — từ dữ liệu bài
-  // (server gửi kèm) và kết quả soạn trước. Trả lời trúng câu đã có thì hiện ngay, không gọi server.
-  const khoGiaiThichRef = useRef({});
-  const khoCua = (cau) => (khoGiaiThichRef.current[cau.id] ??= { ...(cau.explanations || {}) });
+  // Lời giải thích đã soạn sẵn giữ trên máy (utils/soanTruocGiaiThich): từ dữ liệu bài (server gửi kèm)
+  // và kết quả soạn trước. Trả lời trúng câu đã có thì hiện ngay, không gọi server.
+  const khoCua = khoGiaiThichCua;
   // "Tất cả" / "Còn lại" chỉ gồm câu của tài liệu; câu luyện thêm (AI) chọn riêng ở nhóm "Luyện thêm"
   const cauChinh = onTap ? cauHoi : layCauBaiChinh(cauHoi);
   const cauConLai = cauChinh.filter((c) => ketQuaGanNhat[c.id] !== true);
@@ -263,7 +263,6 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const [giaiThich, setGiaiThich] = useState({});
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
-  const daChuanBiRef = useRef(new Set());
   const deBaiRef = useRef(null);
   const cauRef = useRef(null);
 
@@ -274,32 +273,21 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const soDung = Object.values(ketQua).filter((k) => k.dung).length;
   const soSai = Object.keys(ketQua).length - soDung;
 
-  // Soạn trước lời giải thích của câu đang hiện và 2 câu kế tiếp trong lúc người học đọc đề (câu đã đủ
-  // lời thì bỏ qua), lời soạn xong gửi luôn về máy → trả lời xong hiện ngay. Lần lượt từng câu, câu đang
-  // hiện trước, để không dồn nhiều lượt gọi AI cùng lúc (hạn mức Gemini).
-  const cacCauSapToi = danhSach.slice(chiSo, chiSo + 3).filter((c) => !c.explanations_ready);
-  const khoaCauSapToi = cacCauSapToi.map((c) => c.id).join(",");
+  // Ôn câu sai (nhiều buổi): soạn nền mọi câu trong danh sách; ở trang bài học thì TrangBaiHoc đã soạn nền cả buổi
   useEffect(() => {
-    let huy = false;
-    (async () => {
-      for (const cauSoan of cacCauSapToi) {
-        const id = cauSoan.id;
-        if (huy) return;
-        if (daChuanBiRef.current.has(id)) continue;
-        daChuanBiRef.current.add(id);
-        try {
-          const ketQuaSoan = await chuanBiGiaiThich(id);
-          Object.assign(khoCua(cauSoan), ketQuaSoan?.explanations || {});
-          if (!ketQuaSoan?.ready) daChuanBiRef.current.delete(id);
-        } catch {
-          daChuanBiRef.current.delete(id);
-        }
-      }
-    })();
-    return () => {
-      huy = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy lại khi nhóm câu sắp tới đổi
+    napCauHoi(cauHoi);
+    if (!onTap) return undefined;
+    soanNen(cauHoi.map((c) => c.id));
+    return dungSoanNen;
+  }, [cauHoi, onTap]);
+
+  // Câu đang hiện + 2 câu kế: soạn ngay (ưu tiên hơn phần nền), lời soạn xong về máy → trả lời xong hiện ngay
+  const khoaCauSapToi = danhSach
+    .slice(chiSo, chiSo + 3)
+    .map((c) => c.id)
+    .join(",");
+  useEffect(() => {
+    uuTienSoan(khoaCauSapToi.split(",").filter(Boolean).map(Number));
   }, [khoaCauSapToi]);
 
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung

@@ -7,6 +7,7 @@ import SoTayLatTrang from "../components/common/SoTayLatTrang";
 import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
+import { dungSoanNen, napCauHoi, soanNen } from "../utils/soanTruocGiaiThich";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import { docCachXemLyThuyet, luuCachXemLyThuyet } from "../utils/caiDatHocTap";
 import "./KhoaHoc.css";
@@ -267,12 +268,18 @@ function TrangBaiHoc() {
           bai.questions.filter((cau) => cau.last_correct !== null).map((cau) => [cau.id, cau.last_correct])
         );
         setTrangThai({ khoa, bai, loi: "", ketQuaCau });
+        // Mở buổi là soạn dần lời giải thích AI của cả buổi trong nền (kể cả lúc đang đọc Từ vựng /
+        // Lý thuyết), để lúc làm bài trả lời xong là có lời ngay. Câu chính trước, câu luyện thêm sau.
+        napCauHoi(bai.questions);
+        const chinh = layCauBaiChinh(bai.questions);
+        soanNen([...chinh, ...bai.questions.filter((cau) => !chinh.includes(cau))].map((cau) => cau.id));
       })
       .catch((error) => {
         if (conHieuLuc) setTrangThai({ khoa, bai: null, loi: error.message, ketQuaCau: {} });
       });
     return () => {
       conHieuLuc = false;
+      dungSoanNen();
     };
   }, [courseId, soBai, khoa]);
 
