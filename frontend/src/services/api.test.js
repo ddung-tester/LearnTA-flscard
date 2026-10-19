@@ -53,3 +53,46 @@ it("aborts A's in-flight requests and ignores its stale 401 after switching to B
   await expect(pending).rejects.toThrow();
   expect(getStoredAuthToken()).toBe("B");
 });
+
+it("caches reads briefly, gives each caller its own copy and forgets after writes or account switches", async () => {
+  const { default: api, layCoBoNho, storeAuthToken } = await import("./api");
+  let soLanDoc = 0;
+  api.defaults.adapter = async (config) => {
+    if (config.method === "get") soLanDoc += 1;
+    return { data: { cards: [{ id: 1 }], lan: soLanDoc }, status: 200, config };
+  };
+  storeAuthToken("A");
+  const dau = await layCoBoNho("/decks/1/cards");
+  dau.cards.push({ id: 2 });
+  const sau = await layCoBoNho("/decks/1/cards");
+  expect(soLanDoc).toBe(1);
+  expect(sau.cards).toEqual([{ id: 1 }]);
+
+  await api.post("/study-sessions", {});
+  expect((await layCoBoNho("/decks/1/cards")).lan).toBe(2);
+
+  storeAuthToken("B");
+  expect((await layCoBoNho("/decks/1/cards")).lan).toBe(3);
+});
+
+it("does not keep failed reads in the cache", async () => {
+  const { default: api, layCoBoNho } = await import("./api");
+  let lan = 0;
+  api.defaults.adapter = async (config) => {
+    lan += 1;
+    if (lan === 1) throw Object.assign(new Error("offline"), { config });
+    return { data: { ok: true }, status: 200, config };
+  };
+  await expect(layCoBoNho("/courses")).rejects.toThrow();
+  await expect(layCoBoNho("/courses")).resolves.toEqual({ ok: true });
+});
+
+it("gives up on hung requests with a clear message, but lets AI calls wait longer", async () => {
+  const { default: api, THOI_GIAN_CHO_AI_MS } = await import("./api");
+  expect(api.defaults.timeout).toBe(25000);
+  expect(THOI_GIAN_CHO_AI_MS).toBeGreaterThan(api.defaults.timeout);
+  api.defaults.adapter = async (config) => {
+    throw Object.assign(new Error("timeout of 25000ms exceeded"), { code: "ECONNABORTED", config });
+  };
+  await expect(api.get("/decks")).rejects.toThrow("Mạng chậm, chưa nhận được phản hồi. Thử lại nhé.");
+});

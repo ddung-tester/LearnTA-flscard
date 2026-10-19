@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import "./TenseExamplesCard.css";
 import { getTenseExamples, TENSE_META, getWordType } from "../../data/tenseExamples";
 import useTTS from "../../hooks/useTTS";
@@ -44,7 +44,7 @@ function TenseItem({ item, side, delay = 0, onSpeak, isSpeaking }) {
   const xFrom = side === "left" ? "-110%" : "110%";
 
   return (
-    <motion.div
+    <m.div
       className="tec-item"
       initial={{ opacity: 0, x: xFrom }}
       animate={{ opacity: 1, x: 0 }}
@@ -95,7 +95,7 @@ function TenseItem({ item, side, delay = 0, onSpeak, isSpeaking }) {
       {item.translation && (
         <p className="tec-item__translation">{item.translation}</p>
       )}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -154,7 +154,7 @@ export default function TenseExamplesCard({
 
   // Nút Tiếp tục nổi dưới giữa
   const ContinueBar = showContinueButton && onTiepTuc && (
-    <motion.div
+    <m.div
       key="tec-continue"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -179,7 +179,7 @@ export default function TenseExamplesCard({
           <polyline points="12 5 19 12 12 19" />
         </svg>
       </button>
-    </motion.div>
+    </m.div>
   );
 
   // ── Chế độ rộng: 2 panel fixed 2 bên ──────────────────────────────

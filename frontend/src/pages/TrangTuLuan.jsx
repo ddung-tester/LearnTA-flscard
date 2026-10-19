@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
@@ -31,6 +31,7 @@ import {
   tachKetQuaPhien,
   taoDanhSachTienTrinh,
   taoGoiY,
+  MUC_GOI_Y_TOI_DA,
   taoHatGiong,
   tinhTienTrinh,
 } from "../utils/phienHoc";
@@ -124,6 +125,9 @@ function TrangTuLuan({ loai }) {
   const [daHoanThanh, setDaHoanThanh] = useState(false);
   const [danhSachKetQua, setDanhSachKetQua] = useState([]);
   const [hienGoiY, setHienGoiY] = useState(false);
+  // Mức gợi ý đang hiện (1–3), chỉ có nghĩa khi hienGoiY; bấm "Gợi ý" lần nữa thì lộ thêm chữ
+  const [mucGoiY, setMucGoiY] = useState(1);
+  const conGoiYThem = !hienGoiY || mucGoiY < MUC_GOI_Y_TOI_DA;
   const [hienCanhBaoNhap, setHienCanhBaoNhap] = useState(false);
   const [noiDungCanhBaoNhap, setNoiDungCanhBaoNhap] = useState("Vui lòng nhập đáp án");
   const [lanCanhBaoNhap, setLanCanhBaoNhap] = useState(0);
@@ -413,7 +417,7 @@ function TrangTuLuan({ loai }) {
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
         const dangHoiCau = !daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active;
         const lenh = {
-          KeyG: dangHoiCau && !hienGoiY ? hienThiGoiY : null,
+          KeyG: dangHoiCau && conGoiYThem ? hienThiGoiY : null,
           KeyD: dangHoiCau ? xemDapAn : null,
           KeyN: docCauHoiHienTai,
         }[e.code];
@@ -943,6 +947,7 @@ function TrangTuLuan({ loai }) {
 
   function hienThiGoiY() {
     if (dangChuyenCau || hienReward || dangChoReward || ketQuaDung) return;
+    setMucGoiY(hienGoiY ? Math.min(MUC_GOI_Y_TOI_DA, mucGoiY + 1) : 1);
     setHienGoiY(true);
     inputRef.current?.focus();
   }
@@ -1316,7 +1321,7 @@ function TrangTuLuan({ loai }) {
 
           <AnimatePresence initial={false} mode="wait">
             {daBoQua ? (
-              <motion.button
+              <m.button
                 type="button"
                 key="answer"
                 layout
@@ -1347,9 +1352,9 @@ function TrangTuLuan({ loai }) {
                 >
                   {layDapAnDung(danhSachThe[chiSo])}
                 </span>
-              </motion.button>
+              </m.button>
             ) : dangChoNhanEnterSauSai ? (
-              <motion.div
+              <m.div
                 key="wrong-answer-reveal"
                 layout
                 layoutDependency={phuThuocBoCuc}
@@ -1375,10 +1380,10 @@ function TrangTuLuan({ loai }) {
                   </span>
                 </button>
                 <p className="mt-2.5 text-xs text-[oklch(45%_0.03_24)] font-medium">Nhấn Enter để tiếp tục</p>
-              </motion.div>
+              </m.div>
             ) : cheDoNhapLai.active ? (
               // Chế độ nhập lại sau khi gợi ý sai: hiện đáp án đúng để nhìn vào nhập
-              <motion.div
+              <m.div
                 key="nhap-lai-hint"
                 layout
                 layoutDependency={phuThuocBoCuc}
@@ -1410,9 +1415,9 @@ function TrangTuLuan({ loai }) {
                   </span>
                 </button>
                 <p className="mt-2 text-xs text-[oklch(50%_0.06_55)] font-medium">Nhìn vào đây và nhập đúng để tiếp tục</p>
-              </motion.div>
+              </m.div>
             ) : hienGoiY && !ketQuaDung ? (
-              <motion.div
+              <m.div
                 key="hint"
                 layout
                 layoutDependency={phuThuocBoCuc}
@@ -1430,15 +1435,15 @@ function TrangTuLuan({ loai }) {
                   className="whitespace-pre-wrap break-words text-xl font-bold tracking-tight text-[var(--mau-chinh)]"
                   style={{ wordSpacing: "0.35em" }}
                 >
-                  {taoGoiY(layDapAnDung(danhSachThe[chiSo]))}
+                  {taoGoiY(layDapAnDung(danhSachThe[chiSo]), mucGoiY)}
                 </span>
-              </motion.div>
+              </m.div>
             ) : null}
           </AnimatePresence>
 
           {/* Xem đáp án: nút tiếp tục sẽ validate input */}
           {daBoQua && (
-            <motion.div
+            <m.div
               layout
               layoutDependency={phuThuocBoCuc}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -1450,12 +1455,12 @@ function TrangTuLuan({ loai }) {
               >
                 Tiếp tục
               </button>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Đang chờ Enter sau khi sai: nút Tiếp tục */}
           {dangChoNhanEnterSauSai && (
-            <motion.div
+            <m.div
               layout
               layoutDependency={phuThuocBoCuc}
               initial={{ opacity: 0, y: -8 }}
@@ -1473,12 +1478,12 @@ function TrangTuLuan({ loai }) {
               >
                 Nhập lại đáp án
               </button>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Chưa kiểm tra và chưa xem đáp án: có gợi ý, xem đáp án, kiểm tra */}
           {!daKiemTra && !daBoQua && !dangChoNhanEnterSauSai && !cheDoNhapLai.active && (
-            <motion.div
+            <m.div
               layout
               layoutDependency={phuThuocBoCuc}
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
@@ -1487,10 +1492,10 @@ function TrangTuLuan({ loai }) {
               <button
                 type="button"
                 onClick={hienThiGoiY}
-                disabled={hienGoiY}
+                disabled={!conGoiYThem}
                 className="ui-button ui-button--ghost rounded-xl border border-[var(--mau-vien)] py-3 font-semibold text-[var(--mau-chu-phu)] disabled:cursor-default disabled:opacity-60"
               >
-                Gợi ý
+                {hienGoiY ? "Gợi ý thêm" : "Gợi ý"}
               </button>
               <button
                 type="button"
@@ -1505,12 +1510,12 @@ function TrangTuLuan({ loai }) {
               >
                 Kiểm tra
               </button>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Chế độ nhập lại: chỉ hiện nút Kiểm tra */}
           {cheDoNhapLai.active && !daKiemTra && (
-            <motion.div
+            <m.div
               layout
               layoutDependency={phuThuocBoCuc}
               initial={{ opacity: 0, y: -6 }}
@@ -1523,7 +1528,7 @@ function TrangTuLuan({ loai }) {
               >
                 Kiểm tra lại
               </button>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Trả lời sai: đang trong cooldown flash đỏ, không hiện nút nào thêm */}

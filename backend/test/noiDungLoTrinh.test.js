@@ -14,6 +14,22 @@ test("the bundled roadmap content is valid: every example contains its word", ()
   const soTu = loTrinh.flatMap((lt) => lt.decks).reduce((tong, bo) => tong + bo.words.length, 0);
   assert.equal(loTrinh.length, 3);
   assert.equal(soTu, 240);
+  // Mọi từ lộ trình đều có phiên âm
+  assert.deepEqual(
+    loTrinh.flatMap((lt) => lt.decks.flatMap((bo) => bo.words)).filter((tu) => !tu.pronunciation),
+    []
+  );
+});
+
+test("kiemTraNoiDungLoTrinh rejects malformed IPA and IPA for words that are not in any roadmap", () => {
+  const loi = kiemTraNoiDungLoTrinh({
+    phien_am: { apple: "ˈæpəl", banana: "/bəˈnænə/" },
+    roadmaps: [{ slug: "ok", title: "Y", decks: [{ key: "bo", title: "Bộ", words: [["apple", "noun", "táo", "An apple."]] }] }],
+  });
+  assert.deepEqual(loi, [
+    'Bộ "bo", từ #1 "apple": phiên âm phải dạng /.../',
+    'phien_am "banana": không có từ này trong lộ trình nào',
+  ]);
 });
 
 test("kiemTraNoiDungLoTrinh reports bad slugs, duplicates and examples without the word", () => {
@@ -80,12 +96,15 @@ function taoDbGia() {
         return [{}];
       }
       if (sql.includes("INSERT INTO cards")) {
-        const [meaning_vi, , , , , deck_id, term_en] = params;
-        db.cards.push({ id: id(), deck_id, term_en, meaning_vi });
+        const [meaning_vi, , , , pronunciation, , deck_id, term_en] = params;
+        db.cards.push({ id: id(), deck_id, term_en, meaning_vi, pronunciation });
         return [{}];
       }
       if (sql.includes("UPDATE cards")) {
-        db.cards.find((row) => row.id === params[5]).meaning_vi = params[0];
+        Object.assign(db.cards.find((row) => row.id === params[6]), {
+          meaning_vi: params[0],
+          pronunciation: params[4],
+        });
         return [{}];
       }
       if (sql.startsWith("UPDATE decks") || sql.startsWith("UPDATE roadmap_decks")) return [{}];
@@ -96,6 +115,7 @@ function taoDbGia() {
 
 test("napNoiDungLoTrinh is idempotent: a second run updates instead of duplicating", async () => {
   const noiDung = {
+    phien_am: { Apple: "/ˈæpəl/" },
     roadmaps: [
       {
         slug: "thu",
@@ -119,10 +139,10 @@ test("napNoiDungLoTrinh is idempotent: a second run updates instead of duplicati
   assert.equal(conn.db.decks.length, 1);
   assert.equal(conn.db.roadmaps.length, 1);
   assert.deepEqual(
-    conn.db.cards.map((the) => [the.term_en, the.meaning_vi]),
+    conn.db.cards.map((the) => [the.term_en, the.meaning_vi, the.pronunciation]),
     [
-      ["apple", "trái táo"],
-      ["pear", "quả lê"],
+      ["apple", "trái táo", "/ˈæpəl/"],
+      ["pear", "quả lê", null],
     ]
   );
   assert.equal(conn.db.decks[0].user_id, null);

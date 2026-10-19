@@ -29,30 +29,20 @@ import {
 } from "../services/mistakeApi";
 import { getStoredAuthToken } from "../services/api";
 import { themVaoSRS } from "./srsReview";
-import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { taoKhoTrenMay } from "./khoTrenMay";
 
 const KHO_TU_SAI = "streak_drop_mistake_notebook_v1";
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-function docTatCa() {
-  try {
-    const raw = localStorage.getItem(khoaKhoHocTap(KHO_TU_SAI));
-    if (!raw) return {};
-    const data = JSON.parse(raw);
-    return data && typeof data === "object" ? data : {};
-  } catch {
-    return {};
-  }
-}
+// Đọc từ bộ nhớ, ghi xuống localStorage lúc rảnh (utils/khoTrenMay.js) — mỗi câu sai đều ghi sổ
+const khoTuSai = taoKhoTrenMay(KHO_TU_SAI);
+const docTatCa = khoTuSai.doc;
+const ghiTatCa = khoTuSai.ghi;
 
-function ghiTatCa(data) {
-  try {
-    localStorage.setItem(khoaKhoHocTap(KHO_TU_SAI), JSON.stringify(data));
-  } catch {
-    // localStorage full hoặc bị chặn — bỏ qua
-  }
-}
+/** Ghi ngay phần đang chờ xuống localStorage (test). */
+export const ghiNgayKhoTuSai = khoTuSai.ghiNgay;
 
 function toDateValue(value) {
   const date = value ? new Date(value) : null;
@@ -117,12 +107,19 @@ function hopNhatEntry(localEntry, incomingEntry) {
   };
 }
 
-export function hopNhatTuSaiTuBackend(items = []) {
+/**
+ * vuaDay: items là phản hồi của chính lần đẩy lên (server đã nhận bản trên máy) → coi như đã khớp.
+ * `dongBoLuc` = updatedAt của bản đã khớp với server; khác updatedAt nghĩa là máy có thay đổi chưa đẩy.
+ */
+export function hopNhatTuSaiTuBackend(items = [], { vuaDay = false } = {}) {
   const tatCa = docTatCa();
 
   for (const item of items) {
     const incoming = chuanHoaTuSaiTuBackend(item);
-    tatCa[incoming.id] = hopNhatEntry(tatCa[incoming.id], incoming);
+    const local = tatCa[incoming.id];
+    const merged = hopNhatEntry(local, incoming);
+    const daKhop = vuaDay || !local || toDateValue(incoming.updatedAt) >= toDateValue(local.updatedAt);
+    tatCa[incoming.id] = { ...merged, dongBoLuc: daKhop ? merged.updatedAt : local.dongBoLuc };
   }
 
   ghiTatCa(tatCa);
@@ -205,7 +202,7 @@ export async function luuTuSaiDongBo(cards, opts) {
       .map(chuanHoaTuSaiChoBackend);
     const result = await dongBoMistakes(items);
     if (!laPhienKhoHienTai(phienKho)) return;
-    hopNhatTuSaiTuBackend(result.mistakes || []);
+    hopNhatTuSaiTuBackend(result.mistakes || [], { vuaDay: true });
   } catch {
     // Backend sync la best-effort. localStorage van la cache/fallback chinh.
   }
@@ -259,7 +256,7 @@ export async function danhDauDaOnDongBo(id) {
   try {
     const updated = await capNhatMistake(entry.backendId, { status: "reviewed" });
     if (!laPhienKhoHienTai(phienKho)) return;
-    hopNhatTuSaiTuBackend([updated]);
+    hopNhatTuSaiTuBackend([updated], { vuaDay: true });
   } catch {
     // Local update da thanh cong.
   }
@@ -307,11 +304,8 @@ export function xoaTuSaiTheoDeck(deckId) {
  * Xoá tất cả từ sai (reset toàn bộ notebook).
  */
 export function xoaTatCaTuSai() {
-  try {
-    localStorage.removeItem(khoaKhoHocTap(KHO_TU_SAI));
-  } catch {
-    //
-  }
+  khoTuSai.ghi({});
+  khoTuSai.ghiNgay();
 }
 
 export async function xoaTatCaTuSaiDongBo(params = {}) {
@@ -350,15 +344,28 @@ export async function taiTuSaiDongBo(params = {}) {
   }
 }
 
+// Chưa từng lên server, hoặc đổi trên máy (học lúc mất mạng...) sau lần khớp cuối
+function canDayLen(entry) {
+  return !entry.backendId || entry.dongBoLuc !== entry.updatedAt;
+}
+
+/**
+ * Đẩy phần sổ từ sai server chưa có. Trước đây gửi cả sổ mỗi lần mở app (~600 ms trên điện thoại,
+ * và request ghi làm mất dữ liệu trang đã tải trước trong bộ nhớ đệm GET → trang phải tải lại).
+ */
 export async function dongBoTuSaiLenBackend() {
   const phienKho = layPhienKhoHocTap();
-  const items = layTatCaTuSai().map(chuanHoaTuSaiChoBackend);
+  const items = layTatCaTuSai().filter(canDayLen).map(chuanHoaTuSaiChoBackend);
   if (items.length === 0) return layTatCaTuSai();
 
   try {
-    const result = await dongBoMistakes(items);
-    if (!laPhienKhoHienTai(phienKho)) return [];
-    return hopNhatTuSaiTuBackend(result.mistakes || []);
+    // Server nhận tối đa 200 mục mỗi lần (mistakeController): sổ trên 200 từ chia lô, không bị từ chối cả sổ
+    for (let i = 0; i < items.length; i += 200) {
+      const result = await dongBoMistakes(items.slice(i, i + 200));
+      if (!laPhienKhoHienTai(phienKho)) return [];
+      hopNhatTuSaiTuBackend(result.mistakes || [], { vuaDay: true });
+    }
+    return layTatCaTuSai();
   } catch {
     return layTatCaTuSai();
   }

@@ -15,6 +15,8 @@ import {
   useRef,
   useEffect,
   useLayoutEffect,
+  lazy,
+  Suspense,
 } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
@@ -44,9 +46,11 @@ import {
   luuCaiDatHocTap,
 } from "../utils/caiDatHocTap";
 import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
-import { chuanHoaDapAn, taoGoiY } from "../utils/phienHoc";
+import { chuanHoaDapAn, MUC_GOI_Y_TOI_DA, taoGoiY } from "../utils/phienHoc";
 import GachVeTay from "../components/common/GachVeTay";
 import { laDangGoChu } from "../utils/phimTat";
+
+const OnCauBaiTapDenHan = lazy(() => import("../components/OnCauBaiTapDenHan"));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -342,7 +346,8 @@ function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) 
 function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim }) {
   const [nhap, setNhap] = useState("");
   const [ketQua, setKetQua] = useState(null); // null | "dung" | "sai"
-  const [hienGoiY, setHienGoiY] = useState(false);
+  // 0 = chưa xem gợi ý; 1–3 = mức gợi ý đang hiện (bấm thêm thì lộ thêm chữ)
+  const [mucGoiY, setMucGoiY] = useState(0);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -353,7 +358,9 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim 
     if (!ketQua || isLoading) return;
     // Ô này sắp bị gỡ khi sang từ mới: chuyển focus sang ô giữ bàn phím ngay trong lúc nhấn
     if (document.activeElement === inputRef.current) onGiuBanPhim?.();
-    onRate(entry.id, ketQua === "dung" ? "correct" : "wrong");
+    // Đúng nhờ gợi ý: giữ nguyên level (chưa nhớ hẳn), không được lên level như tự nhớ ra
+    const ketQuaOn = ketQua === "sai" ? "wrong" : mucGoiY > 0 ? (entry.level ?? 0) : "correct";
+    onRate(entry.id, ketQuaOn);
   }
 
   // Enter trong ô gõ: lần đầu kiểm tra, lần sau sang từ tiếp theo
@@ -381,8 +388,8 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim 
       <div className="review-card__word-section">
         <p className="review-card__term">{entry.meaning}</p>
         <p className="review-card__prompt">Gõ từ tiếng Anh</p>
-        {hienGoiY && !ketQua && (
-          <p className="review-card__hint" lang="en">{taoGoiY(entry.word)}</p>
+        {mucGoiY > 0 && !ketQua && (
+          <p className="review-card__hint" lang="en">{taoGoiY(entry.word, mucGoiY)}</p>
         )}
       </div>
       <form className="review-card__body" onSubmit={kiemTra}>
@@ -410,13 +417,13 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim 
               <button
                 type="button"
                 onClick={() => {
-                  setHienGoiY(true);
+                  setMucGoiY((muc) => Math.min(MUC_GOI_Y_TOI_DA, muc + 1));
                   inputRef.current?.focus();
                 }}
-                disabled={hienGoiY}
+                disabled={mucGoiY >= MUC_GOI_Y_TOI_DA}
                 className="review-nav-btn"
               >
-                Gợi ý
+                {mucGoiY > 0 ? "Gợi ý thêm" : "Gợi ý"}
               </button>
             )}
             <button type="submit" className="ui-button ui-button--primary review-card__submit">
@@ -629,7 +636,7 @@ function TrangOnTapHomNay() {
     () => docCaiDatHocTap("onTap").cheDoTheoLevel ?? CHE_DO_THEO_LEVEL_MAC_DINH
   );
   const [entryOverrides, setEntryOverrides] = useState({});
-  // Câu bài tập khoá học đến hạn ôn nằm ở trang riêng (/khoa-hoc/on-tap); ở đây chỉ báo số lượng
+  // Câu bài tập khoá học đến hạn ôn: hiện tiếp ngay dưới khi ôn xong từ (hoặc không có từ đến hạn)
   const [soCauCanOn, setSoCauCanOn] = useState(0);
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
@@ -996,6 +1003,12 @@ function TrangOnTapHomNay() {
           />
         )
       ) : null}
+
+      {(nothingDue || isComplete) && soCauCanOn > 0 && (
+        <Suspense fallback={<p className="review-sync-note">Đang tải câu bài tập...</p>}>
+          <OnCauBaiTapDenHan soCau={soCauCanOn} />
+        </Suspense>
+      )}
 
       {/* Queue list preview (collapsed) */}
       {!nothingDue && !isComplete && queue.length > 1 && (

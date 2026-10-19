@@ -167,6 +167,7 @@ PUT|DELETE /cards/:cardId, PATCH /cards/:cardId/favorite  (favorite: chi can la 
 POST   /cards/generate-examples                         Gemini sinh cau vi du theo thi
 POST   /cards/check-sentence                            auth, rate limit 60 req/10 phut; body {term_en, meaning_vi, cau <=300}; Gemini cham cau tu dat
 POST   /cards/generate-words                            auth, rate limit 15 req/10 phut; body {chu_de | doan_van, so_luong 5-30}; Gemini tao tu (chua luu)
+POST   /cards/:cardId/translate-example                 optional auth (theo canReadDeck), rate limit 60 req/10 phut; co example_translation thi tra luon, chua co thi Gemini dich roi luu vao the (dung chung moi nguoi hoc)
 
 GET    /roadmaps | /roadmaps/:slug                      optional auth; lo trinh + chang (bo tu) + tien do nguoi hoc
 
@@ -177,6 +178,7 @@ POST      /quiz-results, GET /decks/:deckId/quiz-results/latest
 
 GET|POST|DELETE /mistakes, POST /mistakes/bulk, PATCH|DELETE /mistakes/:id
 GET /reviews, /reviews/due; POST /reviews, /reviews/bulk     auth, doc/ghi card_progress
+GET /reviews?since=<ISO>                                 chi dong doi tu moc (cp/cards/decks.updated_at, lui 5 s); moi response co header X-Dong-Bo-Luc (gio DB) lam moc lan sau
 PATCH /reviews/by-card/:cardId/result  body {result:"correct"|"wrong"} hoac {level:0-5}
 DELETE /reviews/by-card/:cardId
 
@@ -187,7 +189,9 @@ GET  /courses/:courseId/lessons/:lessonNumber           auth; khoa cua nguoi kha
 POST /course-questions/:questionId/answer               auth; body {answer}; server tu cham, ghi ket qua LAN GAN NHAT + lich on SRS (chi cau tung sai), tra {correct, mastery_level, next_review_at}
 GET  /course-questions/due                              auth; cau den han on (next_review_at <= now) cua moi khoa thuoc user, toi da 100, kem lesson_number/course_id
 GET  /course-questions/:questionId/audio                auth; chi chu khoa; phat file nghe tu bucket rieng tu (audio_path), Cache-Control private
-POST /course-questions/:questionId/explain              auth, rate limit 60 req/5 phut; body {answer: chu cai | cau da go}; Gemini giai thich, cache theo (cau, dap an)
+POST /course-questions/:questionId/explain              auth, rate limit 60 req/5 phut; body {answer: chu cai | cau da go}; Gemini giai thich, cache theo (cau, dap an); loi khong nhac toi dap an (lac de) van tra nhung KHONG luu cache (`giaiThichNhacDapAn`)
+POST /course-questions/:questionId/prepare              auth; soan san loi giai thich moi dap an cua cau (loc `locGiaiThichHopLe`), tra {ready, generated, explanations}
+POST /course-questions/:questionId/explanation-feedback auth, rate limit 20 req/10 phut; body {answer, tot}; tot=true chi log `ai_feedback` (204); tot=false: Gemini viet lai (model `MODEL_VIET_LAI`, prompt kem ban cu), ghi de cache, tra {explanation}
 
 POST /chat                                              optional auth, rate limit 20 req/phut
 POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
@@ -195,11 +199,11 @@ POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
 
 ### Quyen doc/ghi deck (`deckController`)
 
-- Doc (`canReadDeck`): deck mau (`user_id IS NULL`), deck `is_public = TRUE`, hoac deck cua chinh user.
+- Doc (`canReadDeck`): khach doc deck mau (`user_id IS NULL`); tai khoan doc deck cua chinh minh + bo lo trinh (bo mau co trong `roadmap_decks`, SQL dung chung `LA_BO_LO_TRINH_SQL`, 2026-10-09). `is_public` khong cap quyen doc. Bo mau ngoai lo trinh va bo nguoi khac: 404 voi tai khoan. Ap dung o deck/card/progress/study, `/reviews` (`READABLE_DECK`), `/mistakes`, `/roadmaps`, chatbot.
 - Nguon cua deck (`source`, suy ra tu bang noi, khong luu cot): `course` (tu vung 1 buoi cua khoa hoc rieng, co `course_lessons.deck_id`), `roadmap` (chang lo trinh, co `roadmap_decks`), `user` (bo tu tao), `sample` (bo mau cu `user_id NULL` ngoai lo trinh). `parent`: `{course_id, course_title, lesson_number, lesson_title}` hoac `{slug, title}` hoac null. FE: `utils/nguonBoTu.js` (nut quay lai o trang chi tiet bo; nhom bo o /practice).
-- Anonymous: `GET /decks` tra deck mau + deck public (tru bo lo trinh/khoa hoc).
+- Anonymous: `GET /decks` tra deck mau (tru bo lo trinh/khoa hoc).
 - Da dang nhap: `GET /decks` chi tra bo tu tao cua minh (khong gom bo khoa hoc, bo lo trinh, bo mau, bo public cua nguoi khac).
-- `GET /decks?scope=learnable`: nguon hoc cho /practice — `user_id IS NULL` (lo trinh + mau) va bo cua minh (gom bo khoa hoc).
+- `GET /decks?scope=learnable`: nguon hoc cho /practice — khach: `user_id IS NULL` (lo trinh + mau); tai khoan: bo cua minh (gom bo khoa hoc) + bo lo trinh.
 - Ghi (`canWriteDeck`, sua/xoa deck, them/sua/xoa/sap xep card): chi chu deck VA `source != course` (bo khoa hoc do script nhap quan ly; xoa bo se mat tien do SRS). Yeu thich chi can la chu bo (`isDeckOwner`). Deck mau khong ai sua duoc qua API.
 
 ### Chatbot `/api/chat`
@@ -226,6 +230,9 @@ Che do moi nen ghep tu cac phan nay thay vi copy Quiz/Tu luan:
 - `utils/cauHoiTracNghiem.js`: sinh cau trac nghiem 4 dap an, cau Ngu canh, gan dang cau cho Hon hop (`ganLoaiCauHonHop`).
 - `DanhSachDapAn` + `PhanHoiSaiTracNghiem`: nut dap an trac nghiem dung chung.
 - `study_sessions.mode` / `quiz_results.question_type` = `listening`, `context`, `matching`, `mixed` (migration 008). `direction` luon la `en-vi` voi cac che do nay.
+- Goi y khi go (Tu luan, On tap): 3 nac `taoGoiY(dapAn, muc)` chu dau moi tu -> 40% -> 70%. Dung goi y ma dung: Tu luan khong tinh tien trinh; On tap giu nguyen level (`{level: level hien tai}`).
+- Luyen cau: nghe chep >= 80% / dat cau dung tu + ngu phap = mot lan on dung (`ghiNhanLuyenCauDat`), chi khi tu chua co lich on hoac da den han. Noi theo khong ghi.
+- Ngu canh: nut "Dich cau" (`components/common/NutDichCau`), bam moi hien ban dich.
 - Cai dat hoc (`utils/caiDatHocTap.js`) theo khoa: `flashcard`, `quiz`, `tuluan`, `ngheviet`, `nguCanh`, `noiTu`, `honHop`, `luyenTap`, `onTap` (`cheDoTheoLevel`, mac dinh Lv0 the, Lv1-2 trac nghiem, Lv3-5 go tu; tu Lv3 tat goi y).
 - URL trang hoc: `?filter=&sort=&q=&n=&random=`. `n` = so tu toi da cua phien; `random=1|0` ghi de cai dat ngau nhien da luu. Seed xao tron doi moi lan mo trang (`taoHatGiong`).
 - `hooks/useBoTuHoc`: tai deck + cards (fallback du lieu mau). `hooks/usePhanThuongPhien`: thanh tien do + reward. `hooks/useLuuKetQuaPhien`: tao/ket thuc study session, luu dap an (server cap nhat SRS), streak (chi goi `/user/stats` khi co token).
@@ -235,6 +242,8 @@ Che do moi nen ghep tu cac phan nay thay vi copy Quiz/Tu luan:
 
 - `utils/baiTapKhoaHoc.js`: cham bai (giong backend `utils/khoaHoc.js`), `phanBaiTap`/`nhomPhanBaiTap` (nhom chip theo nguon: Trong bai / Bai thi / Luyen them), `layCauBaiChinh` (bo cau luyen them), `tienDoBuoiHoc`, `timBuoiTiepTheo` (buoi gan nhat dang hoc do, xong thi buoi ke), `tongHopKhoaHoc` (tong ca khoa cho Dashboard/Thong ke).
 - `BaiTapKhoaHoc`: moi cau tra loi goi `POST /course-questions/:id/answer` (loi mang khong chan lam bai) roi AI giai thich; "Tat ca"/"Con lai" chi gom cau cua tai lieu; da lam do thi mo san "Con lai". Prop `onTap`: lam het cau duoc truyen vao, an chip, ghi "Buoi X" tren moi cau.
+- Duoi loi giai thich AI (2026-10-10): 👍/👎 (👎 = AI viet lai, cap nhat kho `utils/soanTruocGiaiThich.capNhatGiaiThich`) va "Hoi LearnBot them" (`ChatbotContext.useHoiLearnBot` mo widget, gui san de + dap an + loi giai thich, `taoCauHoiLearnBot`).
+- `/review`: on xong tu (hoac khong co tu den han) thi hien tiep cau bai tap den han (`components/OnCauBaiTapDenHan`, lazy). So tren tab "On tap" = tu + cau bai tap den han (BoCuc doc `/courses` luc ranh).
 
 ---
 
@@ -260,7 +269,7 @@ Schema day du: `backend/database/schema.sql` (khop migration 001..012). Bang:
 
 Migration moi: them file `backend/database/migrations/00N_*.sql`, cap nhat `schema.sql` cho khop, **chay tay len Cloud SQL TRUOC khi push** code can bang/cot moi (backend tu deploy khi push). Da chay tren production: 001..012.
 
-Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). `npm run seed:roadmaps` nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
+Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`; phien am IPA giong My o muc `phien_am` (`{ tu: "/.../" }`), seed ghi vao `cards.pronunciation`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). `npm run seed:roadmaps` nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
 
 Khoa hoc rieng (tai lieu co ban quyen, chi chu khoa xem): noi dung o `backend/database/private-content/khoa-hoc-48-ngay/bai-XX/{lesson,exercises,answers}.json` + `extra.json` (luyen them, khong bat buoc) — da `.gitignore`, KHONG commit. Dinh dang + prompt trich PDF: `docs/khoa-hoc-48-ngay.md`.
 
@@ -281,9 +290,12 @@ Nhap nhanh tu (trang chi tiet bo tu, nut "Them nhanh"): `components/NhapNhanhTu.
 | `hocTA.cardFavorites` | `data/duLieuMau.js` | favorite cua mock data |
 | `hoc_tu_vung_progress` | `utils/tienDoHocTap.js` | tien do flashcard/quiz gan nhat theo deck |
 | `learnta_user_study_settings` | `utils/caiDatHocTap.js` | cai dat hoc theo mode |
-| `streak_drop_srs_v1` | `utils/srsReview.js` | ban sao SRS (cung luat voi `srs.js`); khi dang nhap, du lieu tu `/reviews` ghi de ban local |
+| `streak_drop_srs_v1` | `utils/srsReview.js` | ban sao SRS (cung luat voi `srs.js`); khi dang nhap, du lieu tu `/reviews` ghi de ban local. Doc tu ban da parse trong bo nho (su kien `storage` cua tab khac -> doc lai); ghi xuong localStorage luc ranh (toi da 1 s, gop nhieu lan ghi), `pagehide`/an tab ghi ngay (`ghiNgayKhoSRS`). Muc nhan tu server co `trenServer: true` -> `dongBoSRSLenBackend` khong gui lai (chia lo 200) |
 | `streak_drop_mistake_notebook_v1` | `utils/mistakeNotebook.js` | so tu sai; khi dang nhap dong bo voi `/mistakes` (khach chi luu local) |
 | `streak_drop_study_sessions_v1` | `utils/studySessionHistory.js` | lich su phien hoc |
+| `learnta_hang_doi_video` | `components/RewardTikTokEffect.jsx` | hang doi video thuong da xao (vao lai trang hoc dung dung file da co trong cache HTTP) |
+
+Bo nho dem GET trong RAM (`services/api.js` `layCoBoNho`, 20 s, theo token + url + params): `/decks`, `/decks/:id`, `/decks/:id/cards`, `/courses`, `/courses/:id/lessons/:n`, `/user/stats`, `/study-sessions/summary`. Moi request ghi (POST/PUT/PATCH/DELETE) va doi tai khoan xoa sach. Them GET doc nhieu moi -> dung `layCoBoNho`.
 
 Tien do va ket qua bai tap khoa hoc KHONG luu local — chi tren server (`course_question_progress`).
 
@@ -354,6 +366,20 @@ Deploy (push `main`):
 - Migration: chay tay truoc khi push (muc 7).
 
 ---
+
+## 11b. Hieu nang (2026-10-09, xem `docs/KE_HOACH_NANG_CAP_2026-10.md`)
+
+- Tai trang: `utils/taiTruocTrang.js` — route moi dang ky trong `App.jsx` bang `lazy(dangKyTrang(duongDan, tai, taiDuLieu?))`: re/cham link tai truoc JS, cham tai truoc du lieu (vao `layCoBoNho`), mo app tai JS + du lieu trang hien tai song song voi `/auth/me`, luc ranh tai dan trang hay vao.
+- `motion` dung `LazyMotion` (`main.jsx`, `utils/tinhNangMotion.js`): component dung `<m.*>`, KHONG dung `<motion.*>` (keo ca goi tinh nang vao chunk chinh).
+- Tranh `drag`/`layout`/`layoutId` cua motion o man hoc: kem bo do layout (projection) doc scroll trang giua luc DOM doi -> ep layout. Flashcard tu xu ly keo bang pointer events (`TheKeoDuoc`).
+- Danh sach dai: `content-visibility: auto` + `contain-intrinsic-size` (vd `.ui-word-row`); khong dat cho phan tu co menu/tooltip tran ra ngoai (paint containment cat mat).
+- Truoc khi phan tu dang focus bi go/disabled: `blur()` truoc (React doc scroll moi phan tu cha de khoi phuc focus).
+- Font tu host trong `public/fonts` (OFL), `@font-face` nhung trong `index.html`; Vercel `/assets` + `/fonts` immutable.
+- Backend: `compression` (luong giai thich AI dat `no-transform`), CORS `maxAge` 7200. axios timeout 25 s, goi AI 90 s (`THOI_GIAN_CHO_AI_MS`).
+
+- Kho JSON lon tren may: dung `utils/khoTrenMay.js` (`taoKhoTrenMay(ten)` → doc tu bo nho, ghi luc ranh, `ghiNgay` khi roi trang) — dang dung cho SRS va so tu sai. Lich su phien (`studySessionHistory`) ghi dong bo (hang cho gui lai can an toan), chi giu dap an 30 phien gan nhat.
+- Loi: `components/common/LoiGiaoDien` (ErrorBoundary o `main.jsx`); route lazy dang ky qua `dangKyTrang` tu tai lai trang 1 lan khi gap file JS cu sau deploy; `utils/baoLoi.js` gui loi ve `POST /api/client-errors` (log Cloud Run `client_error`). Backend log `slow_request` (>= 800 ms, `middleware/logRequestCham.js`).
+- Quet loi moi trang: `cd frontend && npm run quet-loi -- <url> [token]`.
 
 ## 12. Nguyen tac khi sua code
 

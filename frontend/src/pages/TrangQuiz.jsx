@@ -7,6 +7,7 @@ import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
 import ThanhTienDoPhien from "../components/common/ThanhTienDoPhien";
 import TheCauHoiPhien from "../components/common/TheCauHoiPhien";
+import NutDichCau from "../components/common/NutDichCau";
 import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
 import { getTenseExamples } from "../data/tenseExamples";
 import RewardTikTokEffect, {
@@ -664,6 +665,8 @@ function TrangQuiz({ loai }) {
               : ttsSpeak(cauHienTai.cauHoi, cheDo === "en-vi" ? "en-US" : "vi-VN")
           }
         />
+
+        {laNguCanh && cauHienTai.the?.id && <NutDichCau key={`dich-${cauHienTai.id}`} the={cauHienTai.the} />}
 
         <DanhSachDapAn
           key={`answers-${cauHienTai.id}`}

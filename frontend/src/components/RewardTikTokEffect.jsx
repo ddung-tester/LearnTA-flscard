@@ -22,6 +22,34 @@ const VIDEO_READY_STATE_CAN_DRAW = 2;
 const DO_LECH_GUONG_TUA = 0.25;
 const DO_LECH_GUONG_CHINH_TOC = 0.04;
 const REWARD_VIDEO_READY_TIMEOUT_MS = 2600;
+// Tải trước video sau khi trang học đã tải xong dữ liệu + JS (không tranh băng thông lúc mở trang trên 4G);
+// thưởng chỉ đến sau nhiều câu đúng nên vẫn tải kịp, chưa kịp thì màn "tụ phép" chờ như cũ
+const TRE_TAI_VIDEO_MS = 3000;
+// Nhớ hàng đợi video giữa các lần vào trang: vào lại dùng đúng file đã nằm trong cache HTTP
+// thay vì xáo lại và tải một video khác (~2 MB mỗi lần)
+const KHOA_HANG_DOI_VIDEO = "learnta_hang_doi_video";
+
+function docHangDoiVideo(danhSach) {
+  try {
+    const luu = JSON.parse(localStorage.getItem(KHOA_HANG_DOI_VIDEO) || "null");
+    const hopLe =
+      Array.isArray(luu?.queue) &&
+      luu.queue.length === danhSach.length &&
+      luu.queue.every((src) => danhSach.includes(src)) &&
+      Number.isInteger(luu.index);
+    return hopLe ? luu : null;
+  } catch {
+    return null;
+  }
+}
+
+function ghiHangDoiVideo(queue, index) {
+  try {
+    localStorage.setItem(KHOA_HANG_DOI_VIDEO, JSON.stringify({ queue, index }));
+  } catch {
+    // Không lưu được thì lần sau xáo lại như cũ
+  }
+}
 
 function RewardTikTokEffect({
   active,
@@ -102,6 +130,7 @@ function RewardTikTokEffect({
     }
     videoQueueRef.current = shuffled;
     videoQueueIndexRef.current = 0;
+    ghiHangDoiVideo(shuffled, 0);
   }
 
   // Xem trước video tiếp theo KHÔNG tiến hàng đợi (dùng khi preload)
@@ -128,6 +157,7 @@ function RewardTikTokEffect({
 
     const video = videoQueueRef.current[videoQueueIndexRef.current] || "";
     videoQueueIndexRef.current += 1;
+    ghiHangDoiVideo(videoQueueRef.current, videoQueueIndexRef.current);
     if (video) videoDaPhatGanNhatRef.current = video;
     return video;
   }
@@ -256,7 +286,13 @@ function RewardTikTokEffect({
   useEffect(() => {
     if (!videoSrc || dangRenderReward || banTaiSan.src === videoSrc) return undefined;
     const huy = new AbortController();
-    fetch(videoSrc, { signal: huy.signal, priority: "low" })
+    const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 0));
+    const huyRanh = window.cancelIdleCallback ?? window.clearTimeout;
+    let idRanh = 0;
+    const henGio = window.setTimeout(() => {
+      idRanh = henRanh(taiVideo, { timeout: 4000 });
+    }, TRE_TAI_VIDEO_MS);
+    const taiVideo = () => fetch(videoSrc, { signal: huy.signal, priority: "low" })
       .then((res) => {
         if (!res.ok) throw new Error("Khong tai duoc video");
         return res.blob();
@@ -267,7 +303,11 @@ function RewardTikTokEffect({
         setBanTaiSan({ src: videoSrc, url: URL.createObjectURL(blob) });
       })
       .catch(() => {});
-    return () => huy.abort();
+    return () => {
+      window.clearTimeout(henGio);
+      huyRanh(idRanh);
+      huy.abort();
+    };
   }, [videoSrc, dangRenderReward, banTaiSan.src]);
 
   // Chỉ giữ một bản trong bộ nhớ: thả bản cũ khi đã có bản mới hoặc khi rời trang
@@ -278,10 +318,11 @@ function RewardTikTokEffect({
     };
   }, [banTaiSan.url]);
 
-  // Reset hàng đợi mỗi khi danh sách video thay đổi (manifest mới)
+  // Danh sách video thay đổi (manifest mới): dùng tiếp hàng đợi đã lưu nếu còn khớp, không thì xáo lại
   useEffect(() => {
-    videoQueueRef.current = [];
-    videoQueueIndexRef.current = 0;
+    const luu = docHangDoiVideo(danhSachVideo);
+    videoQueueRef.current = luu ? luu.queue : [];
+    videoQueueIndexRef.current = luu ? luu.index : 0;
   }, [danhSachVideo]);
 
   useEffect(() => {

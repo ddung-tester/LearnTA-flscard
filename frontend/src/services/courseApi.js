@@ -1,16 +1,12 @@
-import api, { getStoredAuthToken } from "./api";
+import api, { getStoredAuthToken, layCoBoNho, THOI_GIAN_CHO_AI_MS } from "./api";
 import { buildApiUrl } from "../config/api";
 
 export async function layDanhSachKhoaHoc() {
-  const response = await api.get("/courses");
-  return response.data;
+  return layCoBoNho("/courses");
 }
 
 export async function layBaiHoc(courseId, soBai) {
-  const response = await api.get(
-    `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}`
-  );
-  return response.data;
+  return layCoBoNho(`/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}`);
 }
 
 /** Câu bài tập đến hạn ôn (từng làm sai) của mọi khoá, mỗi câu kèm lesson_number và course_id */
@@ -40,8 +36,23 @@ export async function luuTraLoiCauHoi(questionId, answer) {
  * để lúc người học trả lời thì lời giải thích đã có sẵn. Lỗi không ảnh hưởng việc học.
  */
 export async function chuanBiGiaiThich(questionId) {
-  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`);
+  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/prepare`, {}, {
+    timeout: THOI_GIAN_CHO_AI_MS,
+  });
   return response.data;
+}
+
+/**
+ * Người học chấm lời giải thích AI. tot=true: chỉ ghi nhận (trả null).
+ * tot=false: AI viết lại, trả { explanation } bản mới (server đã ghi đè bản cũ).
+ */
+export async function danhGiaGiaiThich(questionId, answer, tot) {
+  const response = await api.post(
+    `/course-questions/${encodeURIComponent(questionId)}/explanation-feedback`,
+    { answer, tot },
+    { timeout: THOI_GIAN_CHO_AI_MS }
+  );
+  return tot ? null : response.data;
 }
 
 /**
@@ -49,7 +60,7 @@ export async function chuanBiGiaiThich(questionId) {
  * onChunk (tuỳ chọn): nhận toàn bộ chữ đã có mỗi khi AI viết thêm (server gửi dần, ?stream=1).
  * Trả về { explanation } khi xong.
  */
-export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
+export async function giaiThichCauHoi(questionId, answer, { onChunk, chiDongSai = false } = {}) {
   const duongDan = `/course-questions/${encodeURIComponent(questionId)}/explain`;
   if (!onChunk || typeof ReadableStream === "undefined") {
     const response = await api.post(duongDan, { answer });
@@ -58,7 +69,8 @@ export async function giaiThichCauHoi(questionId, answer, { onChunk } = {}) {
 
   // axios không đọc được luồng trong trình duyệt, nên dùng fetch
   const token = getStoredAuthToken();
-  const response = await fetch(buildApiUrl(`/api${duongDan}?stream=1`), {
+  // chiDongSai: máy đã hiện sẵn "Đúng vì" + "Nhớ", server chỉ cần gửi dòng "Sai vì"
+  const response = await fetch(buildApiUrl(`/api${duongDan}?stream=1${chiDongSai ? "&chiDongSai=1" : ""}`), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -1,8 +1,7 @@
-import api from "./api";
+import api, { layCoBoNho, THOI_GIAN_CHO_AI_MS } from "./api";
 
 export async function layCardsTheoDeck(deckId) {
-  const response = await api.get(`/decks/${deckId}/cards`);
-  return response.data;
+  return layCoBoNho(`/decks/${deckId}/cards`);
 }
 
 export async function taoCard(deckId, payload) {
@@ -45,7 +44,7 @@ export async function xoaCard(cardId) {
  * @returns {Promise<Array>} Mảng 6 objects { tense, formula, sentence, highlight, translation }
  */
 export async function sinhCauMauAI(payload) {
-  const response = await api.post("/cards/generate-examples", payload);
+  const response = await api.post("/cards/generate-examples", payload, { timeout: THOI_GIAN_CHO_AI_MS });
   return response.data.examples;
 }
 
@@ -58,7 +57,7 @@ export async function chamCauAI({ termEn, meaningVi, cau }) {
     term_en: termEn,
     meaning_vi: meaningVi,
     cau,
-  });
+  }, { timeout: THOI_GIAN_CHO_AI_MS });
   return response.data;
 }
 
@@ -71,6 +70,14 @@ export async function taoTuBangAI({ chuDe = "", doanVan = "", soLuong = 15 }) {
     chu_de: chuDe,
     doan_van: doanVan,
     so_luong: soLuong,
-  });
+  }, { timeout: THOI_GIAN_CHO_AI_MS });
   return response.data.words;
+}
+
+/** Bản dịch câu ví dụ của thẻ: server trả bản có sẵn, chưa có thì AI dịch rồi lưu lại. */
+export async function dichCauViDu(cardId) {
+  const response = await api.post(`/cards/${encodeURIComponent(cardId)}/translate-example`, {}, {
+    timeout: THOI_GIAN_CHO_AI_MS,
+  });
+  return response.data.example_translation;
 }

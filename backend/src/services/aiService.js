@@ -192,7 +192,11 @@ function textOfOption(question, key) {
   return (question.options || []).find((option) => option.key === key)?.text || "";
 }
 
-// Phần mô tả câu hỏi dùng chung cho prompt giải thích một câu trả lời và prompt soạn trước mọi câu trả lời
+const TEN_PHAN = { ngu_phap: "ngữ pháp", tu_vung: "từ vựng", nghe: "nghe", doc: "đọc hiểu" };
+
+// Phần mô tả câu hỏi dùng chung cho prompt giải thích một câu trả lời và prompt soạn trước mọi câu trả lời.
+// Ngữ pháp của bài chỉ để tham khảo: trước đây ghi là "kiến thức trọng tâm" khiến AI hay mở đầu bằng
+// nhắc lại lý thuyết chung của bài, lệch khỏi điểm mà chính câu này kiểm tra (nhất là câu từ vựng).
 function moTaDeBai({ lessonTitle, grammar, question }) {
   const isMultipleChoice = question.type === "multiple_choice";
   const focus = grammar
@@ -205,10 +209,12 @@ function moTaDeBai({ lessonTitle, grammar, question }) {
     ? `${question.answer_key}. ${textOfOption(question, question.answer_key)}`
     : question.accepted_answers.join(" / ");
 
-  return `Bài học: ${lessonTitle}
-Kiến thức trọng tâm của bài:
-${focus || "- (không có)"}
+  const phan = TEN_PHAN[question.section] || question.section;
 
+  return `Bài học: ${lessonTitle}
+Ngữ pháp của bài (chỉ để tham khảo, KHÔNG nhắc lại nếu câu này không kiểm tra đúng điểm đó):
+${focus || "- (không có)"}
+${phan && phan !== "khac" ? `Câu này thuộc phần: ${phan}\n` : ""}
 Câu hỏi:${question.instruction ? ` (${question.instruction})` : ""}
 ${question.prompt}
 ${question.listen_text ? `Lời thoại người học được nghe: ${question.listen_text}\n` : ""}Các lựa chọn:
@@ -221,11 +227,17 @@ ${question.explanation ? `Gợi ý có sẵn: ${question.explanation}\n` : ""}`;
 const LUAT_TRINH_BAY =
   "Được **in đậm** từ khoá; không dùng định dạng markdown khác, không lời chào, không chép lại đề bài.";
 
+// Bám đúng câu đang hỏi, không giảng lại lý thuyết chung
+const LUAT_NOI_DUNG = `- Chỉ giải thích đúng điểm mà CÂU NÀY kiểm tra (ngữ pháp, hay nghĩa/cách dùng của từ), dựa vào chính các từ trong câu và câu trả lời.
+- KHÔNG nhắc lại lý thuyết chung của bài, không mở đầu bằng định nghĩa hay tên chủ điểm.
+- Dòng đầu đi thẳng vào câu trả lời: trích đúng từ đó (in đậm) và nói vì sao nó đúng/sai trong câu này.
+- Dòng "Nhớ" là mẹo cho đúng trường hợp này (câu từ vựng: nghĩa/cách dùng của từ); ví dụ là một câu MỚI, không chép lại đề.`;
+
 /**
  * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
  *           learnerAnswer: string, isCorrect: boolean }} input — câu hỏi đọc từ DB
  */
-function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect }) {
+function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerAnswer, isCorrect, banCu }) {
   const answer =
     question.type === "multiple_choice"
       ? `${learnerAnswer}. ${textOfOption(question, learnerAnswer)}`
@@ -234,10 +246,27 @@ function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerA
   return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Hãy giải thích một câu bài tập người học vừa làm.
 
 ${moTaDeBai({ lessonTitle, grammar, question })}Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
-
+${banCu ? `\nBản giải thích trước người học thấy CHƯA ỔN (sai, lan man hoặc khó hiểu):\n${banCu}\nHãy viết lại: kiểm tra kỹ kiến thức, sửa chỗ chưa đúng, đi thẳng vào điểm câu này kiểm tra, diễn đạt khác bản trước.\n` : ""}
 Trả lời bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "2" : "3"} dòng theo mẫu:
 ${isCorrect ? MAU_GIAI_THICH_DUNG : MAU_GIAI_THICH_SAI}
+${LUAT_NOI_DUNG}
 ${LUAT_TRINH_BAY}`;
+}
+
+/**
+ * Câu gõ sai chưa có lời soạn sẵn nhưng đáp án đúng đã có: chỉ xin 1 dòng "Sai vì" (ngắn → về nhanh),
+ * hai dòng "Đúng vì" + "Nhớ" ghép từ lời của đáp án đúng (utils/khoaHoc.tachPhanDungCuaGiaiThich).
+ */
+function buildWrongLinePrompt({ lessonTitle, grammar, question, learnerAnswer, phanDung }) {
+  return `Bạn là giáo viên tiếng Anh tận tâm cho người Việt mất gốc (trình độ A1–B1). Người học vừa gõ SAI một câu điền từ.
+
+${moTaDeBai({ lessonTitle, grammar, question })}Người học gõ: "${learnerAnswer}" → SAI
+Phần giải thích đáp án đúng đã có sẵn (KHÔNG lặp lại):
+${phanDung}
+
+Viết ĐÚNG 1 dòng tiếng Việt (tối đa 30 từ) theo mẫu:
+Sai vì: <chỗ sai cụ thể trong chính câu người học gõ — trích từ sai, in đậm — và vì sao sai trong câu này>
+Không viết thêm dòng nào khác. ${LUAT_TRINH_BAY}`;
 }
 
 /**
@@ -255,6 +284,7 @@ function buildAllAnswersPrompt(input) {
 ${moTaDeBai(input)}
 Soạn lời giải thích cho: ${canSoan}.
 Mỗi lời giải thích bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, xuống dòng bằng \\n, và nói đúng vào lỗi của chính câu trả lời đó.
+${LUAT_NOI_DUNG}
 - Câu trả lời SAI viết đúng 3 dòng:
 ${MAU_GIAI_THICH_SAI}
 - Câu trả lời ĐÚNG viết đúng 2 dòng:
@@ -265,10 +295,10 @@ Chỉ trả về JSON dạng: {"giai_thich": [{"tra_loi": "<${isMultipleChoice ?
 }
 
 const MAU_NHO = "Nhớ: <quy tắc hoặc công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)";
-const MAU_GIAI_THICH_DUNG = `Đúng rồi: <1 câu vì sao đáp án này đúng>
+const MAU_GIAI_THICH_DUNG = `Đúng rồi: <1 câu vì sao đáp án này hợp với chính câu này>
 ${MAU_NHO}`;
-const MAU_GIAI_THICH_SAI = `Sai vì: <1 câu vì sao câu trả lời của người học sai>
-Đúng vì: <1 câu vì sao đáp án đúng là đúng>
+const MAU_GIAI_THICH_SAI = `Sai vì: <1 câu chỉ ra chỗ sai cụ thể trong câu trả lời của người học>
+Đúng vì: <1 câu vì sao đáp án đúng hợp với chính câu này>
 ${MAU_NHO}`;
 
 // Model chính giống chatbot LearnBot (chất lượng hơn); quá tải (503) hoặc hết lượt thì dùng bản lite
@@ -285,6 +315,16 @@ const MODEL_GIAI_THICH_NHANH = [
   { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
 ];
 const THOI_HAN_GIAI_THICH_MS = 8000;
+// Viết lại khi người học chê: ưu tiên chất lượng hơn tốc độ (model flash, suy nghĩ "low";
+// token suy nghĩ tính vào maxOutputTokens nên nới trần để lời giải thích không bị cắt)
+const MODEL_VIET_LAI = [
+  {
+    model: "gemini-3.6-flash",
+    generationConfig: { maxOutputTokens: 1200, thinkingConfig: { thinkingLevel: "low" } },
+  },
+  { model: "gemini-3.5-flash", generationConfig: THINKING_TOI_THIEU },
+  { model: "gemini-flash-lite-latest" },
+];
 const TOKEN_GIAI_THICH_TOI_DA = 260;
 
 /**
@@ -296,7 +336,7 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
   if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const prompt = buildCourseExplanationPrompt(input);
+  const prompt = input.phanDung ? buildWrongLinePrompt(input) : buildCourseExplanationPrompt(input);
   let lastError;
 
   for (const mucModel of xepTheoLuot(models)) {
@@ -331,9 +371,10 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
   throw lastError;
 }
 
-const SO_LOI_THUONG_GAP = 4;
+// Câu điền từ: soạn sẵn nhiều lỗi hay gặp hơn để câu gõ sai thường đã có lời giải thích (hiện ngay)
+const SO_LOI_THUONG_GAP = 6;
 const THOI_HAN_SOAN_TRUOC_MS = 15000;
-const TOKEN_SOAN_TRUOC_TOI_DA = 1400;
+const TOKEN_SOAN_TRUOC_TOI_DA = 1800;
 
 function docJsonAI(text) {
   const clean = String(text || "").replace(/```json?\s*/gi, "").replace(/```/g, "").trim();
@@ -526,11 +567,48 @@ async function checkLearnerSentence(input, { models = MODEL_GIAI_THICH_NHANH } =
   throw lastError;
 }
 
+// ── Dịch câu ví dụ của thẻ (chế độ Ngữ cảnh → "Dịch câu") ───────────────────────
+
+function buildExampleTranslationPrompt({ sentence, termEn, meaningVi }) {
+  return `Dịch câu tiếng Anh sau sang tiếng Việt tự nhiên, dễ hiểu cho người mới học. Trong câu, từ "${termEn}" mang nghĩa "${meaningVi}".
+Câu: """${sentence}"""
+Chỉ trả về MỘT dòng là câu tiếng Việt đã dịch, không giải thích, không ngoặc kép.`;
+}
+
+async function translateExampleSentence(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildExampleTranslationPrompt(input);
+  let lastError;
+  for (const mucModel of xepTheoLuot(models)) {
+    try {
+      const model = genAI.getGenerativeModel(
+        { model: mucModel.model, generationConfig: { maxOutputTokens: 200, ...mucModel.generationConfig } },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      const result = await model.generateContent(prompt);
+      const banDich = result.response.text().trim().split(/\n+/)[0].replace(/^["“]|["”]$/g, "").trim();
+      if (!banDich) throw new Error("AI trả về bản dịch trống");
+      return banDich.slice(0, 500);
+    } catch (error) {
+      ghiNhanLoi(mucModel, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
+  buildExampleTranslationPrompt,
+  translateExampleSentence,
+  MODEL_VIET_LAI,
   generateTenseExamples,
   generateVocabulary,
   parseVocabularyResponse,
   buildCourseExplanationPrompt,
+  buildWrongLinePrompt,
   explainCourseQuestion,
   THINKING_TOI_THIEU,
   buildAllAnswersPrompt,

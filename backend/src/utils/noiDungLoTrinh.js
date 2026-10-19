@@ -3,7 +3,9 @@
 // Không xoá từ đã có (người học có thể đã có tiến độ trên các từ đó).
 
 const SLUG_HOP_LE = /^[a-z0-9-]{1,80}$/;
-const GIOI_HAN = { term_en: 255, part_of_speech: 50, meaning_vi: 255 };
+const GIOI_HAN = { term_en: 255, part_of_speech: 50, meaning_vi: 255, pronunciation: 255 };
+// Phiên âm IPA đặt trong dấu gạch chéo: "/ˈfæməli/"
+const PHIEN_AM_HOP_LE = /^\/[^/]+\/$/;
 
 function thoatRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -14,9 +16,11 @@ function cauChuaTu(cau, tu) {
   return new RegExp(`\\b${thoatRegex(tu)}`, "i").test(cau);
 }
 
-function chuanHoaTu([term_en, part_of_speech, meaning_vi, example_sentence, note = ""]) {
+function chuanHoaTu([term_en, part_of_speech, meaning_vi, example_sentence, note = ""], phienAm = {}) {
+  const tu = String(term_en || "").trim();
   return {
-    term_en: String(term_en || "").trim(),
+    term_en: tu,
+    pronunciation: String(phienAm[tu.toLowerCase()] || "").trim(),
     part_of_speech: String(part_of_speech || "").trim(),
     meaning_vi: String(meaning_vi || "").trim(),
     example_sentence: String(example_sentence || "").trim(),
@@ -24,7 +28,15 @@ function chuanHoaTu([term_en, part_of_speech, meaning_vi, example_sentence, note
   };
 }
 
+// phien_am: { "từ": "/IPA/" } dùng chung cho mọi bộ (không phải chép lại khi một từ nằm ở nhiều bộ)
+function bangPhienAm(noiDung) {
+  return Object.fromEntries(
+    Object.entries(noiDung.phien_am || {}).map(([tu, ipa]) => [tu.trim().toLowerCase(), ipa])
+  );
+}
+
 function chuanHoaNoiDungLoTrinh(noiDung) {
+  const phienAm = bangPhienAm(noiDung);
   return (noiDung.roadmaps || []).map((loTrinh) => ({
     slug: loTrinh.slug,
     title: String(loTrinh.title || "").trim(),
@@ -34,7 +46,7 @@ function chuanHoaNoiDungLoTrinh(noiDung) {
       key: bo.key,
       title: String(bo.title || "").trim(),
       description: String(bo.description || "").trim(),
-      words: (bo.words || []).map(chuanHoaTu),
+      words: (bo.words || []).map((tu) => chuanHoaTu(tu, phienAm)),
     })),
   }));
 }
@@ -51,6 +63,7 @@ function kiemTraNoiDungLoTrinh(noiDung) {
     return ["Thiếu mảng roadmaps"];
   }
 
+  const tuCoPhienAm = new Set();
   for (const loTrinh of chuanHoaNoiDungLoTrinh(noiDung)) {
     const noi = `Lộ trình "${loTrinh.slug}"`;
     if (!SLUG_HOP_LE.test(loTrinh.slug || "")) loi.push(`${noi}: slug không hợp lệ`);
@@ -77,12 +90,21 @@ function kiemTraNoiDungLoTrinh(noiDung) {
         const khoa = tu.term_en.toLowerCase();
         if (tuDaCo.has(khoa)) loi.push(`${noiTu}: bị trùng trong bộ`);
         tuDaCo.add(khoa);
+        if (tu.pronunciation) {
+          tuCoPhienAm.add(khoa);
+          if (!PHIEN_AM_HOP_LE.test(tu.pronunciation)) loi.push(`${noiTu}: phiên âm phải dạng /.../`);
+        }
         if (!tu.example_sentence) loi.push(`${noiTu}: thiếu câu ví dụ`);
         else if (!cauChuaTu(tu.example_sentence, tu.term_en)) {
           loi.push(`${noiTu}: câu ví dụ không chứa từ (chế độ Ngữ cảnh sẽ bỏ qua từ này)`);
         }
       });
     }
+  }
+
+  // Phiên âm của từ không có trong lộ trình nào: thường là gõ sai tên từ
+  for (const tu of Object.keys(bangPhienAm(noiDung))) {
+    if (!tuCoPhienAm.has(tu)) loi.push(`phien_am "${tu}": không có từ này trong lộ trình nào`);
   }
 
   return loi;
@@ -125,20 +147,27 @@ async function napBoTu(connection, roadmapId, bo, thuTu, thongKe) {
 
   for (const [index, tu] of bo.words.entries()) {
     const cardId = theoTu.get(tu.term_en.toLowerCase());
-    const noiDung = [tu.meaning_vi, tu.example_sentence, tu.part_of_speech || null, tu.note, index];
+    const noiDung = [
+      tu.meaning_vi,
+      tu.example_sentence,
+      tu.part_of_speech || null,
+      tu.note,
+      tu.pronunciation || null,
+      index,
+    ];
 
     if (cardId) {
       await connection.execute(
         `UPDATE cards
-         SET meaning_vi = ?, example_sentence = ?, part_of_speech = ?, note = ?, sort_order = ?
+         SET meaning_vi = ?, example_sentence = ?, part_of_speech = ?, note = ?, pronunciation = ?, sort_order = ?
          WHERE id = ?`,
         [...noiDung, cardId]
       );
       thongKe.tuCapNhat += 1;
     } else {
       await connection.execute(
-        `INSERT INTO cards (meaning_vi, example_sentence, part_of_speech, note, sort_order, deck_id, term_en)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO cards (meaning_vi, example_sentence, part_of_speech, note, pronunciation, sort_order, deck_id, term_en)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [...noiDung, deckId, tu.term_en]
       );
       thongKe.tuMoi += 1;

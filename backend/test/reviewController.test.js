@@ -26,6 +26,7 @@ function fakeDb({ readable = true, progress = null, review = REVIEW_ROW } = {}) 
   const state = { queries: [], executed: [] };
   const handler = {
     async query(sql, params) {
+      if (sql.includes("AS bayGio")) return [[{ bayGio: new Date("2026-10-10T08:00:00Z") }]];
       state.queries.push({ sql, params });
       if (sql.includes("SELECT c.id")) return [readable ? [{ id: params[0] }] : []];
       if (sql.includes("FROM card_progress cp")) return [review ? [review] : []];
@@ -54,6 +55,11 @@ function fakeRes() {
   return {
     statusCode: 200,
     body: undefined,
+    headers: {},
+    set(name, value) {
+      this.headers[name] = value;
+      return this;
+    },
     status(code) {
       this.statusCode = code;
       return this;
@@ -87,6 +93,23 @@ test("GET /reviews/due only returns due words (Lv5 included)", async () => {
 test("GET /reviews lists everything unless asked for due words", async () => {
   await reviewController.listReviews(fakeReq(), fakeRes());
   assert.doesNotMatch(db.queries[0].sql, /next_review_at <= CURRENT_TIMESTAMP/);
+});
+
+test("GET /reviews?since only returns rows changed since the cursor and sends the next cursor", async () => {
+  const res = fakeRes();
+  await reviewController.listReviews(fakeReq({ query: { since: "2026-10-10T07:00:00.000Z" } }), res);
+
+  const [{ sql, params }] = db.queries;
+  assert.match(sql, /cp\.updated_at >= \? OR c\.updated_at >= \? OR d\.updated_at >= \?/);
+  // Lùi 5 s so với mốc để không sót giao dịch ghi xong ngay sau lúc lấy mốc
+  const tu = new Date("2026-10-10T06:59:55.000Z").getTime();
+  assert.deepEqual(params.filter((p) => p instanceof Date).map((d) => d.getTime()), [tu, tu, tu]);
+  assert.equal(res.headers["X-Dong-Bo-Luc"], "2026-10-10T08:00:00.000Z");
+
+  // Không có since (hoặc since hỏng): tải đủ như cũ
+  db = fakeDb();
+  await reviewController.listReviews(fakeReq({ query: { since: "khong-phai-ngay" } }), fakeRes());
+  assert.doesNotMatch(db.queries[0].sql, /updated_at >= \?/);
 });
 
 test("wrong result lowers the level by one and makes the word due now", async () => {
@@ -153,11 +176,11 @@ test("bulk sync only inserts missing progress and skips unreadable cards", async
   assert.equal(skipped.body.synced_count, 0);
 });
 
-test("review reads and card writes only query the authenticated owner's decks", async () => {
+test("review reads and card writes only query the owner's decks or roadmap decks", async () => {
   await reviewController.listDueReviews(fakeReq(), fakeRes());
   await reviewController.updateReviewResultByCard(fakeReq({ params: { cardId: "5" }, body: { result: "wrong" } }), fakeRes());
   for (const { sql } of db.queries.filter(call => call.sql.includes("JOIN decks"))) {
-    assert.match(sql, /d\.user_id = \?/);
-    assert.doesNotMatch(sql, /user_id IS NULL|is_public = TRUE/);
+    assert.match(sql, /\(d\.user_id = \? OR \(d\.user_id IS NULL AND EXISTS \(SELECT 1 FROM roadmap_decks/);
+    assert.doesNotMatch(sql, /is_public = TRUE/);
   }
 });

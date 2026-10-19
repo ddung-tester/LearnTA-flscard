@@ -137,26 +137,35 @@ export function khopDapAn(cauTraLoi, dapAn) {
     .some((nghia) => chuanHoaDapAn(nghia) === traLoi);
 }
 
+export const MUC_GOI_Y_TOI_DA = 3;
+const TI_LE_GOI_Y = { 2: 0.4, 3: 0.7 };
+
 /**
- * Gợi ý khi gõ: hiện 40% số ký tự đầu (không tính khoảng trắng, tối thiểu 1), còn lại là "_".
+ * Gợi ý khi gõ, tăng dần theo mức (bấm "Gợi ý" thêm lần nữa thì lộ thêm), còn lại là "_":
+ * mức 1: chữ cái đầu mỗi từ; mức 2: 40% số ký tự đầu; mức 3: 70% (không tính khoảng trắng, tối thiểu 1).
  */
-export function taoGoiY(dapAn) {
+export function taoGoiY(dapAn, muc = 2) {
   const text = String(dapAn || "").trim();
   if (!text) return "";
 
-  const soKyTuGoiY = Math.max(1, Math.ceil(text.replace(/\s/g, "").length * 0.4));
+  const soKyTuGoiY = Math.max(1, Math.ceil(text.replace(/\s/g, "").length * (TI_LE_GOI_Y[muc] ?? 0)));
   let soKyTuDaHien = 0;
   let ketQua = "";
+  let dauTu = true;
 
   for (const kyTu of text) {
     if (/\s/.test(kyTu)) {
       ketQua += kyTu;
-    } else if (soKyTuDaHien < soKyTuGoiY) {
+      dauTu = true;
+      continue;
+    }
+    if (muc === 1 ? dauTu : soKyTuDaHien < soKyTuGoiY) {
       ketQua += kyTu;
       soKyTuDaHien += 1;
     } else {
       ketQua += "_";
     }
+    dauTu = false;
   }
 
   return ketQua;

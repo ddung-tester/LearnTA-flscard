@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
+const { logRequestCham } = require("./middleware/logRequestCham");
 const pool = require("./config/db");
 const { corsOrigins } = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
@@ -14,10 +16,12 @@ const cronRoutes = require("./routes/cronRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const roadmapRoutes = require("./routes/roadmapRoutes");
 const courseRoutes = require("./routes/courseRoutes");
+const clientErrorRoutes = require("./routes/clientErrorRoutes");
 
 const app = express();
 // Cloud Run đứng sau 1 proxy — cần để rate limit đọc đúng IP client
 app.set("trust proxy", 1);
+app.use(logRequestCham);
 const allowedCorsOrigins = new Set(corsOrigins);
 
 app.use(
@@ -37,10 +41,22 @@ app.use(
       callback(new Error(`CORS origin not allowed: ${origin}`));
     },
     credentials: true,
+    // Trình duyệt nhớ kết quả preflight: request có token không phải hỏi OPTIONS lại mỗi lần
+    // (mỗi preflight là thêm một vòng mạng, rất chậm trên điện thoại). Chrome tối đa 2 giờ.
+    maxAge: 7200,
+    // Mốc đồng bộ lịch ôn (GET /reviews) để lần sau chỉ tải phần thay đổi
+    exposedHeaders: ["X-Dong-Bo-Luc"],
   })
 );
+// Nén JSON (danh sách thẻ/tiến độ ~90 KB/trang). Luồng giải thích AI đặt no-transform,
+// audio không thuộc loại nén được → bộ lọc mặc định tự bỏ qua, vẫn gửi dần như cũ.
+app.use(compression());
 app.use(express.json());
 app.use((req, res, next) => {
+  // POST không gửi body (vd. /course-questions/:id/prepare) coi như {} — trước đây bị trả 400 nên
+  // app chưa bao giờ soạn trước được lời giải thích AI. Body JSON không phải object vẫn bị từ chối.
+  const khongCoBody = !Number(req.headers["content-length"]) && !req.headers["transfer-encoding"];
+  if (req.body === undefined && khongCoBody) req.body = {};
   if (
     !req.path.startsWith("/api/cron/") &&
     ["POST", "PUT", "PATCH"].includes(req.method) &&
@@ -83,6 +99,7 @@ app.use("/api/cron", cronRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api", courseRoutes);
+app.use("/api/client-errors", clientErrorRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

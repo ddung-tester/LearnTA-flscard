@@ -11,6 +11,7 @@ const {
   explainQuestion,
   getLesson,
   prepareQuestion,
+  rateExplanation,
   getQuestionAudio,
   listCourses,
   listDueQuestions,
@@ -100,7 +101,9 @@ test("explainQuestion reuses a cached explanation without calling AI", async () 
   await explainQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "b" } }, res);
 
   assert.deepEqual(calls[0].params, [5, 7]);
-  assert.deepEqual(calls[1].params, [5, "B"]);
+  assert.deepEqual(calls[1].params.slice(0, 2), [5, "B"]);
+  // Bản soạn bằng prompt cũ không dùng nữa
+  assert.ok(calls[1].params[2] instanceof Date);
   assert.deepEqual(res.body, { explanation: "Đã lưu", cached: true });
 });
 
@@ -109,7 +112,7 @@ test("explainQuestion grades from the DB, asks AI once and caches the result", a
   let input;
   aiService.explainCourseQuestion = async (value) => {
     input = value;
-    return "Giải thích mới";
+    return "Sai vì: are dùng cho số nhiều.";
   };
   const res = fakeRes();
 
@@ -118,9 +121,9 @@ test("explainQuestion grades from the DB, asks AI once and caches the result", a
   assert.equal(input.isCorrect, false);
   assert.equal(input.learnerAnswer, "B");
   assert.deepEqual(input.grammar, CAU_TRAC_NGHIEM.lesson_content.grammar);
-  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT DO NOTHING/);
-  assert.deepEqual(calls[2].params, [5, "B", "Giải thích mới"]);
-  assert.deepEqual(res.body, { explanation: "Giải thích mới", cached: false });
+  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT \(question_id, answer_norm\)\s+DO UPDATE/);
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì: are dùng cho số nhiều."]);
+  assert.deepEqual(res.body, { explanation: "Sai vì: are dùng cho số nhiều.", cached: false });
 });
 
 test("explainQuestion rejects options that do not exist and other users' questions", async () => {
@@ -174,8 +177,8 @@ test("explainQuestion streams AI text chunk by chunk when stream=1 and caches th
   const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}]);
   aiService.explainCourseQuestion = async (_value, { onChunk }) => {
     onChunk("Sai vì ");
-    onChunk("chủ ngữ số ít.");
-    return "Sai vì chủ ngữ số ít.";
+    onChunk("chủ ngữ số ít dùng is.");
+    return "Sai vì chủ ngữ số ít dùng is.";
   };
   const res = fakeStreamRes();
 
@@ -185,9 +188,9 @@ test("explainQuestion streams AI text chunk by chunk when stream=1 and caches th
   );
 
   assert.match(res.headers["Content-Type"], /text\/plain/);
-  assert.deepEqual(res.chunks, ["Sai vì ", "chủ ngữ số ít."]);
+  assert.deepEqual(res.chunks, ["Sai vì ", "chủ ngữ số ít dùng is."]);
   assert.equal(res.ended, true);
-  assert.deepEqual(calls[2].params, [5, "B", "Sai vì chủ ngữ số ít."]);
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì chủ ngữ số ít dùng is."]);
 });
 
 test("explainQuestion falls back to the question's own hint when AI fails", async () => {
@@ -205,7 +208,16 @@ test("explainQuestion falls back to the question's own hint when AI fails", asyn
 });
 
 test("prepareQuestion asks AI once for every answer and caches only valid ones", async () => {
-  const calls = fakePool([[CAU_TRAC_NGHIEM], [], {}, {}]);
+  const calls = fakePool([
+    [CAU_TRAC_NGHIEM],
+    [],
+    {},
+    {},
+    [
+      { question_id: 5, answer_norm: "A", explanation: "Đúng rồi: số ít dùng is." },
+      { question_id: 5, answer_norm: "B", explanation: "Sai vì: are cho số nhiều." },
+    ],
+  ]);
   let soLanGoi = 0;
   aiService.explainAllAnswers = async (input) => {
     soLanGoi += 1;
@@ -221,15 +233,27 @@ test("prepareQuestion asks AI once for every answer and caches only valid ones",
   await prepareQuestion({ user: { id: 7 }, params: { questionId: "5" } }, res);
 
   assert.equal(soLanGoi, 1);
-  assert.deepEqual(calls[1].params, [5]);
-  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT DO NOTHING/);
+  assert.equal(calls[1].params[0], 5);
+  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT \(question_id, answer_norm\)\s+DO UPDATE/);
   assert.deepEqual(calls[2].params, [5, "A", "Đúng rồi: số ít dùng is."]);
   assert.deepEqual(calls[3].params, [5, "B", "Sai vì: are cho số nhiều."]);
-  assert.deepEqual(res.body, { ready: true, generated: 2 });
+  // Trả luôn lời giải thích để client giữ sẵn, trả lời xong hiện ngay
+  assert.deepEqual(res.body, {
+    ready: true,
+    generated: 2,
+    explanations: { A: "Đúng rồi: số ít dùng is.", B: "Sai vì: are cho số nhiều." },
+  });
 });
 
 test("prepareQuestion skips AI when every answer is already cached", async () => {
-  fakePool([[CAU_TRAC_NGHIEM], [{ answer_norm: "A" }, { answer_norm: "B" }]]);
+  fakePool([
+    [CAU_TRAC_NGHIEM],
+    [{ answer_norm: "A" }, { answer_norm: "B" }],
+    [
+      { question_id: 5, answer_norm: "A", explanation: "x" },
+      { question_id: 5, answer_norm: "B", explanation: "y" },
+    ],
+  ]);
   aiService.explainAllAnswers = async () => {
     throw new Error("không được gọi AI");
   };
@@ -237,7 +261,7 @@ test("prepareQuestion skips AI when every answer is already cached", async () =>
 
   await prepareQuestion({ user: { id: 7 }, params: { questionId: "5" } }, res);
 
-  assert.deepEqual(res.body, { ready: true, generated: 0 });
+  assert.deepEqual(res.body, { ready: true, generated: 0, explanations: { A: "x", B: "y" } });
 });
 
 test("explainQuestion waits for an in-flight prepare instead of calling AI again", async () => {
@@ -245,13 +269,21 @@ test("explainQuestion waits for an in-flight prepare instead of calling AI again
   const soanXong = new Promise((resolve) => {
     xongSoan = resolve;
   });
-  // prepare: đọc câu, cache trống, rồi chờ AI; explain: đọc câu, cache trống, (chờ prepare), đọc lại cache
-  fakePool([[CAU_TRAC_NGHIEM], [], [CAU_TRAC_NGHIEM], [], {}, {}, [{ explanation: "Soạn sẵn" }]]);
+  // Trả lời theo nội dung câu lệnh (thứ tự giữa prepare và explain đan xen)
+  let lanDocCache = 0;
+  pool.query = async (sql) => {
+    if (/FROM course_questions q/.test(sql)) return [[CAU_TRAC_NGHIEM]];
+    if (/SELECT answer_norm FROM/.test(sql)) return [[]];
+    if (/INSERT INTO/.test(sql)) return [{}];
+    if (/question_id IN/.test(sql)) return [[{ question_id: 5, answer_norm: "B", explanation: "Soạn sẵn" }]];
+    lanDocCache += 1;
+    return [lanDocCache === 1 ? [] : [{ explanation: "Soạn sẵn" }]];
+  };
   aiService.explainAllAnswers = async () => {
     await soanXong;
     return [
-      { tra_loi: "A", dung: true, giai_thich: "Đúng" },
-      { tra_loi: "B", dung: false, giai_thich: "Soạn sẵn" },
+      { tra_loi: "A", dung: true, giai_thich: "Đúng: is" },
+      { tra_loi: "B", dung: false, giai_thich: "Soạn sẵn: are sai" },
     ];
   };
   aiService.explainCourseQuestion = async () => {
@@ -478,4 +510,186 @@ test("getQuestionAudio handles source errors and client disconnects without unha
   } finally {
     audioStorage.moAudio = original;
   }
+});
+
+
+const CAU_DIEN_TU = {
+  ...CAU_TRAC_NGHIEM,
+  id: 9,
+  type: "fill_blank",
+  options: null,
+  answer_key: null,
+  accepted_answers: ["was"],
+  explanation: null,
+};
+const GIAI_THICH_DAP_AN_DUNG = "Đúng rồi: **was** đi với chủ ngữ số ít.\nNhớ: I/he/she + **was** — ví dụ: She was tired (Cô ấy mệt)";
+
+function fakeLuongRes() {
+  return {
+    chunks: [],
+    status: null,
+    writeHead(status) {
+      this.status = status;
+    },
+    write(text) {
+      this.chunks.push(text);
+    },
+    end(text) {
+      if (text) this.chunks.push(text);
+      this.ended = true;
+    },
+  };
+}
+
+test("getLesson sends saved explanations with each question and whether every answer is covered", async () => {
+  const calls = fakePool([
+    [{ id: 3, lesson_number: 13, title: "Bài 13", deck_id: 40, content: { grammar: [], notes: [] }, course_id: 1, course_title: "Khoá" }],
+    [CAU_TRAC_NGHIEM, { ...CAU_TRAC_NGHIEM, id: 6 }],
+    [],
+    [{ lesson_number: 13 }],
+    [
+      { question_id: 5, answer_norm: "A", explanation: "a" },
+      { question_id: 5, answer_norm: "B", explanation: "b" },
+      { question_id: 6, answer_norm: "A", explanation: "a6" },
+    ],
+  ]);
+  const res = fakeRes();
+  await getLesson({ user: { id: 7 }, params: { courseId: "1", lessonNumber: "13" } }, res);
+
+  assert.deepEqual(calls[4].params[0], [5, 6]);
+  assert.ok(calls[4].params[1] instanceof Date);
+  assert.deepEqual(res.body.questions[0].explanations, { A: "a", B: "b" });
+  assert.equal(res.body.questions[0].explanations_ready, true);
+  assert.equal(res.body.questions[1].explanations_ready, false);
+});
+
+test("a fill-in answer typed wrong in a new way only asks AI for the 'Sai vì' line and reuses the right-answer part", async () => {
+  const calls = fakePool([
+    [CAU_DIEN_TU],
+    [],
+    [{ question_id: 9, answer_norm: "was", explanation: GIAI_THICH_DAP_AN_DUNG }],
+    {},
+  ]);
+  let input;
+  aiService.explainCourseQuestion = async (value, { onChunk } = {}) => {
+    input = value;
+    onChunk?.("Sai vì: **were** dùng cho số nhiều.");
+    return "Sai vì: **were** dùng cho số nhiều.";
+  };
+  const res = fakeLuongRes();
+  await explainQuestion(
+    { user: { id: 7 }, params: { questionId: "9" }, body: { answer: "were" }, query: { stream: "1", chiDongSai: "1" } },
+    res
+  );
+
+  const phanDung = "Đúng vì: **was** đi với chủ ngữ số ít.\nNhớ: I/he/she + **was** — ví dụ: She was tired (Cô ấy mệt)";
+  assert.equal(input.phanDung, phanDung);
+  // Luồng chỉ gồm dòng "Sai vì" (client đã hiện sẵn phần còn lại); cache lưu bản đầy đủ
+  assert.equal(res.chunks.join(""), "Sai vì: **were** dùng cho số nhiều.");
+  assert.deepEqual(calls[3].params, [9, "were", `Sai vì: **were** dùng cho số nhiều.\n${phanDung}`]);
+
+  // Client không xin chế độ này: gửi nốt phần còn lại
+  fakePool([[CAU_DIEN_TU], [], [{ question_id: 9, answer_norm: "was", explanation: GIAI_THICH_DAP_AN_DUNG }], {}]);
+  const resDu = fakeLuongRes();
+  await explainQuestion(
+    { user: { id: 7 }, params: { questionId: "9" }, body: { answer: "were" }, query: { stream: "1" } },
+    resDu
+  );
+  assert.equal(resDu.chunks.join(""), `Sai vì: **were** dùng cho số nhiều.\n${phanDung}`);
+});
+
+test("explanation prompts stick to what this question tests instead of re-teaching the lesson", () => {
+  const prompt = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [{ title: "To be", pattern: "S + is" }],
+    question: { ...CAU_TRAC_NGHIEM, section: "tu_vung" },
+    learnerAnswer: "B",
+    isCorrect: false,
+  });
+  assert.match(prompt, /chỉ để tham khảo/);
+  assert.match(prompt, /KHÔNG nhắc lại lý thuyết chung của bài/);
+  assert.match(prompt, /Câu này thuộc phần: từ vựng/);
+  assert.doesNotMatch(prompt, /Kiến thức trọng tâm/);
+
+  const dongSai = aiService.buildWrongLinePrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [],
+    question: CAU_DIEN_TU,
+    learnerAnswer: "were",
+    phanDung: "Đúng vì: x\nNhớ: y",
+  });
+  assert.match(dongSai, /Viết ĐÚNG 1 dòng/);
+  assert.match(dongSai, /Đúng vì: x/);
+});
+
+test("rateExplanation: a thumbs-up only logs, without calling AI", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }]]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("không được gọi AI");
+  };
+  let status;
+  const res = { status(code) { status = code; return this; }, end() {} };
+
+  await rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B", tot: true } }, res);
+
+  assert.equal(status, 204);
+  assert.equal(calls.length, 2);
+});
+
+test("rateExplanation: a thumbs-down rewrites with the old text in the prompt and overwrites the cache", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }], {}]);
+  let input;
+  let models;
+  aiService.explainCourseQuestion = async (value, opts) => {
+    input = value;
+    models = opts.models;
+    return "Sai vì: are là số nhiều.";
+  };
+  const res = fakeRes();
+
+  await rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "b", tot: false } }, res);
+
+  assert.equal(input.banCu, "Bản cũ");
+  assert.equal(input.learnerAnswer, "B");
+  assert.equal(models, aiService.MODEL_VIET_LAI);
+  assert.deepEqual(calls[2].params, [5, "B", "Sai vì: are là số nhiều."]);
+  assert.deepEqual(res.body, { explanation: "Sai vì: are là số nhiều." });
+
+  // AI lỗi: báo 502, không ghi đè bản cũ
+  const callsLoi = fakePool([[CAU_TRAC_NGHIEM], [{ explanation: "Bản cũ" }]]);
+  aiService.explainCourseQuestion = async () => {
+    throw new Error("quota");
+  };
+  await assert.rejects(
+    rateExplanation({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, fakeRes()),
+    (error) => error.statusCode === 502
+  );
+  assert.equal(callsLoi.length, 2);
+});
+
+test("the rewrite prompt shows the rejected explanation and asks for a different one", () => {
+  const prompt = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài giả định",
+    grammar: [],
+    question: CAU_TRAC_NGHIEM,
+    learnerAnswer: "B",
+    isCorrect: false,
+    banCu: "Bản cũ lan man",
+  });
+  assert.match(prompt, /CHƯA ỔN[\s\S]*Bản cũ lan man[\s\S]*Hãy viết lại/);
+  assert.doesNotMatch(
+    aiService.buildCourseExplanationPrompt({ lessonTitle: "x", grammar: [], question: CAU_TRAC_NGHIEM, learnerAnswer: "A", isCorrect: true }),
+    /CHƯA ỔN/
+  );
+});
+
+test("an off-topic AI explanation is shown but not cached, so it is rewritten next time", async () => {
+  const calls = fakePool([[CAU_TRAC_NGHIEM], []]);
+  aiService.explainCourseQuestion = async () => "Thì hiện tại đơn dùng cho thói quen.";
+  const res = fakeRes();
+
+  await explainQuestion({ user: { id: 7 }, params: { questionId: "5" }, body: { answer: "B" } }, res);
+
+  assert.deepEqual(res.body, { explanation: "Thì hiện tại đơn dùng cho thói quen.", cached: false });
+  assert.equal(calls.length, 2);
 });

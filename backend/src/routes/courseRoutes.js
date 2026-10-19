@@ -55,4 +55,19 @@ router.post(
   asyncHandler(courseController.explainQuestion)
 );
 
+// Người học chấm lời giải thích; chê thì AI viết lại (mỗi lần 1 lượt gọi AI)
+const aiRewriteLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { message: "Bạn yêu cầu viết lại hơi nhiều, thử lại sau ít phút nhé" },
+});
+router.post(
+  "/course-questions/:questionId/explanation-feedback",
+  requireAuth,
+  aiRewriteLimiter,
+  asyncHandler(courseController.rateExplanation)
+);
+
 module.exports = router;
