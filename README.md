@@ -3,8 +3,13 @@
 Ứng dụng học từ vựng tiếng Anh bằng flashcard, quiz trắc nghiệm và tự luận.
 
 - **Frontend**: React + Vite → deploy trên **Vercel**
-- **Backend**: Node.js + Express → deploy trên **Google Cloud Run**
-- **Database**: MySQL → **Google Cloud SQL**
+- **Backend**: Node.js + Express → deploy trên **Render** (free web service)
+- **Database**: PostgreSQL → **Supabase** (gói Free); audio khoá học ở **Supabase Storage** (bucket private)
+
+> Từ 10/2026 dự án đã rời Google Cloud (Cloud SQL, Cloud Run, Cloud Storage, Cloud Scheduler).
+> Chỉ còn giữ OAuth client "Flash Card Web Client" trong project GCP `flash-card-499907` để đăng nhập Google.
+> Hướng dẫn triển khai: [`docs/deploy-render-supabase.md`](docs/deploy-render-supabase.md).
+> Chức năng gửi email (chào mừng, nhắc học, khen) đã bỏ.
 
 ---
 
@@ -15,141 +20,77 @@
 | Công cụ | Lý do cần |
 |---|---|
 | Node.js ≥ 20 | Chạy FE + BE |
-| Google Cloud SDK (`gcloud`) | Auth với GCP |
-| Cloud SQL Auth Proxy | Kết nối DB từ local |
-
-#### Cài Google Cloud SDK
-
-Tải và cài tại: https://cloud.google.com/sdk/docs/install
-
-Sau khi cài, mở terminal **mới** và đăng nhập:
-
-```powershell
-gcloud auth application-default login
-```
-
-#### Tải Cloud SQL Auth Proxy
-
-```powershell
-# Windows — đặt vào thư mục gốc project (đã có trong .gitignore)
-Invoke-WebRequest -Uri "https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.22.1/cloud-sql-proxy.x86.exe" -OutFile "cloud-sql-proxy.x86.exe"
-```
-
----
+| PostgreSQL (local) hoặc chuỗi kết nối Supabase | CSDL |
 
 ### Cấu hình lần đầu
 
-#### `backend/.env` — copy từ mẫu dưới
+#### `backend/.env` — copy từ `backend/.env.example`
 
 ```env
-# Chạy LOCAL — dùng Cloud SQL Auth Proxy
-# INSTANCE_CONNECTION_NAME=flash-card-499907:asia-southeast1:flashcard-mysql  ← bỏ comment khi deploy Cloud Run
-DB_HOST=127.0.0.1
-DB_PORT=3307
-DB_USER=app_user
-DB_PASSWORD=<password>
-DB_NAME=flashcard_db
+# Cách 1: Supabase (hoặc Postgres bất kỳ) qua chuỗi kết nối
+DATABASE_URL=postgresql://<user>:<password>@<host>:5432/postgres
+DB_SSL=true
+
+# Cách 2: Postgres local (bỏ DATABASE_URL)
+# DB_HOST=127.0.0.1
+# DB_PORT=5432
+# DB_USER=postgres
+# DB_PASSWORD=<password>
+# DB_NAME=flashcard_db
 
 JWT_SECRET=<secret>
 JWT_EXPIRES_IN=7d
-
-# Google OAuth
 GOOGLE_CLIENT_ID=<your-google-client-id>
+GEMINI_API_KEY=<key>
+CORS_ORIGIN=http://localhost:5173
 
-# CORS
-CORS_ORIGIN=http://localhost:5173,https://dungdinh-vocab.vercel.app
-NODE_ENV=development
+# Audio khoá học (Supabase Storage)
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SECRET_KEY=<secret key, chỉ để ở server>
 ```
 
-#### `frontend/.env.local` — copy từ mẫu dưới
+Tạo bảng: chạy `backend/database/schema.sql` trên DB (SQL Editor của Supabase hoặc `psql`).
+
+#### `frontend/.env.local`
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080
 VITE_GOOGLE_CLIENT_ID=<your-google-client-id>
 ```
 
-#### Cài dependencies (1 lần)
+#### Cài dependencies và chạy
 
 ```powershell
-cd backend && npm install
-cd ../frontend && npm install
+cd backend; npm install; npm run dev     # Server running on port 8080
+cd frontend; npm install; npm run dev    # Mở http://localhost:5173
 ```
 
----
-
-### Chạy hàng ngày (3 terminal)
-
-> **Thứ tự quan trọng**: Proxy → Backend → Frontend
-
-**Terminal 1 — Cloud SQL Proxy** (giữ mở suốt)
-
-```powershell
-.\cloud-sql-proxy.x86.exe flash-card-499907:asia-southeast1:flashcard-mysql --port=3307
-# Thành công khi thấy: Listening on 127.0.0.1:3307
-```
-
-**Terminal 2 — Backend**
-
-```powershell
-cd backend
-npm run dev
-# Thành công khi thấy: Server running on port 8080
-```
-
-**Terminal 3 — Frontend**
-
-```powershell
-cd frontend
-npm run dev
-# Mở http://localhost:5173
-```
-
-#### Kiểm tra nhanh
+Kiểm tra nhanh:
 
 ```
 http://localhost:8080/api/health     → { "status": "ok" }
 http://localhost:8080/api/db-test    → { "database": "connected" }
 ```
 
+Chạy test backend: `cd backend; npm test`.
+
 ---
 
-## Quy trình push / deploy khi xong một tính năng
+## Quy trình push / deploy
 
-### Frontend — Vercel tự deploy
+- **Frontend**: push `main` → Vercel tự build và deploy.
+- **Backend**: push `main` → Render tự build và deploy (cấu hình trong `render.yaml`).
+- **Migration DB không tự chạy**: chạy tay trên Supabase (SQL Editor) TRƯỚC khi push code cần bảng/cột mới.
+- Biến môi trường production đặt trong Render (backend) và Vercel (frontend), không đọc từ file `.env`.
 
-```powershell
-git add .
-git commit -m "feat: mô tả tính năng"
-git push origin main
-```
+### Script dữ liệu (chạy trên máy, trong `backend/`)
 
-Vercel tự động build và deploy sau vài giây. Không cần làm gì thêm.
-
-### Backend — Cloud Build tự deploy lên Cloud Run
-
-Push lên `main` kích hoạt trigger Cloud Build (cấu hình trên GCP, không nằm trong repo), vài phút sau có revision mới của service `flashcard-backend`. Kiểm tra:
-
-```powershell
-gcloud builds list --limit 2 --format="table(createTime,status,substitutions.COMMIT_SHA)"
-```
-
-**Migration DB không tự chạy** — chạy tay lên Cloud SQL TRƯỚC khi push code cần bảng/cột mới.
-
-File `backend/.env` **không bao giờ được đưa vào Docker image** (nhờ `.dockerignore`).
-Cloud Run đọc env vars từ service config riêng → **không cần sửa `.env` trước khi deploy**.
-
-Deploy tay (chỉ khi cần, vd. trigger lỗi):
-
-```powershell
-cd backend
-gcloud run deploy flashcard-backend --source . --region asia-southeast1
-```
-
-> **Env vars trên Cloud Run** phải được set riêng (1 lần, trừ khi thêm biến mới):
-> ```powershell
-> gcloud run services update <tên-service> --region asia-southeast1 \
->   --set-env-vars "INSTANCE_CONNECTION_NAME=flash-card-499907:asia-southeast1:flashcard-mysql,GOOGLE_CLIENT_ID=<id>"
-> ```
+| Lệnh | Việc |
+|---|---|
+| `npm run chuyen:mysql -- --apply` | Chép dữ liệu từ MySQL cũ (biến `MYSQL_*`) sang Postgres (`DATABASE_URL`), giữ id |
+| `npm run tai:audio -- --apply` | Tải audio `private-content/khoa-hoc-48-ngay/bai-XX/audio` lên Supabase Storage |
+| `npm run seed:roadmaps` | Nạp lộ trình học từ `database/content/lo-trinh.json` |
+| `npm run nhap:khoa-hoc -- --email=<email> --apply` | Nạp khoá 48 buổi từ `private-content` |
 
 ---
 
@@ -159,9 +100,10 @@ gcloud run deploy flashcard-backend --source . --region asia-southeast1
 LearnTA-flscard/
 ├── backend/
 │   ├── database/
-│   │   ├── schema.sql            # Schema DB
+│   │   ├── schema.sql            # Schema Postgres (Supabase)
 │   │   ├── seed.sql              # Dữ liệu mẫu
-│   │   └── add_google_auth.sql   # Migration: thêm cột google_id
+│   │   ├── content/              # lo-trinh.json
+│   │   └── mysql-legacy/         # Schema + migration MySQL cũ (tham khảo)
 │   ├── src/
 │   │   ├── config/               # env.js, db.js
 │   │   ├── controllers/          # authController, deckController...
@@ -184,7 +126,7 @@ LearnTA-flscard/
 │   │   └── index.css
 │   └── package.json
 │
-├── cloud-sql-proxy.x86.exe       # Local only — gitignored
+├── render.yaml                   # Cấu hình Render (backend)
 └── .gitignore
 ```
 

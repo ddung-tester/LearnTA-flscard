@@ -11,12 +11,13 @@
     "dev": "nodemon src/server.js",
     "seed:examples": "node scripts/seed-examples.js",
     "seed:ai-examples": "node scripts/seed-ai-examples.js",
-    "migrate:tense-examples": "node scripts/add_tense_examples_column.js",
     "test": "node --test \"test/**/*.test.js\"",
     "seed:roadmaps": "node scripts/seed-roadmaps.js",
     "nhap:khoa-hoc": "node scripts/nhap-khoa-hoc.js",
     "sinh:luyen-them": "node scripts/sinh-bai-luyen-them.js",
-    "sinh:giai-thich": "node scripts/sinh-giai-thich.js"
+    "sinh:giai-thich": "node scripts/sinh-giai-thich.js",
+    "chuyen:mysql": "node scripts/chuyen-du-lieu-mysql.js",
+    "tai:audio": "node scripts/tai-audio-supabase.js"
   },
   "keywords": [],
   "license": "ISC",
@@ -30,13 +31,11 @@
     "express-rate-limit": "^8.7.0",
     "google-auth-library": "^10.9.0",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.22.3",
-    "node-cron": "^4.5.0",
-    "nodemailer": "^10.0.16",
     "pg": "^8.23.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "mysql2": "^3.24.6",
     "nodemon": "^3.1.14"
   }
 }

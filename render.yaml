@@ -1,0 +1,35 @@
+# Render Blueprint — backend Express (gói free). Tạo service: Render Dashboard → New → Blueprint → chọn repo này.
+# Biến sync: false do người dùng nhập tay trên Render (không commit giá trị bí mật).
+services:
+  - type: web
+    name: flashcard-backend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL # Supabase → Connect → Session pooler
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN # vd. https://dungdinh.vercel.app,http://localhost:5173
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: COURSE_AUDIO_BUCKET
+        value: course-audio

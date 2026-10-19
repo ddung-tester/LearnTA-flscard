@@ -12,14 +12,13 @@ const progressRoutes = require("./routes/progressRoutes");
 const mistakeRoutes = require("./routes/mistakeRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const userRoutes = require("./routes/userRoutes");
-const cronRoutes = require("./routes/cronRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const roadmapRoutes = require("./routes/roadmapRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const clientErrorRoutes = require("./routes/clientErrorRoutes");
 
 const app = express();
-// Cloud Run đứng sau 1 proxy — cần để rate limit đọc đúng IP client
+// Render đứng sau 1 proxy — cần để rate limit đọc đúng IP client
 app.set("trust proxy", 1);
 app.use(logRequestCham);
 const allowedCorsOrigins = new Set(corsOrigins);
@@ -58,7 +57,6 @@ app.use((req, res, next) => {
   const khongCoBody = !Number(req.headers["content-length"]) && !req.headers["transfer-encoding"];
   if (req.body === undefined && khongCoBody) req.body = {};
   if (
-    !req.path.startsWith("/api/cron/") &&
     ["POST", "PUT", "PATCH"].includes(req.method) &&
     (!req.body || typeof req.body !== "object" || Array.isArray(req.body))
   ) {
@@ -95,7 +93,6 @@ app.use("/api", progressRoutes);
 app.use("/api", mistakeRoutes);
 app.use("/api", reviewRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/cron", cronRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api", courseRoutes);

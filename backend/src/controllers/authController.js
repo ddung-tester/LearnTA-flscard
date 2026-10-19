@@ -4,7 +4,6 @@ const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
 const { getJwtSecret, getGoogleClientId, jwtExpiresIn } = require("../config/env");
 const { cleanText, createHttpError } = require("../utils/http");
-const { sendWelcomeEmail } = require("../services/emailService");
 
 
 const SALT_ROUNDS = 10;
@@ -233,9 +232,6 @@ async function googleAuth(req, res) {
       [fullname, normalizedEmail, googleId, picture ?? null]
     );
     user = await findUserById(result.insertId);
-
-    // Gửi email chào mừng (không block response)
-    sendWelcomeEmail({ to: normalizedEmail, displayName: user.fullname }).catch(() => {});
   }
 
   res.json({ user, token: signToken(user) });
