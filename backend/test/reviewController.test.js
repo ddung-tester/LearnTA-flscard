@@ -26,7 +26,7 @@ function fakeDb({ readable = true, progress = null, review = REVIEW_ROW } = {}) 
   const state = { queries: [], executed: [] };
   const handler = {
     async query(sql, params) {
-      if (sql.includes("AS bayGio")) return [[{ bayGio: new Date("2026-10-10T08:00:00Z") }]];
+      if (sql.includes('AS "bayGio"')) return [[{ bayGio: new Date("2026-10-10T08:00:00Z") }]];
       state.queries.push({ sql, params });
       if (sql.includes("SELECT c.id")) return [readable ? [{ id: params[0] }] : []];
       if (sql.includes("FROM card_progress cp")) return [review ? [review] : []];

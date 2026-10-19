@@ -211,7 +211,7 @@ async function queryReviews(req, res, { dueOnly }) {
   const offset = parseOffset(query.offset);
 
   // Mốc cho lần đồng bộ sau, theo giờ DB (không phụ thuộc đồng hồ máy người học), lấy trước khi đọc
-  const [[{ bayGio }]] = await pool.query("SELECT CURRENT_TIMESTAMP AS bayGio");
+  const [[{ bayGio }]] = await pool.query('SELECT CURRENT_TIMESTAMP AS "bayGio"');
   res.set("X-Dong-Bo-Luc", new Date(bayGio).toISOString());
 
   const [rows] = await pool.query(
