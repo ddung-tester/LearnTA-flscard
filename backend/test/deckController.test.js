@@ -90,7 +90,7 @@ test("scope=learnable limits decks to the viewer ownership, grouped by source", 
   const res = fakeRes();
   await listDecks({ query: { scope: "learnable" }, user: { id: 7 } }, res);
 
-  assert.match(calls[0].sql, /WHERE d\.user_id <=> \?/);
+  assert.match(calls[0].sql, /WHERE d\.user_id IS NOT DISTINCT FROM \?/);
   assert.match(calls[0].sql, /ORDER BY\s+CASE WHEN cl\.id IS NOT NULL/);
   assert.deepEqual(calls[0].params, [7, 7]);
   assert.equal(res.body[0].source, "course");

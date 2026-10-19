@@ -139,13 +139,13 @@ async function run(args = process.argv.slice(2)) {
   let connection;
   try {
     connection = await pool.getConnection();
-    const [[info]] = await connection.query("SELECT DATABASE() AS database_name");
+    const [[info]] = await connection.query("SELECT current_database() AS database_name");
     if (backup) assert.equal(backup.database, info.database_name, "Sao lưu thuộc DB khác");
-    const [columns] = await connection.query("SELECT COLUMN_NAME, DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='cards' AND COLUMN_NAME IN ('tense_examples','pronunciation')");
-    assert(columns.some((c) => c.COLUMN_NAME === "tense_examples" && c.DATA_TYPE === "json") && columns.some((c) => c.COLUMN_NAME === "pronunciation"), "DB thiếu cột đúng cấu trúc; cần migration trước");
+    const [columns] = await connection.query("SELECT column_name AS \"COLUMN_NAME\", data_type AS \"DATA_TYPE\" FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'cards' AND column_name IN ('tense_examples', 'pronunciation')");
+    assert(columns.some((c) => c.COLUMN_NAME === "tense_examples" && c.DATA_TYPE === "jsonb") && columns.some((c) => c.COLUMN_NAME === "pronunciation"), "DB thiếu cột đúng cấu trúc; cần migration trước");
     await connection.beginTransaction();
     const ids = dataset.map((card) => card.id);
-    const select = "SELECT *, CAST(tense_examples AS CHAR CHARACTER SET utf8mb4) AS saved_tense_examples FROM cards WHERE id IN (?) ORDER BY id";
+    const select = "SELECT *, tense_examples::text AS saved_tense_examples FROM cards WHERE id IN (?) ORDER BY id";
     const [rows] = await connection.query(select + (apply ? " FOR UPDATE" : ""), [ids]);
     const changes = planImport(dataset, rows);
     if (backup) {

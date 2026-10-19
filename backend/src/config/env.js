@@ -27,21 +27,19 @@ function getGoogleClientId() {
   return requiredEnv("GOOGLE_CLIENT_ID");
 }
 
-const instanceConnectionName = process.env.INSTANCE_CONNECTION_NAME?.trim();
-const explicitDbSocketPath = process.env.DB_SOCKET_PATH?.trim();
-const dbSocketPath =
-  explicitDbSocketPath ||
-  (instanceConnectionName ? `/cloudsql/${instanceConnectionName}` : "");
+// Production: DATABASE_URL (chuỗi kết nối Supabase). Máy dev có thể dùng DB_HOST/DB_USER/DB_NAME.
+const databaseUrl = process.env.DATABASE_URL?.trim();
 
 module.exports = {
   port: parseNumber(process.env.PORT, 8080),
   db: {
-    host: dbSocketPath ? undefined : requiredEnv("DB_HOST"),
-    port: parseNumber(process.env.DB_PORT, 3306),
-    socketPath: dbSocketPath || undefined,
-    user: requiredEnv("DB_USER"),
+    url: databaseUrl || undefined,
+    host: databaseUrl ? undefined : requiredEnv("DB_HOST"),
+    port: parseNumber(process.env.DB_PORT, 5432),
+    user: databaseUrl ? undefined : requiredEnv("DB_USER"),
     password: process.env.DB_PASSWORD ?? "",
-    database: requiredEnv("DB_NAME"),
+    database: databaseUrl ? undefined : requiredEnv("DB_NAME"),
+    ssl: process.env.DB_SSL === "true",
   },
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGIN),
   getJwtSecret,

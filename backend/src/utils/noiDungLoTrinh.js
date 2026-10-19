@@ -109,7 +109,7 @@ async function napBoTu(connection, roadmapId, bo, thuTu, thongKe) {
   } else {
     // Bộ từ mẫu (user_id NULL): ai cũng đọc được, không ai sửa được qua API
     const [ketQua] = await connection.execute(
-      "INSERT INTO decks (user_id, title, description) VALUES (NULL, ?, ?)",
+      "INSERT INTO decks (user_id, title, description) VALUES (NULL, ?, ?) RETURNING id",
       [bo.title, bo.description]
     );
     deckId = ketQua.insertId;
@@ -157,11 +157,11 @@ async function napNoiDungLoTrinh(connection, danhSachLoTrinh) {
     await connection.execute(
       `INSERT INTO roadmaps (slug, title, description, level_label, sort_order)
        VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         title = VALUES(title),
-         description = VALUES(description),
-         level_label = VALUES(level_label),
-         sort_order = VALUES(sort_order)`,
+       ON CONFLICT (slug) DO UPDATE SET
+         title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         level_label = EXCLUDED.level_label,
+         sort_order = EXCLUDED.sort_order`,
       [loTrinh.slug, loTrinh.title, loTrinh.description, loTrinh.level_label, thuTuLoTrinh]
     );
     const [dong] = await connection.query("SELECT id FROM roadmaps WHERE slug = ? LIMIT 1", [

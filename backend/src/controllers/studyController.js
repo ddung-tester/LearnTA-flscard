@@ -218,7 +218,7 @@ async function findSessionById(sessionId, connection = pool, { lock = false } = 
     `SELECT ss.*, d.title AS deck_title
      FROM study_sessions ss
      LEFT JOIN decks d ON d.id = ss.deck_id
-     WHERE ss.id = ?${lock ? " FOR UPDATE" : ""}`,
+     WHERE ss.id = ?${lock ? " FOR UPDATE OF ss" : ""}`,
     [sessionId]
   );
   return normalizeSession(rows[0]);
@@ -298,7 +298,8 @@ async function createStudySession(req, res) {
           segment_completed,
           progress_segments
         )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`,
       [
         userId,
         requestId,
@@ -398,7 +399,7 @@ async function finishStudySession(req, res) {
            total = ?,
            duration_seconds = CASE
              WHEN ? > 0 THEN ?
-             ELSE GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, CURRENT_TIMESTAMP))
+             ELSE GREATEST(0, EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - started_at))::int)
            END,
            xp_earned = ?,
            max_combo = ?,
@@ -469,14 +470,14 @@ async function listStudySessions(req, res) {
 
   if (req.query.from) {
     conditions.push(
-      "DATE(CONVERT_TZ(COALESCE(ss.ended_at, ss.started_at), '+00:00', '+07:00')) >= ?"
+      "(COALESCE(ss.ended_at, ss.started_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date >= ?"
     );
     params.push(cleanText(req.query.from));
   }
 
   if (req.query.to) {
     conditions.push(
-      "DATE(CONVERT_TZ(COALESCE(ss.ended_at, ss.started_at), '+00:00', '+07:00')) <= ?"
+      "(COALESCE(ss.ended_at, ss.started_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date <= ?"
     );
     params.push(cleanText(req.query.to));
   }
@@ -512,7 +513,7 @@ async function getStudySessionsSummary(req, res) {
        COALESCE(SUM(
          CASE
            WHEN duration_seconds > 0 THEN duration_seconds
-           WHEN ended_at IS NOT NULL THEN GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, ended_at))
+           WHEN ended_at IS NOT NULL THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
            ELSE 0
          END
        ), 0) AS total_duration_seconds,
@@ -529,7 +530,7 @@ async function getStudySessionsSummary(req, res) {
 
   const [activityRows] = await pool.query(
     `SELECT
-       DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00')) AS study_date,
+       (COALESCE(ended_at, started_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date AS study_date,
        COUNT(*) AS session_count,
        COALESCE(SUM(total), 0) AS cards_studied,
        COALESCE(SUM(correct), 0) AS correct_count,
@@ -537,16 +538,16 @@ async function getStudySessionsSummary(req, res) {
        COALESCE(SUM(
          CASE
            WHEN duration_seconds > 0 THEN duration_seconds
-           WHEN ended_at IS NOT NULL THEN GREATEST(0, TIMESTAMPDIFF(SECOND, started_at, ended_at))
+           WHEN ended_at IS NOT NULL THEN GREATEST(0, EXTRACT(EPOCH FROM (ended_at - started_at))::int)
            ELSE 0
          END
        ), 0) AS duration_seconds
      FROM study_sessions
      WHERE user_id = ?
        AND ended_at IS NOT NULL
-       AND DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00')) >=
-           DATE_SUB(DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+07:00')), INTERVAL 6 DAY)
-     GROUP BY DATE(CONVERT_TZ(COALESCE(ended_at, started_at), '+00:00', '+07:00'))
+       AND (COALESCE(ended_at, started_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date >=
+           (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - 6
+     GROUP BY (COALESCE(ended_at, started_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
      ORDER BY study_date ASC`,
     [userId]
   );
@@ -663,6 +664,7 @@ async function addStudyAnswers(req, res) {
         continue;
       }
 
+      await connection.query("SAVEPOINT study_answer");
       try {
         const [result] = await connection.execute(
           `INSERT INTO study_answers
@@ -675,7 +677,8 @@ async function addStudyAnswers(req, res) {
               is_correct,
               answer_meta
             )
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)
+           RETURNING id`,
           [
             sessionId,
             cardId,
@@ -695,6 +698,7 @@ async function addStudyAnswers(req, res) {
         });
       } catch (error) {
         if (error.code !== "ER_DUP_ENTRY") throw error;
+        await connection.query("ROLLBACK TO SAVEPOINT study_answer");
 
         const [duplicateRows] = await connection.query(
           `SELECT id
@@ -781,7 +785,8 @@ async function createQuizResult(req, res) {
       `INSERT INTO quiz_results
         (user_id, client_request_id, request_hash, deck_id, question_type, direction,
          correct, review, total, progress_segments)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`,
       [userId, requestId, fingerprint, deckId, questionType, direction, correct, review, total, progressSegments]
     ));
     const [rows] = await connection.query("SELECT * FROM quiz_results WHERE id = ?", [result.id]);

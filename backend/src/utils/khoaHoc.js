@@ -392,7 +392,7 @@ async function napBoTuCuaBai(connection, { userId, bai, deckIdCu, tieuDeKhoa }, 
   } else {
     // Bộ từ riêng của chủ khoá: người khác không đọc được (deckController.canReadDeck)
     const [ketQua] = await connection.execute(
-      "INSERT INTO decks (user_id, title, description) VALUES (?, ?, ?)",
+      "INSERT INTO decks (user_id, title, description) VALUES (?, ?, ?) RETURNING id",
       [userId, tieuDe, tieuDeKhoa]
     );
     deckId = ketQua.insertId;
@@ -468,12 +468,12 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
          (lesson_id, question_key, source, section, type, instruction, prompt, options, answer_key,
           accepted_answers, explanation, answer_source, audio_path, listen_text, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         source = VALUES(source), section = VALUES(section), type = VALUES(type),
-         instruction = VALUES(instruction), prompt = VALUES(prompt), options = VALUES(options),
-         answer_key = VALUES(answer_key), accepted_answers = VALUES(accepted_answers),
-         explanation = VALUES(explanation), answer_source = VALUES(answer_source),
-         audio_path = VALUES(audio_path), listen_text = VALUES(listen_text), sort_order = VALUES(sort_order)`,
+       ON CONFLICT (lesson_id, question_key) DO UPDATE SET
+         source = EXCLUDED.source, section = EXCLUDED.section, type = EXCLUDED.type,
+         instruction = EXCLUDED.instruction, prompt = EXCLUDED.prompt, options = EXCLUDED.options,
+         answer_key = EXCLUDED.answer_key, accepted_answers = EXCLUDED.accepted_answers,
+         explanation = EXCLUDED.explanation, answer_source = EXCLUDED.answer_source,
+         audio_path = EXCLUDED.audio_path, listen_text = EXCLUDED.listen_text, sort_order = EXCLUDED.sort_order`,
       [
         lessonId,
         cau.question_key,
@@ -509,7 +509,7 @@ async function napCauHoi(connection, lessonId, questions, thongKe) {
 async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
   await connection.execute(
     `INSERT INTO courses (user_id, slug, title, description) VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description)`,
+     ON CONFLICT (user_id, slug) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description`,
     [userId, khoaHoc.slug, khoaHoc.title, khoaHoc.description]
   );
   const [khoa] = await connection.query(
@@ -531,7 +531,8 @@ async function napBaiHoc(connection, { userId, khoaHoc, bai }, thongKe) {
   await connection.execute(
     `INSERT INTO course_lessons (course_id, lesson_number, title, deck_id, content)
      VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE title = VALUES(title), deck_id = VALUES(deck_id), content = VALUES(content)`,
+     ON CONFLICT (course_id, lesson_number) DO UPDATE SET
+       title = EXCLUDED.title, deck_id = EXCLUDED.deck_id, content = EXCLUDED.content`,
     [courseId, bai.lesson_number, bai.title, deckId, JSON.stringify(bai.content)]
   );
   const [baiMoi] = await connection.query(

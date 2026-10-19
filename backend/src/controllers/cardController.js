@@ -291,7 +291,8 @@ async function createCard(req, res) {
     const [result] = await connection.execute(
       `INSERT INTO cards
         (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, tense_examples, example_translation)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id`,
       [
         deckId,
         payload.term_en,
@@ -360,7 +361,8 @@ async function importCards(req, res) {
       const [result] = await connection.execute(
         `INSERT INTO cards
           (deck_id, term_en, meaning_vi, example_sentence, note, pronunciation, part_of_speech, is_favorite, sort_order, example_translation)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         RETURNING id`,
         [
           deckId,
           card.term_en,

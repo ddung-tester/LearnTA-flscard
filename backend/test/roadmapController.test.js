@@ -46,7 +46,7 @@ test("listRoadmaps returns counts as numbers and uses the viewer for progress", 
   await listRoadmaps({ user: { id: 7 } }, res);
 
   assert.deepEqual(calls[0].params, [7, 7]);
-  assert.match(calls[0].sql, /d\.user_id <=> \?/);
+  assert.match(calls[0].sql, /d\.user_id IS NOT DISTINCT FROM \?/);
   assert.deepEqual(res.body, [
     {
       id: 1,
@@ -81,7 +81,7 @@ test("getRoadmap returns ordered decks with progress", async () => {
 
   assert.deepEqual(calls[1].params, [7, 3, 7]);
   assert.match(calls[1].sql, /ORDER BY rd\.sort_order ASC/);
-  assert.match(calls[1].sql, /WHERE rd\.roadmap_id = \? AND d\.user_id <=> \?/);
+  assert.match(calls[1].sql, /WHERE rd\.roadmap_id = \? AND d\.user_id IS NOT DISTINCT FROM \?/);
   assert.doesNotMatch(calls[1].sql, /is_public = TRUE/);
   assert.deepEqual(res.body.decks, [
     { id: 10, title: "Văn phòng", description: "", word_count: 25, learned_count: 5, mastered_count: 1, due_count: 2 },

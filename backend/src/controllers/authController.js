@@ -110,7 +110,8 @@ async function register(req, res) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const [result] = await pool.execute(
     `INSERT INTO users (fullname, email, password_hash)
-     VALUES (?, ?, ?)`,
+     VALUES (?, ?, ?)
+     RETURNING id`,
     [fullname, email, passwordHash]
   );
 
@@ -228,7 +229,7 @@ async function googleAuth(req, res) {
       : "Người dùng";
 
     const [result] = await pool.execute(
-      `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?) RETURNING id`,
       [fullname, normalizedEmail, googleId, picture ?? null]
     );
     user = await findUserById(result.insertId);

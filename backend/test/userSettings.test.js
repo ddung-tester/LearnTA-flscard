@@ -46,13 +46,16 @@ test("GET settings trả preferences đã lưu, chưa có thì null", async () =
   assert.equal(resMoi.body.preferences, null);
 });
 
-test("PATCH preferences gộp vào bản đã lưu bằng JSON_MERGE_PATCH, theo đúng user trong token", async () => {
+test("PATCH preferences gộp vào bản đã lưu (khoá null bị xoá), theo đúng user trong token", async () => {
   const calls = fakePool([]);
   const res = fakeRes();
   await updateUserSettings({ user: { id: 7 }, body: { preferences: { amThanh: false } } }, res);
 
   const ghi = calls.find((call) => call.sql.includes("INSERT INTO user_settings"));
-  assert.match(ghi.sql, /preferences = JSON_MERGE_PATCH\(COALESCE\(preferences, JSON_OBJECT\(\)\), CAST\(\? AS JSON\)\)/);
+  assert.match(
+    ghi.sql,
+    /preferences = jsonb_strip_nulls\(COALESCE\(user_settings\.preferences, '\{\}'::jsonb\) \|\| \?::jsonb\)/
+  );
   assert.deepEqual(ghi.params, [7, '{"amThanh":false}', '{"amThanh":false}']);
 });
 
@@ -63,7 +66,8 @@ test("PATCH vẫn cập nhật được cột cũ cùng lúc với preferences",
     fakeRes()
   );
   const ghi = calls.find((call) => call.sql.includes("INSERT INTO user_settings"));
-  assert.deepEqual(ghi.params, [3, false, '{"giaoDien":"sang"}', false, '{"giaoDien":"sang"}']);
+  assert.match(ghi.sql, /email_reminders = EXCLUDED\.email_reminders/);
+  assert.deepEqual(ghi.params, [3, false, '{"giaoDien":"sang"}', '{"giaoDien":"sang"}']);
 });
 
 test("PATCH từ chối preferences không phải object hoặc quá lớn", async () => {

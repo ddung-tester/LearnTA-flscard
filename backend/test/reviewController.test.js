@@ -142,7 +142,7 @@ test("bulk sync only inserts missing progress and skips unreadable cards", async
 
   assert.equal(db.executed.length, 1);
   const [{ sql, params }] = db.executed;
-  assert.match(sql, /ON DUPLICATE KEY UPDATE id = id/);
+  assert.match(sql, /ON CONFLICT \(user_id, card_id\) DO NOTHING/);
   assert.deepEqual(params.slice(0, 3), [1, 5, 5]);
   assert.equal(res.body.synced_count, 1);
 

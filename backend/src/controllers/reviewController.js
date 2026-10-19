@@ -141,7 +141,7 @@ async function ensureReview(connection, userId, body) {
     `INSERT INTO card_progress
       (user_id, card_id, mastery_level, review_count, last_reviewed_at, next_review_at)
      VALUES (?, ?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE id = id`,
+     ON CONFLICT (user_id, card_id) DO NOTHING`,
     [
       userId,
       cardId,
@@ -190,7 +190,7 @@ async function queryReviews(req, res, { dueOnly }) {
 
   const search = cleanText(query.search);
   if (search) {
-    conditions.push("(c.term_en LIKE ? OR c.meaning_vi LIKE ?)");
+    conditions.push("(c.term_en ILIKE ? OR c.meaning_vi ILIKE ?)");
     params.push(`%${search}%`, `%${search}%`);
   }
 
@@ -200,7 +200,7 @@ async function queryReviews(req, res, { dueOnly }) {
   const [rows] = await pool.query(
     `${REVIEW_SELECT}
      WHERE ${conditions.join(" AND ")}
-     ORDER BY cp.next_review_at ASC, cp.updated_at DESC, cp.id DESC
+     ORDER BY cp.next_review_at ASC NULLS FIRST, cp.updated_at DESC, cp.id DESC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );
