@@ -13,6 +13,7 @@ import {
 } from "../utils/mistakeNotebook";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import GachVeTay from "../components/common/GachVeTay";
+import TabOnTap from "../components/common/TabOnTap";
 import { phatAm } from "../utils/amThanh";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -342,6 +343,7 @@ function TrangTuSai() {
 
   return (
     <div className="ui-content-enter tu-sai-page">
+      <TabOnTap />
 
       {/* Header */}
       <div className="tu-sai-header">

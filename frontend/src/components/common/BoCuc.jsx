@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePageTransition } from "../../contexts/PageTransitionContext";
 import { layThongKeSRS, SU_KIEN_SRS_DOI } from "../../utils/srsReview";
 import { layDanhSachKhoaHoc } from "../../services/courseApi";
+import { layDeckTheoId } from "../../services/deckApi";
 import { chuanBiAmThanh } from "../../utils/amThanh";
 import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
@@ -12,31 +13,33 @@ const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
 const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
 
-// Khoá 48 ngày là trục chính; Từ vựng gom mọi bộ từ (theo buổi, tự tạo, lộ trình) + Luyện tập
+// Bộ từ thuộc khoá học hoặc lộ trình (nguồn "course" / "roadmap") nằm dưới mục Học, bộ tự tạo dưới Bộ từ
+const laBoCuaHoc = (nguonBo) => nguonBo === "course" || nguonBo === "roadmap";
+const laTrangBo = (path) => path.startsWith("/decks/");
+const laTrangHoc = (path, nguonBo) =>
+  (path.startsWith("/khoa-hoc") && !laTrangOnTap(path)) ||
+  path.startsWith("/roadmap") ||
+  (laTrangBo(path) && laBoCuaHoc(nguonBo));
+
+// Menu theo việc người học làm: Hôm nay → Học (khoá + lộ trình mẫu) → Bộ từ (tự tạo) → Ôn tập.
+// laActive(path, nguonBo): nguonBo = nguồn của bộ đang xem ở /decks/:id (null khi chưa biết)
 const DS_TAB_DIEU_HUONG = [
   { to: "/dashboard", nhan: "Hôm nay", laActive: (path) => path === "/dashboard" },
-  {
-    to: "/khoa-hoc",
-    nhan: "Khoá 48 ngày",
-    nhanNgan: "Khoá học",
-    laActive: (path) => path.startsWith("/khoa-hoc") && !laTrangOnTap(path),
-  },
+  { to: "/khoa-hoc", nhan: "Học", laActive: laTrangHoc },
   {
     to: "/decks",
-    nhan: "Từ vựng",
-    laActive: (path) => path.startsWith("/decks") || path === "/practice" || path.startsWith("/roadmap"),
+    nhan: "Bộ từ",
+    laActive: (path, nguonBo) =>
+      path === "/decks" || path === "/practice" || (laTrangBo(path) && nguonBo !== null && !laBoCuaHoc(nguonBo)),
   },
   { to: "/review", nhan: "Ôn tập", laActive: laTrangOnTap, coSoDenHan: true },
 ];
 
-// Khách chỉ có lộ trình mẫu (nằm ở /khoa-hoc)
-const TAB_KHACH = [
-  {
-    to: "/khoa-hoc",
-    nhan: "Khoá học",
-    laActive: (path) => path.startsWith("/khoa-hoc") || path.startsWith("/roadmap"),
-  },
-];
+// Khách: lộ trình mẫu nằm ở mục Học
+const TAB_KHACH = [{ to: "/khoa-hoc", nhan: "Học", laActive: laTrangHoc }];
+
+// Khoá dựng trang: bỏ đoạn bước của buổi học khỏi đường dẫn
+const khoaTrang = (path) => path.replace(/^(\/khoa-hoc\/[^/]+\/bai\/[^/]+)\/[^/]+$/, "$1");
 
 /**
  * TrangVao — bọc nội dung trang: ẩn khi còn màn chờ, rồi nổi lên (hoặc trượt theo hướng tab)
@@ -91,6 +94,22 @@ function BoCuc() {
     viTri.pathname === "/khoa-hoc/on-tap" ||
     /^\/khoa-hoc\/[^/]+\/bai\//.test(viTri.pathname);
   const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
+  // Đang xem một bộ từ (/decks/:id/...): đọc nguồn của bộ để sáng đúng mục menu (bộ của buổi học → Học).
+  // Dữ liệu bộ được nhớ 20 s và trang bộ cũng đọc cùng lúc nên không tốn thêm lượt gọi.
+  const maBoDangXem = /^\/decks\/(\d+)/.exec(viTri.pathname)?.[1] ?? null;
+  const [nguonBo, setNguonBo] = useState({ ma: null, nguon: null });
+  useEffect(() => {
+    if (!maBoDangXem) return undefined;
+    let conHieuLuc = true;
+    layDeckTheoId(maBoDangXem)
+      .then((bo) => conHieuLuc && setNguonBo({ ma: maBoDangXem, nguon: bo?.source ?? "user" }))
+      .catch(() => conHieuLuc && setNguonBo({ ma: maBoDangXem, nguon: "user" }));
+    return () => {
+      conHieuLuc = false;
+    };
+  }, [maBoDangXem]);
+  const nguonBoDangXem = nguonBo.ma === maBoDangXem ? nguonBo.nguon : null;
+  const laTabDangMo = (tab) => tab.laActive(viTri.pathname, nguonBoDangXem);
   // Số từ đến hạn ôn đọc từ bản SRS local (đã đồng bộ khi vào Dashboard / trang học), cập nhật mỗi lần SRS đổi
   const soTuDenHanLocal = useSyncExternalStore(theoDoiSRS, () => layThongKeSRS().duHomNay);
   // Câu bài tập khoá học đến hạn cũng ôn ở /review: cộng vào số trên tab. Đọc lúc rảnh (không tranh
@@ -150,11 +169,11 @@ function BoCuc() {
       cancelAnimationFrame(khung);
       theoDoi.disconnect();
     };
-    // soTuDenHan: số trên tab Ôn tập đổi độ rộng tab
-  }, [viTri.pathname, isAuthenticated, soTuDenHan]);
+    // soTuDenHan: số trên tab Ôn tập đổi độ rộng tab; nguonBoDangXem: biết nguồn bộ thì đổi tab đang sáng
+  }, [viTri.pathname, isAuthenticated, soTuDenHan, nguonBoDangXem]);
 
   // Đổi tab chính: trang mới trượt theo hướng tab (trái/phải); còn lại nổi lên
-  const chiSoTab = dsTab.findIndex((tab) => tab.laActive(viTri.pathname));
+  const chiSoTab = dsTab.findIndex(laTabDangMo);
   const [tabTruoc, setTabTruoc] = useState({ path: viTri.pathname, chiSo: chiSoTab, huong: "len" });
   if (tabTruoc.path !== viTri.pathname) {
     const doiTab = chiSoTab >= 0 && tabTruoc.chiSo >= 0 && chiSoTab !== tabTruoc.chiSo;
@@ -232,7 +251,7 @@ function BoCuc() {
             >
               <span ref={gachChanRef} className="dash-nav__indicator" aria-hidden="true" hidden={chiSoTab < 0} />
               {dsTab.map((tab) => {
-                const dangActive = tab.laActive(viTri.pathname);
+                const dangActive = laTabDangMo(tab);
                 return (
                   <Link
                     key={tab.to}
@@ -367,7 +386,8 @@ function BoCuc() {
       <main
         className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}${laTrangDashboard ? " app-shell-main--dashboard" : ""}`}
       >
-        <TrangVao key={viTri.pathname} huong={tabTruoc.huong}>
+        {/* Đổi bước trong buổi (/bai/14/ly-thuyet → /bai/14/bai-tap) vẫn là cùng một trang: không dựng lại */}
+        <TrangVao key={khoaTrang(viTri.pathname)} huong={tabTruoc.huong}>
           {noiDungTrang}
         </TrangVao>
       </main>

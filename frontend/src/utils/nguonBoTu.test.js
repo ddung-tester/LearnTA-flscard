@@ -10,8 +10,8 @@ const BO_LO_TRINH = { id: 10, source: "roadmap", parent: { slug: "nen-tang", tit
 
 describe("nguonBoTu", () => {
   it("bộ của khoá học / lộ trình quay lại đúng buổi / chặng, bộ độc lập thì không có", () => {
-    expect(layNoiChuaBo(BO_KHOA_HOC)).toEqual({ to: "/khoa-hoc/2/bai/13", nhan: "Buổi 13" });
-    expect(layNoiChuaBo(BO_LO_TRINH)).toEqual({ to: "/roadmap/nen-tang", nhan: "Nền tảng A1–A2" });
+    expect(layNoiChuaBo(BO_KHOA_HOC)).toEqual({ to: "/khoa-hoc/2/bai/13/tu-vung", nhan: "Buổi 13" });
+    expect(layNoiChuaBo(BO_LO_TRINH)).toEqual({ to: "/khoa-hoc/lo-trinh/nen-tang", nhan: "Nền tảng A1–A2" });
     expect(layNoiChuaBo({ id: 1, source: "user", parent: null })).toBeNull();
     // Backend cũ chưa trả source/parent
     expect(layNoiChuaBo({ id: 1 })).toBeNull();

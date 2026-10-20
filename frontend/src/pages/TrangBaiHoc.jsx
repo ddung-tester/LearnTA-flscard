@@ -236,11 +236,12 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
 
 /**
  * TrangBaiHoc — một buổi của khoá học riêng, học theo thứ tự Từ vựng → Lý thuyết → Bài tập.
- * Bước đang mở nằm trên URL (?tab=) để quay lại từ Flashcard/Luyện tập vẫn đúng chỗ.
+ * Bước đang mở nằm trên đường dẫn (/khoa-hoc/1/bai/14/bai-tap) để quay lại từ Flashcard/Luyện tập
+ * vẫn đúng chỗ và gửi link đúng bước được.
  */
 function TrangBaiHoc() {
-  const { courseId, soBai } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { courseId, soBai, buoc: buocTrenDuongDan } = useParams();
+  const [searchParams] = useSearchParams();
   const viTri = useLocation();
   const dieuHuong = useNavigate();
   // Vừa bấm "Buổi trước/sau": lật một tờ giấy khi buổi mới hiện (link có data-lat-trang,
@@ -253,7 +254,17 @@ function TrangBaiHoc() {
   const [trangThai, setTrangThai] = useState({ khoa: null, bai: null, loi: "", ketQuaCau: {} });
   const [lanThu, setLanThu] = useState(0);
   const dangTai = trangThai.khoa !== khoa;
-  const buoc = CAC_BUOC.some((muc) => muc.key === searchParams.get("tab")) ? searchParams.get("tab") : "tu-vung";
+  // Bước nằm trên đường dẫn (/bai/14/bai-tap); link cũ dạng ?tab=bai-tap vẫn mở đúng bước rồi đổi sang đường mới
+  const laBuocHopLe = (key) => CAC_BUOC.some((muc) => muc.key === key);
+  const buocCu = searchParams.get("tab");
+  const buoc = laBuocHopLe(buocTrenDuongDan) ? buocTrenDuongDan : laBuocHopLe(buocCu) ? buocCu : "tu-vung";
+  const duongDanBuoc = (key) => `/khoa-hoc/${courseId}/bai/${soBai}/${key}`;
+
+  useEffect(() => {
+    if (buocTrenDuongDan || !laBuocHopLe(buocCu)) return;
+    dieuHuong(duongDanBuoc(buocCu), { replace: true, state: viTri.state });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ đổi khi gặp link cũ
+  }, [buocTrenDuongDan, buocCu]);
 
   useLayoutEffect(() => {
     setPageDataLoading("course-lesson", dangTai);
@@ -317,7 +328,7 @@ function TrangBaiHoc() {
   const soBuoi = bai.lesson.lesson_number;
   const docTiengAnh = (text) => speak(text, "en-US");
   const chuyenBuoc = (key) => {
-    setSearchParams({ tab: key }, { replace: true });
+    dieuHuong(duongDanBuoc(key), { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const soTuDaHoc = bai.words.filter((tu) => tu.mastery_level !== null && tu.mastery_level !== undefined).length;

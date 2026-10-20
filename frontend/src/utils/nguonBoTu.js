@@ -9,10 +9,10 @@ export function layNoiChuaBo(bo) {
   const cha = bo?.parent;
   if (!cha) return null;
   if (bo.source === "course") {
-    return { to: `/khoa-hoc/${cha.course_id}/bai/${cha.lesson_number}`, nhan: `Buổi ${cha.lesson_number}` };
+    return { to: `/khoa-hoc/${cha.course_id}/bai/${cha.lesson_number}/tu-vung`, nhan: `Buổi ${cha.lesson_number}` };
   }
   if (bo.source === "roadmap") {
-    return { to: `/roadmap/${cha.slug}`, nhan: cha.title };
+    return { to: `/khoa-hoc/lo-trinh/${cha.slug}`, nhan: cha.title };
   }
   return null;
 }

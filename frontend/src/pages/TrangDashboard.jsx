@@ -254,7 +254,7 @@ function TrangDashboard() {
                   />
                 </ol>
                 <Link
-                  to={`/khoa-hoc/${khoaChinh.id}/bai/${buoiTiep.lesson_number}?tab=${buocTiep}`}
+                  to={`/khoa-hoc/${khoaChinh.id}/bai/${buoiTiep.lesson_number}/${buocTiep}`}
                   className="ui-button ui-button--primary dash-cta-primary"
                 >
                   {tienDoBuoi.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
@@ -340,12 +340,12 @@ function TrangDashboard() {
       {/* ── Body grid ── */}
       <div className="dash-body-grid">
         <div className="dash-body-main">
-          {/* ── C. Từ vựng theo buổi ── */}
+          {/* ── C. Buổi gần đây: lối tắt vào bước Từ vựng của buổi (nội dung buổi chỉ nằm trong mục Học) ── */}
           {khoaChinh && (
             <section className="dash-section">
               <div className="dash-section__header">
-                <h2 className="dash-section__title">Từ vựng theo buổi</h2>
-                <Link to="/decks?tab=buoi" className="dash-xem-them">Xem cả {tongBuoi} buổi →</Link>
+                <h2 className="dash-section__title">Từ vựng các buổi gần đây</h2>
+                <Link to="/khoa-hoc" className="dash-xem-them">Xem cả {tongBuoi} buổi →</Link>
               </div>
               <ul className="dash-tu-buoi">
                 {buoiGanDay(khoaChinh.lessons, buoiTiep).map((bai) => {
@@ -353,7 +353,7 @@ function TrangDashboard() {
                   const phanTram = tienDo.tongTu > 0 ? Math.round((tienDo.tuDaHoc / tienDo.tongTu) * 100) : 0;
                   return (
                     <li key={bai.lesson_number}>
-                      <Link to={bai.deck_id ? `/decks/${bai.deck_id}` : "/decks?tab=buoi"} className="dash-tu-buoi__dong">
+                      <Link to={`/khoa-hoc/${khoaChinh.id}/bai/${bai.lesson_number}/tu-vung`} className="dash-tu-buoi__dong">
                         <span className="dash-tu-buoi__so">Buổi {bai.lesson_number}</span>
                         <span className="dash-tu-buoi__ten">{bai.title}</span>
                         <span className="dash-tu-buoi__thanh" aria-hidden="true">

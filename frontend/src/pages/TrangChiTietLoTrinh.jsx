@@ -19,10 +19,8 @@ function timChangHocTiep(decks) {
 function TrangChiTietLoTrinh() {
   const { slug } = useParams();
   const { isAuthenticated } = useAuth();
-  // Đã đăng nhập: lộ trình nằm ở Từ vựng → Lộ trình; khách xem lộ trình ở trang Khoá học
-  const noiQuayLai = isAuthenticated
-    ? { to: "/decks?tab=lo-trinh", nhan: "Từ vựng" }
-    : { to: "/khoa-hoc", nhan: "Khoá học" };
+  // Lộ trình mẫu nằm ở mục Học (cạnh khoá học) cho cả khách và người đã đăng nhập
+  const noiQuayLai = { to: "/khoa-hoc", nhan: "Học" };
   const { setPageDataLoading } = usePageTransition();
   const [trangThai, setTrangThai] = useState({ slug: null, loTrinh: null, loi: "" });
   const dangTai = trangThai.slug !== slug;

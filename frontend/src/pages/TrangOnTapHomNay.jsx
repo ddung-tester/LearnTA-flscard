@@ -48,6 +48,7 @@ import {
 import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
 import { chuanHoaDapAn, MUC_GOI_Y_TOI_DA, taoGoiY } from "../utils/phienHoc";
 import GachVeTay from "../components/common/GachVeTay";
+import TabOnTap from "../components/common/TabOnTap";
 import { laDangGoChu } from "../utils/phimTat";
 
 const OnCauBaiTapDenHan = lazy(() => import("../components/OnCauBaiTapDenHan"));
@@ -169,7 +170,7 @@ function ReviewFilters({
         <option value="">Mọi cấp độ</option>
         {[0, 1, 2, 3, 4, 5].map((level) => (
           <option key={level} value={String(level)}>
-            Lv{level}
+            Cấp {level}
           </option>
         ))}
       </select>
@@ -213,11 +214,11 @@ function StatsBar({ total, done, remaining }) {
 function CheDoTheoLevel({ giaTri, onDoi, onMacDinh }) {
   return (
     <details className="review-level-settings">
-      <summary className="review-level-settings__summary">Chế độ ôn theo level</summary>
+      <summary className="review-level-settings__summary">Chế độ ôn theo cấp độ</summary>
       <div className="review-level-settings__body">
         {CAC_LEVEL.map((level) => (
           <div key={level} className="review-level-settings__row">
-            <span className="review-level-settings__label">Lv{level}</span>
+            <span className="review-level-settings__label">Cấp {level}</span>
             <div className="ui-chip-row" role="group" aria-label={`Chế độ ôn cho Lv${level}`}>
               {LUA_CHON_CHE_DO_ON.map((muc) => {
                 const dangChon = giaTri[level] === muc.giaTri;
@@ -237,7 +238,7 @@ function CheDoTheoLevel({ giaTri, onDoi, onMacDinh }) {
           </div>
         ))}
         <p className="review-level-settings__note">
-          Từ Lv{LEVEL_TAT_GOI_Y} trở lên không có gợi ý khi gõ. Trắc nghiệm cần ít nhất 4 từ trong hàng ôn,
+          Từ Cấp {LEVEL_TAT_GOI_Y} trở lên không có gợi ý khi gõ. Trắc nghiệm cần ít nhất 4 từ trong hàng ôn,
           nếu không sẽ dùng Thẻ.
         </p>
         <button type="button" onClick={onMacDinh} className="review-nav-btn">
@@ -255,7 +256,7 @@ function ReviewCardHeader({ entry, onRemove, isLoading }) {
 
   return (
     <div className="review-card__header">
-      <span className={`review-badge ${badge.cls}`}>{badge.text} · Lv{entry.level ?? 0}</span>
+      <span className={`review-badge ${badge.cls}`}>{badge.text} · Cấp {entry.level ?? 0}</span>
       <span className="review-card__deck">{entry.deckTitle || `Bộ ${entry.deckId}`}</span>
       <button
         type="button"
@@ -539,7 +540,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
               id="btn-rate-wrong"
             >
               <span className="review-btn__label">Quên<span className="fc-mat__phim"> (1)</span></span>
-              <span className="review-btn__sub">Lv{Math.max(0, level - 1)} · Ôn ngay</span>
+              <span className="review-btn__sub">Cấp {Math.max(0, level - 1)} · Ôn ngay</span>
             </button>
             <button
               type="button"
@@ -551,7 +552,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             >
               <span className="review-btn__label">Thuộc<span className="fc-mat__phim"> (2)</span></span>
               <span className="review-btn__sub">
-                Lv{levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
+                Cấp {levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
               </span>
             </button>
           </div>
@@ -569,7 +570,7 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
                 className={`review-btn review-btn--level ${lv === level ? "review-btn--current" : ""}`}
                 id={`btn-rate-level-${lv}`}
               >
-                <span className="review-btn__label">Lv{lv}</span>
+                <span className="review-btn__label">Cấp {lv}</span>
                 <span className="review-btn__sub">{moTaKhoangOn(lv)}</span>
               </button>
             ))}
@@ -897,6 +898,7 @@ function TrangOnTapHomNay() {
     <div className="review-page ui-content-enter">
       {/* Chế độ thẻ: xem được cả hai mặt. Trắc nghiệm / gõ từ: thẻ tự báo chatbot sau khi trả lời */}
       {cheDoHienTai === "the" && <ChatbotTheDangHoc the={currentEntry} />}
+      <TabOnTap />
       {/* Header */}
       <div className="review-header">
         <div>
@@ -906,22 +908,16 @@ function TrangOnTapHomNay() {
               ? "Không có từ nào phù hợp với bộ lọc hiện tại."
               : isComplete
               ? "Đã ôn xong tất cả từ hôm nay!"
-              : `${visibleFilteredCards.length} từ trong hàng ôn · SRS queue: ${srsStats.total} từ`}
+              : `${visibleFilteredCards.length} từ cần ôn · Tổng hàng ôn: ${srsStats.total} từ`}
           </p>
         </div>
-        <div className="review-header__actions">
-          <Link to="/dashboard" className="review-nav-btn">
-            Dashboard
-          </Link>
-          <Link to="/tu-sai" className="review-nav-btn">
-            Sổ từ sai
-          </Link>
-          {soCauCanOn > 0 && (
+        {soCauCanOn > 0 && (
+          <div className="review-header__actions">
             <Link to="/khoa-hoc/on-tap" className="review-nav-btn">
               Ôn {soCauCanOn} câu bài tập
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <ReviewFilters

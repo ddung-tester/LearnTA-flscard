@@ -1,4 +1,4 @@
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useEffect, useLayoutEffect, useState } from "react";
 import AnimatedModal from "../components/common/AnimatedModal";
 import EmptyState from "../components/common/EmptyState";
@@ -393,7 +393,7 @@ function TrangDanhSachBo() {
     moChiTietBo(boId, event.currentTarget);
   }
 
-  const tieuDeTrang = isAuthenticated ? "Bộ từ vựng của bạn" : "Bộ từ vựng";
+  const tieuDeTrang = isAuthenticated ? "Bộ từ của bạn" : "Bộ từ";
   const tieuDeRong = isAuthenticated
     ? "Bạn chưa có bộ từ nào"
     : "Bạn cần đăng nhập để xem bộ từ";
@@ -412,6 +412,9 @@ function TrangDanhSachBo() {
         </div>
         {isAuthenticated && (
           <div className="ui-page-header__actions">
+            <Link to="/practice" className="ui-button ui-button--ghost whitespace-nowrap px-4 py-2.5">
+              Luyện tập
+            </Link>
             <button
               type="button"
               onClick={moFormThemBo}

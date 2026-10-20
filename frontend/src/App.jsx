@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from "react";
-import { Navigate, Routes, Route, useLocation } from "react-router-dom";
+import { Navigate, Routes, Route, useLocation, useParams } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import TuongTacNho from "./components/common/TuongTacNho";
@@ -47,7 +47,7 @@ const TrangTuLuan = lazy(taiTrangTuLuan);
 const TrangNoiTu = lazy(dangKyTrang("/decks/:deckId/noi-tu", () => import("./pages/TrangNoiTu"), taiDuLieuBo));
 const TrangLuyenCau = lazy(dangKyTrang("/decks/:deckId/luyen-cau", () => import("./pages/TrangLuyenCau")));
 const TrangLuyenTap = lazy(dangKyTrang("/practice", () => import("./pages/TrangLuyenTap")));
-const TrangChiTietLoTrinh = lazy(dangKyTrang("/roadmap/:slug", () => import("./pages/TrangChiTietLoTrinh")));
+const TrangChiTietLoTrinh = lazy(dangKyTrang("/khoa-hoc/lo-trinh/:slug", () => import("./pages/TrangChiTietLoTrinh")));
 const TrangTuSai = lazy(dangKyTrang("/tu-sai", () => import("./pages/TrangTuSai")));
 const TrangOnTapHomNay = lazy(dangKyTrang("/review", () => import("./pages/TrangOnTapHomNay")));
 const TrangKhongTimThay = lazy(() => import("./pages/TrangKhongTimThay"));
@@ -56,12 +56,21 @@ const TrangDangKy = lazy(dangKyTrang("/register", () => import("./pages/TrangDan
 const TrangCaiDat = lazy(dangKyTrang("/cai-dat", () => import("./pages/TrangCaiDat")));
 const TrangThongKe = lazy(dangKyTrang("/stats", () => import("./pages/TrangThongKe")));
 const TrangKhoaHoc = lazy(dangKyTrang("/khoa-hoc", () => import("./pages/TrangKhoaHoc")));
-const TrangBaiHoc = lazy(dangKyTrang("/khoa-hoc/:courseId/bai/:soBai", () => import("./pages/TrangBaiHoc"), taiDuLieuBaiHoc));
+// Bước của buổi nằm trên đường dẫn: /khoa-hoc/1/bai/14/bai-tap (không có bước = Từ vựng)
+const taiTrangBaiHoc = () => import("./pages/TrangBaiHoc");
+dangKyTrang("/khoa-hoc/:courseId/bai/:soBai/:buoc", taiTrangBaiHoc, taiDuLieuBaiHoc);
+const TrangBaiHoc = lazy(dangKyTrang("/khoa-hoc/:courseId/bai/:soBai", taiTrangBaiHoc, taiDuLieuBaiHoc));
 const TrangOnCauHoi = lazy(dangKyTrang("/khoa-hoc/on-tap", () => import("./pages/TrangOnCauHoi")));
 
 // Mở app: tải JS + dữ liệu của trang đang mở ngay, song song với bước xác minh đăng nhập (/auth/me),
 // thay vì đợi xác minh xong mới bắt đầu tải. Token hết hạn thì request trả 401 giống /auth/me.
 taiTruocTheoDuongDan(window.location.pathname, { kemDuLieu: true });
+
+// /roadmap/:slug (link cũ) → /khoa-hoc/lo-trinh/:slug
+function ChuyenLoTrinhCu() {
+  const { slug } = useParams();
+  return <Navigate to={`/khoa-hoc/lo-trinh/${encodeURIComponent(slug)}`} replace />;
+}
 
 function AuthReadyGate({ children }) {
   const { isAuthReady, authError, retryAuth } = useAuth();
@@ -127,9 +136,10 @@ function UngDung() {
           <Route path="/decks/:deckId" element={<TrangChiTietBo />} />
           <Route path="/practice" element={<TrangLuyenTap />} />
           <Route path="/khoa-hoc" element={<TrangKhoaHoc />} />
-          {/* Trang lộ trình cũ đã gộp vào trang Khoá học */}
+          {/* Lộ trình mẫu nằm trong mục Học; đường dẫn /roadmap cũ chuyển sang đường mới */}
+          <Route path="/khoa-hoc/lo-trinh/:slug" element={<TrangChiTietLoTrinh />} />
           <Route path="/roadmap" element={<Navigate to="/khoa-hoc" replace />} />
-          <Route path="/roadmap/:slug" element={<TrangChiTietLoTrinh />} />
+          <Route path="/roadmap/:slug" element={<ChuyenLoTrinhCu />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />
             <Route path="/tu-sai" element={<TrangTuSai />} />
@@ -139,6 +149,7 @@ function UngDung() {
             <Route path="/cai-dat" element={<TrangCaiDat />} />
             <Route path="/khoa-hoc/on-tap" element={<TrangOnCauHoi />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai" element={<TrangBaiHoc />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/:buoc" element={<TrangBaiHoc />} />
           </Route>
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
           <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />

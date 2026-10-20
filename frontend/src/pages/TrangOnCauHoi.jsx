@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
+import TabOnTap from "../components/common/TabOnTap";
 import { layCauHoiCanOn } from "../services/courseApi";
 import "./KhoaHoc.css";
 
@@ -36,10 +37,10 @@ function TrangOnCauHoi() {
 
   return (
     <div className="ui-page-stack kh-trang">
-      <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
+      <TabOnTap />
 
       <header className="kh-khoa__dau">
-        <h2 className="kh-khoa__ten">Ôn câu bài tập</h2>
+        <h2 className="kh-khoa__ten">Ôn câu bài tập sai</h2>
         <p className="kh-khoa__mo-ta">
           Các câu bạn từng làm sai, nay đến lịch ôn lại. Làm đúng thì câu được giãn lịch ôn, sai thì quay lại ngay.
         </p>

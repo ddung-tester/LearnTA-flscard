@@ -9270,3 +9270,12 @@ a.dash-lich__o:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .thong-bao-may-chu__cham { animation: none; }
 }
+
+/* Hàng tab chung của mục Ôn tập (components/common/TabOnTap.jsx) */
+.tab-on-tap {
+  margin-bottom: 1rem;
+}
+
+.tab-on-tap .ui-filter-tab {
+  min-height: 2.75rem;
+}

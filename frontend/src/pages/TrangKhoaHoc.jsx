@@ -187,24 +187,24 @@ function TrangKhoaHoc() {
         <KhoaHocRieng key={khoa.id} khoa={khoa} />
       ))}
 
-      {/* Đã có khoá riêng: lộ trình nằm ở Từ vựng → Lộ trình để trang này chỉ còn khoá học */}
-      {!coKhoaRieng && (
-        <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">
-          <div className="ui-page-header">
-            <div className="ui-page-header__title">
-              <h2 id="lo-trinh-tieu-de" className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">
-                Lộ trình từ vựng
-                <GachVeTay />
-              </h2>
-              <p className="text-sm text-[var(--mau-chu-phu)]">
-                Học theo thứ tự từ cơ bản đến nâng cao, không phải đoán nên học gì tiếp theo.
-              </p>
-            </div>
+      {/* Lộ trình mẫu luôn nằm ở đây, dưới khoá học: cùng là chuỗi học có thứ tự */}
+      <section className="flex flex-col gap-4" aria-labelledby="lo-trinh-tieu-de">
+        <div className="ui-page-header">
+          <div className="ui-page-header__title">
+            <h2 id="lo-trinh-tieu-de" className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">
+              Lộ trình mẫu
+              <GachVeTay />
+            </h2>
+            <p className="text-sm text-[var(--mau-chu-phu)]">
+              {coKhoaRieng
+                ? "Học thêm từ vựng theo chủ đề, từ cơ bản đến nâng cao. Từ đã học vào chung lịch ôn tập."
+                : "Học theo thứ tự từ cơ bản đến nâng cao, không phải đoán nên học gì tiếp theo."}
+            </p>
           </div>
+        </div>
 
-          <DanhSachLoTrinh loTrinh={trangThai.loTrinh} coLoi={trangThai.loiLoTrinh} hienTienDo={isAuthenticated} />
-        </section>
-      )}
+        <DanhSachLoTrinh loTrinh={trangThai.loTrinh} coLoi={trangThai.loiLoTrinh} hienTienDo={isAuthenticated} />
+      </section>
     </div>
   );
 }
