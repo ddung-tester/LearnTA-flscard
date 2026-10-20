@@ -1,3 +1,5 @@
+> Ghi chú 20/10/2026: tài liệu lịch sử. Hạ tầng đã đổi sang Supabase (CSDL + audio) / Render (backend) / Vercel ngày 19/10/2026; chỗ nhắc Cloud SQL, Cloud Run, MySQL, email là thông tin cũ. Hiện trạng: [docs/deploy-render-supabase.md](deploy-render-supabase.md).
+
 # Chống ghi trùng kết quả học — 08/10/2026
 
 ## Hành vi đã sửa

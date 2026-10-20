@@ -251,6 +251,7 @@ function TrangBaiHoc() {
   const khoa = `${courseId}/${soBai}`;
   // ketQuaCau: { [questionId]: đúng/sai ở lần trả lời gần nhất } — cập nhật ngay khi làm bài
   const [trangThai, setTrangThai] = useState({ khoa: null, bai: null, loi: "", ketQuaCau: {} });
+  const [lanThu, setLanThu] = useState(0);
   const dangTai = trangThai.khoa !== khoa;
   const buoc = CAC_BUOC.some((muc) => muc.key === searchParams.get("tab")) ? searchParams.get("tab") : "tu-vung";
 
@@ -275,13 +276,15 @@ function TrangBaiHoc() {
         soanNen([...chinh, ...bai.questions.filter((cau) => !chinh.includes(cau))].map((cau) => cau.id));
       })
       .catch((error) => {
-        if (conHieuLuc) setTrangThai({ khoa, bai: null, loi: error.message, ketQuaCau: {} });
+        if (conHieuLuc) {
+          setTrangThai({ khoa, bai: null, loi: error.message, khongCo: error.status === 404, ketQuaCau: {} });
+        }
       });
     return () => {
       conHieuLuc = false;
       dungSoanNen();
     };
-  }, [courseId, soBai, khoa]);
+  }, [courseId, soBai, khoa, lanThu]);
 
   if (dangTai) return null;
 
@@ -290,7 +293,23 @@ function TrangBaiHoc() {
     return (
       <div className="ui-page-stack">
         <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
-        <p className="kh-trong">Không mở được buổi học này. Quay về danh sách khoá học để chọn lại.</p>
+        {trangThai.khongCo ? (
+          <p className="kh-trong">Không có buổi học này. Quay về danh sách khoá học để chọn lại.</p>
+        ) : (
+          <div className="kh-trong" role="alert">
+            <p>Chưa mở được buổi học. {trangThai.loi}</p>
+            <button
+              type="button"
+              className="ui-button ui-button--primary mt-3 px-5 py-2.5"
+              onClick={() => {
+                setTrangThai((cu) => ({ ...cu, khoa: null }));
+                setLanThu((lan) => lan + 1);
+              }}
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
       </div>
     );
   }

@@ -341,6 +341,7 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
         answered_count: "20",
         correct_count: "17",
         due_count: "2",
+        last_activity_at: new Date("2026-10-19T11:23:00Z"),
       },
     ],
   ]);
@@ -364,7 +365,10 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
     answered_count: 20,
     correct_count: 17,
     due_count: 2,
+    last_activity_at: new Date("2026-10-19T11:23:00Z"),
   });
+  // Lần học gần nhất = mới nhất của học từ và làm bài
+  assert.match(calls[0].sql, /GREATEST\([\s\S]*MAX\(cp\.updated_at\)[\s\S]*MAX\(p\.updated_at\)/);
 });
 
 test("answerQuestion grades on the server and stores the latest result", async () => {

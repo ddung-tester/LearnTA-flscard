@@ -6,14 +6,17 @@
 /**
  * Chuẩn hoá câu trả lời gõ tay: không phân biệt hoa thường, bỏ khoảng trắng thừa
  * và dấu câu cuối câu, nháy cong (’) coi như nháy thẳng (').
+ * Gạch nối, gạch dài, dấu phẩy, gạch chéo coi như khoảng trắng ("Did - win" = "Did win").
+ * Phải giống hệt backend/src/utils/khoaHoc.js để trình duyệt và server chấm như nhau.
  */
 export function chuanHoaTraLoi(text) {
   return String(text ?? "")
     .replace(/[’‘`´]/g, "'")
     .toLowerCase()
+    .replace(/[-‐‑–—,/]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/[.!?]+$/, "")
+    .replace(/[\s.!?]+$/, "")
     .trim();
 }
 
@@ -185,16 +188,26 @@ export function tongHopKhoaHoc(khoa) {
   return tong;
 }
 
+const thoiDiemHoc = (bai) => Date.parse(bai.last_activity_at ?? "") || 0;
+
 /**
- * Buổi nên học tiếp: buổi gần nhất đã bắt đầu nếu chưa xong, không thì buổi kế sau nó;
+ * Buổi nên học tiếp: buổi vừa học gần đây nhất (theo last_activity_at; không có thời điểm thì
+ * lấy buổi số lớn nhất đã bắt đầu) nếu chưa xong, không thì buổi chưa xong kế sau nó;
  * chưa học buổi nào thì buổi đầu tiên. null khi đã xong mọi buổi hiện có.
  */
 export function timBuoiTiepTheo(lessons) {
   const theoSo = [...lessons].sort((a, b) => a.lesson_number - b.lesson_number);
-  const ganNhat = theoSo.filter((bai) => tienDoBuoiHoc(bai).daBatDau).at(-1);
+  const ganNhat = theoSo
+    .filter((bai) => tienDoBuoiHoc(bai).daBatDau)
+    .reduce((chon, bai) => (!chon || thoiDiemHoc(bai) >= thoiDiemHoc(chon) ? bai : chon), null);
   if (!ganNhat) return theoSo[0] ?? null;
   if (!tienDoBuoiHoc(ganNhat).xong) return ganNhat;
-  return theoSo.find((bai) => bai.lesson_number > ganNhat.lesson_number) ?? null;
+  const chuaXong = (bai) => !tienDoBuoiHoc(bai).xong;
+  return (
+    theoSo.find((bai) => bai.lesson_number > ganNhat.lesson_number && chuaXong(bai)) ??
+    theoSo.find(chuaXong) ??
+    null
+  );
 }
 
 /** Tổng số buổi đọc từ tên khoá ("Khoá 48 ngày ..." → 48); không có số thì lấy số buổi lớn nhất đang có */

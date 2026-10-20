@@ -66,9 +66,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 - Check `git status --short` and inspect related files before editing.
 - Do not revert or reformat dirty files unless the current task requires that exact line.
-- Use `frontend/` for React/Vite commands and `backend/` for Express/MySQL commands.
+- Use `frontend/` for React/Vite commands and `backend/` for Express/PostgreSQL commands.
+- Infrastructure (since 2026-10-19, details in `docs/deploy-render-supabase.md`): DB = PostgreSQL 17 on Supabase (Free), course audio = Supabase Storage private bucket `course-audio`, backend = Render free web service (`render.yaml`), frontend = Vercel. Google Cloud only keeps the OAuth client (project `flash-card-499907`, never delete it). No Cloud SQL, Cloud Run, Cloud Storage, Cloud Scheduler, cron, or email sending anymore — do not reintroduce them.
+- DB access goes through `backend/src/config/db.js` (`pg` wrapper: `?` placeholders, returns `[rows]` like mysql2, `insertId` via `RETURNING id`, `23505` → `ER_DUP_ENTRY`). Write new SQL for Postgres; `backend/database/mysql-legacy/` is reference only.
+- Migrations do not run on deploy: update `backend/database/schema.sql`, enable RLS on new tables, and have the user run the SQL in the Supabase SQL Editor BEFORE pushing code that needs it.
+- `backend/.env` may point at the production Supabase DB. Never print or commit secrets; never put secrets in `VITE_*` variables (they are public).
+- Tests: `cd backend; npm test` and `cd frontend; npx vitest run` (plus `npm run lint`, `npx vite build`). Local backend port defaults to 8080.
 - Keep the existing Vietnamese naming style in UI components and user-facing copy.
-- Keep auth policy explicit: anonymous users see public sample decks where `user_id IS NULL`; logged-in users see only their own decks where `user_id` matches the token user.
+- Keep auth policy explicit: anonymous users see public sample decks where `user_id IS NULL`; logged-in users see their own decks where `user_id` matches the token user, plus read-only roadmap decks (sample decks listed in `roadmap_decks`, see `deckController.canReadDeck` / `LA_BO_LO_TRINH_SQL`). Other sample decks and other users' decks stay hidden from accounts.
 - Do not add a seeded demo login account unless a task asks for one. Manual auth testing should register a fresh user.
 - Keep login/register UI compact and task-focused. Use existing `ui-form-panel`, `ui-button`, and design tokens instead of creating a new visual system.
 

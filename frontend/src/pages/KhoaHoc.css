@@ -648,6 +648,13 @@
   color: var(--kh-sai-chu);
 }
 
+/* Câu trả lời chưa lưu được (mất mạng), đang chờ gửi lại */
+.kh-bt__chua-luu {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--kh-sai-chu);
+}
+
 /* Phiếu câu hỏi: giấy vở có lề đỏ */
 .kh-cau {
   border: 1px solid var(--mau-vien);

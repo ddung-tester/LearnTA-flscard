@@ -28,14 +28,18 @@ function mangChuoi(value) {
 /**
  * Chuẩn hoá câu trả lời gõ tay: không phân biệt hoa thường, bỏ khoảng trắng thừa
  * và dấu câu cuối câu, nháy cong (’) coi như nháy thẳng (').
+ * Gạch nối, gạch dài, dấu phẩy, gạch chéo coi như khoảng trắng: đáp án 2 chỗ trống "Did - win"
+ * chấp nhận cả "Did win", "Did-win", "Did, win". Chạy lại lần nữa vẫn ra cùng kết quả
+ * (frontend/src/utils/baiTapKhoaHoc.js giữ bản giống hệt).
  */
 function chuanHoaTraLoi(text) {
   return String(text ?? "")
     .replace(/[’‘`´]/g, "'")
     .toLowerCase()
+    .replace(/[-‐‑–—,/]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .replace(/[.!?]+$/, "")
+    .replace(/[\s.!?]+$/, "")
     .trim();
 }
 
@@ -48,6 +52,12 @@ function chuanHoaTraLoi(text) {
 function lichOnCauHoi(hienTai, dung, now = new Date()) {
   const dangOn = Boolean(hienTai?.next_review_at);
   if (dung && !dangOn) return { level: hienTai?.mastery_level || 0, nextReviewAt: null };
+  // Đúng khi câu chưa đến hạn (vd. bấm "Làm lại" ngay sau khi sai): giữ nguyên cấp và hạn ôn,
+  // chỉ lên cấp khi trả lời đúng lúc câu đã đến hạn
+  const hanOn = dangOn ? new Date(hienTai.next_review_at) : null;
+  if (dung && hanOn.getTime() > now.getTime()) {
+    return { level: hienTai.mastery_level || 0, nextReviewAt: hanOn };
+  }
   return scheduleAnswer(dangOn ? hienTai.mastery_level : 0, dung, now);
 }
 

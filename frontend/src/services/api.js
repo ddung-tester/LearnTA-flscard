@@ -67,7 +67,8 @@ export function clearStoredAuthToken() {
 }
 
 // Mạng điện thoại chập chờn có thể giữ request treo nhiều phút → trang đứng ở màn chờ.
-// 25 s đủ cho Cloud Run khởi động lạnh + 4G chậm; lệnh gọi AI tự đặt THOI_GIAN_CHO_AI_MS.
+// Mỗi lần gọi chờ tối đa 25 s; GET còn tự gọi lại 2 lần (xem nenThuLai) nên chịu được ~80 s
+// Render khởi động lại sau khi ngủ. Lệnh gọi AI tự đặt THOI_GIAN_CHO_AI_MS.
 // Lưu kết quả học hết giờ thì vào hàng chờ gửi lại như lỗi mạng (có mã chống ghi trùng).
 export const THOI_GIAN_CHO_AI_MS = 90000;
 
@@ -92,18 +93,80 @@ api.interceptors.request.use((config) => {
 
 const laRequestGhi = (config) => !["get", "head", "options"].includes(String(config?.method || "get").toLowerCase());
 
+// Máy chủ (Render gói miễn phí) ngủ sau 15 phút không dùng, lần gọi đầu chờ 30–60 s.
+// GET chờ quá 6 s thì báo "máy chủ đang khởi động" (ThongBaoMayChu) để người học biết phải chờ;
+// GET lỗi mạng, hết giờ hoặc 502/503/504 thì tự gọi lại tối đa 2 lần (đọc nên gọi lại an toàn).
+const CHO_BAO_CHAM_MS = 6000;
+const SO_LAN_THU_LAI_GET = 2;
+const MA_LOI_TAM_THOI = new Set([502, 503, 504]);
+// Mã request → { hen, cham }. config chỉ giữ mã (số): axios sao chép config khi gọi lại
+const dangCho = new Map();
+let maChoTiepTheo = 1;
+const nguoiNgheMayChu = new Set();
+let mayChuCham = false;
+
+function datMayChuCham(giaTri) {
+  if (giaTri === mayChuCham) return;
+  mayChuCham = giaTri;
+  nguoiNgheMayChu.forEach((baoDoi) => baoDoi());
+}
+
+export function theoDoiMayChuCham(baoDoi) {
+  nguoiNgheMayChu.add(baoDoi);
+  return () => nguoiNgheMayChu.delete(baoDoi);
+}
+
+export function layMayChuCham() {
+  return mayChuCham;
+}
+
+function batDauCho(config) {
+  if (laRequestGhi(config) || config.maCho) return;
+  const ma = maChoTiepTheo++;
+  const muc = { cham: false };
+  muc.hen = setTimeout(() => {
+    muc.cham = true;
+    datMayChuCham(true);
+  }, CHO_BAO_CHAM_MS);
+  dangCho.set(ma, muc);
+  config.maCho = ma;
+}
+
+function ketThucCho(config) {
+  const muc = dangCho.get(config?.maCho);
+  if (!muc) return;
+  clearTimeout(muc.hen);
+  dangCho.delete(config.maCho);
+  if (![...dangCho.values()].some((m) => m.cham)) datMayChuCham(false);
+}
+
+function nenThuLai(error) {
+  const config = error.config;
+  if (!config || laRequestGhi(config) || axios.isCancel(error) || config.signal?.aborted) return false;
+  if ((config.lanThuLai || 0) >= SO_LAN_THU_LAI_GET) return false;
+  return !error.response || MA_LOI_TAM_THOI.has(error.response.status);
+}
+
 api.interceptors.request.use((config) => {
   if (laRequestGhi(config)) xoaBoNhoGet();
+  batDauCho(config);
   return config;
 }, undefined, { synchronous: true });
 
 api.interceptors.response.use(
   (response) => {
+    ketThucCho(response.config);
     // Xoá cả lúc ghi xong: GET chạy song song với request ghi có thể đã lưu bản trước khi ghi
     if (laRequestGhi(response.config)) xoaBoNhoGet();
     return response;
   },
   (error) => {
+    if (nenThuLai(error)) {
+      const config = error.config;
+      config.lanThuLai = (config.lanThuLai || 0) + 1;
+      return new Promise((xong) => setTimeout(xong, 1500 * config.lanThuLai)).then(() => api.request(config));
+    }
+    ketThucCho(error.config);
     if (laRequestGhi(error.config)) xoaBoNhoGet();
     const status = error.response?.status;
     if (status >= 500) {
@@ -121,8 +184,8 @@ api.interceptors.response.use(
     const message =
       error.response?.data?.message ||
       (error.code === "ECONNABORTED"
-        ? "Mạng chậm, chưa nhận được phản hồi. Thử lại nhé."
-        : "Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.");
+        ? "Máy chủ phản hồi chậm. Chờ thêm chút rồi thử lại nhé."
+        : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
 
     const normalizedError = new Error(message);
     normalizedError.status = status;
