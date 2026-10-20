@@ -919,11 +919,23 @@ function TrangOnTapHomNay() {
               : `${visibleFilteredCards.length} từ cần ôn · Tổng hàng ôn: ${srsStats.total} từ`}
           </p>
         </div>
-        {soCauCanOn > 0 && (
+        {(soCauCanOn > 0 || !manRong) && (
           <div className="review-header__actions">
-            <Link to="/khoa-hoc/on-tap" className="review-nav-btn">
-              Ôn {soCauCanOn} câu bài tập
-            </Link>
+            {soCauCanOn > 0 && (
+              <Link to="/khoa-hoc/on-tap" className="review-nav-btn">
+                Ôn {soCauCanOn} câu bài tập
+              </Link>
+            )}
+            {/* Điện thoại: nút chat nổi bị ẩn để không che đáp án, mở LearnBot từ đây */}
+            {!manRong && (
+              <button
+                type="button"
+                className="review-nav-btn"
+                onClick={() => document.querySelector(".chatbot-bubble")?.click()}
+              >
+                Hỏi LearnBot
+              </button>
+            )}
           </div>
         )}
       </div>
