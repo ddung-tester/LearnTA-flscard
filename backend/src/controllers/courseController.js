@@ -130,7 +130,18 @@ async function listCourses(req, res) {
        (SELECT COUNT(*)
         FROM course_questions q
         JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
-        WHERE q.lesson_id = l.id AND p.next_review_at <= CURRENT_TIMESTAMP) AS due_count
+        WHERE q.lesson_id = l.id AND p.next_review_at <= CURRENT_TIMESTAMP) AS due_count,
+       -- Lần học gần nhất của buổi (học từ hoặc làm bài): để chọn đúng buổi "Học tiếp"
+       GREATEST(
+         (SELECT MAX(cp.updated_at)
+          FROM cards cd
+          JOIN card_progress cp ON cp.card_id = cd.id AND cp.user_id = c.user_id
+          WHERE cd.deck_id = l.deck_id),
+         (SELECT MAX(p.updated_at)
+          FROM course_questions q
+          JOIN course_question_progress p ON p.question_id = q.id AND p.user_id = c.user_id
+          WHERE q.lesson_id = l.id)
+       ) AS last_activity_at
      FROM courses c
      LEFT JOIN course_lessons l ON l.course_id = c.id
      WHERE c.user_id = ?
@@ -162,6 +173,7 @@ async function listCourses(req, res) {
         answered_count: soNguyen(row.answered_count),
         correct_count: soNguyen(row.correct_count),
         due_count: soNguyen(row.due_count),
+        last_activity_at: row.last_activity_at ?? null,
       });
     }
   }

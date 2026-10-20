@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import TuongTacNho from "./components/common/TuongTacNho";
 import DenBan from "./components/common/DenBan";
+import ThongBaoMayChu from "./components/common/ThongBaoMayChu";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
@@ -160,6 +161,7 @@ function UngDung() {
     >
       <TuongTacNho />
       <DenBan />
+      <ThongBaoMayChu />
       <AuthReadyGate>{noiDungRoutes}</AuthReadyGate>
       {!laTrangImmersive && (
         <Suspense fallback={null}>

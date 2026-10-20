@@ -40,6 +40,15 @@ describe("chấm bài tập khoá học", () => {
     expect(chuanHoaTraLoi("  Didn’t   PAY. ")).toBe("didn't pay");
   });
 
+  it("treats dashes, commas and slashes as spaces so 'Did win' matches 'Did - win'", () => {
+    const haiCho = { type: "fill_blank", accepted_answers: ["Did - win"] };
+    for (const traLoi of ["Did win", "did-win", "Did, win", "Did – win."]) {
+      expect(laTraLoiDung(haiCho, traLoi)).toBe(true);
+    }
+    expect(chuanHoaTraLoi("went . .")).toBe("went");
+    expect(chuanHoaTraLoi(chuanHoaTraLoi("went . ."))).toBe("went");
+  });
+
   it("checks the option letter for multiple choice", () => {
     expect(laTraLoiDung(TRAC_NGHIEM, "a")).toBe(true);
     expect(laTraLoiDung(TRAC_NGHIEM, "B")).toBe(false);
@@ -156,6 +165,19 @@ describe("tiến độ khoá học", () => {
     expect(timBuoiTiepTheo([buoi(13, XONG), buoi(14)]).lesson_number).toBe(14);
     expect(timBuoiTiepTheo([buoi(13, XONG)])).toBeNull();
     expect(timBuoiTiepTheo([])).toBeNull();
+  });
+
+  it("ưu tiên buổi vừa học gần đây nhất, không phải buổi có số lớn nhất", () => {
+    const luc = (gio) => `2026-10-19T${gio}:00:00Z`;
+    const ds = [
+      buoi(1, { learned_count: 3, last_activity_at: luc("08") }),
+      buoi(14, { answered_count: 2, last_activity_at: luc("11") }),
+      buoi(48, { learned_count: 5, last_activity_at: luc("09") }),
+    ];
+    expect(timBuoiTiepTheo(ds).lesson_number).toBe(14);
+    // Buổi vừa học đã xong: sang buổi chưa xong kế sau, hết thì quay về buổi chưa xong nhỏ nhất
+    expect(timBuoiTiepTheo([buoi(13, { ...XONG, last_activity_at: luc("11") }), buoi(14), buoi(15)]).lesson_number).toBe(14);
+    expect(timBuoiTiepTheo([buoi(2), buoi(48, { ...XONG, last_activity_at: luc("11") })]).lesson_number).toBe(2);
   });
 });
 

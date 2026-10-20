@@ -9231,3 +9231,42 @@ a.dash-lich__o:focus-visible {
     min-height: 44px;
   }
 }
+
+/* Dải báo máy chủ đang khởi động (components/common/ThongBaoMayChu.jsx) */
+.thong-bao-may-chu {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 100000; /* trên màn chờ .page-loading-overlay (99999) */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(560px, calc(100% - 32px));
+  padding: 12px 16px;
+  border: 1px solid var(--mau-vien);
+  border-radius: 14px;
+  background: var(--mau-mat);
+  color: var(--mau-chu);
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  transform: translateX(-50%);
+}
+
+.thong-bao-may-chu__cham {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mau-chinh);
+  animation: thong-bao-may-chu-nhip 1.2s ease-in-out infinite;
+}
+
+@keyframes thong-bao-may-chu-nhip {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thong-bao-may-chu__cham { animation: none; }
+}

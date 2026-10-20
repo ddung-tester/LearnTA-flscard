@@ -398,6 +398,41 @@ test("lichOnCauHoi only schedules questions that were answered wrong, with the w
   assert.deepEqual(lichOnCauHoi({ mastery_level: 3, next_review_at: now }, false, now), { level: 2, nextReviewAt: now });
 });
 
+test("lichOnCauHoi keeps level and due date when a question in the review queue is answered before it is due", () => {
+  const now = new Date("2026-09-27T03:00:00Z");
+  const ngayMai = new Date("2026-09-27T17:00:00Z");
+  // Vừa lên Lv1 (hạn 00:00 ngày mai), bấm "Làm lại" và đúng tiếp: không được lên Lv2
+  assert.deepEqual(lichOnCauHoi({ mastery_level: 1, next_review_at: ngayMai }, true, now), {
+    level: 1,
+    nextReviewAt: ngayMai,
+  });
+  // Trả lời đúng 5 lần liền trong 1 phút sau khi sai: chỉ lên được 1 cấp
+  let tienDo = lichOnCauHoi(undefined, false, now);
+  for (let lan = 0; lan < 5; lan += 1) {
+    const luc = new Date(now.getTime() + (lan + 1) * 10_000);
+    tienDo = lichOnCauHoi({ mastery_level: tienDo.level, next_review_at: tienDo.nextReviewAt }, true, luc);
+  }
+  assert.equal(tienDo.level, 1);
+  assert.deepEqual(tienDo.nextReviewAt, ngayMai);
+  // Chưa đến hạn mà trả lời sai thì vẫn xuống cấp, ôn lại ngay
+  assert.deepEqual(lichOnCauHoi({ mastery_level: 3, next_review_at: ngayMai }, false, now), {
+    level: 2,
+    nextReviewAt: now,
+  });
+});
+
+test("chuanHoaTraLoi treats dashes, commas and slashes as spaces and is idempotent", () => {
+  const cau = { type: "fill_blank", accepted_answers: ["Did - win"] };
+  for (const traLoi of ["Did win", "Did - win", "did-win", "Did, win", "Did – win.", "Did — win !"]) {
+    assert.equal(laTraLoiDung(cau, traLoi), true, traLoi);
+  }
+  assert.equal(laTraLoiDung(cau, "Did won"), false);
+  assert.equal(chuanHoaTraLoi("went . ."), "went");
+  for (const text of ["went . .", "Does – eat", "a/b, c", "  It's  ok!? "]) {
+    assert.equal(chuanHoaTraLoi(chuanHoaTraLoi(text)), chuanHoaTraLoi(text), text);
+  }
+});
+
 test("cacTraLoiCanGiaiThich lists every choice of a multiple-choice question", () => {
   const { cacTraLoiCanGiaiThich } = require("../src/utils/khoaHoc");
   const cau = {

@@ -75,15 +75,28 @@ it("caches reads briefly, gives each caller its own copy and forgets after write
   expect((await layCoBoNho("/decks/1/cards")).lan).toBe(3);
 });
 
+// Chờ hết các lần tự gọi lại (có hẹn giờ) của một request rồi trả kết quả
+async function chayHetHenGio(goi) {
+  vi.useFakeTimers();
+  try {
+    const ketQua = goi().then((data) => ({ data }), (loi) => ({ loi }));
+    await vi.runAllTimersAsync();
+    return await ketQua;
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 it("does not keep failed reads in the cache", async () => {
   const { default: api, layCoBoNho } = await import("./api");
   let lan = 0;
   api.defaults.adapter = async (config) => {
     lan += 1;
-    if (lan === 1) throw Object.assign(new Error("offline"), { config });
+    // Lần đầu và 2 lần tự gọi lại đều mất mạng
+    if (lan <= 3) throw Object.assign(new Error("offline"), { config });
     return { data: { ok: true }, status: 200, config };
   };
-  await expect(layCoBoNho("/courses")).rejects.toThrow();
+  expect((await chayHetHenGio(() => layCoBoNho("/courses"))).loi).toBeInstanceOf(Error);
   await expect(layCoBoNho("/courses")).resolves.toEqual({ ok: true });
 });
 
@@ -91,8 +104,41 @@ it("gives up on hung requests with a clear message, but lets AI calls wait longe
   const { default: api, THOI_GIAN_CHO_AI_MS } = await import("./api");
   expect(api.defaults.timeout).toBe(25000);
   expect(THOI_GIAN_CHO_AI_MS).toBeGreaterThan(api.defaults.timeout);
+  let lan = 0;
   api.defaults.adapter = async (config) => {
+    lan += 1;
     throw Object.assign(new Error("timeout of 25000ms exceeded"), { code: "ECONNABORTED", config });
   };
-  await expect(api.get("/decks")).rejects.toThrow("Mạng chậm, chưa nhận được phản hồi. Thử lại nhé.");
+  const { loi } = await chayHetHenGio(() => api.get("/decks"));
+  expect(loi.message).toBe("Máy chủ phản hồi chậm. Chờ thêm chút rồi thử lại nhé.");
+  expect(lan).toBe(3);
+});
+
+it("retries reads while the server wakes up, never retries writes, and reports a slow server", async () => {
+  const { default: api, layMayChuCham, theoDoiMayChuCham } = await import("./api");
+  const trangThai = [];
+  theoDoiMayChuCham(() => trangThai.push(layMayChuCham()));
+  let lanDoc = 0;
+  let lanGhi = 0;
+  api.defaults.adapter = (config) => {
+    if (config.method === "post") {
+      lanGhi += 1;
+      return Promise.reject(Object.assign(new Error("offline"), { config }));
+    }
+    lanDoc += 1;
+    // Lần đầu: 503 sau 7 s (máy chủ đang dậy); lần gọi lại thì xong
+    if (lanDoc === 1) {
+      return new Promise((_ok, loi) =>
+        setTimeout(() => loi(Object.assign(new Error("503"), { config, response: { status: 503, data: {} } })), 7000)
+      );
+    }
+    return Promise.resolve({ data: { ok: true }, status: 200, config });
+  };
+  expect((await chayHetHenGio(() => api.get("/courses"))).data.data).toEqual({ ok: true });
+  expect(lanDoc).toBe(2);
+  expect(trangThai).toEqual([true, false]);
+  expect(layMayChuCham()).toBe(false);
+
+  expect((await chayHetHenGio(() => api.post("/course-questions/1/answer", {}))).loi).toBeInstanceOf(Error);
+  expect(lanGhi).toBe(1);
 });

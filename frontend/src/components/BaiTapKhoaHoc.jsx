@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import { useHoiLearnBot } from "../contexts/ChatbotContext";
-import { danhGiaGiaiThich, giaiThichCauHoi, luuTraLoiCauHoi } from "../services/courseApi";
+import { danhGiaGiaiThich, giaiThichCauHoi } from "../services/courseApi";
+import { luuTraLoiCoHangCho, soCauDangCho, theoDoiHangCho } from "../services/hangChoTraLoi";
 import {
   capNhatGiaiThich,
   dungSoanNen,
@@ -318,6 +319,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const xong = chiSo >= danhSach.length;
   const soDung = Object.values(ketQua).filter((k) => k.dung).length;
   const soSai = Object.keys(ketQua).length - soDung;
+  const soCauChuaLuu = useSyncExternalStore(theoDoiHangCho, soCauDangCho, () => 0);
 
   // Ôn câu sai (nhiều buổi): soạn nền mọi câu trong danh sách; ở trang bài học thì TrangBaiHoc đã soạn nền cả buổi
   useEffect(() => {
@@ -421,8 +423,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     const dung = laTraLoiDung(cau, traLoi);
     setKetQua((cu) => ({ ...cu, [cau.id]: { traLoi, dung } }));
     onGhiNhan?.(cau.id, dung);
-    // Lưu tiến độ lỗi (mất mạng...) không được chặn việc làm bài
-    luuTraLoiCauHoi(cau.id, traLoi).catch(() => {});
+    // Lưu lỗi (mất mạng...) không chặn việc làm bài: câu trả lời vào hàng chờ và tự gửi lại
+    luuTraLoiCoHangCho(cau.id, traLoi);
     // Thường đã được soạn trước (hiện ngay); câu tự gõ sai lạ thì AI viết và hiện chữ dần
     hoiAI(cau, traLoi);
   }
@@ -581,6 +583,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
             <span className="kh-bt__dem-sai">{soSai} sai</span>
           </span>
         </p>
+        {soCauChuaLuu > 0 && (
+          <p className="kh-bt__chua-luu" role="status">
+            Chưa lưu được {soCauChuaLuu} câu vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
+          </p>
+        )}
       </div>
 
       <section key={cau.id} ref={cauRef} className="kh-cau" aria-labelledby="kh-de-bai">
@@ -671,6 +678,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
+              maxLength={200}
               value={nhap}
               onChange={(event) => setNhap(event.target.value)}
               disabled={Boolean(daTraLoi)}

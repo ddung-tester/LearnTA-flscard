@@ -134,6 +134,7 @@ function TrangKhoaHoc() {
     loTrinh: [],
     loiLoTrinh: false,
   });
+  const [lanThu, setLanThu] = useState(0);
 
   useLayoutEffect(() => {
     setPageDataLoading("courses", !trangThai.xong);
@@ -159,7 +160,7 @@ function TrangKhoaHoc() {
     return () => {
       conHieuLuc = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, lanThu]);
 
   if (!trangThai.xong) return null;
   const coKhoaRieng = trangThai.khoaHoc.length > 0;
@@ -167,7 +168,19 @@ function TrangKhoaHoc() {
   return (
     <div className="ui-page-stack kh-trang">
       {trangThai.loiKhoaHoc && (
-        <p className="kh-trong">Không tải được khoá học của bạn. Kiểm tra kết nối rồi tải lại trang.</p>
+        <div className="kh-trong" role="alert">
+          <p>Không tải được khoá học của bạn. Kiểm tra kết nối rồi thử lại.</p>
+          <button
+            type="button"
+            className="ui-button ui-button--primary mt-3 px-5 py-2.5"
+            onClick={() => {
+              setTrangThai((cu) => ({ ...cu, xong: false }));
+              setLanThu((lan) => lan + 1);
+            }}
+          >
+            Thử lại
+          </button>
+        </div>
       )}
 
       {trangThai.khoaHoc.map((khoa) => (
