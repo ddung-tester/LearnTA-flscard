@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { layNoiVe } from "../utils/noiVeBuoi";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
 import { useAuth } from "../contexts/AuthContext";
@@ -201,7 +202,7 @@ function TrangLuyenCau() {
     }
   }
 
-  const linkTroVe = `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`;
+  const linkTroVe = layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`);
 
   if (dangTai) return <TheTrangThaiPhien eyebrow="Luyện câu" tieuDe="Đang tải bộ từ..." />;
   if (loi || !bo) {

@@ -56,7 +56,13 @@ function TrangOnCauHoi() {
           </Link>
         </p>
       ) : (
-        <BaiTapKhoaHoc cauHoi={trangThai.cauHoi} onTap />
+        <>
+          {/* Máy chủ trả tối đa 100 câu đến hạn sớm nhất mỗi lần (SO_CAU_ON_TOI_DA) */}
+          {trangThai.cauHoi.length >= 100 && (
+            <p className="kh-khoa__mo-ta">Đang ôn 100 câu đến hạn sớm nhất. Ôn xong, tải lại trang để lấy các câu còn lại.</p>
+          )}
+          <BaiTapKhoaHoc cauHoi={trangThai.cauHoi} onTap />
+        </>
       )}
     </div>
   );

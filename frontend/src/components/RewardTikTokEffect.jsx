@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { laMayYeu } from "../utils/mayYeu";
 
 // Overlay thưởng (động cơ hạt canvas + motion): tách chunk riêng, tải trước lúc trình duyệt rảnh
 // để khi đạt mốc thưởng không phải chờ tải.
@@ -285,6 +286,8 @@ function RewardTikTokEffect({
   // Không dựa vào cache HTTP: Vercel mặc định must-revalidate, mỗi đoạn video lại hỏi server → khựng trên 4G.
   useEffect(() => {
     if (!videoSrc || dangRenderReward || banTaiSan.src === videoSrc) return undefined;
+    // Máy yếu / bật tiết kiệm dữ liệu: không tải trước cả video (0,5–5,7 MB mỗi file), phát thẳng khi tới lượt
+    if (laMayYeu()) return undefined;
     const huy = new AbortController();
     const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 0));
     const huyRanh = window.cancelIdleCallback ?? window.clearTimeout;
@@ -705,7 +708,7 @@ function RewardTikTokEffect({
       }}
       className="reward-magic__video"
       src={srcPhat}
-      preload="auto"
+      preload={laMayYeu() ? "metadata" : "auto"}
       muted
       playsInline
       onLoadedData={(event) => {
@@ -739,7 +742,7 @@ function RewardTikTokEffect({
       }}
       className="reward-magic__video"
       src={srcPhat}
-      preload="auto"
+      preload={laMayYeu() ? "metadata" : "auto"}
       muted
       playsInline
       disablePictureInPicture

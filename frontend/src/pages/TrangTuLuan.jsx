@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
+import { layNoiVe } from "../utils/noiVeBuoi";
 import { AnimatePresence, m } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
@@ -1140,7 +1141,7 @@ function TrangTuLuan({ loai }) {
           </button>
         )}
         <Link
-          to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+          to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
@@ -1212,7 +1213,7 @@ function TrangTuLuan({ loai }) {
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
-          <Link to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`} className="ui-back-btn">
+          <Link to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </Link>
           <CaiDatPhienHoc

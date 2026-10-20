@@ -1,4 +1,5 @@
   import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { layNoiVe } from "../utils/noiVeBuoi";
 import {
   AnimatePresence,
   animate,
@@ -833,7 +834,7 @@ function TrangFlashcard() {
               </button>
             )}
             <Link
-              to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+              to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
               className="ui-button ui-button--primary ui-study-empty-card__button"
             >
               Quay lại bộ từ
@@ -881,7 +882,7 @@ function TrangFlashcard() {
       <div className="ui-study-toolbar">
         <div>
           <Link
-            to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+            to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về

@@ -49,6 +49,7 @@ import { taoDanhSachCauHoi } from "../utils/cauHoiTracNghiem";
 import { chuanHoaDapAn, MUC_GOI_Y_TOI_DA, taoGoiY } from "../utils/phienHoc";
 import GachVeTay from "../components/common/GachVeTay";
 import TabOnTap from "../components/common/TabOnTap";
+import useManRong from "../hooks/useManRong";
 import { laDangGoChu } from "../utils/phimTat";
 
 const OnCauBaiTapDenHan = lazy(() => import("../components/OnCauBaiTapDenHan"));
@@ -617,6 +618,13 @@ function CompletionScreen({ total }) {
 
 function TrangOnTapHomNay() {
   const toast = useToast();
+  const manRong = useManRong();
+
+  // Điện thoại: ẩn nút chat và mèo trang trí ở góc dưới để không che các đáp án (giống màn bài tập)
+  useEffect(() => {
+    document.documentElement.classList.add("dang-lam-bai");
+    return () => document.documentElement.classList.remove("dang-lam-bai");
+  }, []);
   const { setPageDataLoading, navigateWithLoading } = usePageTransition();
 
   const [allCards, setAllCards] = useState(() => layTatCaSRS());
@@ -920,24 +928,28 @@ function TrangOnTapHomNay() {
         )}
       </div>
 
-      <ReviewFilters
-        filterMode={filterMode}
-        setFilterMode={setFilterMode}
-        deckFilter={deckFilter}
-        setDeckFilter={setDeckFilter}
-        levelFilter={levelFilter}
-        setLevelFilter={setLevelFilter}
-        search={search}
-        setSearch={setSearch}
-        uniqueDecks={uniqueDecks}
-        onClear={handleClearFilters}
-      />
+      {/* Điện thoại: bộ lọc và chế độ ôn gập lại để thẻ ôn hiện ngay đầu trang; máy tính mở sẵn */}
+      <details className="review-tuy-chon" {...(manRong ? { open: true } : {})}>
+        <summary className="review-tuy-chon__tieu-de">Bộ lọc và chế độ ôn</summary>
+        <ReviewFilters
+          filterMode={filterMode}
+          setFilterMode={setFilterMode}
+          deckFilter={deckFilter}
+          setDeckFilter={setDeckFilter}
+          levelFilter={levelFilter}
+          setLevelFilter={setLevelFilter}
+          search={search}
+          setSearch={setSearch}
+          uniqueDecks={uniqueDecks}
+          onClear={handleClearFilters}
+        />
 
-      <CheDoTheoLevel
-        giaTri={cheDoTheoLevel}
-        onDoi={doiCheDoLevel}
-        onMacDinh={macDinhCheDoLevel}
-      />
+        <CheDoTheoLevel
+          giaTri={cheDoTheoLevel}
+          onDoi={doiCheDoLevel}
+          onMacDinh={macDinhCheDoLevel}
+        />
+      </details>
 
       {dangTai && <p className="review-sync-note">Đang đồng bộ lịch ôn...</p>}
 

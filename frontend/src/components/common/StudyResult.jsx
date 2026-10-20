@@ -17,6 +17,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { layNoiVe } from "../../utils/noiVeBuoi";
 import { getStoredAuthToken } from "../../services/api";
 import { luuTuSaiDongBo, danhDauDaOnDongBo } from "../../utils/mistakeNotebook";
 import {
@@ -257,7 +258,7 @@ function StudyResult({
   return (
     <div className="study-result">
       <Link
-        to={`/decks/${deckId}`}
+        to={layNoiVe(deckId, `/decks/${deckId}`)}
         className="ui-back-link ui-back-link--quiet"
       >
         &larr; {deckTitle}
@@ -341,7 +342,7 @@ function StudyResult({
             Làm lại toàn bộ
           </button>
           <Link
-            to={`/decks/${deckId}`}
+            to={layNoiVe(deckId, `/decks/${deckId}`)}
             className="ui-button ui-button--ghost study-result__btn"
           >
             Chọn chế độ khác

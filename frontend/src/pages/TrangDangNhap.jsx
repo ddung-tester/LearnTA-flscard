@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import GoogleSignInButton from "../components/GoogleSignInButton";
-import LoginMascot from "../components/LoginMascot";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+
+// Mèo hoạt hình (thư viện Rive + file rive.wasm ~1,9 MB) tải sau, form đăng nhập hiện ngay trên mạng yếu
+const LoginMascot = lazy(() => import("../components/LoginMascot"));
 
 const AUTH_SUCCESS_REDIRECT_DELAY = 1500;
 const PASSWORD_MIN_LENGTH = 6;
@@ -112,13 +114,15 @@ function TrangDangNhap() {
   return (
     <div className="video-bg-page video-bg-page--auth px-4">
       <div className="auth-mascot-wrap">
-        <LoginMascot
-          isPasswordFocused={isPasswordFocused}
-          isChecking={isEmailFocused || isSubmitting}
-          lookValue={form.email.length * 3.3}
-          triggerSuccess={successTick}
-          triggerFail={failTick}
-        />
+        <Suspense fallback={null}>
+          <LoginMascot
+            isPasswordFocused={isPasswordFocused}
+            isChecking={isEmailFocused || isSubmitting}
+            lookValue={form.email.length * 3.3}
+            triggerSuccess={successTick}
+            triggerFail={failTick}
+          />
+        </Suspense>
         <section className="video-auth-card video-auth-card--with-mascot">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -4,12 +4,12 @@ import { chuanBiGiaiThich } from "../services/courseApi";
  * Hàng đợi soạn trước lời giải thích AI của câu bài tập khoá học (phía máy người học).
  * - Kho lời dùng chung: { [questionId]: { answer_norm: lời } }, nạp từ dữ liệu bài + kết quả soạn.
  * - Ưu tiên: câu đang hiện + 2 câu kế (gọi ngay, lần lượt).
- * - Nền: các câu còn lại của buổi, mỗi câu cách nhau GIAN_CACH_NEN_MS (≤ 15 lượt/phút — hạn mức
- *   Gemini gói miễn phí dùng chung với cả website); 3 lỗi liên tiếp thì dừng phần nền.
- * Đặt ở máy vì Cloud Run không chạy tiếp việc nền sau khi đã trả lời request.
+ * - Nền: các câu còn lại của buổi, mỗi câu cách nhau GIAN_CACH_NEN_MS (≤ 7–8 lượt/phút, chừa nửa hạn
+ *   mức Gemini gói miễn phí cho lúc trả lời thật và LearnBot); 3 lỗi liên tiếp thì dừng phần nền.
+ * Đặt ở máy vì máy chủ (Render gói miễn phí) không chạy tiếp việc nền sau khi đã trả lời request.
  */
 
-export const GIAN_CACH_NEN_MS = 4000;
+export const GIAN_CACH_NEN_MS = 8000;
 const LOI_LIEN_TIEP_TOI_DA = 3;
 
 const kho = new Map();

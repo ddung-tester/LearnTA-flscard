@@ -9279,3 +9279,65 @@ a.dash-lich__o:focus-visible {
 .tab-on-tap .ui-filter-tab {
   min-height: 2.75rem;
 }
+
+/* ── Đợt 3: vùng chạm và chữ trên màn cảm ứng ── */
+
+/* Trang Ôn tập: bộ lọc + chế độ ôn gập lại (điện thoại), thẻ ôn lên đầu */
+.review-tuy-chon {
+  margin-bottom: 0.75rem;
+}
+
+.review-tuy-chon__tieu-de {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.25rem 0.1rem;
+  color: var(--mau-chu-phu);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-tuy-chon[open] > .review-tuy-chon__tieu-de {
+  margin-bottom: 0.5rem;
+}
+
+/* Chữ gợi ý trong ô trả lời dùng font thường (font chữ đều làm chữ tiếng Việt giãn) */
+.kh-dien__o::placeholder {
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+@media (pointer: coarse) {
+  /* Nút, chip, tab nhỏ: tối thiểu 44px để ngón tay bấm trúng; chữ từ 14px */
+  html .ui-chip,
+  html .ui-filter-tab,
+  html .review-filter-tab,
+  html .ui-back-link,
+  html .ui-back-btn,
+  html .kh-chuyen-buoi__lien-ket,
+  html .kh-cach-xem button,
+  html .so-tay__nut,
+  html .kh-chip {
+    min-height: 2.75rem;
+  }
+
+  html .ui-chip,
+  html .ui-filter-tab,
+  html .review-filter-tab,
+  html .ui-back-btn,
+  html .kh-cach-xem button {
+    font-size: 0.875rem;
+  }
+
+  html .fc-mat__goi-y {
+    font-size: 0.875rem;
+  }
+}
+
+/* Lịch 48 buổi ở Trang chủ (điện thoại): 8 cột để mỗi ô ~38px, bấm không nhầm buổi */
+@media (max-width: 640px) and (pointer: coarse) {
+  html .dash-lich {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+}

@@ -10,6 +10,7 @@ import { layBaiHoc } from "../services/courseApi";
 import { dungSoanNen, napCauHoi, soanNen } from "../utils/soanTruocGiaiThich";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import { docCachXemLyThuyet, luuCachXemLyThuyet } from "../utils/caiDatHocTap";
+import { ghiNoiVeBuoi } from "../utils/noiVeBuoi";
 import "./KhoaHoc.css";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
@@ -52,7 +53,9 @@ function NutSangBuoc({ buoc, onChon, children }) {
   );
 }
 
-function TuVung({ words, deckId, onDoc, onSangBuoc }) {
+function TuVung({ words, deckId, duongVe, onDoc, onSangBuoc }) {
+  // Học xong thẻ / luyện tập thì nút quay lại về thẳng bước Từ vựng của buổi này
+  const nhoNoiVe = () => ghiNoiVeBuoi(deckId, duongVe);
   if (words.length === 0) {
     return <p className="kh-trong">Buổi này chưa có từ vựng.</p>;
   }
@@ -62,10 +65,10 @@ function TuVung({ words, deckId, onDoc, onSangBuoc }) {
         <p className="kh-phan__mo-ta">{words.length} từ mới. Bấm vào thẻ để nghe phát âm.</p>
         {deckId && (
           <div className="kh-phan__hanh-dong">
-            <Link to={`/decks/${deckId}/flashcard`} className="ui-button ui-button--primary px-4 py-2.5">
+            <Link to={`/decks/${deckId}/flashcard`} onClick={nhoNoiVe} className="ui-button ui-button--primary px-4 py-2.5">
               Học bằng thẻ
             </Link>
-            <Link to={`/practice?bo=${deckId}`} className="ui-button ui-button--ghost px-4 py-2.5">
+            <Link to={`/practice?bo=${deckId}`} onClick={nhoNoiVe} className="ui-button ui-button--ghost px-4 py-2.5">
               Luyện tập
             </Link>
           </div>
@@ -280,11 +283,7 @@ function TrangBaiHoc() {
           bai.questions.filter((cau) => cau.last_correct !== null).map((cau) => [cau.id, cau.last_correct])
         );
         setTrangThai({ khoa, bai, loi: "", ketQuaCau });
-        // Mở buổi là soạn dần lời giải thích AI của cả buổi trong nền (kể cả lúc đang đọc Từ vựng /
-        // Lý thuyết), để lúc làm bài trả lời xong là có lời ngay. Câu chính trước, câu luyện thêm sau.
         napCauHoi(bai.questions);
-        const chinh = layCauBaiChinh(bai.questions);
-        soanNen([...chinh, ...bai.questions.filter((cau) => !chinh.includes(cau))].map((cau) => cau.id));
       })
       .catch((error) => {
         if (conHieuLuc) {
@@ -296,6 +295,17 @@ function TrangBaiHoc() {
       dungSoanNen();
     };
   }, [courseId, soBai, khoa, lanThu]);
+
+  // Đang ở bước Bài tập mới soạn dần lời giải thích AI của cả buổi trong nền (câu chính trước, câu luyện
+  // thêm sau), để trả lời xong là có lời ngay. Không soạn lúc đọc Từ vựng / Lý thuyết: hạn mức Gemini
+  // miễn phí dùng chung cả web, soạn sớm dễ làm lời giải thích và LearnBot bị quá hạn mức.
+  const baiDaTai = trangThai.bai;
+  useEffect(() => {
+    if (!baiDaTai || buoc !== "bai-tap") return undefined;
+    const chinh = layCauBaiChinh(baiDaTai.questions);
+    soanNen([...chinh, ...baiDaTai.questions.filter((cau) => !chinh.includes(cau))].map((cau) => cau.id));
+    return dungSoanNen;
+  }, [baiDaTai, buoc]);
 
   if (dangTai) return null;
 
@@ -412,7 +422,13 @@ function TrangBaiHoc() {
 
       <div id="noi-dung-buoc" role="tabpanel" aria-labelledby={`buoc-${buoc}`}>
         {buoc === "tu-vung" && (
-          <TuVung words={bai.words} deckId={bai.lesson.deck_id} onDoc={docTiengAnh} onSangBuoc={chuyenBuoc} />
+          <TuVung
+            words={bai.words}
+            deckId={bai.lesson.deck_id}
+            duongVe={duongDanBuoc("tu-vung")}
+            onDoc={docTiengAnh}
+            onSangBuoc={chuyenBuoc}
+          />
         )}
         {buoc === "ly-thuyet" && (
           <LyThuyet

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { layNoiVe } from "../utils/noiVeBuoi";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
@@ -521,7 +522,7 @@ function TrangQuiz({ loai }) {
           </button>
         )}
         <Link
-          to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+          to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
@@ -538,7 +539,7 @@ function TrangQuiz({ loai }) {
         moTa="Chế độ ngữ cảnh cần câu ví dụ có chứa chính từ đang học. Thêm câu ví dụ cho các từ trong bộ rồi quay lại."
       >
         <Link
-          to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+          to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
@@ -617,7 +618,7 @@ function TrangQuiz({ loai }) {
       <div className="ui-study-session ui-quiz-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">
           <Link
-            to={`/decks/${boId}${taoQueryBoLoc(boLocUrl)}`}
+            to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
