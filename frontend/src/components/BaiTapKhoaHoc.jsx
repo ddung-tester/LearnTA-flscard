@@ -3,6 +3,8 @@ import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
+import ThanhTiepTuc from "./common/ThanhTiepTuc";
+import useDuaONhapVaoTam from "../hooks/useDuaONhapVaoTam";
 import { useHoiLearnBot } from "../contexts/ChatbotContext";
 import { danhGiaGiaiThich, giaiThichCauHoi } from "../services/courseApi";
 import { luuTraLoiCoHangCho, soCauDangCho, theoDoiHangCho } from "../services/hangChoTraLoi";
@@ -312,6 +314,17 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const oNhapRef = useRef(null);
   const deBaiRef = useRef(null);
   const cauRef = useRef(null);
+  const phanHoiRef = useRef(null);
+  // Mỗi lượt làm (Làm lại, đổi phần) một số mới: lời giải thích của lượt cũ đến muộn thì bỏ
+  const luotRef = useRef(0);
+
+  useDuaONhapVaoTam(oNhapRef);
+
+  // Đang làm bài trên điện thoại: ẩn nút chat và mèo trang trí ở góc dưới để không che nút trả lời
+  useEffect(() => {
+    document.documentElement.classList.add("dang-lam-bai");
+    return () => document.documentElement.classList.remove("dang-lam-bai");
+  }, []);
 
   const nhomPhan = nhomPhanBaiTap(cauHoi);
   const cau = danhSach[chiSo];
@@ -349,9 +362,21 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
       rungMay("sai");
       phatAm("sai");
     }
+    // Đưa phần kết quả vào tầm nhìn. Màn hẹp (có thanh "Câu tiếp theo" dính đáy): kéo kết quả lên đầu
+    // để đọc trọn lời giải thích; máy tính: chỉ cuộn vừa đủ thấy
+    const khung = requestAnimationFrame(() => {
+      const giamChuyenDong = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const manHep = !window.matchMedia?.("(min-width: 1100px)").matches;
+      phanHoiRef.current?.scrollIntoView({
+        block: manHep ? "start" : "nearest",
+        behavior: giamChuyenDong ? "auto" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(khung);
   }, [daTraLoi]);
 
   function batDauLuot(ds) {
+    luotRef.current += 1;
     setDanhSach(ds);
     setChiSo(0);
     setKetQua({});
@@ -379,7 +404,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   }
 
   function hoiAI(cauHienTai, traLoi) {
-    const datTrangThai = (trangThai) => setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: trangThai }));
+    const luot = luotRef.current;
+    const datTrangThai = (trangThai) => {
+      if (luotRef.current !== luot) return; // đã sang lượt làm khác
+      setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: trangThai }));
+    };
     const coSan = timGiaiThichSan(cauHienTai, traLoi, khoCua(cauHienTai));
     if (coSan?.text) {
       datTrangThai({ dangTai: false, text: coSan.text, loi: "", xong: true });
@@ -401,8 +430,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   }
 
   function danhGiaAI(cauHienTai, traLoi, tot) {
-    const sua = (thayDoi) =>
+    const luot = luotRef.current;
+    const sua = (thayDoi) => {
+      if (luotRef.current !== luot) return;
       setGiaiThich((cu) => ({ ...cu, [cauHienTai.id]: { ...cu[cauHienTai.id], ...thayDoi } }));
+    };
     if (tot) {
       sua({ danhGia: "tot" });
       danhGiaGiaiThich(cauHienTai.id, traLoi, true).catch(() => {});
@@ -590,13 +622,15 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
         )}
       </div>
 
+      {/* Trình phát nằm ngoài phần đổi theo câu: các câu dùng chung một file nghe giữ nguyên chỗ đang nghe */}
+      {cau.audio_key && <NgheAudioCauHoi key={cau.audio_key} cau={cau} />}
+
       <section key={cau.id} ref={cauRef} className="kh-cau" aria-labelledby="kh-de-bai">
         <p className="kh-cau__phan">
           {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
         </p>
         {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
-        {cau.audio_key && <NgheAudioCauHoi cau={cau} />}
         {cau.listen_text && (
           <div className="kh-nghe">
             <button
@@ -682,7 +716,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
               value={nhap}
               onChange={(event) => setNhap(event.target.value)}
               disabled={Boolean(daTraLoi)}
-              placeholder="Gõ phần còn thiếu"
+              placeholder="Nhập đáp án"
               lang="en"
               className={`kh-dien__o${daTraLoi ? (daTraLoi.dung ? " kh-dien__o--dung" : " kh-dien__o--sai") : ""}`}
             />
@@ -706,7 +740,11 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
       </section>
 
       {daTraLoi && (
-        <section className={`kh-phan-hoi ${daTraLoi.dung ? "kh-phan-hoi--dung" : "kh-phan-hoi--sai"}`} aria-live="polite">
+        <section
+          ref={phanHoiRef}
+          className={`kh-phan-hoi ${daTraLoi.dung ? "kh-phan-hoi--dung" : "kh-phan-hoi--sai"}`}
+          aria-live="polite"
+        >
           <p className="kh-phan-hoi__ket-qua">
             {daTraLoi.dung ? <IconDung className="kh-phan-hoi__icon" /> : <IconSai className="kh-phan-hoi__icon" />}
             {daTraLoi.dung ? "Chính xác" : "Chưa đúng"}
@@ -738,11 +776,21 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
               })
             }
           />
+          {/* Điện thoại: thanh dính đáy màn hình, nút luôn trong tầm ngón cái; máy tính: nút cuối phần kết quả */}
           <div className="kh-phan-hoi__cuoi">
-            <button type="button" className="ui-button ui-button--primary px-5 py-2.5 kh-phan-hoi__tiep" onClick={sangCauTiep}>
-              {chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
-              <kbd aria-hidden="true">Enter</kbd>
-            </button>
+            <ThanhTiepTuc
+              dung={daTraLoi.dung}
+              onTiepTuc={sangCauTiep}
+              nhanNut={chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
+              chiHienKhiCoDinh
+            >
+              <span className="ui-thanh-tiep-tuc__nhan">{daTraLoi.dung ? "Chính xác" : "Chưa đúng"}</span>
+              {!daTraLoi.dung && (
+                <span className="ui-thanh-tiep-tuc__dap-an">
+                  Đáp án: <strong lang="en">{dapAnDung}</strong>
+                </span>
+              )}
+            </ThanhTiepTuc>
           </div>
         </section>
       )}

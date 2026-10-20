@@ -334,7 +334,7 @@ function TrangBaiHoc() {
     setTrangThai((cu) => ({ ...cu, ketQuaCau: { ...cu.ketQuaCau, [cauId]: dung } }));
 
   return (
-    <div className="ui-page-stack kh-trang">
+    <div className={`ui-page-stack kh-trang${buoc === "bai-tap" ? " kh-trang--lam-bai" : ""}`}>
       {huongLat && (
         <TrangLatQua
           huong={huongLat}

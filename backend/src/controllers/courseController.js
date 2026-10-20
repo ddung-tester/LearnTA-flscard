@@ -440,6 +440,10 @@ async function prepareQuestion(req, res) {
   res.json({ ready, generated, explanations });
 }
 
+// Ký hiệu cuối luồng chữ khi AI lỗi giữa chừng (?stream=1): client bỏ ký hiệu, báo lỗi kèm "Thử lại".
+// Giữ giống DAU_LOI_LUONG trong frontend/src/services/courseApi.js
+const DAU_LOI_LUONG = "\u0000LOI_AI";
+
 async function docGiaiThichDaLuu(questionId, answerNorm) {
   const [cached] = await pool.query(
     `SELECT explanation FROM course_question_explanations
@@ -518,8 +522,8 @@ async function explainQuestion(req, res) {
   } catch (error) {
     console.error("explainCourseQuestion failed:", error.message);
     if (daMoLuong) {
-      // Đã gửi một phần chữ: kết thúc luồng, không lưu cache bản dở
-      res.end();
+      // Đã gửi một phần chữ: đánh dấu lỗi cuối luồng để client hiện "Thử lại", không lưu cache bản dở
+      res.end(DAU_LOI_LUONG);
       return;
     }
     // AI lỗi/quá hạn: dùng gợi ý có sẵn của câu hỏi (không lưu cache để lần sau vẫn thử AI)
@@ -531,7 +535,7 @@ async function explainQuestion(req, res) {
   }
   if (!explanation) {
     if (daMoLuong) {
-      res.end();
+      res.end(DAU_LOI_LUONG);
       return;
     }
     throw createHttpError(502, "AI chua giai thich duoc, thu lai sau");

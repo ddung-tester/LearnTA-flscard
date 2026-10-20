@@ -1548,3 +1548,65 @@
   /* Trang ngắn không giãn các dòng ra cho bằng trang dài nhất */
   align-content: start;
 }
+
+/* ── Đợt 2: làm bài trên điện thoại ── */
+
+/* Kết quả cuộn vào tầm nhìn chừa chỗ cho thanh menu trên và thanh "Câu tiếp theo" dưới */
+.kh-phan-hoi {
+  scroll-margin-top: 7.5rem; /* dưới thanh menu dính trên cùng */
+  scroll-margin-bottom: calc(6.5rem + env(safe-area-inset-bottom));
+}
+
+/* Nghe chậm / bình thường */
+.kh-nghe__toc-do {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.kh-nghe__toc-do .kh-chip {
+  min-height: 2.75rem;
+  font-size: 0.9rem;
+}
+
+/* Điện thoại đang làm bài: ẩn nút chat (khi chưa mở) và mèo trang trí ở góc dưới để không che nút trả lời */
+@media (max-width: 767px) {
+  html.dang-lam-bai .chatbot-bubble:not(.is-open),
+  html.dang-lam-bai .meo-hoc {
+    display: none;
+  }
+
+  /* Đầu buổi gọn lại ở bước Bài tập: còn tên buổi và 3 bước, ô trả lời lên gần đầu màn hình */
+  .kh-trang--lam-bai .kh-dau-bai__so,
+  .kh-trang--lam-bai .kh-dau-bai__nhan,
+  .kh-trang--lam-bai .kh-dai-buoi,
+  .kh-trang--lam-bai .kh-buoc__mo-ta {
+    display: none;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__ten {
+    font-size: 1.15rem;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__nut {
+    flex-direction: row;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.6rem;
+  }
+
+  /* Ô trả lời rộng hết hàng, nút Kiểm tra xuống dòng dưới, to vừa ngón cái */
+  .kh-dien {
+    flex-wrap: wrap;
+  }
+
+  .kh-dien__o {
+    flex-basis: 100%;
+  }
+
+  .kh-dien .ui-button {
+    flex: 1 1 100%;
+    min-height: 3rem;
+  }
+}

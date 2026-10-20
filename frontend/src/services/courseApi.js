@@ -90,8 +90,15 @@ export async function giaiThichCauHoi(questionId, answer, { onChunk, chiDongSai 
     const { done, value } = await doc.read();
     if (done) break;
     explanation += giaiMa.decode(value, { stream: true });
-    onChunk(explanation);
+    onChunk(explanation.replace(DAU_LOI_LUONG, ""));
   }
   explanation += giaiMa.decode();
+  // AI lỗi giữa chừng (server gắn ký hiệu cuối luồng) hoặc không viết được chữ nào: báo lỗi để hiện "Thử lại"
+  if (explanation.includes(DAU_LOI_LUONG) || !explanation.trim()) {
+    throw new Error("Lời giải thích bị ngắt giữa chừng.");
+  }
   return { explanation: explanation.trim() };
 }
+
+// Giống DAU_LOI_LUONG trong backend/src/controllers/courseController.js
+export const DAU_LOI_LUONG = "\u0000LOI_AI";

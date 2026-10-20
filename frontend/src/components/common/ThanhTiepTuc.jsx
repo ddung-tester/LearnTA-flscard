@@ -8,8 +8,17 @@ import useManRong from "../../hooks/useManRong";
  * chừa một khoảng trống đúng chỗ để nội dung cuối không bị thanh che.
  * Máy tính: nằm ngay trong luồng trang như trước.
  * demNguocMs: trang tự chuyển câu sau chừng này — hiện vạch đếm ngược để người học biết.
+ * nhanNut: chữ trên nút (mặc định "Tiếp tục").
+ * chiHienKhiCoDinh: máy tính không hiện phần kết quả trong thanh (trang đã hiện kết quả ở chỗ khác).
  */
-export default function ThanhTiepTuc({ dung, children, onTiepTuc, demNguocMs = 0 }) {
+export default function ThanhTiepTuc({
+  dung,
+  children,
+  onTiepTuc,
+  demNguocMs = 0,
+  nhanNut = "Tiếp tục",
+  chiHienKhiCoDinh = false,
+}) {
   const manRong = useManRong();
   const coDinh = !manRong;
 
@@ -27,9 +36,9 @@ export default function ThanhTiepTuc({ dung, children, onTiepTuc, demNguocMs = 0
       className={`ui-thanh-tiep-tuc ui-thanh-tiep-tuc--${dung ? "dung" : "sai"} ${coDinh ? "ui-thanh-tiep-tuc--co-dinh" : ""}`}
       role="status"
     >
-      <div className="ui-thanh-tiep-tuc__ket-qua">{children}</div>
+      {(coDinh || !chiHienKhiCoDinh) && <div className="ui-thanh-tiep-tuc__ket-qua">{children}</div>}
       <button type="button" onClick={onTiepTuc} className="ui-button ui-button--primary ui-thanh-tiep-tuc__nut">
-        <span>Tiếp tục</span>
+        <span>{nhanNut}</span>
         <kbd className="ui-thanh-tiep-tuc__phim" aria-hidden="true">
           Enter ↵
         </kbd>
