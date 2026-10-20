@@ -1,8 +1,8 @@
 # PROJECT_CONTEXT.md
 
-> **Cập nhật 19/10/2026 — hạ tầng mới:** CSDL Postgres trên Supabase, backend trên Render, frontend Vercel; đã bỏ Google Cloud (Cloud SQL, Cloud Run, Cloud Storage, Cloud Scheduler) và bỏ chức năng gửi email. Các mục bên dưới còn nhắc Cloud SQL / Cloud Run / proxy là thông tin cũ; xem [docs/deploy-render-supabase.md](docs/deploy-render-supabase.md) và README.
+> Cập nhật hạ tầng: 20/10/2026 (Supabase + Render + Vercel, mục 1, 2, 7, 10, 11). Vận hành chi tiết: [docs/deploy-render-supabase.md](docs/deploy-render-supabase.md).
 
-> Cap nhat: 2026-09-27. File nay mo ta trang thai THAT cua code tren `main`.
+> Cap nhat noi dung khac: 2026-09-27 → 2026-10-10. File nay mo ta trang thai THAT cua code tren `main`.
 > Khi code thay doi lon (route, bang DB, luong auth), cap nhat lai file nay.
 
 > **AI/dev moi vao du an: doc `HANDOFF.md` truoc** (da lam gi, chua lam gi, deploy, plan tiep theo).
@@ -15,9 +15,15 @@
 - **Bo tu**: nguoi dung tu tao bo tu, them cap tu Anh - Viet (tay, dan danh sach, AI tao).
 - **Luyen tap / On tap**: flashcard, trac nghiem, tu luan, nghe viet, ngu canh, noi tu, hon hop; on tap theo lich SRS; so tu sai; thong ke; streak; chatbot AI (LearnBot).
 
-- Frontend: https://dungdinh-vocab.vercel.app (Vercel)
-- Backend: Google Cloud Run (service `flashcard-backend`)
-- Database: Google Cloud SQL (MySQL 8)
+| Phần | Nơi chạy |
+|---|---|
+| Frontend | Vercel — https://dungdinh.vercel.app (deploy từ `main`) |
+| Backend | Render free web service `flashcard-backend` — https://flashcard-backend-j62b.onrender.com (`render.yaml`, region singapore) |
+| Database | Supabase gói Free, PostgreSQL 17, vùng Singapore (Session pooler) |
+| Audio khoá học | Supabase Storage, bucket private `course-audio` |
+| Đăng nhập Google | OAuth client "Flash Card Web Client" trong Google Cloud project `flash-card-499907` (không xoá project) |
+
+Từ 19/10/2026 đã bỏ: Cloud SQL, Cloud Run, Cloud Build trigger, Cloud Storage, Cloud Scheduler, cron trong backend, gửi email, Text-to-Speech phía server.
 
 ---
 
@@ -26,9 +32,9 @@
 ```txt
 Status: Dang chay production (nguoi dung chinh la chu du an)
 Frontend: React/Vite, goi API that qua services/*; con mock data lam fallback khi API loi
-Backend: Express 5 + MySQL, CRUD, auth JWT + Google, SRS, mistakes, stats, email, chatbot, lo trinh, khoa hoc rieng
-Tests: node:test (backend, 67) + vitest (frontend, 88), chay tren GitHub Actions cung lint + build
-Deploy: push main -> Vercel (FE) + Cloud Build -> Cloud Run (BE); migration chay tay
+Backend: Express 5 + PostgreSQL (pg), CRUD, auth JWT + Google, SRS, mistakes, stats, chatbot, lo trinh, khoa hoc rieng (khong con gui email)
+Tests: node:test (backend, 138 pass + 1 skip) + vitest (frontend, 183) — dem ngay 2026-10-20; chay tren GitHub Actions cung lint + build
+Deploy: push main -> Vercel (FE) + Render (BE); migration chay tay tren Supabase SQL Editor
 ```
 
 ### Viec con ton dong
@@ -36,7 +42,8 @@ Deploy: push main -> Vercel (FE) + Cloud Build -> Cloud Run (BE); migration chay
 - `TrangChiTietBo.jsx` (~1760 dong), `TrangTuLuan.jsx` (~1450), `TrangOnTapHomNay.jsx` (~920) van lon.
 - Frontend lint: 0 loi; `react-hooks/set-state-in-effect` ha thanh canh bao (`eslint.config.js`, con 14 cho vi pham) + 8 canh bao `exhaustive-deps`. CI chan khi co loi lint.
 - Video reward (~70 MB) nam trong `frontend/public/media/milestones/` va lich su git (nguoi dung chon de nguyen).
-- Khoa 48 buoi moi co bai 13; 47 bai con lai cho nguoi dung trich tu PDF (xem HANDOFF muc 4.1).
+- Khoa 48 buoi da du 48 bai; chua sinh bai luyen them cho bai 1–12 va 14–48 (xem HANDOFF muc 4.1).
+- Sau dot cuu du lieu 19/10/2026: 4 bo the #6 #7 #8 #10 chua ro ten/chu goc (dang ten "Bộ từ khôi phục #N"); tai khoan + tien do 25/06–08/10/2026 da mat.
 
 ---
 
@@ -52,11 +59,12 @@ Deploy: push main -> Vercel (FE) + Cloud Build -> Cloud Run (BE); migration chay
 
 ### Backend (`backend/`)
 
-- Node.js >= 20, Express 5, `mysql2/promise`
+- Node.js >= 20 (Render chạy Node 22), Express 5, `pg` qua wrapper `src/config/db.js` (đổi `?` → `$n`, trả `[rows]` như mysql2, `insertId` qua `RETURNING id`, mã lỗi `23505` → `ER_DUP_ENTRY`)
 - Auth: `jsonwebtoken` (HS256), `bcrypt`, `google-auth-library` (Google Sign-In)
 - `zod` (validate body chat), `express-rate-limit`
 - `@google/generative-ai` (Gemini): chatbot, cau vi du theo thi, AI tao tu, giai thich cau hoi khoa hoc, sinh bai luyen them (model chinh `gemini-3.6-flash`, loi 503 thi chuyen `gemini-flash-lite-latest`)
-- `nodemailer` (Gmail SMTP) cho email nhac hoc; `node-cron` (chi dung khi `ENABLE_INTERNAL_CRON=true`)
+- Audio khoá học: Supabase Storage qua `fetch` + secret key (`services/audioStorage.js`). Phát âm từ vựng: Web Speech API của trình duyệt (không có TTS phía server).
+- Đã gỡ: `nodemailer`, `node-cron`, `cronRoutes`, `reminderService`, `emailService`.
 - `node:test` cho unit test
 
 ---
@@ -66,6 +74,8 @@ Deploy: push main -> Vercel (FE) + Cloud Build -> Cloud Run (BE); migration chay
 ```txt
 LearnTA-flscard/
   .github/workflows/ci.yml     CI: test + build FE/BE, lint FE (chan khi co loi)
+  .github/workflows/giu-thuc.yml  goi /api/db-test moi ngay 08:17 gio VN (giu Supabase khong tam dung)
+  render.yaml                  Blueprint Render cho backend
   frontend/
     public/
       animation/ background/ sound/
@@ -89,24 +99,25 @@ LearnTA-flscard/
       utils/                   srsReview, mistakeNotebook, phienHoc, nguonBoTu, baiTapKhoaHoc, caiDatHocTap, ...
   backend/
     src/
-      server.js                khoi dong, check DB, bat cron noi bo neu co flag
+      server.js                khoi dong, check DB
       app.js                   CORS, trust proxy, mount routes, error handler
       config/                  db.js, env.js
       middleware/authMiddleware.js   requireAuth / optionalAuth
       controllers/             auth, deck, card, study, progress, mistake, review, user, roadmap, course
       routes/                  *Routes.js
-      services/                aiService, chatContextService, emailService, reminderService, streakService, cronService
+      services/                aiService, audioStorage (Supabase Storage), chatContextService, luotGemini, streakService
       utils/                   asyncHandler, http, srs, cardProgress, noiDungLoTrinh, khoaHoc
     database/
-      schema.sql               schema day du (khop migration 001..012)
+      schema.sql               schema Postgres day du (18 bang) — chay tren Supabase SQL Editor
       seed.sql                 bo tu mau (user_id NULL)
-      migrations/001..012      migration theo thu tu (da chay het tren production)
+      mysql-legacy/            schema + migrations/001..016 MySQL cu, add_tense_examples_column.js, run-migration.js (chi tham khao, KHONG chay)
       content/lo-trinh.json    noi dung lo trinh (du an tu soan)
       private-content/         noi dung khoa hoc rieng (.gitignore, KHONG commit)
     scripts/                   seed-roadmaps, nhap-khoa-hoc, sinh-bai-luyen-them, thuMucKhoaHoc (dung chung),
-                               seed-examples, seed-ai-examples, add_tense_examples_column, run-migration
+                               seed-examples, seed-ai-examples, sinh-giai-thich, nhap-cau-mau, nhap-ban-dich,
+                               chuyen-du-lieu-mysql (MySQL -> Postgres), tai-audio-supabase (audio -> Supabase Storage)
     test/                      *.test.js (node:test)
-  docs/google-cloud-deploy.md  huong dan deploy Cloud Run + Cloud SQL (luc con deploy tay)
+  docs/deploy-render-supabase.md  tai lieu van hanh: kien truc, bien moi truong, deploy, migration, giu thuc, sao luu, su co
   docs/khoa-hoc-48-ngay.md     dinh dang file khoa hoc + prompt trich PDF bang ChatGPT
   CLAUDE.md AGENTS.md PRODUCT.md DESIGN.md README.md HANDOFF.md PROJECT_CONTEXT.md
 ```
@@ -196,7 +207,7 @@ POST /course-questions/:questionId/prepare              auth; soan san loi giai 
 POST /course-questions/:questionId/explanation-feedback auth, rate limit 20 req/10 phut; body {answer, tot}; tot=true chi log `ai_feedback` (204); tot=false: Gemini viet lai (model `MODEL_VIET_LAI`, prompt kem ban cu), ghi de cache, tra {explanation}
 
 POST /chat                                              optional auth, rate limit 20 req/phut
-POST /cron/daily-reminders | /cron/praise               header X-Cron-Secret
+POST /client-errors                                     cong khai, rate limit; frontend bao loi JS/render/API 5xx -> log `client_error` tren Render
 ```
 
 ### Quyen doc/ghi deck (`deckController`)
@@ -251,7 +262,7 @@ Che do moi nen ghep tu cac phan nay thay vi copy Quiz/Tu luan:
 
 ## 7. Database
 
-Schema day du: `backend/database/schema.sql` (khop migration 001..012). Bang:
+PostgreSQL 17 tren Supabase. Schema day du: `backend/database/schema.sql` (18 bang, da gom moi thay doi cua migration MySQL 001..016). RLS bat tren moi bang `public` (backend dung role `postgres` nen khong anh huong; khong dung Data API). Bang:
 
 | Bang | Vai tro |
 |---|---|
@@ -264,12 +275,12 @@ Schema day du: `backend/database/schema.sql` (khop migration 001..012). Bang:
 | `card_reviews` | KHONG CON DUNG tu migration 007 (da gop vao `card_progress`), giu lai de doi chieu |
 | `quiz_results` | ket qua quiz |
 | `streak_logs` | log hoc theo ngay (gio VN, UTC+7) |
-| `user_settings` | cai dat hoc + `email_reminders` |
+| `user_settings` | cai dat hoc; cot `email_reminders` con trong DB/API nhung khong dung (da bo gui email) |
 | `roadmaps`, `roadmap_decks` | lo trinh hoc va cac bo tu mau (`user_id NULL`) theo thu tu; `deck_key` de nap lai khong trung (migration 009) |
 | `courses`, `course_lessons`, `course_questions`, `course_question_explanations` | khoa hoc RIENG cua mot user (migration 010): bai hoc (ly thuyet JSON + bo tu rieng `deck_id`), cau hoi (trac nghiem / dien tu; `source` = lesson / exam / extra), cache giai thich AI |
 | `course_question_progress` | ket qua lan tra loi gan nhat cua moi cau, UNIQUE (user_id, question_id) (migration 011); `mastery_level` + `next_review_at` = lich on SRS, NULL = khong nam trong lich on (migration 012). Buoi "xong" = hoc het tu + moi cau cua tai lieu dung |
 
-Migration moi: them file `backend/database/migrations/00N_*.sql`, cap nhat `schema.sql` cho khop, **chay tay len Cloud SQL TRUOC khi push** code can bang/cot moi (backend tu deploy khi push). Da chay tren production: 001..012.
+Migration moi: viết SQL **Postgres**, cập nhật `schema.sql` cho khớp, bảng mới thì bật RLS, **chạy tay trên Supabase SQL Editor TRƯỚC khi push** code cần bảng/cột mới (backend tự deploy khi push). Migration MySQL cũ (001..016) ở `backend/database/mysql-legacy/`, chỉ tham khảo. Chi tiết: `docs/deploy-render-supabase.md` mục 5.
 
 Noi dung lo trinh: `backend/database/content/lo-trinh.json` (du an tu bien soan, 3 lo trinh x 4 bo x 20 tu). Moi tu: `[tu, loai tu, nghia, cau vi du co chua tu, ghi chu]`; phien am IPA giong My o muc `phien_am` (`{ tu: "/.../" }`), seed ghi vao `cards.pronunciation`. Test `noiDungLoTrinh.test.js` bat buoc moi cau vi du chua chinh tu do (de dung duoc che do Ngu canh). `npm run seed:roadmaps` nap lai an toan: cap nhat, them tu moi, KHONG xoa tu cu.
 
@@ -313,59 +324,65 @@ Tien do va ket qua bai tap khoa hoc KHONG luu local — chi tren server (`course
 - **Reward**: video tu `media/milestones/videos.json`, kich hoat khi du so cau dung (mac dinh 10); ton trong `prefers-reduced-motion`.
 - **On tap hom nay** (`/review`) va **So tu sai** (`/tu-sai`): SRS + dong bo backend; nut sang on cau bai tap khoa hoc.
 - **Dashboard / Thong ke / Streak**: `GET /user/stats`, streak tinh theo ngay VN; Dashboard co muc hoc tiep khoa hoc + cau can on; Thong ke co khoi Khoa hoc.
-- **Email**: 18:00 VN khen user da hoc, 23:00 VN nhac user chua hoc. Production goi qua Cloud Scheduler -> `/api/cron/*`.
+- **Email**: đã bỏ từ 19/10/2026 (Render chặn cổng SMTP). Không còn email chào mừng / nhắc học / khen, không còn `/api/cron/*`; mục "Nhắc nhở qua email" ở trang Cài đặt đã gỡ.
+- **Phát âm**: Web Speech API của trình duyệt (`useTTS`, `ttsService`).
 - **LearnBot**: xem muc 6. Render markdown sau khi escape HTML.
 
 ---
 
 ## 10. Bien moi truong
 
-### Backend (`backend/.env`, tren Cloud Run dat trong service config)
+### Backend (máy dev: `backend/.env`, mẫu `backend/.env.example`; production: Render → Environment)
 
 ```txt
-# DB: local dung DB_HOST/DB_PORT qua Cloud SQL Auth Proxy (= DB production!); Cloud Run dung INSTANCE_CONNECTION_NAME
-DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME
-INSTANCE_CONNECTION_NAME DB_SOCKET_PATH
-JWT_SECRET JWT_EXPIRES_IN
+DATABASE_URL                Supabase → Connect → Session pooler (production). Bỏ trống thì dùng DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME (Postgres local)
+DB_SSL                      "true" với Supabase
+JWT_SECRET JWT_EXPIRES_IN   JWT_EXPIRES_IN mặc định 7d
 GOOGLE_CLIENT_ID
-CORS_ORIGIN                 danh sach cach nhau boi dau phay
 GEMINI_API_KEY
-GMAIL_USER GMAIL_APP_PASS
-CRON_SECRET
-ENABLE_INTERNAL_CRON        "true" de chay node-cron noi bo (mac dinh tat)
-PORT                        mac dinh 8080
+CORS_ORIGIN                 danh sách cách nhau bởi dấu phẩy; production phải có https://dungdinh.vercel.app
+SUPABASE_URL SUPABASE_SECRET_KEY   đọc audio khoá học (secret key chỉ để ở server)
+COURSE_AUDIO_BUCKET         mặc định course-audio
+PORT                        mặc định 8080 (Render tự đặt)
+NODE_ENV                    không bắt buộc, code không đọc trực tiếp
+MYSQL_*                     chỉ cho script chuyen:mysql
 ```
+
+Đã bỏ: `INSTANCE_CONNECTION_NAME`, `DB_SOCKET_PATH`, `GMAIL_USER`, `GMAIL_APP_PASS`, `CRON_SECRET`, `ENABLE_INTERNAL_CRON`. Bảng đầy đủ: `docs/deploy-render-supabase.md` mục 2.
 
 ### Frontend (`frontend/.env.local`)
 
 ```txt
-VITE_API_BASE_URL           mac dinh dev: http://localhost:8080
+VITE_API_BASE_URL           mac dinh dev: http://localhost:8080; production (Vercel): https://flashcard-backend-j62b.onrender.com (co hoac khong /api deu duoc)
 VITE_GOOGLE_CLIENT_ID
 ```
+
+Biến `VITE_*` là công khai (nhúng vào bundle). Không đặt khoá bí mật vào đây.
 
 ---
 
 ## 11. Chay, test, deploy
 
 ```bash
-# Backend (can Cloud SQL Auth Proxy -> DB production, hoac MySQL local; xem README.md)
+# Backend (can backend/.env: DATABASE_URL Supabase = DB production, hoac Postgres local; xem README.md)
 cd backend && npm install && npm run dev      # http://localhost:8080
 npm test                                      # node --test, khong can DB
 
 # Frontend
 cd frontend && npm install && npm run dev     # http://localhost:5173
-npm test                                      # vitest
+npx vitest run                                # vitest
 npm run build
 npm run lint                                  # 0 loi, CI chan khi co loi
 ```
 
-Scripts du lieu (chay tu `backend/`, can proxy tru khi ghi ro): `npm run seed:roadmaps`, `npm run nhap:khoa-hoc` (khong `--apply` thi khong can DB), `npm run sinh:luyen-them` (can `GEMINI_API_KEY`, khong can DB), `npm run seed:examples`, `npm run seed:ai-examples`, `npm run migrate:tense-examples`.
+Scripts du lieu (chay tu `backend/`, can `DATABASE_URL` trong `backend/.env` tru khi ghi ro): `npm run seed:roadmaps`, `npm run nhap:khoa-hoc` (khong `--apply` thi khong can DB), `npm run sinh:luyen-them` (can `GEMINI_API_KEY`, khong can DB), `npm run sinh:giai-thich`, `npm run seed:examples`, `npm run seed:ai-examples`, `npm run chuyen:mysql` (MySQL `MYSQL_*` -> Postgres, them `-- --apply`), `npm run tai:audio` (audio -> Supabase Storage, can `SUPABASE_*`, xem truoc roi `-- --apply`).
 
 Deploy (push `main`):
 
 - Frontend: Vercel tu deploy (`frontend/vercel.json` rewrite SPA).
-- Backend: trigger Cloud Build `^main$` (cau hinh tren GCP, khong nam trong repo) build + deploy Cloud Run `flashcard-backend`. Kiem tra: `gcloud builds list --limit 2` (cot COMMIT_SHA). Deploy tay khi can: `gcloud run deploy flashcard-backend --source . --region asia-southeast1` (trong `backend/`).
-- Migration: chay tay truoc khi push (muc 7).
+- Backend: Render tự build + deploy service `flashcard-backend` theo `render.yaml` (free, ngủ sau 15 phút không có request, lần đầu chờ 30–60 giây). Kiểm tra: `https://flashcard-backend-j62b.onrender.com/api/health` và `/api/db-test`; log ở Render Dashboard → Logs.
+- Migration: chạy tay trên Supabase SQL Editor trước khi push (mục 7).
+- Giữ thức Supabase: `.github/workflows/giu-thuc.yml`. Sao lưu: tác vụ Windows chạy `pg_dump` mỗi Chủ nhật (ngoài repo). Chi tiết: `docs/deploy-render-supabase.md` mục 6–7.
 
 ---
 
@@ -380,7 +397,7 @@ Deploy (push `main`):
 - Backend: `compression` (luong giai thich AI dat `no-transform`), CORS `maxAge` 7200. axios timeout 25 s, goi AI 90 s (`THOI_GIAN_CHO_AI_MS`).
 
 - Kho JSON lon tren may: dung `utils/khoTrenMay.js` (`taoKhoTrenMay(ten)` → doc tu bo nho, ghi luc ranh, `ghiNgay` khi roi trang) — dang dung cho SRS va so tu sai. Lich su phien (`studySessionHistory`) ghi dong bo (hang cho gui lai can an toan), chi giu dap an 30 phien gan nhat.
-- Loi: `components/common/LoiGiaoDien` (ErrorBoundary o `main.jsx`); route lazy dang ky qua `dangKyTrang` tu tai lai trang 1 lan khi gap file JS cu sau deploy; `utils/baoLoi.js` gui loi ve `POST /api/client-errors` (log Cloud Run `client_error`). Backend log `slow_request` (>= 800 ms, `middleware/logRequestCham.js`).
+- Loi: `components/common/LoiGiaoDien` (ErrorBoundary o `main.jsx`); route lazy dang ky qua `dangKyTrang` tu tai lai trang 1 lan khi gap file JS cu sau deploy; `utils/baoLoi.js` gui loi ve `POST /api/client-errors` (log Render `client_error`). Backend log `slow_request` (>= 800 ms, `middleware/logRequestCham.js`).
 - Quet loi moi trang: `cd frontend && npm run quet-loi -- <url> [token]`.
 
 ## 12. Nguyen tac khi sua code
@@ -394,10 +411,11 @@ Deploy (push `main`):
 7. Reward/animation la lop phu, khong duoc lam hong luong hoc; test ca desktop va mobile.
 8. Khong commit `node_modules`, `.env`, file media ban quyen, noi dung `private-content/`.
 9. Khong them tai khoan demo seed tru khi duoc yeu cau; test auth bang cach dang ky user moi.
-10. Backend local dung DB production: bam thu o che do khach van ghi phien hoc that; thu giao dien khi dang nhap bang API gia (xem HANDOFF muc 5).
+10. Backend local dung `DATABASE_URL` Supabase = DB production: bam thu o che do khach van ghi phien hoc that; thu giao dien khi dang nhap bang API gia (xem HANDOFF muc 5).
+11. SQL moi viet cho Postgres (qua wrapper `config/db.js`); khong dua lai Cloud SQL, cron, gui email.
 
 ---
 
 ## 13. Ghi chu encode
 
-File nay viet tieng Viet khong dau de tranh loi encoding tren terminal Windows. Source UI van dung tieng Viet co dau.
+Phan cu cua file nay viet tieng Viet khong dau de tranh loi encoding tren terminal Windows; cac doan cap nhat tu 20/10/2026 viet co dau (file luu UTF-8). Khi sua tren Windows, ghi bang cong cu giu UTF-8 (khong dung `Set-Content` cua PowerShell 5). Source UI van dung tieng Viet co dau.

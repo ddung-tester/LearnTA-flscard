@@ -1,3 +1,5 @@
+> Ghi chú 20/10/2026: tài liệu lịch sử. Hạ tầng đã đổi sang Supabase (CSDL + audio) / Render (backend) / Vercel ngày 19/10/2026; chỗ nhắc Cloud SQL, Cloud Run, MySQL, email là thông tin cũ. Hiện trạng: [docs/deploy-render-supabase.md](deploy-render-supabase.md).
+
 # Kế hoạch tối đa hiệu năng + trải nghiệm — 10/2026
 
 > **Trạng thái 2026-10-09: đã chạy xong** trên nhánh `claude/confident-curie-s3b6ch` (kết quả đo ở mục 6). Q1–Q7 theo khuyến nghị; Q3 (Cloud Run min-instances) và việc ở mục 4 do người dùng làm.

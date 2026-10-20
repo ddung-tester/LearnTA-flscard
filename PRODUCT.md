@@ -10,7 +10,7 @@ Vietnamese students and self-learners studying English vocabulary. They sit down
 
 ## Product Purpose
 
-An English vocabulary learning app for creating word decks, adding English–Vietnamese card pairs, studying with flip-card flashcards, and testing with auto-generated multiple-choice quizzes. Built as a learning project (React, Node.js, MySQL), but designed to be immediately usable by any Vietnamese student or self-learner. Success: a user can create a deck, add cards, and finish a quiz in under five minutes with zero confusion.
+An English vocabulary learning app for creating word decks, adding English–Vietnamese card pairs, studying with flip-card flashcards, and testing with auto-generated multiple-choice quizzes. Built as a learning project (React, Node.js, PostgreSQL), but designed to be immediately usable by any Vietnamese student or self-learner. Success: a user can create a deck, add cards, and finish a quiz in under five minutes with zero confusion.
 
 MVP scope: no login or authentication until the core flow is stable — create deck, add cards, study flashcards, take quiz. Auth is a post-MVP concern. The Home page, if present, should feel like an entry point into the app, not a marketing landing page.
 

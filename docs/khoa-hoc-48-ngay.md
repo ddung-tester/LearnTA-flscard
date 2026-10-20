@@ -25,9 +25,10 @@ backend/database/private-content/khoa-hoc-48-ngay/
 ```
 
 Câu nghe có thêm 2 trường không bắt buộc trong `exercises.json`:
-- `audio`: file trong `audio/` của bài → DB `course_questions.audio_path = bai-XX/audio/…`. File phải được tải lên bucket
-  **riêng tư** `gs://flash-card-499907-course-audio/khoa-hoc-48-ngay/bai-XX/audio/…` (chặn public; tài khoản dịch vụ Cloud Run
-  có `roles/storage.objectViewer`). Backend phát qua `GET /api/course-questions/:id/audio`, chỉ cho chủ khoá.
+- `audio`: file trong `audio/` của bài → DB `course_questions.audio_path = bai-XX/audio/…`. File phải được tải lên
+  Supabase Storage, bucket **private** `course-audio`, object `khoa-hoc-48-ngay/bai-XX/audio/…`, bằng
+  `npm run tai:audio -- --apply [--bai=XX]` (trong `backend/`, cần `SUPABASE_URL` + `SUPABASE_SECRET_KEY`).
+  Backend đọc bằng secret key (`src/services/audioStorage.js`) và phát qua `GET /api/course-questions/:id/audio`, chỉ cho chủ khoá.
 - `listen_text`: lời thoại (Quiz nghe trong tài liệu học có script nhưng không có file) — trình duyệt đọc bằng giọng máy.
 
 
