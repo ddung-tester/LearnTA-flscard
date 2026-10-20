@@ -165,18 +165,17 @@ const BAN_AM = {
     not(c, { tanSo: 150, tanSoCuoi: 55, dai: 0.18, to: 0.5 });
     nhieu(c, { dai: 0.06, to: 0.3, locTu: 2000, locDen: 900, q: 0.7 });
   },
-  // Hiệu ứng thưởng: sao chổi phóng đi (vút + ánh kim lên cao)
+  // Hiệu ứng thưởng: tia sáng bay tới cổng (một làn gió mảnh, nhẹ)
   phepBay(c) {
-    nhieu(c, { dai: 0.7, to: 0.2, locTu: 380, locDen: 5200, q: 1.1 });
-    not(c, { tanSo: 620, tanSoCuoi: 1860, dai: 0.62, to: 0.05, kieu: "triangle" });
+    nhieu(c, { dai: 0.45, to: 0.09, locTu: 900, locDen: 4200, q: 0.8 });
+    not(c, { tanSo: 880, tanSoCuoi: 1320, dai: 0.4, to: 0.025 });
   },
-  // Hiệu ứng thưởng: nổ mở cổng (thụp trầm + chuông lấp lánh)
+  // Hiệu ứng thưởng: vòng ấn bung mở cổng (hợp âm chuông mềm, ngân dài, không tiếng nổ)
   phepNo(c) {
-    not(c, { tanSo: 120, tanSoCuoi: 42, dai: 0.4, to: 0.5 });
-    nhieu(c, { dai: 0.28, to: 0.22, locTu: 3200, locDen: 700, q: 0.7 });
-    [1318.5, 1760, 2349.3, 2637].forEach((tanSo, i) => {
-      not(c, { tanSo, batDau: 0.04 + i * 0.045, dai: 0.55, to: 0.07, kieu: "triangle" });
+    [659.25, 987.77, 1318.5, 1975.5].forEach((tanSo, i) => {
+      not(c, { tanSo, batDau: i * 0.06, dai: 0.9 - i * 0.1, to: 0.06 - i * 0.008 });
     });
+    nhieu(c, { dai: 0.5, to: 0.05, locTu: 5000, locDen: 2200, q: 0.6 });
   },
 };
 
