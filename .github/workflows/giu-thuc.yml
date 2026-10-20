@@ -1,0 +1,18 @@
+name: Giu thuc Supabase
+
+# Supabase goi mien phi tu tam dung neu 7 ngay khong co truy cap.
+# Moi ngay goi /api/db-test tren Render: danh thuc backend va chay 1 truy van vao CSDL.
+on:
+  schedule:
+    - cron: "17 1 * * *" # 08:17 gio Viet Nam
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Goi backend va CSDL
+        run: |
+          curl -fsS --retry 4 --retry-delay 30 --retry-all-errors --max-time 120 \
+            https://flashcard-backend-j62b.onrender.com/api/db-test

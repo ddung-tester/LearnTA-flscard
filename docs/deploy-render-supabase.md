@@ -42,3 +42,10 @@ Lưu ý gói free: service ngủ sau 15 phút không có truy cập (lần đầ
 ## 6. Google Cloud còn giữ gì
 
 Chỉ giữ project `flash-card-499907` cho OAuth client (không cần billing). Không xoá project. Các dịch vụ khác (Cloud Run, Cloud SQL, Cloud Scheduler, Cloud Build trigger, Text-to-Speech) không còn dùng.
+
+## Giữ thức và sao lưu
+
+- Giữ thức: workflow `.github/workflows/giu-thuc.yml` gọi `/api/db-test` mỗi ngày để Supabase gói miễn phí không tự tạm dừng (dừng sau 7 ngày không truy cập). GitHub tự tắt lịch chạy nếu repo không có hoạt động trong 60 ngày; khi đó vào tab Actions bật lại.
+- Sao lưu: tác vụ Windows `Flashcard - Sao luu Supabase` chạy 20:00 Chủ nhật, dùng `pg_dump` lưu vào `D:\My project\flashcard-backup` (giữ 8 bản, nhật ký ở `nhat-ky.txt`). Script nằm ngoài repo vì đọc `DATABASE_URL` từ `backend/.env`.
+- Khôi phục: `pg_restore --clean --if-exists --no-owner -d "<DATABASE_URL>" <file .dump>`.
+
