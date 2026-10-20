@@ -54,8 +54,8 @@ test("lỗi khi cập nhật sẽ rollback, không commit và vẫn giữ bản 
   const calls = [];
   const connection = {
     async query(sql) {
-      if (sql.includes("DATABASE() AS")) return [[{ database_name: "test_flashcard_import" }]];
-      if (sql.includes("information_schema")) return [[{ COLUMN_NAME: "tense_examples", DATA_TYPE: "json" }, { COLUMN_NAME: "pronunciation", DATA_TYPE: "varchar" }]];
+      if (sql.includes("current_database() AS")) return [[{ database_name: "test_flashcard_import" }]];
+      if (sql.includes("information_schema")) return [[{ COLUMN_NAME: "tense_examples", DATA_TYPE: "jsonb" }, { COLUMN_NAME: "pronunciation", DATA_TYPE: "varchar" }]];
       if (sql.includes("FROM cards")) return [rows];
       throw new Error("Unexpected query");
     },

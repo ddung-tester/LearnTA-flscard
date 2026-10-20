@@ -18,7 +18,7 @@ const {
 
 const MAX_ANSWER_LENGTH = 200;
 
-// mysql2 trả cột JSON đã parse; phòng trường hợp driver trả chuỗi
+// Driver trả cột JSON đã parse; phòng trường hợp gặp chuỗi
 function docJson(value, macDinh) {
   if (value === null || value === undefined) return macDinh;
   if (typeof value !== "string") return value;
@@ -286,10 +286,10 @@ async function answerQuestion(req, res) {
   await pool.query(
     `INSERT INTO course_question_progress (user_id, question_id, is_correct, mastery_level, next_review_at)
      VALUES (?, ?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       is_correct = VALUES(is_correct),
-       mastery_level = VALUES(mastery_level),
-       next_review_at = VALUES(next_review_at)`,
+     ON CONFLICT (user_id, question_id) DO UPDATE SET
+       is_correct = EXCLUDED.is_correct,
+       mastery_level = EXCLUDED.mastery_level,
+       next_review_at = EXCLUDED.next_review_at`,
     [req.user.id, questionId, correct, lich.level, lich.nextReviewAt]
   );
   res.json({ correct, mastery_level: lich.level, next_review_at: lich.nextReviewAt });
@@ -405,7 +405,8 @@ function luuNeuDat(question, answer, explanation) {
 async function luuGiaiThich(questionId, answerNorm, explanation) {
   await pool.query(
     `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE explanation = VALUES(explanation), created_at = CURRENT_TIMESTAMP`,
+     ON CONFLICT (question_id, answer_norm)
+     DO UPDATE SET explanation = EXCLUDED.explanation, created_at = CURRENT_TIMESTAMP`,
     [questionId, answerNorm, explanation]
   );
 }

@@ -1,0 +1,486 @@
+CREATE DATABASE IF NOT EXISTS learn_ta_flashcard
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE learn_ta_flashcard;
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  fullname VARCHAR(50) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NULL,
+  google_id VARCHAR(255) NULL UNIQUE,
+  avatar_url VARCHAR(512),
+
+  total_xp INT UNSIGNED NOT NULL DEFAULT 0,
+  current_streak INT UNSIGNED NOT NULL DEFAULT 0,
+  longest_streak INT UNSIGNED NOT NULL DEFAULT 0,
+  last_study_date DATE,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS decks (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+
+  icon VARCHAR(80),
+  theme_color VARCHAR(50),
+  is_public BOOLEAN NOT NULL DEFAULT FALSE,
+
+  streak INT UNSIGNED NOT NULL DEFAULT 0,
+  mastered_count INT UNSIGNED NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_decks_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_user_deck_title (user_id, title),
+  INDEX idx_decks_user_id (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS cards (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  deck_id BIGINT UNSIGNED NOT NULL,
+
+  term_en VARCHAR(255) NOT NULL,
+  meaning_vi VARCHAR(255) NOT NULL,
+  example_sentence TEXT,
+  example_translation TEXT,
+  note TEXT,
+
+  pronunciation VARCHAR(255),
+  part_of_speech VARCHAR(50),
+  -- Câu mẫu 6 thì do AI sinh (scripts/add_tense_examples_column.js, seed-ai-examples.js)
+  tense_examples JSON NULL DEFAULT NULL,
+
+  is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_cards_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE CASCADE,
+
+  INDEX idx_cards_deck_id (deck_id),
+  INDEX idx_cards_sort_order (deck_id, sort_order),
+  INDEX idx_cards_created_at (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_sessions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  client_request_id VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  request_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  deck_id BIGINT UNSIGNED NOT NULL,
+
+  mode ENUM(
+    'flashcard', 'quiz', 'written', 'review',
+    'listening', 'context', 'matching', 'mixed'
+  ) NOT NULL,
+  direction ENUM('en-vi', 'vi-en') NOT NULL,
+
+  only_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  random_order BOOLEAN NOT NULL DEFAULT FALSE,
+
+  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ended_at TIMESTAMP NULL,
+  duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+
+  total INT UNSIGNED NOT NULL DEFAULT 0,
+  correct INT UNSIGNED NOT NULL DEFAULT 0,
+  review INT UNSIGNED NOT NULL DEFAULT 0,
+  xp_earned INT UNSIGNED NOT NULL DEFAULT 0,
+  max_combo INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_size INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_total INT UNSIGNED NOT NULL DEFAULT 0,
+  segment_completed INT UNSIGNED NOT NULL DEFAULT 0,
+  progress_segments JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_study_sessions_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_study_sessions_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY uq_study_sessions_user_request (user_id, client_request_id),
+  INDEX idx_study_sessions_user_id (user_id),
+  INDEX idx_study_sessions_deck_id (deck_id),
+  INDEX idx_study_sessions_user_mode (user_id, mode),
+  INDEX idx_study_sessions_created (started_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_answers (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  session_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NOT NULL,
+
+  question_text TEXT,
+  correct_answer TEXT,
+  user_answer TEXT,
+
+  is_correct BOOLEAN NOT NULL,
+  answer_meta JSON NULL,
+  answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_study_answers_session
+    FOREIGN KEY (session_id) REFERENCES study_sessions(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_study_answers_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE CASCADE,
+
+  INDEX idx_study_answers_session_id (session_id),
+  INDEX idx_study_answers_card_id (card_id),
+  UNIQUE KEY unique_study_answer_session_card (session_id, card_id)
+) ENGINE=InnoDB;
+
+-- Nguon duy nhat cua lich on SRS: moi user + card mot level (0-5), luat o backend/src/utils/srs.js.
+CREATE TABLE IF NOT EXISTS card_progress (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NOT NULL,
+
+  mastery_level TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  review_count INT UNSIGNED NOT NULL DEFAULT 0,
+  correct_count INT UNSIGNED NOT NULL DEFAULT 0,
+  wrong_count INT UNSIGNED NOT NULL DEFAULT 0,
+
+  last_reviewed_at TIMESTAMP NULL,
+  next_review_at TIMESTAMP NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_card_progress_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_card_progress_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_user_card_progress (user_id, card_id),
+  INDEX idx_card_progress_user_id (user_id),
+  INDEX idx_card_progress_card_id (card_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS mistake_words (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NULL,
+  deck_id BIGINT UNSIGNED NULL,
+
+  term_en VARCHAR(255) NOT NULL,
+  meaning_vi VARCHAR(255) NOT NULL,
+  example_sentence TEXT,
+  source VARCHAR(40) NOT NULL DEFAULT 'quiz',
+  mistake_count INT UNSIGNED NOT NULL DEFAULT 1,
+  status ENUM('active', 'reviewed') NOT NULL DEFAULT 'active',
+
+  last_wrong_at TIMESTAMP NULL,
+  last_reviewed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_mistake_words_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_mistake_words_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_mistake_words_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_mistake_user_card (user_id, card_id),
+  INDEX idx_mistake_words_user_id (user_id),
+  INDEX idx_mistake_words_deck_id (deck_id),
+  INDEX idx_mistake_words_status (status),
+  INDEX idx_mistake_words_last_wrong_at (last_wrong_at),
+  INDEX idx_mistake_words_created_at (created_at)
+) ENGINE=InnoDB;
+
+-- Khong con dung tu migration 007 (du lieu da gop vao card_progress). Giu lai de doi chieu.
+CREATE TABLE IF NOT EXISTS card_reviews (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  card_id BIGINT UNSIGNED NULL,
+  deck_id BIGINT UNSIGNED NULL,
+
+  term_en VARCHAR(255) NOT NULL,
+  meaning_vi VARCHAR(255) NOT NULL,
+  example_sentence TEXT,
+  source VARCHAR(40) NOT NULL DEFAULT 'quiz',
+  level TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  ease VARCHAR(20) NULL,
+  review_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_reviewed_at TIMESTAMP NULL,
+  next_review_at TIMESTAMP NULL,
+  status ENUM('active', 'mastered') NOT NULL DEFAULT 'active',
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_card_reviews_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_card_reviews_card
+    FOREIGN KEY (card_id) REFERENCES cards(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_card_reviews_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_card_reviews_user_card (user_id, card_id),
+  INDEX idx_card_reviews_user_id (user_id),
+  INDEX idx_card_reviews_deck_id (deck_id),
+  INDEX idx_card_reviews_next_review_at (next_review_at),
+  INDEX idx_card_reviews_status (status),
+  INDEX idx_card_reviews_created_at (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS quiz_results (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
+  client_request_id VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  request_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  deck_id BIGINT UNSIGNED NOT NULL,
+
+  question_type ENUM(
+    'multiple_choice', 'written', 'flashcard',
+    'listening', 'context', 'matching', 'mixed'
+  ) NOT NULL,
+  direction ENUM('en-vi', 'vi-en') NOT NULL,
+
+  correct INT UNSIGNED NOT NULL DEFAULT 0,
+  review INT UNSIGNED NOT NULL DEFAULT 0,
+  total INT UNSIGNED NOT NULL DEFAULT 0,
+  progress_segments JSON NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_quiz_results_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_quiz_results_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE CASCADE,
+
+  INDEX idx_quiz_results_deck_id (deck_id),
+  UNIQUE KEY uq_quiz_results_user_request (user_id, client_request_id),
+  INDEX idx_quiz_results_user_id (user_id),
+  INDEX idx_quiz_results_created_at (created_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS streak_logs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+
+  study_date DATE NOT NULL,
+  xp_earned INT UNSIGNED NOT NULL DEFAULT 0,
+  cards_reviewed INT UNSIGNED NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_streak_logs_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_user_study_date (user_id, study_date),
+  INDEX idx_streak_logs_user_id (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS user_settings (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+
+  default_direction ENUM('en-vi', 'vi-en') NOT NULL DEFAULT 'en-vi',
+  only_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+  random_order BOOLEAN NOT NULL DEFAULT FALSE,
+  reward_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  reward_trigger_count INT UNSIGNED NOT NULL DEFAULT 10,
+  -- Nhắc học qua email (database/add_email_reminders.sql)
+  email_reminders BOOLEAN NOT NULL DEFAULT TRUE,
+  -- Cài đặt giao diện + học tập theo tài khoản (migrations/014_add_user_preferences.sql)
+  preferences JSON NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_user_settings_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Lộ trình học (migration 009). Nội dung nạp bằng npm run seed:roadmaps.
+CREATE TABLE IF NOT EXISTS roadmaps (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  slug VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  level_label VARCHAR(80) NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  UNIQUE KEY unique_roadmaps_slug (slug)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS roadmap_decks (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  roadmap_id BIGINT UNSIGNED NOT NULL,
+  deck_id BIGINT UNSIGNED NOT NULL,
+  -- Khoá ổn định trong file nội dung, để chạy lại script nạp không tạo bộ từ trùng
+  deck_key VARCHAR(80) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_roadmap_decks_roadmap
+    FOREIGN KEY (roadmap_id) REFERENCES roadmaps(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_roadmap_decks_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_roadmap_decks_key (deck_key),
+  UNIQUE KEY unique_roadmap_decks_deck (deck_id),
+  INDEX idx_roadmap_decks_order (roadmap_id, sort_order)
+) ENGINE=InnoDB;
+
+-- Khoá học riêng của một người dùng (migration 010), nạp bằng scripts/nhap-khoa-hoc.js
+CREATE TABLE IF NOT EXISTS courses (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  slug VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_courses_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_courses_user_slug (user_id, slug)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS course_lessons (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  course_id BIGINT UNSIGNED NOT NULL,
+  lesson_number INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  deck_id BIGINT UNSIGNED NULL,
+  -- Lý thuyết đã chuẩn hoá: { grammar: [{ id, title, pattern, rules[], examples[{ en, vi }] }], notes: [] }
+  content JSON NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_course_lessons_course
+    FOREIGN KEY (course_id) REFERENCES courses(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_course_lessons_deck
+    FOREIGN KEY (deck_id) REFERENCES decks(id)
+    ON DELETE SET NULL,
+
+  UNIQUE KEY unique_course_lessons_number (course_id, lesson_number)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS course_questions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  lesson_id BIGINT UNSIGNED NOT NULL,
+  -- Mã câu trong file nội dung, để nạp lại không tạo câu trùng
+  question_key VARCHAR(80) NOT NULL,
+  source VARCHAR(20) NOT NULL,
+  section VARCHAR(80) NOT NULL,
+  type ENUM('multiple_choice', 'fill_blank') NOT NULL,
+  instruction TEXT NULL,
+  prompt TEXT NOT NULL,
+  -- Trắc nghiệm: [{ key, text }] và chữ cái đáp án đúng. Điền từ: các cách viết được chấp nhận.
+  options JSON NULL,
+  answer_key VARCHAR(4) NULL,
+  accepted_answers JSON NULL,
+  explanation TEXT NULL,
+  answer_source VARCHAR(60) NULL,
+  image_description VARCHAR(500) NULL,
+  -- Bài nghe: file audio private trên Cloud Storage (<slug khoá>/<audio_path>) hoặc lời thoại cho trình duyệt đọc
+  audio_path VARCHAR(255) NULL,
+  listen_text TEXT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_course_questions_lesson
+    FOREIGN KEY (lesson_id) REFERENCES course_lessons(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_course_questions_key (lesson_id, question_key),
+  INDEX idx_course_questions_order (lesson_id, sort_order)
+) ENGINE=InnoDB;
+
+-- Lời giải thích của AI theo từng (câu hỏi, câu trả lời đã chuẩn hoá): gọi Gemini một lần rồi dùng lại
+CREATE TABLE IF NOT EXISTS course_question_explanations (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  question_id BIGINT UNSIGNED NOT NULL,
+  answer_norm VARCHAR(255) NOT NULL,
+  explanation TEXT NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_course_question_explanations_question
+    FOREIGN KEY (question_id) REFERENCES course_questions(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_course_question_explanations (question_id, answer_norm)
+) ENGINE=InnoDB;
+
+-- Kết quả lần trả lời gần nhất của người học cho mỗi câu bài tập khoá học (migration 011)
+-- + lịch ôn SRS cho câu từng làm sai (migration 012; next_review_at NULL = không nằm trong lịch ôn)
+CREATE TABLE IF NOT EXISTS course_question_progress (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  question_id BIGINT UNSIGNED NOT NULL,
+  is_correct BOOLEAN NOT NULL,
+  mastery_level TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  next_review_at TIMESTAMP NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_course_question_progress_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE,
+
+  CONSTRAINT fk_course_question_progress_question
+    FOREIGN KEY (question_id) REFERENCES course_questions(id)
+    ON DELETE CASCADE,
+
+  UNIQUE KEY unique_course_question_progress (user_id, question_id),
+  INDEX idx_course_question_progress_due (user_id, next_review_at)
+) ENGINE=InnoDB;

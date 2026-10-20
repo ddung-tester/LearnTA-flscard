@@ -4,7 +4,6 @@ const { OAuth2Client } = require("google-auth-library");
 const pool = require("../config/db");
 const { getJwtSecret, getGoogleClientId, jwtExpiresIn } = require("../config/env");
 const { cleanText, createHttpError } = require("../utils/http");
-const { sendWelcomeEmail } = require("../services/emailService");
 
 
 const SALT_ROUNDS = 10;
@@ -110,7 +109,8 @@ async function register(req, res) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const [result] = await pool.execute(
     `INSERT INTO users (fullname, email, password_hash)
-     VALUES (?, ?, ?)`,
+     VALUES (?, ?, ?)
+     RETURNING id`,
     [fullname, email, passwordHash]
   );
 
@@ -228,13 +228,10 @@ async function googleAuth(req, res) {
       : "Người dùng";
 
     const [result] = await pool.execute(
-      `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO users (fullname, email, google_id, avatar_url) VALUES (?, ?, ?, ?) RETURNING id`,
       [fullname, normalizedEmail, googleId, picture ?? null]
     );
     user = await findUserById(result.insertId);
-
-    // Gửi email chào mừng (không block response)
-    sendWelcomeEmail({ to: normalizedEmail, displayName: user.fullname }).catch(() => {});
   }
 
   res.json({ user, token: signToken(user) });

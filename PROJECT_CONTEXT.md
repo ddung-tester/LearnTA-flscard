@@ -1,5 +1,7 @@
 # PROJECT_CONTEXT.md
 
+> **Cập nhật 19/10/2026 — hạ tầng mới:** CSDL Postgres trên Supabase, backend trên Render, frontend Vercel; đã bỏ Google Cloud (Cloud SQL, Cloud Run, Cloud Storage, Cloud Scheduler) và bỏ chức năng gửi email. Các mục bên dưới còn nhắc Cloud SQL / Cloud Run / proxy là thông tin cũ; xem [docs/deploy-render-supabase.md](docs/deploy-render-supabase.md) và README.
+
 > Cap nhat: 2026-09-27. File nay mo ta trang thai THAT cua code tren `main`.
 > Khi code thay doi lon (route, bang DB, luong auth), cap nhat lai file nay.
 

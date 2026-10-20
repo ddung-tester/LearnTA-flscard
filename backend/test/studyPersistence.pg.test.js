@@ -2,11 +2,11 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
 // Opt-in: creates and removes only a uniquely named, disposable database.
-test("study requests remain unique through retries and concurrency on MySQL", {
-  skip: process.env.LEARNTA_MYSQL_TEST !== "1", timeout: 120000,
+test("study requests remain unique through retries and concurrency on Postgres", {
+  skip: process.env.LEARNTA_PG_TEST !== "1", timeout: 120000,
 }, async (t) => {
   require("dotenv").config({ quiet: true });
-  const mysql = require("mysql2/promise");
+  const { Client } = require("pg");
   const fs = require("node:fs/promises");
   const path = require("node:path");
   const express = require("express");
@@ -14,28 +14,34 @@ test("study requests remain unique through retries and concurrency on MySQL", {
   const { randomBytes } = require("node:crypto");
   const config = require("../src/config/env");
   const database = `learnta_audit_${Date.now()}_${process.pid}`;
-  const admin = await mysql.createConnection({ ...config.db, multipleStatements: true });
+  const ketNoi = (ten) => {
+    const url = config.db.url ? new URL(config.db.url) : null;
+    if (url && ten) url.pathname = `/${ten}`;
+    return new Client(url ? { connectionString: url.toString() } : { ...config.db, database: ten || config.db.database });
+  };
+  const admin = ketNoi();
+  await admin.connect();
   let created = false, connection, pool, server;
   try {
-    await admin.query(`CREATE DATABASE \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+    await admin.query(`CREATE DATABASE ${database}`);
     created = true;
     config.db.database = database;
+    if (config.db.url) config.db.url = ((url) => { url.pathname = `/${database}`; return url.toString(); })(new URL(config.db.url));
     process.env.JWT_SECRET = randomBytes(32).toString("hex");
-    connection = await mysql.createConnection({ ...config.db, multipleStatements: true });
-    let schema = await fs.readFile(path.join(__dirname, "../database/schema.sql"), "utf8");
-    schema = schema.slice(schema.indexOf("CREATE TABLE"))
-      .replace(/^  (?:client_request_id|request_hash).*\r?\n/gm, "")
-      .replace(/^  UNIQUE KEY uq_(?:study_sessions|quiz_results)_user_request.*\r?\n/gm, "");
-    await connection.query(schema);
-    const [userA] = await connection.execute("INSERT INTO users (fullname, email) VALUES (?, ?)", ["Audit A", `${database}-a@example.test`]);
-    const [userB] = await connection.execute("INSERT INTO users (fullname, email) VALUES (?, ?)", ["Audit B", `${database}-b@example.test`]);
-    const [deckA] = await connection.execute("INSERT INTO decks (user_id, title) VALUES (?, ?)", [userA.insertId, "Audit A deck"]);
-    const [deckB] = await connection.execute("INSERT INTO decks (user_id, title) VALUES (?, ?)", [userB.insertId, "Audit B deck"]);
-    const [card] = await connection.execute("INSERT INTO cards (deck_id, term_en, meaning_vi) VALUES (?, ?, ?)", [deckA.insertId, "apple", "test meaning"]);
+    const schemaClient = ketNoi(database);
+    await schemaClient.connect();
+    await schemaClient.query(await fs.readFile(path.join(__dirname, "../database/schema.sql"), "utf8"));
+    await schemaClient.end();
+    pool = require("../src/config/db");
+    connection = pool;
+    const [userA] = await connection.execute("INSERT INTO users (fullname, email) VALUES (?, ?) RETURNING id", ["Audit A", `${database}-a@example.test`]);
+    const [userB] = await connection.execute("INSERT INTO users (fullname, email) VALUES (?, ?) RETURNING id", ["Audit B", `${database}-b@example.test`]);
+    const [deckA] = await connection.execute("INSERT INTO decks (user_id, title) VALUES (?, ?) RETURNING id", [userA.insertId, "Audit A deck"]);
+    const [deckB] = await connection.execute("INSERT INTO decks (user_id, title) VALUES (?, ?) RETURNING id", [userB.insertId, "Audit B deck"]);
+    const [card] = await connection.execute("INSERT INTO cards (deck_id, term_en, meaning_vi) VALUES (?, ?, ?) RETURNING id", [deckA.insertId, "apple", "test meaning"]);
+    // Dòng cũ chưa có mã yêu cầu (trước khi có idempotency) phải vẫn ghi/đọc được
     await connection.execute("INSERT INTO study_sessions (user_id, deck_id, mode, direction) VALUES (?, ?, 'quiz', 'vi-en')", [userA.insertId, deckA.insertId]);
     await connection.execute("INSERT INTO quiz_results (user_id, deck_id, question_type, direction) VALUES (?, ?, 'written', 'vi-en')", [userA.insertId, deckA.insertId]);
-    await connection.query(await fs.readFile(path.join(__dirname, "../database/migrations/015_add_study_request_idempotency.sql"), "utf8"));
-    pool = require("../src/config/db");
     const app = express();
     app.use(express.json());
     app.use("/api", require("../src/routes/studyRoutes"));
@@ -56,7 +62,7 @@ test("study requests remain unique through retries and concurrency on MySQL", {
       return rows[0].n;
     };
     let sessionId;
-    await t.test("migration preserves existing rows and sequential replay returns the committed session", async () => {
+    await t.test("rows without request keys are kept and sequential replay returns the committed session", async () => {
       for (const table of ["study_sessions", "quiz_results"]) {
         const [rows] = await connection.query(`SELECT COUNT(*) AS n FROM ${table} WHERE client_request_id IS NULL AND request_hash IS NULL`);
         assert.equal(rows[0].n, 1);
@@ -118,8 +124,7 @@ test("study requests remain unique through retries and concurrency on MySQL", {
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
     if (pool) await pool.end();
-    if (connection) await connection.end();
-    if (created && /^learnta_audit_[0-9]+_[0-9]+$/.test(database)) await admin.query(`DROP DATABASE \`${database}\``);
+    if (created && /^learnta_audit_[0-9]+_[0-9]+$/.test(database)) await admin.query(`DROP DATABASE ${database}`);
     await admin.end();
   }
 });

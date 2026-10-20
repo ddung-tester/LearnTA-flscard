@@ -80,9 +80,9 @@ async function updateUserStreak(connection, userId, { xpEarned = 0, cardsReviewe
   await connection.execute(
     `INSERT INTO streak_logs (user_id, study_date, xp_earned, cards_reviewed)
      VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE
-       xp_earned      = xp_earned + VALUES(xp_earned),
-       cards_reviewed = cards_reviewed + VALUES(cards_reviewed)`,
+     ON CONFLICT (user_id, study_date) DO UPDATE SET
+       xp_earned      = streak_logs.xp_earned + EXCLUDED.xp_earned,
+       cards_reviewed = streak_logs.cards_reviewed + EXCLUDED.cards_reviewed`,
     [userId, today, xpEarned, cardsReviewed]
   );
 
@@ -121,11 +121,11 @@ async function updateDeckStreak(connection, deckId, userId) {
 
   // Xem ngày gần nhất đã học deck này (không tính hôm nay)
   const [sessionRows] = await connection.query(
-    `SELECT MAX(DATE(CONVERT_TZ(ended_at, '+00:00', '+07:00'))) AS last_date
+    `SELECT MAX((ended_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date) AS last_date
      FROM study_sessions
      WHERE deck_id = ? AND user_id = ?
        AND ended_at IS NOT NULL
-       AND DATE(CONVERT_TZ(ended_at, '+00:00', '+07:00')) != ?`,
+       AND (ended_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date <> ?`,
     [deckId, userId, today]
   );
   const lastDate = sessionRows[0]?.last_date
@@ -138,7 +138,7 @@ async function updateDeckStreak(connection, deckId, userId) {
      FROM study_sessions
      WHERE deck_id = ? AND user_id = ?
        AND ended_at IS NOT NULL
-       AND DATE(CONVERT_TZ(ended_at, '+00:00', '+07:00')) = ?`,
+       AND (ended_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = ?`,
     [deckId, userId, today]
   );
   // Nếu hôm nay đã có session (và hàm này được gọi lần thứ 2+), không tính lại

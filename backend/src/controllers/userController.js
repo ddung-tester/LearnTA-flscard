@@ -116,20 +116,22 @@ async function updateUserSettings(req, res) {
 
   const columns = Object.keys(updates);
   const placeholders = columns.map(() => "?");
-  const setClauses = columns.map((key) => `${key} = ?`);
+  const setClauses = columns.map((key) => `${key} = EXCLUDED.${key}`);
   const values = Object.values(updates);
   if (preferencesJson !== null) {
     columns.push("preferences");
-    placeholders.push("CAST(? AS JSON)");
-    setClauses.push("preferences = JSON_MERGE_PATCH(COALESCE(preferences, JSON_OBJECT()), CAST(? AS JSON))");
+    placeholders.push("jsonb_strip_nulls(?::jsonb)");
+    setClauses.push(
+      "preferences = jsonb_strip_nulls(COALESCE(user_settings.preferences, '{}'::jsonb) || ?::jsonb)"
+    );
     values.push(preferencesJson);
   }
 
   await pool.execute(
     `INSERT INTO user_settings (user_id, ${columns.join(", ")})
      VALUES (?, ${placeholders.join(", ")})
-     ON DUPLICATE KEY UPDATE ${setClauses.join(", ")}`,
-    [userId, ...values, ...values]
+     ON CONFLICT (user_id) DO UPDATE SET ${setClauses.join(", ")}`,
+    preferencesJson === null ? [userId, ...values] : [userId, ...values, preferencesJson]
   );
 
   // Trả lại settings mới

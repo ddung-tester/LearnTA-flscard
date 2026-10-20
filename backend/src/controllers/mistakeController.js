@@ -158,7 +158,7 @@ async function resolveReadableCardLink(connection, userId, payload) {
 async function findMistakeById(connection, userId, mistakeId) {
   const [rows] = await connection.query(
     `SELECT mw.*, d.title AS deck_title,
-       CASE WHEN BINARY c.example_sentence = BINARY mw.example_sentence
+       CASE WHEN c.example_sentence = mw.example_sentence
          THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
@@ -257,7 +257,8 @@ async function upsertMistake(connection, userId, rawPayload, { mode = "increment
         last_wrong_at,
         last_reviewed_at
       )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     RETURNING id`,
     [
       userId,
       cardLink.cardId,
@@ -298,17 +299,17 @@ async function listMistakes(req, res) {
 
   const search = cleanText(req.query.search);
   if (search) {
-    conditions.push("(mw.term_en LIKE ? OR mw.meaning_vi LIKE ?)");
+    conditions.push("(mw.term_en ILIKE ? OR mw.meaning_vi ILIKE ?)");
     params.push(`%${search}%`, `%${search}%`);
   }
 
   const sort = VALID_SORTS.has(req.query.sort) ? req.query.sort : "last_wrong";
   const orderBy = {
     newest: "mw.created_at DESC, mw.id DESC",
-    most_mistakes: "mw.mistake_count DESC, mw.last_wrong_at DESC, mw.id DESC",
-    mistake_count: "mw.mistake_count DESC, mw.last_wrong_at DESC, mw.id DESC",
-    last_wrong: "mw.last_wrong_at DESC, mw.updated_at DESC, mw.id DESC",
-    deck: "d.title ASC, mw.last_wrong_at DESC, mw.id DESC",
+    most_mistakes: "mw.mistake_count DESC, mw.last_wrong_at DESC NULLS LAST, mw.id DESC",
+    mistake_count: "mw.mistake_count DESC, mw.last_wrong_at DESC NULLS LAST, mw.id DESC",
+    last_wrong: "mw.last_wrong_at DESC NULLS LAST, mw.updated_at DESC, mw.id DESC",
+    deck: "d.title ASC NULLS FIRST, mw.last_wrong_at DESC NULLS LAST, mw.id DESC",
     az: "mw.term_en ASC, mw.id ASC",
   }[sort];
 
@@ -317,7 +318,7 @@ async function listMistakes(req, res) {
 
   const [rows] = await pool.query(
     `SELECT mw.*, d.title AS deck_title,
-       CASE WHEN BINARY c.example_sentence = BINARY mw.example_sentence
+       CASE WHEN c.example_sentence = mw.example_sentence
          THEN c.example_translation ELSE NULL END AS example_translation
      FROM mistake_words mw
      LEFT JOIN decks d ON d.id = mw.deck_id
@@ -396,7 +397,7 @@ async function updateMistake(req, res) {
   const [result] = await pool.execute(
     `UPDATE mistake_words
      SET status = ?,
-         last_reviewed_at = CASE WHEN ? = 'reviewed' THEN CURRENT_TIMESTAMP ELSE last_reviewed_at END
+         last_reviewed_at = CASE WHEN ?::text = 'reviewed' THEN CURRENT_TIMESTAMP ELSE last_reviewed_at END
      WHERE id = ? AND user_id = ?`,
     [status, status, mistakeId, userId]
   );

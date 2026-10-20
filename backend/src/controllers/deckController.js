@@ -39,7 +39,7 @@ function deckWithStatsSql() {
     SELECT latest.id
     FROM quiz_results latest
     WHERE latest.deck_id = d.id
-      AND latest.user_id <=> ?
+      AND latest.user_id IS NOT DISTINCT FROM ?
     ORDER BY latest.created_at DESC, latest.id DESC
     LIMIT 1
   )
@@ -206,7 +206,7 @@ async function listLearnableDecks(req, res) {
   const userId = currentUserId(req);
   const [rows] = await pool.query(
     `${deckWithStatsSql()}
-     WHERE (d.user_id <=> ? OR (d.user_id IS NULL AND rd.id IS NOT NULL))
+     WHERE (d.user_id IS NOT DISTINCT FROM ? OR (d.user_id IS NULL AND rd.id IS NOT NULL))
      ORDER BY
        CASE WHEN cl.id IS NOT NULL THEN 2 WHEN rd.id IS NOT NULL THEN 3 WHEN d.user_id IS NULL THEN 1 ELSE 0 END,
        cl.course_id, cl.lesson_number, r.sort_order, r.id, rd.sort_order,
@@ -278,7 +278,8 @@ async function createDeck(req, res) {
   const [result] = await pool.execute(
     `INSERT INTO decks
       (user_id, title, description, icon, theme_color, is_public)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?)
+     RETURNING id`,
     [userId, title, description, icon, themeColor, isPublic]
   );
 
@@ -346,26 +347,23 @@ async function deleteDeck(req, res) {
     await connection.beginTransaction();
 
     await connection.execute(
-      `DELETE sa
-       FROM study_answers sa
-       JOIN cards c ON c.id = sa.card_id
-       WHERE c.deck_id = ?`,
+      `DELETE FROM study_answers sa
+       USING cards c
+       WHERE c.id = sa.card_id AND c.deck_id = ?`,
       [deckId]
     );
 
     await connection.execute(
-      `DELETE sa
-       FROM study_answers sa
-       JOIN study_sessions ss ON ss.id = sa.session_id
-       WHERE ss.deck_id = ?`,
+      `DELETE FROM study_answers sa
+       USING study_sessions ss
+       WHERE ss.id = sa.session_id AND ss.deck_id = ?`,
       [deckId]
     );
 
     await connection.execute(
-      `DELETE cp
-       FROM card_progress cp
-       JOIN cards c ON c.id = cp.card_id
-       WHERE c.deck_id = ?`,
+      `DELETE FROM card_progress cp
+       USING cards c
+       WHERE c.id = cp.card_id AND c.deck_id = ?`,
       [deckId]
     );
 

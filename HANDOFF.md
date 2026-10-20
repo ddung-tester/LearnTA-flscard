@@ -1,5 +1,7 @@
 # HANDOFF.md — Bàn giao cho AI/dev làm tiếp
 
+> **Cập nhật 19/10/2026 — hạ tầng mới:** CSDL Postgres trên Supabase, backend trên Render, frontend Vercel; đã bỏ Google Cloud (Cloud SQL, Cloud Run, Cloud Storage, Cloud Scheduler) và bỏ chức năng gửi email. Các mục bên dưới còn nhắc Cloud SQL / Cloud Run / proxy là thông tin cũ; xem [docs/deploy-render-supabase.md](docs/deploy-render-supabase.md) và README.
+
 > Cập nhật: 2026-10-09 (mục 3 dòng 49: hiệu năng). Đọc file này TRƯỚC, rồi đọc `CLAUDE.md` (quy tắc làm việc), `PROJECT_CONTEXT.md` (trạng thái kỹ thuật chi tiết), `PRODUCT.md` (định hướng sản phẩm), `README.md` (chạy local + deploy).
 
 ## 1. Mục tiêu

@@ -167,7 +167,8 @@ async function main() {
           if (!ghiDe && khoaDaCo.has(`${muc.questionId}|${muc.answerNorm}`)) continue;
           await pool.query(
             `INSERT INTO course_question_explanations (question_id, answer_norm, explanation) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE explanation = VALUES(explanation), created_at = CURRENT_TIMESTAMP`,
+             ON CONFLICT (question_id, answer_norm) DO UPDATE SET
+               explanation = EXCLUDED.explanation, created_at = CURRENT_TIMESTAMP`,
             [muc.questionId, muc.answerNorm, muc.explanation]
           );
           soLoiGhi += 1;

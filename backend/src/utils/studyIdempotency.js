@@ -15,11 +15,14 @@ function requestFingerprint(payload) {
 
 // table comes only from the two fixed controller call sites, never from a request.
 async function insertOnce(connection, table, userId, requestId, fingerprint, insert) {
+  // Postgres huỷ cả transaction khi một câu lỗi: lùi về savepoint để còn đọc bản ghi cũ.
+  if (requestId) await connection.query("SAVEPOINT insert_once");
   try {
     const [result] = await insert();
     return { id: result.insertId, replayed: false };
   } catch (error) {
     if (!requestId || error.code !== "ER_DUP_ENTRY") throw error;
+    await connection.query("ROLLBACK TO SAVEPOINT insert_once");
     const [rows] = await connection.query(
       `SELECT id, request_hash FROM ${table} WHERE user_id = ? AND client_request_id = ?`,
       [userId, requestId]

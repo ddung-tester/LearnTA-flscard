@@ -1,33 +1,25 @@
-// Audio bài nghe của khoá học riêng nằm trên Cloud Storage (bucket private, không public).
-// Backend tự đọc object bằng tài khoản dịch vụ (ADC: Cloud Run / gcloud ở máy dev) rồi trả cho chủ khoá.
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+// Audio bài nghe của khoá học riêng nằm trên Supabase Storage (bucket private, không public).
+// Backend đọc object bằng khoá bí mật của project (chỉ ở server) rồi trả cho chủ khoá.
 const { Readable } = require("node:stream");
-const { GoogleAuth } = require("google-auth-library");
 
-const BUCKET = process.env.COURSE_AUDIO_BUCKET || "flash-card-499907-course-audio";
+const BUCKET = process.env.COURSE_AUDIO_BUCKET || "course-audio";
 
-let auth;
-
-// Máy dev: dùng thẳng file ADC của gcloud (tự dò có thể treo khi thử metadata server).
-// Cloud Run không có file này nên dùng tài khoản dịch vụ qua metadata server như bình thường.
-function fileAdcGcloud() {
-  const thuMuc = process.env.APPDATA
-    ? path.join(process.env.APPDATA, "gcloud")
-    : path.join(os.homedir(), ".config", "gcloud");
-  const duongDan = path.join(thuMuc, "application_default_credentials.json");
-  return !process.env.GOOGLE_APPLICATION_CREDENTIALS && fs.existsSync(duongDan) ? duongDan : undefined;
+function cauHinh() {
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/+$/, "");
+  const key = process.env.SUPABASE_SECRET_KEY?.trim();
+  if (!url || !key) {
+    throw new Error("Thieu SUPABASE_URL hoac SUPABASE_SECRET_KEY de doc audio");
+  }
+  return { url, key };
 }
 
-function layAuth() {
-  if (!auth) {
-    auth = new GoogleAuth({
-      keyFile: fileAdcGcloud(),
-      scopes: ["https://www.googleapis.com/auth/devstorage.read_only"],
-    });
-  }
-  return auth;
+// Khoá service_role cũ là JWT (gửi kèm Authorization); khoá sb_secret_ mới chỉ gửi qua apikey
+function headerXacThuc(key) {
+  return key.startsWith("eyJ") ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
+}
+
+function duongDanObject(objectName) {
+  return objectName.split("/").map(encodeURIComponent).join("/");
 }
 
 /** Tên object của một câu: <slug khoá>/<audio_path>, vd khoa-hoc-48-ngay/bai-29/audio/mp31.mp3 */
@@ -40,12 +32,16 @@ function tenObjectAudio(courseSlug, audioPath) {
  * @returns {Promise<{ stream: Readable, contentType: string, size: number | null } | null>}
  */
 async function moAudio(objectName) {
-  const token = await layAuth().getAccessToken();
-  const url = `https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/${encodeURIComponent(objectName)}?alt=media`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (response.status === 404) return null;
+  const { url, key } = cauHinh();
+  const response = await fetch(
+    `${url}/storage/v1/object/authenticated/${BUCKET}/${duongDanObject(objectName)}`,
+    { headers: headerXacThuc(key) }
+  );
   if (!response.ok) {
-    throw new Error(`Cloud Storage trả ${response.status} khi đọc ${objectName}`);
+    const noiDung = await response.text();
+    // Supabase Storage báo thiếu object bằng 400 kèm "not_found" (bản mới trả 404)
+    if (response.status === 404 || /not.?found/i.test(noiDung)) return null;
+    throw new Error(`Supabase Storage trả ${response.status} khi đọc ${objectName}`);
   }
   const size = Number(response.headers.get("content-length")) || null;
   return {
@@ -55,4 +51,4 @@ async function moAudio(objectName) {
   };
 }
 
-module.exports = { BUCKET, moAudio, tenObjectAudio };
+module.exports = { BUCKET, cauHinh, headerXacThuc, duongDanObject, moAudio, tenObjectAudio };

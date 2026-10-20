@@ -49,8 +49,6 @@ async function main() {
     let changes = planUpdates(source, rows);
     console.log(`Có câu gốc: ${source.length}. Cần bổ sung: ${changes.length}. Không có câu gốc: 8.`);
     if (!process.argv.includes("--apply") || !changes.length) return;
-    const [[column]] = await connection.query("SELECT COUNT(*) AS total FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cards' AND COLUMN_NAME = 'example_translation'");
-    if (!column.total) await connection.query("ALTER TABLE cards ADD COLUMN example_translation TEXT NULL AFTER example_sentence");
     await connection.beginTransaction();
     const [locked] = await connection.query("SELECT * FROM cards ORDER BY id FOR UPDATE");
     changes = planUpdates(source, locked);

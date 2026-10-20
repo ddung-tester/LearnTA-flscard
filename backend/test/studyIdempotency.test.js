@@ -11,7 +11,8 @@ test("request keys accept legacy omission but reject malformed supplied keys", (
 });
 
 test("new inserts return their generated id without a replay query", async () => {
-  const result = await insertOnce({ query() { throw new Error("unexpected query"); } }, "study_sessions", 7, "key", "hash", async () => [{ insertId: 12 }]);
+  const connection = { query: async (sql) => { if (!/^SAVEPOINT /.test(sql)) throw new Error("unexpected query"); } };
+  const result = await insertOnce(connection, "study_sessions", 7, "key", "hash", async () => [{ insertId: 12 }]);
   assert.deepEqual(result, { id: 12, replayed: false });
 });
 
@@ -20,6 +21,7 @@ test("duplicate replay is scoped to both user and key and checks the payload", a
   const insert = async () => { throw duplicate; };
   const fingerprint = requestFingerprint([10, "quiz", 1]);
   const connection = { query: async (sql, params) => {
+    if (/SAVEPOINT/.test(sql)) return [[]];
     assert.match(sql, /WHERE user_id = \? AND client_request_id = \?/);
     assert.deepEqual(params, [7, "key"]);
     return [[{ id: 12, request_hash: fingerprint }]];

@@ -121,7 +121,7 @@ test("explainQuestion grades from the DB, asks AI once and caches the result", a
   assert.equal(input.isCorrect, false);
   assert.equal(input.learnerAnswer, "B");
   assert.deepEqual(input.grammar, CAU_TRAC_NGHIEM.lesson_content.grammar);
-  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON DUPLICATE KEY UPDATE/);
+  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT \(question_id, answer_norm\)\s+DO UPDATE/);
   assert.deepEqual(calls[2].params, [5, "B", "Sai vì: are dùng cho số nhiều."]);
   assert.deepEqual(res.body, { explanation: "Sai vì: are dùng cho số nhiều.", cached: false });
 });
@@ -234,7 +234,7 @@ test("prepareQuestion asks AI once for every answer and caches only valid ones",
 
   assert.equal(soLanGoi, 1);
   assert.equal(calls[1].params[0], 5);
-  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON DUPLICATE KEY UPDATE/);
+  assert.match(calls[2].sql, /INSERT INTO course_question_explanations[\s\S]*ON CONFLICT \(question_id, answer_norm\)\s+DO UPDATE/);
   assert.deepEqual(calls[2].params, [5, "A", "Đúng rồi: số ít dùng is."]);
   assert.deepEqual(calls[3].params, [5, "B", "Sai vì: are cho số nhiều."]);
   // Trả luôn lời giải thích để client giữ sẵn, trả lời xong hiện ngay
@@ -376,7 +376,7 @@ test("answerQuestion grades on the server and stores the latest result", async (
 
   assert.deepEqual(calls[0].params, [5, 7]);
   assert.deepEqual(calls[1].params, [7, 5]);
-  assert.match(calls[2].sql, /INSERT INTO course_question_progress[\s\S]*ON DUPLICATE KEY UPDATE[\s\S]*next_review_at = VALUES/);
+  assert.match(calls[2].sql, /INSERT INTO course_question_progress[\s\S]*ON CONFLICT \(user_id, question_id\) DO UPDATE[\s\S]*next_review_at = EXCLUDED/);
   assert.deepEqual(calls[2].params, [7, 5, true, 0, null]);
   assert.deepEqual(res.body, { correct: true, mastery_level: 0, next_review_at: null });
 

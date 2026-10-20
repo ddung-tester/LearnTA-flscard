@@ -61,7 +61,7 @@ async function loadTopMistakes(db, userId) {
     `SELECT term_en, meaning_vi, mistake_count
      FROM mistake_words
      WHERE user_id = ? AND status = 'active'
-     ORDER BY mistake_count DESC, last_wrong_at DESC
+     ORDER BY mistake_count DESC, last_wrong_at DESC NULLS LAST
      LIMIT ?`,
     [userId, MAX_MISTAKES]
   );

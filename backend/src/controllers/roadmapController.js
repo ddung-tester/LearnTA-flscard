@@ -7,7 +7,7 @@ const { currentUserId } = require("./deckController");
 
 const SLUG_HOP_LE = /^[a-z0-9-]{1,80}$/;
 // Bộ của lộ trình là bộ mẫu (user_id NULL): khách và tài khoản đều đọc được (deckController.canReadDeck)
-const BO_TU_DOC_DUOC = "(d.user_id IS NULL OR d.user_id <=> ?)";
+const BO_TU_DOC_DUOC = "(d.user_id IS NULL OR d.user_id IS NOT DISTINCT FROM ?)";
 
 function soNguyen(value) {
   return Number(value || 0);
@@ -42,8 +42,8 @@ async function listRoadmaps(req, res) {
        r.level_label,
        COUNT(DISTINCT d.id) AS deck_count,
        COUNT(c.id) AS word_count,
-       COALESCE(SUM(cp.id IS NOT NULL), 0) AS learned_count,
-       COALESCE(SUM(cp.mastery_level >= 5), 0) AS mastered_count
+       COUNT(cp.id) AS learned_count,
+       COUNT(*) FILTER (WHERE cp.mastery_level >= 5) AS mastered_count
      FROM roadmaps r
      LEFT JOIN roadmap_decks rd ON rd.roadmap_id = r.id
      LEFT JOIN decks d ON d.id = rd.deck_id AND ${BO_TU_DOC_DUOC}
@@ -88,9 +88,9 @@ async function getRoadmap(req, res) {
        d.title,
        d.description,
        COUNT(c.id) AS word_count,
-       COALESCE(SUM(cp.id IS NOT NULL), 0) AS learned_count,
-       COALESCE(SUM(cp.mastery_level >= 5), 0) AS mastered_count,
-       COALESCE(SUM(cp.next_review_at <= CURRENT_TIMESTAMP), 0) AS due_count
+       COUNT(cp.id) AS learned_count,
+       COUNT(*) FILTER (WHERE cp.mastery_level >= 5) AS mastered_count,
+       COUNT(*) FILTER (WHERE cp.next_review_at <= CURRENT_TIMESTAMP) AS due_count
      FROM roadmap_decks rd
      JOIN decks d ON d.id = rd.deck_id
      LEFT JOIN cards c ON c.deck_id = d.id
