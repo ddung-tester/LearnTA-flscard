@@ -23,6 +23,15 @@ function fakePool(ketQuaTheoLan) {
     calls.push({ sql, params });
     return [ketQuaTheoLan[calls.length - 1] ?? []];
   };
+  // Transaction: lệnh trong kết nối ghi chung vào calls (BEGIN/COMMIT không ghi)
+  pool.getConnection = async () => ({
+    query: (sql, params) => pool.query(sql, params),
+    execute: (sql, params) => pool.query(sql, params),
+    beginTransaction: async () => {},
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  });
   return calls;
 }
 

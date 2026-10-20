@@ -286,24 +286,38 @@ async function answerQuestion(req, res) {
   const { questionId, question, answerNorm } = await docCauTraLoi(req);
   const correct = laTraLoiDung(question, answerNorm);
 
-  const [hienTai] = await pool.query(
-    `SELECT mastery_level, next_review_at
-     FROM course_question_progress
-     WHERE user_id = ? AND question_id = ?
-     LIMIT 1`,
-    [req.user.id, questionId]
-  );
-  const lich = lichOnCauHoi(hienTai[0], correct);
+  // Đọc rồi ghi trong một transaction, khoá dòng tiến độ (FOR UPDATE): hai lần trả lời cùng một câu
+  // gần như cùng lúc (2 tab, hàng chờ gửi lại) được tính cấp lần lượt, không ghi đè nhau
+  const connection = await pool.getConnection();
+  let lich;
+  try {
+    await connection.beginTransaction();
+    const [hienTai] = await connection.query(
+      `SELECT mastery_level, next_review_at
+       FROM course_question_progress
+       WHERE user_id = ? AND question_id = ?
+       LIMIT 1
+       FOR UPDATE`,
+      [req.user.id, questionId]
+    );
+    lich = lichOnCauHoi(hienTai[0], correct);
 
-  await pool.query(
-    `INSERT INTO course_question_progress (user_id, question_id, is_correct, mastery_level, next_review_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT (user_id, question_id) DO UPDATE SET
-       is_correct = EXCLUDED.is_correct,
-       mastery_level = EXCLUDED.mastery_level,
-       next_review_at = EXCLUDED.next_review_at`,
-    [req.user.id, questionId, correct, lich.level, lich.nextReviewAt]
-  );
+    await connection.query(
+      `INSERT INTO course_question_progress (user_id, question_id, is_correct, mastery_level, next_review_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, question_id) DO UPDATE SET
+         is_correct = EXCLUDED.is_correct,
+         mastery_level = EXCLUDED.mastery_level,
+         next_review_at = EXCLUDED.next_review_at`,
+      [req.user.id, questionId, correct, lich.level, lich.nextReviewAt]
+    );
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    throw error;
+  } finally {
+    connection.release();
+  }
   res.json({ correct, mastery_level: lich.level, next_review_at: lich.nextReviewAt });
 }
 
