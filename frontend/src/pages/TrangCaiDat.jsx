@@ -1,5 +1,4 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { getUserSettings, updateUserSettings } from "../services/userApi";
 import { getUserStats } from "../services/userApi";
 import { useToast } from "../contexts/ToastContext";
 import { datGiaoDien, layGiaoDien, theoDoiGiaoDien } from "../utils/giaoDien";
@@ -71,41 +70,16 @@ function GiaoDienVaAmThanh() {
 }
 
 function TrangCaiDat() {
-  const [settings, setSettings] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    Promise.all([getUserSettings(), getUserStats()])
-      .then(([s, st]) => {
-        setSettings(s);
-        setStats(st);
-      })
+    getUserStats()
+      .then((st) => setStats(st))
       .catch(() => toast.error("Không tải được cài đặt"))
       .finally(() => setLoading(false));
   }, []);
-
-
-
-  async function handleToggle(field, value) {
-    if (saving) return;
-    const prev = settings;
-    // Optimistic update
-    setSettings((s) => ({ ...s, [field]: value }));
-    setSaving(true);
-    try {
-      const updated = await updateUserSettings({ [field]: value });
-      setSettings(updated);
-      toast.success("Đã lưu cài đặt");
-    } catch {
-      setSettings(prev);
-      toast.error("Không lưu được, thử lại nhé!");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -130,8 +104,6 @@ function TrangCaiDat() {
           <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">Cài đặt</h2>
         </div>
       </div>
-
-
 
       <div className="max-w-xl space-y-4">
 
@@ -166,35 +138,6 @@ function TrangCaiDat() {
 
         <GiaoDienVaAmThanh />
 
-        {/* Email reminders */}
-        <section className="rounded-2xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] p-5">
-          <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-[var(--mau-chu-phu)]">
-            Thông báo qua email
-          </h3>
-
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-semibold text-[var(--mau-chu)]">
-                📧 Nhắc nhở học tập hàng ngày
-              </p>
-              <p className="mt-1 text-sm text-[var(--mau-chu-phu)]">
-                Nếu bạn chưa học vào buổi tối, LearnTA sẽ gửi email nhắc nhở lúc{" "}
-                <strong>20:00</strong> để giúp bạn giữ streak.
-              </p>
-            </div>
-
-            <CongTac
-              nhan="Nhắc nhở học tập qua email"
-              bat={settings?.email_reminders ?? true}
-              disabled={saving}
-              onDoi={(bat) => handleToggle("email_reminders", bat)}
-            />
-          </div>
-
-          <p className="mt-3 text-xs text-[var(--mau-chu-mo)]">
-            💡 Email chỉ được gửi khi bạn chưa học trong ngày. Không bao giờ spam.
-          </p>
-        </section>
 
         <p className="px-1 text-xs text-[var(--mau-chu-mo)]">
           Hình minh hoạ từ vựng:{" "}
