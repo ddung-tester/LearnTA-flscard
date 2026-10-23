@@ -51,3 +51,30 @@ test("translateExample returns a saved translation, or asks AI once and saves it
   await assert.rejects(translateExample({ params: { cardId: "1" }, user: { id: 7 } }, res), (e) => e.statusCode >= 400);
   assert.equal(soLanGoiAI, 1);
 });
+
+test("updateCard translates a new example sentence in the background so the button only reveals it", async () => {
+  const aiService = require("../src/services/aiService");
+  const card = { id: 1, deck_id: 10, term_en: "sister", meaning_vi: "chị gái", example_sentence: "My sister sings.", example_translation: null };
+  pool.query = async sql => [[sql.includes("FROM decks d") ? { id: 10, user_id: 7 } : card]];
+  const writes = [];
+  pool.execute = async (sql, values) => { writes.push({ sql, values }); return [{ affectedRows: 1 }]; };
+  let soLanGoiAI = 0;
+  aiService.translateExampleSentence = async () => { soLanGoiAI += 1; return "Chị tôi hát."; };
+  const cu = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test";
+  try {
+    await updateCard({ params: { cardId: "1" }, user: { id: 7 }, body: { term_en: "sister", meaning_vi: "chị gái", example_sentence: "My sister sings." } }, { json() {} });
+    await new Promise((r) => setImmediate(r));
+    assert.equal(soLanGoiAI, 1);
+    const luu = writes.find((w) => /SET example_translation = \?/.test(w.sql));
+    assert.deepEqual(luu.values, ["Chị tôi hát.", 1, "My sister sings."]);
+
+    // Đã có bản dịch thì không gọi AI nữa
+    card.example_translation = "Chị tôi hát.";
+    await updateCard({ params: { cardId: "1" }, user: { id: 7 }, body: { term_en: "sister", meaning_vi: "chị gái", note: "x" } }, { json() {} });
+    await new Promise((r) => setImmediate(r));
+    assert.equal(soLanGoiAI, 1);
+  } finally {
+    if (cu === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = cu;
+  }
+});

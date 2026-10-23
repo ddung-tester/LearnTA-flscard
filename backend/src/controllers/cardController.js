@@ -39,6 +39,29 @@ async function fillTenseExamplesBackground(cardId, termEn, meaningVi, partOfSpee
   }
 }
 
+// Dịch sẵn câu ví dụ ngầm (background) để nút "Xem tiếng Việt" chỉ việc hiện ra.
+// Chạy lần lượt từng thẻ (nhập 500 từ không bắn 500 lượt AI cùng lúc); lỗi thì để nút tự dịch khi bấm.
+async function fillExampleTranslationsBackground(cards) {
+  if (!process.env.GEMINI_API_KEY) return;
+  for (const card of cards) {
+    if (!card?.example_sentence || card.example_translation) continue;
+    try {
+      const banDich = await aiService.translateExampleSentence({
+        sentence: card.example_sentence,
+        termEn: card.term_en,
+        meaningVi: card.meaning_vi,
+      });
+      // Câu ví dụ vừa bị sửa trong lúc AI dịch thì không lưu bản dịch của câu cũ
+      await pool.execute(
+        "UPDATE cards SET example_translation = ? WHERE id = ? AND example_translation IS NULL AND example_sentence = ?",
+        [banDich, card.id, card.example_sentence]
+      );
+    } catch (err) {
+      console.warn(`[AI] fillExampleTranslation failed for card ${card.id}:`, err.message);
+    }
+  }
+}
+
 function normalizeCard(row) {
   if (!row) return null;
 
@@ -317,6 +340,7 @@ async function createCard(req, res) {
     if (!card.tense_examples) {
       fillTenseExamplesBackground(card.id, card.term_en, card.meaning_vi, card.part_of_speech);
     }
+    fillExampleTranslationsBackground([card]);
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -402,6 +426,7 @@ async function importCards(req, res) {
         fillTenseExamplesBackground(c.id, c.term_en, c.meaning_vi, c.part_of_speech);
       }
     }
+    fillExampleTranslationsBackground(normalizedCards);
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -518,6 +543,7 @@ async function updateCard(req, res) {
 
   const card = await findCardById(cardId, pool, { userId: currentUserId(req) });
   res.json(card);
+  fillExampleTranslationsBackground([card]);
 }
 
 async function toggleFavorite(req, res) {
