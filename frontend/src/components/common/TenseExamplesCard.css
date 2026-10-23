@@ -175,14 +175,6 @@
   transform: scale(1.05);
 }
 
-.tec-item__translation {
-  font-size: 0.7rem;
-  font-style: italic;
-  color: var(--mau-chu-phu);
-  line-height: 1.4;
-  margin: 0;
-}
-
 /* Nút Tiếp tục — cố định dưới giữa */
 .tec-continue-bar {
   position: fixed;

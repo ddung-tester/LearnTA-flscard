@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
+import NutDichCau from "../components/common/NutDichCau";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
 import TenseExamplesCard from "../components/common/TenseExamplesCard";
@@ -1091,17 +1092,22 @@ function TrangFlashcard() {
                       </span>
                     </p>
                   )}
-                  {daLat && theHienTai?.example_sentence && theHienTai?.example_translation && (
-                    <p className="mt-2 max-w-md break-words text-center text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">
-                      {theHienTai.example_translation}
-                    </p>
-                  )}
                 </div>
               </m.div>
             </div>
           </TheKeoDuoc>
         </AnimatePresence>
       </div>
+
+      {/* Nằm ngoài thẻ lật 3D: đặt trong thẻ thì cú bấm rơi vào thẻ và lật thẻ lại */}
+      {daLat && theHienTai?.example_sentence && (
+        <NutDichCau
+          key={`dich-${theHienTai.id}`}
+          banDich={theHienTai.example_translation}
+          cardId={theHienTai.id}
+          className="ui-dich-cau--giua mx-auto mb-2 max-w-md break-words"
+        />
+      )}
 
       <div className="ui-flashcard-nav grid grid-cols-2 gap-3 pb-1">
         <button

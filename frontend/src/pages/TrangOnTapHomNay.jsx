@@ -23,6 +23,7 @@ import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
+import NutDichCau from "../components/common/NutDichCau";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import ThanhTiepTuc from "../components/common/ThanhTiepTuc";
 import "./TrangOnTapHomNay.css";
@@ -295,7 +296,7 @@ function KetQuaDungOnTap({ entry, onTiepTuc }) {
     <div className="review-card__result ui-feedback-pop">
       <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
       {entry.example && <p className="review-card__example" lang="en">{entry.example}</p>}
-      {entry.example && entry.exampleTranslation && <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>}
+      {entry.example && <NutDichCau key={`dich-${entry.id}`} banDich={entry.exampleTranslation} cardId={entry.id} className="mt-2" />}
       <ThanhTiepTuc dung onTiepTuc={onTiepTuc}>
         <span className="ui-thanh-tiep-tuc__nhan">Chính xác!</span>
         <span className="ui-thanh-tiep-tuc__dap-an">
@@ -520,8 +521,8 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             {entry.example && (
               <p className="review-card__example" lang="en">{entry.example}</p>
             )}
-            {entry.example && entry.exampleTranslation && (
-              <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>
+            {entry.example && (
+              <NutDichCau key={`dich-${entry.id}`} banDich={entry.exampleTranslation} cardId={entry.id} className="mt-2" />
             )}
           </div>
         )}

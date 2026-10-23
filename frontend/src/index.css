@@ -9341,3 +9341,61 @@ a.dash-lich__o:focus-visible {
     gap: 0.35rem;
   }
 }
+
+/* Nút "Xem tiếng Việt" dưới câu ví dụ (components/common/NutDichCau.jsx): bản dịch ẩn sẵn, bấm mới hiện */
+.ui-dich-cau {
+  margin-top: 0.35rem;
+}
+
+.ui-dich-cau--giua {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ui-dich-cau__nut {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px dashed var(--mau-vien-manh);
+  background: transparent;
+  padding: 0.15rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--mau-chu-phu);
+  cursor: pointer;
+}
+
+.ui-dich-cau__nut:hover:not(:disabled),
+.ui-dich-cau__nut[aria-expanded="true"] {
+  border-color: var(--mau-chinh);
+  color: var(--mau-chinh);
+}
+
+.ui-dich-cau__nut:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ui-dich-cau__ban-dich {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  font-style: normal;
+  line-height: 1.6;
+  color: var(--mau-chu-phu);
+}
+
+.ui-dich-cau__loi {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--mau-chu-phu);
+}
+
+@media (pointer: coarse) {
+  .ui-dich-cau__nut {
+    min-height: 36px;
+    padding-inline: 0.9rem;
+  }
+}

@@ -1,10 +1,11 @@
+import NutDichCau from "./NutDichCau";
 import TenseExamplesCard from "./TenseExamplesCard";
 import ThanhTiepTuc from "./ThanhTiepTuc";
 import useManRong from "../../hooks/useManRong";
 import useTTS from "../../hooks/useTTS";
 import { tachCauMau } from "../../utils/phienHoc";
 
-function CauMau({ cau, tu, banDich }) {
+function CauMau({ cau, tu, banDich, cardId }) {
   const { speak, isPlaying } = useTTS();
   if (!cau) return null;
 
@@ -39,9 +40,7 @@ function CauMau({ cau, tu, banDich }) {
           </svg>
         </button>
       </div>
-      {banDich && (
-        <p lang="vi" className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]">{banDich}</p>
-      )}
+      <NutDichCau key={cau} banDich={banDich} cardId={cardId} className="mt-2" />
     </figure>
   );
 }
@@ -59,7 +58,7 @@ export default function PhanHoiDung({ the, termEn, meaningVi, onTiepTuc, classNa
       <div className="mb-3 text-center">
         <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
       </div>
-      <CauMau cau={the?.example_sentence} tu={termEn} banDich={the?.example_translation} />
+      <CauMau cau={the?.example_sentence} tu={termEn} banDich={the?.example_translation} cardId={the?.id} />
       <TenseExamplesCard
         card={the}
         termEn={termEn}

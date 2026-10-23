@@ -2,6 +2,7 @@ import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "reac
 import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, m } from "motion/react";
 import EmptyState from "../components/common/EmptyState";
+import NutDichCau from "../components/common/NutDichCau";
 import AnimatedModal from "../components/common/AnimatedModal";
 import { useToast } from "../contexts/ToastContext";
 import {
@@ -217,8 +218,8 @@ function MistakeCard({ entry, vuaOn, onMarkReviewed, onRemove }) {
       {entry.example && (
         <p className="tu-sai-card__example" lang="en">{entry.example}</p>
       )}
-      {entry.example && entry.exampleTranslation && (
-        <p className="mt-2 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{entry.exampleTranslation}</p>
+      {entry.example && (
+        <NutDichCau banDich={entry.exampleTranslation} cardId={entry.id} className="mt-2" />
       )}
 
       <div className="tu-sai-card__meta">

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { phatAm } from "../utils/amThanh";
 import { em, taoVongAn } from "./reward/vongAn";
+import NutDichCau from "./common/NutDichCau";
 import "./RewardMagicOverlay.css";
 
 /*
@@ -423,7 +424,7 @@ function RewardMagicOverlay({
                         <span className="reward-magic__tense-badge">{TENSE_LABEL[item.tense] || item.tense}</span>
                         {item.formula && <span className="reward-magic__tense-formula">{item.formula}</span>}
                         <p className="reward-magic__tense-sentence">{item.sentence}</p>
-                        {item.translation && <p className="reward-magic__tense-translation">{item.translation}</p>}
+                        <NutDichCau banDich={item.translation} />
                       </m.div>
                     ))}
                   </div>

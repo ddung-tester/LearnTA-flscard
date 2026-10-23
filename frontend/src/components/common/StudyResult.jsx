@@ -29,6 +29,7 @@ import {
 } from "../../utils/srsReview";
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 import { phatAm } from "../../utils/amThanh";
+import NutDichCau from "./NutDichCau";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -74,8 +75,8 @@ function DanhSachTuKetQua({ danhSach, dung, levelTruoc }) {
             {card.example_sentence && (
               <p className="ui-word-example" lang="en">{card.example_sentence}</p>
             )}
-            {card.example_sentence && card.example_translation && (
-              <p className="mt-1 text-sm leading-relaxed text-[var(--mau-chu-phu)]" lang="vi">{card.example_translation}</p>
+            {card.example_sentence && (
+              <NutDichCau banDich={card.example_translation} cardId={card.id} />
             )}
           </li>
         );

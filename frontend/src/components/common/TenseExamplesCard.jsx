@@ -4,6 +4,7 @@ import { AnimatePresence, m } from "motion/react";
 import "./TenseExamplesCard.css";
 import { getTenseExamples, TENSE_META, getWordType } from "../../data/tenseExamples";
 import useTTS from "../../hooks/useTTS";
+import NutDichCau from "./NutDichCau";
 
 const SPRING = { type: "spring", stiffness: 280, damping: 24, mass: 0.85 };
 
@@ -92,9 +93,7 @@ function TenseItem({ item, side, delay = 0, onSpeak, isSpeaking }) {
         </button>
       </div>
 
-      {item.translation && (
-        <p className="tec-item__translation">{item.translation}</p>
-      )}
+      <NutDichCau banDich={item.translation} />
     </m.div>
   );
 }
@@ -328,11 +327,7 @@ export default function TenseExamplesCard({
                   </svg>
                 </button>
               </div>
-              {item.translation && (
-                <p className="mt-1 text-xs sm:text-[13px] text-[var(--mau-chu-phu)] italic leading-normal">
-                  {item.translation}
-                </p>
-              )}
+              <NutDichCau banDich={item.translation} />
             </div>
           );
         })}

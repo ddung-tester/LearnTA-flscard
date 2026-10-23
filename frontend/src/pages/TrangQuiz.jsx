@@ -667,7 +667,7 @@ function TrangQuiz({ loai }) {
           }
         />
 
-        {laNguCanh && cauHienTai.the?.id && <NutDichCau key={`dich-${cauHienTai.id}`} the={cauHienTai.the} />}
+        {laNguCanh && cauHienTai.the?.id && <NutDichCau key={`dich-${cauHienTai.id}`} banDich={cauHienTai.the.example_translation} cardId={cauHienTai.the.id} className="ui-dich-cau--giua mb-6" />}
 
         <DanhSachDapAn
           key={`answers-${cauHienTai.id}`}

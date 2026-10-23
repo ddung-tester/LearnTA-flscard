@@ -287,9 +287,13 @@
   line-height: 1.4;
 }
 
-.reward-magic__tense-translation {
-  margin: 0;
+/* Nút "Xem tiếng Việt" (NutDichCau): giữ màu mực trên nền giấy cố định của màn thưởng */
+.reward-magic__tense-item .ui-dich-cau__nut,
+.reward-magic__tense-item .ui-dich-cau__ban-dich {
   color: #5c381f;
+}
+
+.reward-magic__tense-item .ui-dich-cau__ban-dich {
   font-size: 0.82rem;
   font-style: italic;
   line-height: 1.35;
