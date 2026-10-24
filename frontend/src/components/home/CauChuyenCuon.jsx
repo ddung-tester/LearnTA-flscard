@@ -77,32 +77,26 @@ function CauChuyenCuon({ startPath, startState }) {
             tl2.from(moc, { scale: 0, opacity: 0, transformOrigin: "50% 100%", duration: 0.08, ease: "back.out(3)" }, 0.1 + i * 0.19);
           });
 
-          // 3. 48 buổi: đóng dấu lần lượt
+          // 3. 48 buổi: đóng dấu lần lượt.
+          // 48 tween GSAP màu khi khởi tạo đọc style từng ô xen kẽ ghi, ép tính layout liên tục — khựng cả giây
+          // trên điện thoại, ~400 ms lúc mở trang chủ trên laptop. Thay bằng: cuộn qua mốc của ô nào thì ô đó đóng dấu
+          // (lớp cc-o--dong + CSS transition), cuộn ngược thì bỏ — vẫn theo tay cuộn như bản scrub.
+          // Máy tính vẫn ghim chương (timeline rỗng chỉ để giữ pin + scrub).
           const luoi = gocRef.current.querySelector(".cc-luoi");
+          const cacO = gsap.utils.toArray(".cc-3 .cc-o");
+          luoi.classList.add("cc-luoi--cho");
+          // Cùng nhịp với stagger cũ (mỗi ô 0.02, dài 0.1, tổng 1.04): ô i đóng dấu ở giữa đoạn của nó
+          const dongDau = ({ progress }) => {
+            cacO.forEach((o, i) => o.classList.toggle("cc-o--dong", progress >= (i * 0.02 + 0.05) / 1.04));
+          };
           if (may) {
-            chuong(".cc-3").from(".cc-3 .cc-o", {
-              backgroundColor: "var(--mau-giay)",
-              borderColor: "var(--mau-vien-manh)",
-              color: "var(--mau-chu-phu)",
-              scale: 0.8,
-              stagger: { each: 0.02, from: "start" },
-              duration: 0.1,
-              ease: "back.out(2)",
-            });
+            chuong(".cc-3", { onUpdate: dongDau }).to({}, { duration: 1 });
           } else {
-            // Điện thoại: 48 tween GSAP màu khi khởi tạo đọc style từng ô xen kẽ ghi, ép tính layout liên tục,
-            // khựng cả giây đúng lúc cuộn tới. Thay bằng: cuộn qua mốc của ô nào thì ô đó đóng dấu
-            // (lớp cc-o--dong + CSS transition), cuộn ngược thì bỏ — vẫn theo tay cuộn như bản scrub
-            const cacO = gsap.utils.toArray(".cc-3 .cc-o");
-            luoi.classList.add("cc-luoi--cho");
             ScrollTrigger.create({
               trigger: ".cc-3",
               start: "top 75%",
               end: "bottom 60%",
-              onUpdate: ({ progress }) => {
-                // Cùng nhịp với stagger cũ (mỗi ô 0.02, dài 0.1, tổng 1.04): ô i đóng dấu ở giữa đoạn của nó
-                cacO.forEach((o, i) => o.classList.toggle("cc-o--dong", progress >= (i * 0.02 + 0.05) / 1.04));
-              },
+              onUpdate: dongDau,
             });
           }
 

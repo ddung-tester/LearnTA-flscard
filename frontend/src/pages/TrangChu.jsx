@@ -197,11 +197,22 @@ function TrangChu() {
   const [daChiaXong, setDaChiaXong] = useState(false);
   const [dangNem, setDangNem] = useState(false);
   const [dung3D] = useState(coTheDung3D);
+  // three.js (~530 KB) parse + dựng cảnh chiếm luồng chính vài trăm ms: đợi lúc rảnh sau khi chữ và xấp thẻ
+  // đã hiện, bấm được ngay; cảnh vốn hiện dần 1.4s nên vào muộn không thấy giật
+  const [moCanh3D, setMoCanh3D] = useState(false);
   // Mỗi lần ném thẻ: một cơn gió thổi đàn thẻ 3D theo hướng ném
   const [gio, setGio] = useState({ huong: 1, lan: 0 });
   // Cuộn qua màn đầu: hero 3D mờ đi và ngừng vẽ
   const manDauRef = useRef(null);
   const [quaManDau, setQuaManDau] = useState(false);
+
+  useEffect(() => {
+    if (!dung3D) return undefined;
+    const henRanh = window.requestIdleCallback ?? ((fn) => window.setTimeout(fn, 600));
+    const huyHen = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = henRanh(() => setMoCanh3D(true), { timeout: 1500 });
+    return () => huyHen(id);
+  }, [dung3D]);
 
   useEffect(() => {
     const manDau = manDauRef.current;
@@ -226,7 +237,7 @@ function TrangChu() {
 
   return (
     <main className="home-trang">
-      {dung3D && (
+      {dung3D && moCanh3D && (
         <Suspense fallback={null}>
           <CanhThe3D gio={gio} tamDung={quaManDau} />
         </Suspense>

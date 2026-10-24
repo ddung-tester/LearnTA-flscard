@@ -15,9 +15,18 @@ const daTai = new Set();
 
 // Trả về hàm import() cho lazy(): gặp file JS của bản cũ (vừa deploy) thì tải lại trang một lần.
 // Tải trước chạy nền dùng hàm gốc — lỗi ở đó không được làm tải lại trang khi người học đang học.
+// Chunk đã tải xong (tải trước lúc mở app / rê chuột / lúc rảnh): trả thenable đồng bộ để lazy() có trang ngay,
+// không treo Suspense — React 19 mỗi lần treo giữ màn chờ tối thiểu 300 ms dù import() xong ngay sau đó.
 export function dangKyTrang(duongDan, tai, taiDuLieu = null) {
-  tuyen.push({ duongDan, tai, taiDuLieu });
-  return taiTrangAnToan(tai);
+  let daCo = null;
+  const taiVaNho = () => {
+    const hua = tai();
+    hua.then((mod) => { daCo = mod; }, () => {});
+    return hua;
+  };
+  tuyen.push({ duongDan, tai: taiVaNho, taiDuLieu });
+  const taiAnToan = taiTrangAnToan(taiVaNho);
+  return () => (daCo ? { then: (xong) => xong(daCo) } : taiAnToan());
 }
 
 function taiMot(tai) {

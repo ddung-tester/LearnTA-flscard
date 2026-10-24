@@ -83,7 +83,8 @@ function BoCuc() {
   const laTrangChu = viTri.pathname === "/";
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
-  const laTrangDashboard = viTri.pathname === "/dashboard";
+  // Trang tổng quan / danh sách: rộng 72rem, thẳng hàng với header (laptop, PC). Trang đọc/làm bài giữ cột hẹp.
+  const laTrangRong = /^\/(dashboard|stats|tu-sai|decks|khoa-hoc)\/?$/.test(viTri.pathname);
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop|luyen-cau)$/.test(viTri.pathname);
@@ -385,7 +386,7 @@ function BoCuc() {
       </header>
 
       <main
-        className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}${laTrangDashboard ? " app-shell-main--dashboard" : ""}`}
+        className={`app-shell-main mx-auto px-4 sm:px-6 ${laPhienHoc ? "app-shell-main--study py-2 sm:py-3" : "py-6 sm:py-8"}${laTrangRong ? " app-shell-main--rong" : ""}`}
       >
         {/* Đổi bước trong buổi (/bai/14/ly-thuyet → /bai/14/bai-tap) vẫn là cùng một trang: không dựng lại */}
         <TrangVao key={khoaTrang(viTri.pathname)} huong={tabTruoc.huong}>

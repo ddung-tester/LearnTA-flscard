@@ -26,4 +26,14 @@ describe("taiTruocTrang", () => {
     taiTruocTheoDuongDan("/thu-lai");
     expect(tai).toHaveBeenCalledTimes(2);
   });
+
+  it("chunk đã tải trước thì lazy() nhận trang ngay, không treo Suspense", async () => {
+    const trang = { default: () => null };
+    const choLazy = dangKyTrang("/da-tai-truoc", () => Promise.resolve(trang));
+    taiTruocTheoDuongDan("/da-tai-truoc");
+    await Promise.resolve();
+    let nhan = null;
+    choLazy().then((mod) => { nhan = mod; });
+    expect(nhan).toBe(trang);
+  });
 });

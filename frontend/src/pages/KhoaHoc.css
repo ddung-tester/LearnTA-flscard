@@ -747,8 +747,9 @@
   padding: 0;
 }
 
-/* Màn vừa (màn trong Galaxy Z Fold, tablet dọc): lựa chọn ngắn xếp 2×2, cả câu nằm gọn một màn */
-@media (min-width: 600px) and (max-width: 1023px) {
+/* Màn vừa (màn trong Galaxy Z Fold, tablet dọc) và laptop / màn 1080p (cao ≤1000px): lựa chọn ngắn xếp 2×2,
+   cả câu nằm gọn một màn */
+@media (min-width: 600px) and (max-width: 1023px), (min-width: 600px) and (max-height: 1000px) {
   .kh-lua-chon--ngan {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1405,6 +1406,26 @@
   }
 }
 
+/* Trang Khoá học rộng 72rem trên laptop/PC (BoCuc.laTrangRong): lưới 48 buổi 8 cột thì ô ~135px, cao ~820px
+   → 12 cột từ 768px, 16 cột (3 hàng) từ 1024px; danh sách buổi 3 cột từ 1100px */
+@media (min-width: 768px) {
+  .kh-lich {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .kh-lich {
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .kh-ds-buoi {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .kh-buoi {
   display: flex;
   align-items: center;
@@ -1577,9 +1598,9 @@
   font-size: 0.9rem;
 }
 
-/* Điện thoại, hoặc màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690), đang làm bài:
+/* Điện thoại, hoặc màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690, laptop 1366×768), đang làm bài:
    ẩn nút chat (khi chưa mở) và mèo trang trí ở góc dưới để không che nút trả lời */
-@media (max-width: 767px), (orientation: landscape) and (max-height: 760px) and (max-width: 1279px) {
+@media (max-width: 767px), (orientation: landscape) and (max-height: 760px) {
   html.dang-lam-bai .chatbot-bubble:not(.is-open),
   html.dang-lam-bai .meo-hoc {
     display: none;
@@ -1636,9 +1657,10 @@
   }
 }
 
-/* Màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690) đang làm bài: khoảng cách dọc thu lại
-   để câu hỏi và cả 4 lựa chọn nằm trọn một màn */
-@media (orientation: landscape) and (max-height: 760px) and (max-width: 1279px) {
+/* Màn ngang đến cao 1000px (màn trong Galaxy Z Fold xoay ngang, laptop 1366×768 / 1440×900, màn 1080p) đang làm bài:
+   đầu buổi gọn như điện thoại và khoảng cách dọc thu lại để câu hỏi và cả 4 lựa chọn nằm trọn một màn.
+   Mèo / nút chat chỉ ẩn ở màn thấp (khối trên) — PC vẫn hỏi LearnBot được */
+@media (orientation: landscape) and (max-height: 1000px) {
   .kh-trang--lam-bai {
     margin-top: -1.25rem;
     row-gap: 0.75rem;
@@ -1646,5 +1668,21 @@
 
   .kh-trang--lam-bai .kh-bt {
     gap: 0.6rem;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__so,
+  .kh-trang--lam-bai .kh-dau-bai__nhan,
+  .kh-trang--lam-bai .kh-dai-buoi,
+  .kh-trang--lam-bai .kh-buoc__mo-ta {
+    display: none;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__ten {
+    font-size: 1.15rem;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__nut {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.6rem;
   }
 }

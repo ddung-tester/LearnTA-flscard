@@ -941,8 +941,9 @@ function TrangOnTapHomNay() {
         )}
       </div>
 
-      {/* Điện thoại: bộ lọc và chế độ ôn gập lại để thẻ ôn hiện ngay đầu trang; máy tính mở sẵn */}
-      <details className="review-tuy-chon" {...(manRong ? { open: true } : {})}>
+      {/* Điện thoại, laptop màn thấp (1366×768: vùng nhìn ~657px): bộ lọc và chế độ ôn gập lại để thẻ ôn hiện
+          ngay trong màn đầu; màn máy tính đủ rộng và cao mới mở sẵn */}
+      <details className="review-tuy-chon" {...(manRong && window.matchMedia("(min-height: 900px)").matches ? { open: true } : {})}>
         <summary className="review-tuy-chon__tieu-de">Bộ lọc và chế độ ôn</summary>
         <ReviewFilters
           filterMode={filterMode}

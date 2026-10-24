@@ -1632,9 +1632,9 @@ body.is-page-loading .page-transition-root {
   margin-bottom: 0;
 }
 
-/* Màn vừa gần vuông (màn trong Galaxy Z Fold 690px, tablet dọc): 4 đáp án 2×2 thay vì 4 hàng dài
-   ~640px — đỡ cuộn, mắt không phải quét cả bề ngang. Máy tính giữ một cột như cũ. */
-@media (min-width: 600px) and (max-width: 1023px) {
+/* Màn vừa gần vuông (màn trong Galaxy Z Fold 690px, tablet dọc) và laptop màn thấp (1366×768, vùng nhìn ~657px):
+   4 đáp án 2×2 thay vì 4 hàng dài — đỡ cuộn, cả câu nằm trong màn đầu. Màn máy tính đủ cao giữ một cột. */
+@media (min-width: 600px) and (max-width: 1023px), (min-width: 600px) and (max-height: 760px) {
   .ui-quiz-answer-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5457,7 +5457,8 @@ body.is-page-loading .page-transition-root {
 
 /* ── Dashboard shell width override ──────────────────────────────────── */
 
-.app-shell-main--dashboard {
+/* Dashboard, Thống kê, Bộ từ, Khoá học, Sổ từ sai: cùng bề rộng header (BoCuc.laTrangRong) */
+.app-shell-main--rong {
   max-width: 72rem;
 }
 
@@ -8268,14 +8269,15 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
 
 /* Trước/Sau + Chưa nhớ/Đã nhớ: điện thoại hai hàng; màn 600–1023px (màn trong Galaxy Z Fold, tablet dọc)
    gộp một hàng Trước | Chưa nhớ | Đã nhớ | Sau — hai ô giữa để trống khi chưa lật nên lật thẻ không xô nút,
-   và cả hàng nằm trên góc dưới màn (mèo, nút chat). Máy tính giữ hai hàng: cột thẻ bị hai bảng 6 thì ép hẹp */
+   và cả hàng nằm trên góc dưới màn (mèo, nút chat). Máy tính giữ hai hàng (cột thẻ bị hai bảng 6 thì ép hẹp),
+   trừ laptop màn thấp (1366×768, vùng nhìn ~657px): hai hàng thì Chưa nhớ/Đã nhớ rơi dưới mép màn */
 .fc-hang-nut {
   display: grid;
   flex: 0 0 auto;
   gap: clamp(0.55rem, 1.5dvh, 0.95rem);
 }
 
-@media (min-width: 600px) and (max-width: 1023px) {
+@media (min-width: 600px) and (max-width: 1023px), (min-width: 1024px) and (max-height: 760px) {
   .fc-hang-nut {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.75rem;
@@ -8299,6 +8301,11 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
   .fc-hang-nut .fc-rate-btn {
     grid-row: 1;
     padding-inline: 0.6rem;
+  }
+
+  /* Nút hẹp (~120px trên laptop): bỏ gợi ý phím (1)/(2) để chữ không gãy dòng — phím vẫn dùng được */
+  .fc-hang-nut .fc-rate-btn .fc-mat__phim {
+    display: none;
   }
 }
 
@@ -9444,6 +9451,23 @@ a.dash-lich__o:focus-visible {
 
 .review-tuy-chon[open] > .review-tuy-chon__tieu-de {
   margin-bottom: 0.5rem;
+}
+
+/* display:flex làm mất tam giác mặc định của <summary> → mũi tên riêng để biết bấm mở/gập được */
+.review-tuy-chon__tieu-de::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: -0.2rem 0 0 0.6rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 180ms var(--tuong-tac-ease);
+}
+
+.review-tuy-chon[open] > .review-tuy-chon__tieu-de::after {
+  margin-top: 0.2rem;
+  transform: rotate(-135deg);
 }
 
 /* Chữ gợi ý trong ô trả lời dùng font thường (font chữ đều làm chữ tiếng Việt giãn) */
