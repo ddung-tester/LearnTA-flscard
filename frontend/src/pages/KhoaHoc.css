@@ -747,6 +747,13 @@
   padding: 0;
 }
 
+/* Màn vừa (màn trong Galaxy Z Fold, tablet dọc): lựa chọn ngắn xếp 2×2, cả câu nằm gọn một màn */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .kh-lua-chon--ngan {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .kh-lua-chon__nut {
   display: flex;
   align-items: center;
@@ -1570,8 +1577,9 @@
   font-size: 0.9rem;
 }
 
-/* Điện thoại đang làm bài: ẩn nút chat (khi chưa mở) và mèo trang trí ở góc dưới để không che nút trả lời */
-@media (max-width: 767px) {
+/* Điện thoại, hoặc màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690), đang làm bài:
+   ẩn nút chat (khi chưa mở) và mèo trang trí ở góc dưới để không che nút trả lời */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 760px) and (max-width: 1279px) {
   html.dang-lam-bai .chatbot-bubble:not(.is-open),
   html.dang-lam-bai .meo-hoc {
     display: none;
@@ -1625,5 +1633,18 @@
 
   .kh-trang--lam-bai .kh-buoc__ten {
     white-space: nowrap;
+  }
+}
+
+/* Màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690) đang làm bài: khoảng cách dọc thu lại
+   để câu hỏi và cả 4 lựa chọn nằm trọn một màn */
+@media (orientation: landscape) and (max-height: 760px) and (max-width: 1279px) {
+  .kh-trang--lam-bai {
+    margin-top: -1.25rem;
+    row-gap: 0.75rem;
+  }
+
+  .kh-trang--lam-bai .kh-bt {
+    gap: 0.6rem;
   }
 }

@@ -285,6 +285,13 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
   );
 }
 
+// Lựa chọn ngắn (một từ, cụm ngắn) và số chẵn: màn vừa xếp 2×2 được, câu dài vẫn một cột
+const DO_DAI_LUA_CHON_NGAN = 28;
+function coLuaChonNgan(options) {
+  return options.length % 2 === 0
+    && options.every((luaChon) => String(luaChon.text ?? "").length <= DO_DAI_LUA_CHON_NGAN);
+}
+
 /**
  * BaiTapKhoaHoc — làm lần lượt từng câu của một buổi trong khoá học riêng.
  * Trả lời xong: đúng/sai + đáp án, gợi ý có sẵn, rồi AI giải thích ngay bên dưới.
@@ -664,7 +671,7 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
         </div>
 
         {laTracNghiem ? (
-          <ul className="kh-lua-chon">
+          <ul className={`kh-lua-chon${coLuaChonNgan(cau.options) ? " kh-lua-chon--ngan" : ""}`}>
             {cau.options.map((luaChon, index) => {
               const laDung = daTraLoi && luaChon.key === cau.answer_key;
               const laChonSai = daTraLoi && !daTraLoi.dung && luaChon.key === daTraLoi.traLoi;

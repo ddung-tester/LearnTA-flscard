@@ -1109,50 +1109,53 @@ function TrangFlashcard() {
         />
       )}
 
-      <div className="ui-flashcard-nav grid grid-cols-2 gap-3 pb-1">
-        <button
-          type="button"
-          onClick={() => diChuyen(-1)}
-          disabled={chiSo === 0}
-          className="ui-button ui-button--ghost w-full rounded-lg border border-[var(--mau-vien)] px-4 py-3 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          &larr; Trước
-        </button>
-        <button
-          type="button"
-          onClick={() => diChuyen(1)}
-          disabled={chiSo === danhSach.length - 1}
-          className="ui-button ui-button--ghost w-full rounded-lg border border-[var(--mau-vien)] px-4 py-3 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
-        >
-          Sau &rarr;
-        </button>
-      </div>
-
-      {/* Nút đánh giá nhớ/chưa nhớ — chỉ hiện sau khi lật thẻ */}
-      {daLat && (
-        <div className="fc-rate-row ui-content-enter">
+      {/* Màn 600–1023px (vd. màn trong Galaxy Z Fold): Trước | Chưa nhớ | Đã nhớ | Sau chung một hàng */}
+      <div className="fc-hang-nut">
+        <div className="ui-flashcard-nav grid grid-cols-2 gap-3 pb-1">
           <button
             type="button"
-            onClick={danhGiaChuaNho}
-            aria-keyshortcuts="1"
-            className="fc-rate-btn fc-rate-btn--fail"
-            id="btn-flashcard-chua-nho"
+            onClick={() => diChuyen(-1)}
+            disabled={chiSo === 0}
+            className="ui-button ui-button--ghost w-full rounded-lg border border-[var(--mau-vien)] px-4 py-3 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            <span className="fc-rate-btn__icon">✕</span>
-            <span>Chưa nhớ<span className="fc-mat__phim"> (1)</span></span>
+            &larr; Trước
           </button>
           <button
             type="button"
-            onClick={(e) => danhGiaDaNho(e.currentTarget)}
-            aria-keyshortcuts="2"
-            className="fc-rate-btn fc-rate-btn--pass"
-            id="btn-flashcard-da-nho"
+            onClick={() => diChuyen(1)}
+            disabled={chiSo === danhSach.length - 1}
+            className="ui-button ui-button--ghost w-full rounded-lg border border-[var(--mau-vien)] px-4 py-3 text-sm text-[var(--mau-chu-phu)] hover:text-[var(--mau-chu)] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--mau-nen)] transition-colors"
           >
-            <span className="fc-rate-btn__icon">✓</span>
-            <span>Đã nhớ<span className="fc-mat__phim"> (2)</span></span>
+            Sau &rarr;
           </button>
         </div>
-      )}
+
+        {/* Nút đánh giá nhớ/chưa nhớ — chỉ hiện sau khi lật thẻ */}
+        {daLat && (
+          <div className="fc-rate-row ui-content-enter">
+            <button
+              type="button"
+              onClick={danhGiaChuaNho}
+              aria-keyshortcuts="1"
+              className="fc-rate-btn fc-rate-btn--fail"
+              id="btn-flashcard-chua-nho"
+            >
+              <span className="fc-rate-btn__icon">✕</span>
+              <span>Chưa nhớ<span className="fc-mat__phim"> (1)</span></span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => danhGiaDaNho(e.currentTarget)}
+              aria-keyshortcuts="2"
+              className="fc-rate-btn fc-rate-btn--pass"
+              id="btn-flashcard-da-nho"
+            >
+              <span className="fc-rate-btn__icon">✓</span>
+              <span>Đã nhớ<span className="fc-mat__phim"> (2)</span></span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {daLat && (
         <div className="mt-5 pb-6">

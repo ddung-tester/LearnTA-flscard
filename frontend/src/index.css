@@ -235,6 +235,15 @@ html {
   }
 }
 
+/* Điện thoại / màn trong Galaxy Z Fold: nút chat (góc phải) và mèo (góc trái) nổi ở đáy màn.
+   Trang cuộn thường chừa đáy đủ cao để phần cuối trang (vd. "Trang sau" của sổ lý thuyết) cuộn lên khỏi hai góc đó.
+   Trang học (--study) kín màn, xử lý riêng. */
+@media (max-width: 1023px) {
+  .app-shell-main:not(.app-shell-main--study) {
+    padding-bottom: 6.5rem;
+  }
+}
+
 /* Màn ngang thấp (màn trong Galaxy Z Fold xoay ngang ~829×690, điện thoại xoay ngang): trang học
    kín chiều cao nên hàng nút Trước/Sau nằm sát đáy, mèo (góc trái) và nút chat (góc phải) che nút.
    Chừa hai bên đủ cho hai phần tử nổi đó. */
@@ -1621,6 +1630,19 @@ body.is-page-loading .page-transition-root {
 
 .ui-quiz-answer-list.space-y-3> :not(:last-child) {
   margin-bottom: 0;
+}
+
+/* Màn vừa gần vuông (màn trong Galaxy Z Fold 690px, tablet dọc): 4 đáp án 2×2 thay vì 4 hàng dài
+   ~640px — đỡ cuộn, mắt không phải quét cả bề ngang. Máy tính giữ một cột như cũ. */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .ui-quiz-answer-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Ô đáp án cao hơn: còn chỗ dọc khi xếp 2×2, ngón cái dễ chạm */
+  .ui-quiz-answer-list .ui-reading-card {
+    min-height: clamp(3.35rem, 9dvh, 5rem);
+  }
 }
 
 .ui-quiz-answer-list .ui-reading-card {
@@ -7404,6 +7426,15 @@ body.has-video-background--app .app-shell-header {
   }
 }
 
+/* Màn ngang thấp (màn trong Galaxy Z Fold xoay ngang 829×690): 24rem tối thiểu đẩy hàng nút
+   xuống dưới đáy màn → thẻ co theo chiều cao màn, hàng nút luôn nằm trong màn */
+@media (min-width: 640px) and (orientation: landscape) and (max-height: 760px) {
+  .ui-flashcard-card {
+    min-height: 16rem;
+    height: calc(100dvh - 21rem);
+  }
+}
+
 .ui-flashcard-card__inner > div {
   overflow-y: auto;
   justify-content: center;
@@ -8117,7 +8148,8 @@ body.has-video-background--app .dash-deck-mini:active {
   top: 0;
   left: 0;
   right: 0;
-  height: 22rem;
+  /* Cùng chiều cao với .ui-flashcard-card (xấp giấy nằm ngay dưới thẻ) */
+  height: clamp(22rem, calc(100dvh - 31rem), 32rem);
   min-height: 20rem;
   max-height: calc(100dvh - 14rem);
   pointer-events: none;
@@ -8128,6 +8160,14 @@ body.has-video-background--app .dash-deck-mini:active {
     height: 25rem;
     min-height: 24rem;
     max-height: calc(100dvh - 13rem);
+  }
+}
+
+/* Màn ngang thấp: co cùng thẻ (xem .ui-flashcard-card cùng điều kiện) */
+@media (min-width: 640px) and (orientation: landscape) and (max-height: 760px) {
+  .fc-chong {
+    min-height: 16rem;
+    height: calc(100dvh - 21rem);
   }
 }
 
@@ -8224,6 +8264,42 @@ body.has-video-background--app .ui-flashcard-card.ui-card-interactive {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+}
+
+/* Trước/Sau + Chưa nhớ/Đã nhớ: điện thoại hai hàng; màn 600–1023px (màn trong Galaxy Z Fold, tablet dọc)
+   gộp một hàng Trước | Chưa nhớ | Đã nhớ | Sau — hai ô giữa để trống khi chưa lật nên lật thẻ không xô nút,
+   và cả hàng nằm trên góc dưới màn (mèo, nút chat). Máy tính giữ hai hàng: cột thẻ bị hai bảng 6 thì ép hẹp */
+.fc-hang-nut {
+  display: grid;
+  flex: 0 0 auto;
+  gap: clamp(0.55rem, 1.5dvh, 0.95rem);
+}
+
+@media (min-width: 600px) and (max-width: 1023px) {
+  .fc-hang-nut {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .fc-hang-nut > .ui-flashcard-nav,
+  .fc-hang-nut > .fc-rate-row {
+    display: contents;
+  }
+
+  .fc-hang-nut > .ui-flashcard-nav > :first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .fc-hang-nut > .ui-flashcard-nav > :last-child {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .fc-hang-nut .fc-rate-btn {
+    grid-row: 1;
+    padding-inline: 0.6rem;
+  }
 }
 
 .fc-rate-btn {
