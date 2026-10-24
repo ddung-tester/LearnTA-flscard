@@ -4,6 +4,7 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
 import useHienKhiCuon from "../hooks/useHienKhiCuon";
 import SoTayLatTrang from "../components/common/SoTayLatTrang";
+import LinkTroVe from "../components/common/LinkTroVe";
 import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
@@ -313,7 +314,7 @@ function TrangBaiHoc() {
   if (!bai) {
     return (
       <div className="ui-page-stack">
-        <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</Link>
+        <LinkTroVe to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; Khoá học</LinkTroVe>
         {trangThai.khongCo ? (
           <p className="kh-trong">Không có buổi học này. Quay về danh sách khoá học để chọn lại.</p>
         ) : (
@@ -365,7 +366,7 @@ function TrangBaiHoc() {
       )}
       {/* Đổi buổi nằm ở dòng trên cùng, tách khỏi phần làm bài để không lẫn với điều hướng câu hỏi */}
       <div className="kh-thanh-tren">
-        <Link to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</Link>
+        <LinkTroVe to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</LinkTroVe>
         {(bai.prev_lesson || bai.next_lesson) && (
           <nav className="kh-chuyen-buoi" aria-label="Chuyển buổi">
             {bai.prev_lesson && (

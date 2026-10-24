@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { layNoiVe } from "../utils/noiVeBuoi";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
+import LinkTroVe from "../components/common/LinkTroVe";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
 import ThanhTienDoPhien from "../components/common/ThanhTienDoPhien";
@@ -409,12 +410,12 @@ function TrangNoiTu() {
             Tắt lọc yêu thích
           </button>
         )}
-        <Link
+        <LinkTroVe
           to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
-        </Link>
+        </LinkTroVe>
       </TheTrangThaiPhien>
     );
   }
@@ -472,9 +473,9 @@ function TrangNoiTu() {
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">
-          <Link to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)} className="ui-back-btn">
+          <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
-          </Link>
+          </LinkTroVe>
           <CaiDatPhienHoc
             label="Cài đặt nối từ"
             idMocReward="moc-reward-noi-tu"

@@ -8,6 +8,7 @@ import { layDeckTheoId } from "../../services/deckApi";
 import { chuanBiAmThanh } from "../../utils/amThanh";
 import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
+import useNhoViTriCuon from "../../hooks/useNhoViTriCuon";
 
 const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
@@ -75,6 +76,7 @@ function theoDoiSRS(baoDoi) {
 }
 
 function BoCuc() {
+  useNhoViTriCuon();
   const viTri = useLocation();
   const { navigateWithLoading } = usePageTransition();
   const { dangXuat, isAuthenticated, user } = useAuth();

@@ -5,6 +5,7 @@ import StudyResult from "./StudyResult";
 
 vi.mock("../../services/api", () => ({ getStoredAuthToken: () => null }));
 vi.mock("../../services/reviewApi", () => ({}));
+vi.mock("../../contexts/PageTransitionContext", () => ({ usePageTransition: () => ({ navigateWithLoading: vi.fn() }) }));
 vi.mock("../../utils/mistakeNotebook", () => ({
   luuTuSaiDongBo: vi.fn(),
   danhDauDaOnDongBo: vi.fn(),

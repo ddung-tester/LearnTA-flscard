@@ -10,6 +10,7 @@ import {
 } from "motion/react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
+import LinkTroVe from "../components/common/LinkTroVe";
 import NutDichCau from "../components/common/NutDichCau";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
@@ -834,12 +835,12 @@ function TrangFlashcard() {
                 Tắt lọc yêu thích
               </button>
             )}
-            <Link
+            <LinkTroVe
               to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
               className="ui-button ui-button--primary ui-study-empty-card__button"
             >
               Quay lại bộ từ
-            </Link>
+            </LinkTroVe>
           </div>
         </section>
       </div>
@@ -882,12 +883,12 @@ function TrangFlashcard() {
       {soTheDaHoanTat === tongSoTheMucTieu && !loiLuuKetQua && !dangLuuKetQua && !getStoredAuthToken() && <p role="status">Kết quả được lưu trên thiết bị này. Đăng nhập trước khi học để lưu vào tài khoản.</p>}
       <div className="ui-study-toolbar">
         <div>
-          <Link
+          <LinkTroVe kieu="noi-truoc"
             to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
-          </Link>
+          </LinkTroVe>
         </div>
         <div className="ui-control-cluster">
           <StudySettingsPopover label="Cài đặt flashcard">

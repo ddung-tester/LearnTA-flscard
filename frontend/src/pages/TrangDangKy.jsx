@@ -106,7 +106,7 @@ function TrangDangKy() {
       setSuccessTick((current) => current + 1);
       setDangMoXacNhanThanhCong(false);
       redirectTimerRef.current = setTimeout(() => {
-        navigateWithLoading("/decks", { replace: true });
+        navigateWithLoading("/dashboard", { replace: true });
       }, 1500);
     } catch (googleError) {
       setError(googleError.message);

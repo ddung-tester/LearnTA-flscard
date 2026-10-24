@@ -8144,6 +8144,13 @@ body.has-video-background--app .dash-deck-mini:active {
   cursor: grabbing;
 }
 
+/* Hai mặt thẻ có overflow-y: auto (chữ dài cuộn được) nên mỗi mặt là một vùng cuộn: trình duyệt chỉ xét touch-action
+   từ chỗ chạm tới vùng cuộn gần nhất, pan-y của .fc-the-keo không tới — vuốt ngang bằng ngón tay bị trình duyệt
+   giành (pointercancel), thẻ không chuyển. Đặt pan-y ngay trên mặt thẻ: dọc vẫn cuộn chữ dài, ngang để kéo thẻ. */
+.fc-the-keo .fc-mat {
+  touch-action: pan-y;
+}
+
 .fc-chong {
   position: absolute;
   top: 0;

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { layDeckTheoId } from "../services/deckApi";
 import { taoCard, sinhCauMauAI } from "../services/cardApi";
 import { getTenseExamples, TENSE_META, getWordType } from "../data/tenseExamples";
+import LinkTroVe from "../components/common/LinkTroVe";
 
 /**
  * TrangThemTu — Form them tu vung vao bo.
@@ -90,12 +91,12 @@ function TrangThemTu() {
     return (
       <div className="text-center py-12">
         <p role="alert" className="text-[var(--mau-chu-phu)]">{loi || "Không tìm thấy bộ từ."}</p>
-        <Link
+        <LinkTroVe
           to="/decks"
           className="ui-back-link ui-back-link--quiet mt-4"
         >
           ← Quay lại
-        </Link>
+        </LinkTroVe>
       </div>
     );
   }
@@ -128,12 +129,12 @@ function TrangThemTu() {
     <div className="ui-content-enter ui-page-stack">
       <div className="ui-page-header">
         <div className="ui-page-header__title">
-          <Link
+          <LinkTroVe
             to={`/decks/${boId}`}
             className="ui-back-link ui-back-link--quiet ui-back-link--wide"
           >
             ← {bo.title}
-          </Link>
+          </LinkTroVe>
 
           <h2 className="text-2xl font-semibold text-[var(--mau-chu)]">
             Thêm từ vựng

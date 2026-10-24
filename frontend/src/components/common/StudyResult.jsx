@@ -30,6 +30,7 @@ import {
 import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 import { phatAm } from "../../utils/amThanh";
 import NutDichCau from "./NutDichCau";
+import LinkTroVe from "./LinkTroVe";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -258,12 +259,12 @@ function StudyResult({
 
   return (
     <div className="study-result">
-      <Link
+      <LinkTroVe kieu="noi-truoc"
         to={layNoiVe(deckId, `/decks/${deckId}`)}
         className="ui-back-link ui-back-link--quiet"
       >
-        &larr; {deckTitle}
-      </Link>
+        &larr; Trở về
+      </LinkTroVe>
 
       <section className="study-result__card">
         <p className="study-result__tag">
@@ -342,12 +343,12 @@ function StudyResult({
           >
             Làm lại toàn bộ
           </button>
-          <Link
+          <LinkTroVe
             to={layNoiVe(deckId, `/decks/${deckId}`)}
             className="ui-button ui-button--ghost study-result__btn"
           >
             Chọn chế độ khác
-          </Link>
+          </LinkTroVe>
         </div>
       </section>
 

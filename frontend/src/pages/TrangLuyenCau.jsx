@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { layNoiVe } from "../utils/noiVeBuoi";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
+import LinkTroVe from "../components/common/LinkTroVe";
 import { useAuth } from "../contexts/AuthContext";
 import useBoTuHoc from "../hooks/useBoTuHoc";
 import { chamCauAI } from "../services/cardApi";
@@ -233,9 +234,9 @@ function TrangLuyenCau() {
 
   const thanhTrenCung = (
     <div className="ui-study-toolbar mb-4">
-      <Link to={linkTroVe} className="ui-back-btn">
+      <LinkTroVe kieu="noi-truoc" to={linkTroVe} className="ui-back-btn">
         <span className="ui-back-btn__arrow">&larr;</span> Trở về
-      </Link>
+      </LinkTroVe>
       <span className="ui-mode-chip">{bo.title}</span>
     </div>
   );
@@ -265,7 +266,7 @@ function TrangLuyenCau() {
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">
           <button type="button" onClick={lamLai} className={NUT_CHINH}>Luyện lượt mới</button>
-          <Link to={linkTroVe} className={NUT_PHU}>Về bộ từ</Link>
+          <LinkTroVe to={linkTroVe} className={NUT_PHU}>Về bộ từ</LinkTroVe>
         </div>
       </section>
     );

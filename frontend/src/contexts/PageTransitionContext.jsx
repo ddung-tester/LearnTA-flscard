@@ -164,6 +164,8 @@ export function PageTransitionProvider({ children }) {
 
     const link = event.target.closest?.("a[href]");
     if (!link) return;
+    // Nút quay lại (LinkTroVe) tự quyết: lùi lịch sử hoặc gọi navigateWithLoading
+    if (link.hasAttribute("data-tro-ve")) return;
 
     const target = link.getAttribute("target");
     if (target && target !== "_self") return;

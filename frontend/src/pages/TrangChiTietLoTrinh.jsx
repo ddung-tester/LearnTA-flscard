@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import ThanhTienDoLoTrinh from "../components/common/ThanhTienDoLoTrinh";
+import LinkTroVe from "../components/common/LinkTroVe";
 import { layLoTrinh } from "../services/roadmapApi";
 import GachVeTay from "../components/common/GachVeTay";
 import DuongHanhTrinh from "../components/common/DuongHanhTrinh";
@@ -50,7 +51,7 @@ function TrangChiTietLoTrinh() {
   if (!loTrinh) {
     return (
       <div className="ui-page-stack">
-        <Link to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</Link>
+        <LinkTroVe to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</LinkTroVe>
         <p className="text-sm text-[var(--mau-chu-phu)]">Không tìm thấy lộ trình này.</p>
       </div>
     );
@@ -70,7 +71,7 @@ function TrangChiTietLoTrinh() {
 
   return (
     <div className="ui-page-stack">
-      <Link to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</Link>
+      <LinkTroVe to={noiQuayLai.to} className="ui-back-link ui-back-link--quiet">&larr; {noiQuayLai.nhan}</LinkTroVe>
 
       <div className="ui-page-header">
         <div className="ui-page-header__title">
