@@ -1392,7 +1392,7 @@
   padding: 0;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
   .kh-ds-buoi {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1608,5 +1608,22 @@
   .kh-dien .ui-button {
     flex: 1 1 100%;
     min-height: 3rem;
+  }
+}
+
+/* Màn rất hẹp (màn ngoài Galaxy Z Fold ~344px): mỗi bước chỉ ~98px, vòng số chiếm chỗ làm
+   "Lý thuyết" xuống dòng và chạm viền → bỏ vòng số, bước đang chọn vẫn có viền + gạch chân */
+@media (max-width: 400px) {
+  .kh-trang--lam-bai .kh-buoc__so {
+    display: none;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__nut {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__ten {
+    white-space: nowrap;
   }
 }

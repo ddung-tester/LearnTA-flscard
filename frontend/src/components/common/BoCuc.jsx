@@ -287,6 +287,7 @@ function BoCuc() {
                   onClick={() => setDangMoMenuTaiKhoan((dangMo) => !dangMo)}
                   aria-haspopup="menu"
                   aria-expanded={dangMoMenuTaiKhoan}
+                  aria-label={`Tài khoản ${user?.fullname || ""}`.trim()}
                   className="dash-nav__user-btn"
                 >
                   <span className="dash-nav__avatar" aria-hidden="true">

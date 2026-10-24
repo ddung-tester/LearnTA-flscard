@@ -235,6 +235,16 @@ html {
   }
 }
 
+/* Màn ngang thấp (màn trong Galaxy Z Fold xoay ngang ~829×690, điện thoại xoay ngang): trang học
+   kín chiều cao nên hàng nút Trước/Sau nằm sát đáy, mèo (góc trái) và nút chat (góc phải) che nút.
+   Chừa hai bên đủ cho hai phần tử nổi đó. */
+@media (orientation: landscape) and (max-height: 760px) and (max-width: 1279px) {
+  .app-shell-main--study {
+    padding-left: max(1rem, 112px);
+    padding-right: max(1rem, 112px);
+  }
+}
+
 ::selection {
   background-color: oklch(55% 0.07 55 / 0.20);
   color: var(--mau-chu);
@@ -5674,6 +5684,28 @@ body.has-video-background--app .app-shell-header {
   font-weight: 700;
 }
 
+/* Màn vừa (vd. màn trong Galaxy Z Fold 690px): logo + 4 tab + 2 nút + tên tài khoản không vừa một hàng
+   → chỉ giữ avatar (tên vẫn có trong menu tài khoản) và thu khoảng cách tab */
+@media (min-width: 561px) and (max-width: 960px) {
+  .dash-nav__user-btn > .truncate {
+    display: none;
+  }
+
+  .dash-nav__link,
+  .dash-nav__user-btn {
+    padding: 0 0.625rem;
+  }
+
+  .dash-nav__link::after {
+    left: 0.625rem;
+    right: 0.625rem;
+  }
+
+  .dash-nav__indicator {
+    --le: 0.625rem;
+  }
+}
+
 @media (max-width: 560px) {
   .dash-nav__indicator {
     --le: 0.625rem;
@@ -7341,6 +7373,11 @@ body.has-video-background--app .app-shell-header {
   overflow-wrap: break-word;
 }
 
+/* Nút "Xem tiếng Việt" thẳng hàng với câu ví dụ */
+.ui-card-list--deck-detail .ui-dich-cau {
+  margin-left: 2rem;
+}
+
 .ui-card-list--deck-detail .ui-card-status-row {
   margin-top: auto;
   padding-top: 0.45rem;
@@ -7352,7 +7389,10 @@ body.has-video-background--app .app-shell-header {
   position: relative;
   width: 100%;
   min-height: 20rem;
-  height: 22rem;
+  /* Điện thoại dài (màn ngoài Galaxy Z Fold 344×882): thẻ giãn theo chiều cao màn, không để trống nửa dưới.
+     Trừ 31rem cho đầu trang, thanh tiến độ, nút Trước/Sau, hàng Chưa nhớ/Đã nhớ hiện khi lật
+     và ~5rem đáy màn cho mèo + nút chat (không che hàng Chưa nhớ/Đã nhớ) */
+  height: clamp(22rem, calc(100dvh - 31rem), 32rem);
   max-height: calc(100dvh - 14rem);
 }
 
@@ -8696,6 +8736,25 @@ body.has-video-background--app .ui-word-row:not(.ui-word-row--editing) {
   font-weight: 500;
 }
 
+/* Thẻ từ hẹp (điện thoại, màn ngoài/màn trong Galaxy Z Fold 2 cột): chia đôi thì cột từ chỉ còn ~50px
+   sau nút loa, từ dài (neighbour, breakfast) tràn dưới nút loa → xếp nghĩa xuống dưới từ */
+.ui-word-row:not(.ui-word-row--editing) .ui-word-row__inner {
+  container-type: inline-size;
+}
+
+@container (max-width: 400px) {
+  .ui-word-row:not(.ui-word-row--editing) .ui-word-pair {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .ui-word-row:not(.ui-word-row--editing) .ui-word-card--meaning {
+    min-height: 0;
+    padding-left: 0.2rem;
+    border-left: 0;
+  }
+}
+
 @media (hover: hover) {
   body.has-video-background--app .ui-word-row--clickable:not(.ui-word-row--editing):hover {
     border-color: oklch(47% 0.1 50/ 0.45) !important;
@@ -9033,6 +9092,15 @@ a.tv-buoi__ten:focus-visible {
   gap: 0.3rem;
   list-style: none;
   padding: 0;
+}
+
+/* Màn vừa (561–819px, vd. màn trong Galaxy Z Fold): lưới trải hết bề ngang thẻ,
+   8 cột thì ô ~70px và cao ~450px → 12 cột, 4 hàng */
+@media (min-width: 561px) and (max-width: 819px) {
+  .dash-lich {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
 }
 
 .dash-lich__o {
