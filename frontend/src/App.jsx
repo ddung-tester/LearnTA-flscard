@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from "react";
-import { Navigate, Routes, Route, useLocation, useParams } from "react-router-dom";
+import { Navigate, Routes, Route, useLocation, useParams, useSearchParams } from "react-router-dom";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import BoCuc from "./components/common/BoCuc";
 import TuongTacNho from "./components/common/TuongTacNho";
@@ -65,6 +65,23 @@ const TrangOnCauHoi = lazy(dangKyTrang("/khoa-hoc/on-tap", () => import("./pages
 // Mở app: tải JS + dữ liệu của trang đang mở ngay, song song với bước xác minh đăng nhập (/auth/me),
 // thay vì đợi xác minh xong mới bắt đầu tải. Token hết hạn thì request trả 401 giống /auth/me.
 taiTruocTheoDuongDan(window.location.pathname, { kemDuLieu: true });
+
+// Mục Ôn tập là một trang: ?loai= chọn nhóm (Từ đến hạn · Câu bài tập sai · Từ hay nhầm), đổi nhóm tại chỗ
+function TrangOnTapTheoLoai() {
+  const [searchParams] = useSearchParams();
+  const loai = searchParams.get("loai");
+  if (loai === "cau") return <TrangOnCauHoi />;
+  if (loai === "nham") return <TrangTuSai />;
+  return <TrangOnTapHomNay />;
+}
+
+// Link cũ của hai nhóm ôn (/tu-sai, /khoa-hoc/on-tap) → /review?loai=..., giữ query (vd. ?deckId=)
+function ChuyenOnTapCu({ loai }) {
+  const { search } = useLocation();
+  const thamSo = new URLSearchParams(search);
+  thamSo.set("loai", loai);
+  return <Navigate to={`/review?${thamSo}`} replace />;
+}
 
 // /roadmap/:slug (link cũ) → /khoa-hoc/lo-trinh/:slug
 function ChuyenLoTrinhCu() {
@@ -142,12 +159,12 @@ function UngDung() {
           <Route path="/roadmap/:slug" element={<ChuyenLoTrinhCu />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />
-            <Route path="/tu-sai" element={<TrangTuSai />} />
-            <Route path="/review" element={<TrangOnTapHomNay />} />
+            <Route path="/tu-sai" element={<ChuyenOnTapCu loai="nham" />} />
+            <Route path="/review" element={<TrangOnTapTheoLoai />} />
             <Route path="/stats" element={<TrangThongKe />} />
             <Route path="/decks/:deckId/add-word" element={<TrangThemTu />} />
             <Route path="/cai-dat" element={<TrangCaiDat />} />
-            <Route path="/khoa-hoc/on-tap" element={<TrangOnCauHoi />} />
+            <Route path="/khoa-hoc/on-tap" element={<ChuyenOnTapCu loai="cau" />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai" element={<TrangBaiHoc />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai/:buoc" element={<TrangBaiHoc />} />
           </Route>

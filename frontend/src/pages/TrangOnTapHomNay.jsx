@@ -607,7 +607,7 @@ function CompletionScreen({ total }) {
         <Link to="/dashboard" className="review-done-btn review-done-btn--primary">
           Về Dashboard
         </Link>
-        <Link to="/tu-sai" className="review-done-btn review-done-btn--ghost">
+        <Link to="/review?loai=nham" className="review-done-btn review-done-btn--ghost">
           Sổ từ sai
         </Link>
       </div>
@@ -923,7 +923,7 @@ function TrangOnTapHomNay() {
         {(soCauCanOn > 0 || !manRong) && (
           <div className="review-header__actions">
             {soCauCanOn > 0 && (
-              <Link to="/khoa-hoc/on-tap" className="review-nav-btn">
+              <Link to="/review?loai=cau" className="review-nav-btn">
                 Ôn {soCauCanOn} câu bài tập
               </Link>
             )}

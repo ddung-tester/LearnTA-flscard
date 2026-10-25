@@ -350,12 +350,12 @@ function TrangThongKe() {
             </Link>
           )}
           {mistakeStats.active > 0 && (
-            <Link to="/tu-sai" className="tk-cta-btn tk-cta-btn--secondary" id="tk-btn-tusai">
+            <Link to="/review?loai=nham" className="tk-cta-btn tk-cta-btn--secondary" id="tk-btn-tusai">
               Từ sai ({mistakeStats.active})
             </Link>
           )}
           {soCauCanOn > 0 && (
-            <Link to="/khoa-hoc/on-tap" className="tk-cta-btn tk-cta-btn--secondary">
+            <Link to="/review?loai=cau" className="tk-cta-btn tk-cta-btn--secondary">
               Câu bài tập cần ôn ({soCauCanOn})
             </Link>
           )}
@@ -466,7 +466,7 @@ function TrangThongKe() {
             <div className="tk-review-card tk-review-card--mistake">
               <span className="tk-review-card__num">{mistakeStats.active}</span>
               <span className="tk-review-card__label">Từ sai cần ôn</span>
-              {mistakeStats.active > 0 && <Link to="/tu-sai" className="tk-review-card__link">Xem →</Link>}
+              {mistakeStats.active > 0 && <Link to="/review?loai=nham" className="tk-review-card__link">Xem →</Link>}
             </div>
           </div>
         </section>
@@ -475,7 +475,7 @@ function TrangThongKe() {
       <section className="tk-section">
         <div className="tk-section__header">
           <h2 className="tk-section__title">Từ khó nhất</h2>
-          {mistakeStats.active > 0 && <Link to="/tu-sai" className="tk-section__link">Xem tất cả →</Link>}
+          {mistakeStats.active > 0 && <Link to="/review?loai=nham" className="tk-section__link">Xem tất cả →</Link>}
         </div>
         {tuKhoNhat.length === 0 ? (
           <EmptyState icon="search" title="Chưa có từ sai nào"

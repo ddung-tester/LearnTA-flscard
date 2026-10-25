@@ -365,7 +365,7 @@ function StudyResult({
           </div>
           <DanhSachTuKetQua danhSach={danhSachCardSai} dung={false} levelTruoc={levelTruoc} />
           <div className="study-result__notebook-link">
-            <Link to="/tu-sai" className="ui-link text-sm font-medium text-[var(--mau-chinh)] hover:underline">
+            <Link to="/review?loai=nham" className="ui-link text-sm font-medium text-[var(--mau-chinh)] hover:underline">
               Xem sổ từ sai của bạn →
             </Link>
           </div>

@@ -12,7 +12,7 @@ import useNhoViTriCuon from "../../hooks/useNhoViTriCuon";
 
 const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
-const laTrangOnTap = (path) => path === "/review" || path === "/khoa-hoc/on-tap" || path === "/tu-sai";
+const laTrangOnTap = (path) => path === "/review";
 
 // Bộ từ thuộc khoá học hoặc lộ trình (nguồn "course" / "roadmap") nằm dưới mục Học, bộ tự tạo dưới Bộ từ
 const laBoCuaHoc = (nguonBo) => nguonBo === "course" || nguonBo === "roadmap";
@@ -86,7 +86,7 @@ function BoCuc() {
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
   // Trang tổng quan / danh sách: rộng 72rem, thẳng hàng với header (laptop, PC). Trang đọc/làm bài giữ cột hẹp.
-  const laTrangRong = /^\/(dashboard|stats|tu-sai|decks|khoa-hoc)\/?$/.test(viTri.pathname);
+  const laTrangRong = /^\/(dashboard|stats|decks|khoa-hoc)\/?$/.test(viTri.pathname);
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop|luyen-cau)$/.test(viTri.pathname);
@@ -94,7 +94,6 @@ function BoCuc() {
   const coMeoHocCung =
     laPhienHoc ||
     viTri.pathname === "/review" ||
-    viTri.pathname === "/khoa-hoc/on-tap" ||
     /^\/khoa-hoc\/[^/]+\/bai\//.test(viTri.pathname);
   const dsTab = isAuthenticated ? DS_TAB_DIEU_HUONG : TAB_KHACH;
   // Đang xem một bộ từ (/decks/:id/...): đọc nguồn của bộ để sáng đúng mục menu (bộ của buổi học → Học).
@@ -328,11 +327,13 @@ function BoCuc() {
                     <button
                       type="button"
                       role="menuitem"
-                      disabled
-                      className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-mo)] disabled:cursor-not-allowed"
+                      onClick={() => {
+                        setDangMoMenuTaiKhoan(false);
+                        navigateWithLoading("/stats");
+                      }}
+                      className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-phu)] hover:bg-[var(--mau-mat)] hover:text-[var(--mau-chu)] transition-colors"
                     >
-                      <span>Trang cá nhân</span>
-                      <span className="text-xs">Sắp có</span>
+                      <span>Thống kê</span>
                     </button>
                     <button
                       type="button"
@@ -344,15 +345,6 @@ function BoCuc() {
                       className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-phu)] hover:bg-[var(--mau-mat)] hover:text-[var(--mau-chu)] transition-colors"
                     >
                       <span>Cài đặt</span>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--mau-chu-mo)] disabled:cursor-not-allowed"
-                    >
-                      <span>Lịch sử học</span>
-                      <span className="text-xs">Sắp có</span>
                     </button>
 
                     <div className="mt-2 border-t border-[var(--mau-vien)]/70 pt-2">

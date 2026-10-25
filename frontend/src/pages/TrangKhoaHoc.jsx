@@ -99,7 +99,7 @@ function KhoaHocRieng({ khoa }) {
               </Link>
             )}
             {cauCanOn > 0 && (
-              <Link to="/khoa-hoc/on-tap" className="ui-button ui-button--ghost px-5 py-2.5">
+              <Link to="/review?loai=cau" className="ui-button ui-button--ghost px-5 py-2.5">
                 Ôn {cauCanOn} câu sai
               </Link>
             )}

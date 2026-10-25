@@ -331,9 +331,9 @@ function TrangDashboard() {
         <div className="dash-viec">
           <TheViec to="/review" so={srsStats.duHomNay} donVi="từ" nhan="Từ đến hạn ôn" />
           {khoaChinh && (
-            <TheViec to="/khoa-hoc/on-tap" so={soCauCanOn} donVi="câu" nhan="Câu bài tập làm sai" />
+            <TheViec to="/review?loai=cau" so={soCauCanOn} donVi="câu" nhan="Câu bài tập làm sai" />
           )}
-          <TheViec to="/tu-sai" so={mistakeStats.active} donVi="từ" nhan="Từ hay nhầm" />
+          <TheViec to="/review?loai=nham" so={mistakeStats.active} donVi="từ" nhan="Từ hay nhầm" />
         </div>
       </section>
 
