@@ -4,7 +4,6 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import BaiTapKhoaHoc from "../components/BaiTapKhoaHoc";
 import useHienKhiCuon from "../hooks/useHienKhiCuon";
 import SoTayLatTrang from "../components/common/SoTayLatTrang";
-import LinkTroVe from "../components/common/LinkTroVe";
 import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
 import { layBaiHoc } from "../services/courseApi";
@@ -13,6 +12,8 @@ import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../u
 import { docCachXemLyThuyet, luuCachXemLyThuyet } from "../utils/caiDatHocTap";
 import { ghiNoiVeBuoi } from "../utils/noiVeBuoi";
 import "./KhoaHoc.css";
+import { CHE_DO_HOC } from "../contexts/BoDangHocContext";
+import LinkTroVe from "../components/common/LinkTroVe";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
 const CAC_BUOC = [
@@ -54,7 +55,7 @@ function NutSangBuoc({ buoc, onChon, children }) {
   );
 }
 
-function TuVung({ words, deckId, duongVe, onDoc, onSangBuoc }) {
+function TuVung({ words, deckId, duongVe, duongDanHoc, onDoc, onSangBuoc }) {
   // Học xong thẻ / luyện tập thì nút quay lại về thẳng bước Từ vựng của buổi này
   const nhoNoiVe = () => ghiNoiVeBuoi(deckId, duongVe);
   if (words.length === 0) {
@@ -66,15 +67,24 @@ function TuVung({ words, deckId, duongVe, onDoc, onSangBuoc }) {
         <p className="kh-phan__mo-ta">{words.length} từ mới. Bấm vào thẻ để nghe phát âm.</p>
         {deckId && (
           <div className="kh-phan__hanh-dong">
-            <Link to={`/decks/${deckId}/flashcard`} onClick={nhoNoiVe} className="ui-button ui-button--primary px-4 py-2.5">
+            <Link to={`${duongDanHoc}/flashcard`} onClick={nhoNoiVe} className="ui-button ui-button--primary px-4 py-2.5">
               Học bằng thẻ
-            </Link>
-            <Link to={`/practice?bo=${deckId}`} onClick={nhoNoiVe} className="ui-button ui-button--ghost px-4 py-2.5">
-              Luyện tập
             </Link>
           </div>
         )}
       </div>
+
+      {/* Luyện từ của buổi ngay trong khoá học (trước đây sang trang Luyện tập / bộ từ, menu nhảy sang "Bộ từ") */}
+      {deckId && (
+        <nav className="kh-che-do" aria-label="Luyện từ của buổi">
+          <span className="kh-che-do__nhan">Luyện thêm</span>
+          {CHE_DO_HOC.filter((cheDo) => cheDo.path !== "flashcard").map((cheDo) => (
+            <Link key={cheDo.path} to={`${duongDanHoc}/${cheDo.path}`} onClick={nhoNoiVe} className="kh-che-do__nut">
+              {cheDo.nhan}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <ul className="kh-the-tu-luoi">
         {words.map((tu) => (
@@ -427,6 +437,7 @@ function TrangBaiHoc() {
             words={bai.words}
             deckId={bai.lesson.deck_id}
             duongVe={duongDanBuoc("tu-vung")}
+            duongDanHoc={duongDanBuoc("hoc")}
             onDoc={docTiengAnh}
             onSangBuoc={chuyenBuoc}
           />

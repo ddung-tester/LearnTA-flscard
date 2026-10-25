@@ -8,7 +8,8 @@ import ThongBaoMayChu from "./components/common/ThongBaoMayChu";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
-import { batTaiTruocTrang, dangKyTrang, taiTruocTheoDuongDan } from "./utils/taiTruocTrang";
+import { batTaiTruocTrang, choLazy, dangKyTrang, taiTruocTheoDuongDan } from "./utils/taiTruocTrang";
+import TrangHocCuaBuoi from "./pages/TrangHocCuaBuoi";
 import { getStoredAuthToken } from "./services/api";
 import { layDanhSachDeck, layDeckTheoId } from "./services/deckApi";
 import { getUserStats } from "./services/userApi";
@@ -34,18 +35,31 @@ const TrangTuVung = lazy(dangKyTrang("/decks", () => import("./pages/TrangTuVung
 const TrangDashboard = lazy(dangKyTrang("/dashboard", () => import("./pages/TrangDashboard"), taiDuLieuDashboard));
 const TrangChiTietBo = lazy(dangKyTrang("/decks/:deckId", () => import("./pages/TrangChiTietBo"), taiDuLieuBo));
 const TrangThemTu = lazy(dangKyTrang("/decks/:deckId/add-word", () => import("./pages/TrangThemTu")));
-const TrangFlashcard = lazy(dangKyTrang("/decks/:deckId/flashcard", () => import("./pages/TrangFlashcard"), taiDuLieuBo));
+// Trang học của một bộ: mở ở /decks/:deckId/<chế độ> hoặc dưới buổi học /khoa-hoc/:c/bai/:n/hoc/<chế độ>
+const taiTrangFlashcard = () => import("./pages/TrangFlashcard");
 const taiTrangQuiz = () => import("./pages/TrangQuiz");
-dangKyTrang("/decks/:deckId/quiz", taiTrangQuiz, taiDuLieuBo);
-dangKyTrang("/decks/:deckId/ngu-canh", taiTrangQuiz, taiDuLieuBo);
-const TrangQuiz = lazy(taiTrangQuiz);
 const taiTrangTuLuan = () => import("./pages/TrangTuLuan");
-dangKyTrang("/decks/:deckId/tu-luan", taiTrangTuLuan, taiDuLieuBo);
-dangKyTrang("/decks/:deckId/nghe-viet", taiTrangTuLuan, taiDuLieuBo);
-dangKyTrang("/decks/:deckId/hon-hop", taiTrangTuLuan, taiDuLieuBo);
-const TrangTuLuan = lazy(taiTrangTuLuan);
-const TrangNoiTu = lazy(dangKyTrang("/decks/:deckId/noi-tu", () => import("./pages/TrangNoiTu"), taiDuLieuBo));
-const TrangLuyenCau = lazy(dangKyTrang("/decks/:deckId/luyen-cau", () => import("./pages/TrangLuyenCau")));
+const taiTrangNoiTu = () => import("./pages/TrangNoiTu");
+const taiTrangLuyenCau = () => import("./pages/TrangLuyenCau");
+const TAI_TRANG_THEO_CHE_DO = {
+  flashcard: taiTrangFlashcard,
+  quiz: taiTrangQuiz,
+  "ngu-canh": taiTrangQuiz,
+  "tu-luan": taiTrangTuLuan,
+  "nghe-viet": taiTrangTuLuan,
+  "hon-hop": taiTrangTuLuan,
+  "noi-tu": taiTrangNoiTu,
+  "luyen-cau": taiTrangLuyenCau,
+};
+for (const [cheDo, tai] of Object.entries(TAI_TRANG_THEO_CHE_DO)) {
+  dangKyTrang(`/decks/:deckId/${cheDo}`, tai, cheDo === "luyen-cau" ? null : taiDuLieuBo);
+  dangKyTrang(`/khoa-hoc/:courseId/bai/:soBai/hoc/${cheDo}`, tai, taiDuLieuBaiHoc);
+}
+const TrangFlashcard = lazy(choLazy(taiTrangFlashcard));
+const TrangQuiz = lazy(choLazy(taiTrangQuiz));
+const TrangTuLuan = lazy(choLazy(taiTrangTuLuan));
+const TrangNoiTu = lazy(choLazy(taiTrangNoiTu));
+const TrangLuyenCau = lazy(choLazy(taiTrangLuyenCau));
 const TrangLuyenTap = lazy(dangKyTrang("/practice", () => import("./pages/TrangLuyenTap")));
 const TrangChiTietLoTrinh = lazy(dangKyTrang("/khoa-hoc/lo-trinh/:slug", () => import("./pages/TrangChiTietLoTrinh")));
 const TrangTuSai = lazy(dangKyTrang("/tu-sai", () => import("./pages/TrangTuSai")));
@@ -167,6 +181,15 @@ function UngDung() {
             <Route path="/khoa-hoc/on-tap" element={<ChuyenOnTapCu loai="cau" />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai" element={<TrangBaiHoc />} />
             <Route path="/khoa-hoc/:courseId/bai/:soBai/:buoc" element={<TrangBaiHoc />} />
+            {/* Học từ vựng của buổi ngay trong khoá học (đường dẫn cũ /decks/:id/... của bộ buổi học tự chuyển về đây) */}
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/flashcard" element={<TrangHocCuaBuoi Trang={TrangFlashcard} />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/quiz" element={<TrangHocCuaBuoi Trang={TrangQuiz} />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/ngu-canh" element={<TrangHocCuaBuoi Trang={TrangQuiz} loai="ngu-canh" />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/tu-luan" element={<TrangHocCuaBuoi Trang={TrangTuLuan} />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/nghe-viet" element={<TrangHocCuaBuoi Trang={TrangTuLuan} loai="nghe-viet" />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/hon-hop" element={<TrangHocCuaBuoi Trang={TrangTuLuan} loai="hon-hop" />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/noi-tu" element={<TrangHocCuaBuoi Trang={TrangNoiTu} />} />
+            <Route path="/khoa-hoc/:courseId/bai/:soBai/hoc/luyen-cau" element={<TrangHocCuaBuoi Trang={TrangLuyenCau} />} />
           </Route>
           <Route path="/decks/:deckId/flashcard" element={<TrangFlashcard />} />
           <Route path="/decks/:deckId/quiz" element={<TrangQuiz />} />

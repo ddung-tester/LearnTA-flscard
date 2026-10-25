@@ -239,6 +239,51 @@
   gap: 0.5rem;
 }
 
+/* Bước Từ vựng: các chế độ luyện từ của buổi (Trắc nghiệm, Tự luận...) dạng chip, xuống dòng trên màn hẹp */
+.kh-che-do {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.kh-che-do__nhan {
+  margin-right: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.kh-che-do__nut {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-giay);
+  padding: 0.3rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--mau-chu);
+  text-decoration: none;
+}
+
+.kh-che-do__nut:hover {
+  border-color: var(--mau-chinh);
+  color: var(--mau-chinh);
+}
+
+.kh-che-do__nut:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .kh-che-do__nut {
+    min-height: 2.75rem;
+  }
+}
+
 .kh-sang-buoc {
   display: flex;
   justify-content: flex-end;

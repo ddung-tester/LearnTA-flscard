@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
+import useChuyenBoKhoaHoc from "./useChuyenBoKhoaHoc";
 
 /**
  * Tải bộ từ và thẻ từ API; hiển thị lỗi để người học thử lại.
@@ -46,6 +47,8 @@ export default function useBoTuHoc(boId, tenTrang) {
       setPageDataLoading(loadingKey, false);
     };
   }, [boId, dangTai, setPageDataLoading, tenTrang]);
+
+  useChuyenBoKhoaHoc(bo);
 
   function taiLai() {
     setDangTai(true);

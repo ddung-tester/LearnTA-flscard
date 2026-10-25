@@ -1,10 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
 import { layNoiVe } from "../utils/noiVeBuoi";
 import { AnimatePresence, m } from "motion/react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import RewardTikTokEffect, { CAU_HINH_REWARD_QUIZ } from "../components/RewardTikTokEffect";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
-import LinkTroVe from "../components/common/LinkTroVe";
 import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
 import PhanHoiDung from "../components/common/PhanHoiDung";
 import StreakCelebration from "../components/common/StreakCelebration";
@@ -37,6 +36,8 @@ import {
   taoHatGiong,
   tinhTienTrinh,
 } from "../utils/phienHoc";
+import LinkTroVe from "../components/common/LinkTroVe";
+import { useDuongDanBo, useMaBoDangHoc } from "../contexts/BoDangHocContext";
 
 const DS_CHE_DO = [
   { key: "vi-en", nhan: "Nghĩa → Từ", shortLabel: "Nghĩa → Từ" },
@@ -86,7 +87,8 @@ const GOI_Y_NHAP = {
 
 
 function TrangTuLuan({ loai }) {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
+  const duongDanBo = useDuongDanBo();
   const boId = Number(deckId);
   const cauHinh = CAU_HINH_LOAI[loai];
   const {
@@ -1142,7 +1144,7 @@ function TrangTuLuan({ loai }) {
           </button>
         )}
         <LinkTroVe
-          to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
+          to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
@@ -1214,7 +1216,7 @@ function TrangTuLuan({ loai }) {
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl px-4 py-3">
         <div className="ui-study-toolbar mb-4">
-          <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)} className="ui-back-btn">
+          <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </LinkTroVe>
           <CaiDatPhienHoc
@@ -1557,7 +1559,7 @@ function TrangTuLuan({ loai }) {
 }
 
 function TrangTuLuanWrapper({ loai = "tu-luan" }) {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
   return <TrangTuLuan key={`${loai}-${deckId}`} loai={loai} />;
 }
 

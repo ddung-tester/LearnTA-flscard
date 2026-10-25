@@ -1,4 +1,7 @@
   import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import LinkTroVe from "../components/common/LinkTroVe";
+import { useDuongDanBo, useMaBoDangHoc } from "../contexts/BoDangHocContext";
+import useChuyenBoKhoaHoc from "../hooks/useChuyenBoKhoaHoc";
 import { layNoiVe } from "../utils/noiVeBuoi";
 import {
   AnimatePresence,
@@ -8,9 +11,8 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import ModeSwitch from "../components/common/ModeSwitch";
-import LinkTroVe from "../components/common/LinkTroVe";
 import NutDichCau from "../components/common/NutDichCau";
 import StudySettingsPopover from "../components/common/StudySettingsPopover";
 import ToggleSwitch from "../components/common/ToggleSwitch";
@@ -281,11 +283,14 @@ function taoDanhSachTienTrinh(tongSoThe, kichThuocTienTrinh = SO_TU_MOI_TIEN_TRI
 }
 
 function TrangFlashcard() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
+  const duongDanBo = useDuongDanBo();
   const { setPageDataLoading } = usePageTransition();
   const { speak: ttsSpeak, isPlaying: ttsDangDoc } = useTTS();
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
+  // Bộ của buổi học mở bằng /decks/...: chuyển sang đường dẫn dưới khoá học
+  useChuyenBoKhoaHoc(bo);
   const [danhSachGoc, setDanhSachGoc] = useState([]);
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");
@@ -836,7 +841,7 @@ function TrangFlashcard() {
               </button>
             )}
             <LinkTroVe
-              to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
+              to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))}
               className="ui-button ui-button--primary ui-study-empty-card__button"
             >
               Quay lại bộ từ
@@ -884,7 +889,7 @@ function TrangFlashcard() {
       <div className="ui-study-toolbar">
         <div>
           <LinkTroVe kieu="noi-truoc"
-            to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
+            to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))}
             className="ui-back-btn"
           >
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
@@ -1175,7 +1180,7 @@ function TrangFlashcard() {
 }
 
 function TrangFlashcardWrapper() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
   return <TrangFlashcard key={deckId} />;
 }
 

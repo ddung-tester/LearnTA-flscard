@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { layNoiVe } from "../utils/noiVeBuoi";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import TheTrangThaiPhien from "../components/common/TheTrangThaiPhien";
-import LinkTroVe from "../components/common/LinkTroVe";
 import { useAuth } from "../contexts/AuthContext";
 import useBoTuHoc from "../hooks/useBoTuHoc";
 import { chamCauAI } from "../services/cardApi";
@@ -11,6 +10,8 @@ import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { ghiNhanLuyenCauDat } from "../utils/srsReview";
 import { layNhanDangGiongNoi, soSanhTungTu, TI_LE_DAT } from "../utils/luyenCau";
 import { chonTheChoPhien, taoHatGiong } from "../utils/phienHoc";
+import LinkTroVe from "../components/common/LinkTroVe";
+import { useDuongDanBo, useMaBoDangHoc } from "../contexts/BoDangHocContext";
 
 const CAC_KIEU = [
   { key: "nghe-chep", nhan: "Nghe chép", moTa: "Nghe cả câu ví dụ rồi chép lại", canCau: true },
@@ -64,7 +65,8 @@ function ThongTinTu({ the }) {
  * và tự đặt câu cho AI chấm. Câu nghe chép / đặt câu đạt tính như một lần ôn đúng nếu từ đã đến hạn ôn.
  */
 function TrangLuyenCau() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
+  const duongDanBo = useDuongDanBo();
   const boId = Number(deckId);
   const { bo, danhSachGoc, dangTai, loi, taiLai } = useBoTuHoc(boId, "luyen-cau");
   const { isAuthenticated } = useAuth();
@@ -203,7 +205,7 @@ function TrangLuyenCau() {
     }
   }
 
-  const linkTroVe = layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`);
+  const linkTroVe = layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)));
 
   if (dangTai) return <TheTrangThaiPhien eyebrow="Luyện câu" tieuDe="Đang tải bộ từ..." />;
   if (loi || !bo) {
@@ -438,7 +440,7 @@ function TrangLuyenCau() {
 }
 
 function TrangLuyenCauWrapper() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
   return <TrangLuyenCau key={deckId} />;
 }
 

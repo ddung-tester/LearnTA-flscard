@@ -31,6 +31,7 @@ import { banPhaoGiay, rungMay } from "../../utils/hieuUng";
 import { phatAm } from "../../utils/amThanh";
 import NutDichCau from "./NutDichCau";
 import LinkTroVe from "./LinkTroVe";
+import { useDuongDanBo } from "../../contexts/BoDangHocContext";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -190,6 +191,7 @@ function StudyResult({
   laLamLai = false,
   mode = "quiz",
 }) {
+  const duongDanBo = useDuongDanBo();
   const tiLeDung = tongSoCau > 0 ? Math.round((soCauDung / tongSoCau) * 100) : 0;
   // Level SRS trước phiên (chỉ đọc) → hiển thị level mới theo đúng luật SRS
   const [levelTruoc] = useState(() =>
@@ -260,7 +262,7 @@ function StudyResult({
   return (
     <div className="study-result">
       <LinkTroVe kieu="noi-truoc"
-        to={layNoiVe(deckId, `/decks/${deckId}`)}
+        to={layNoiVe(deckId, duongDanBo(deckId))}
         className="ui-back-link ui-back-link--quiet"
       >
         &larr; Trở về
@@ -344,7 +346,7 @@ function StudyResult({
             Làm lại toàn bộ
           </button>
           <LinkTroVe
-            to={layNoiVe(deckId, `/decks/${deckId}`)}
+            to={layNoiVe(deckId, duongDanBo(deckId))}
             className="ui-button ui-button--ghost study-result__btn"
           >
             Chọn chế độ khác

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { layNoiVe } from "../utils/noiVeBuoi";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import CaiDatPhienHoc from "../components/common/CaiDatPhienHoc";
-import LinkTroVe from "../components/common/LinkTroVe";
 import StreakCelebration from "../components/common/StreakCelebration";
 import StudyResult from "../components/common/StudyResult";
 import ThanhTienDoPhien from "../components/common/ThanhTienDoPhien";
@@ -30,6 +29,8 @@ import {
   tinhTienTrinh,
   tronMangOnDinh,
 } from "../utils/phienHoc";
+import LinkTroVe from "../components/common/LinkTroVe";
+import { useDuongDanBo, useMaBoDangHoc } from "../contexts/BoDangHocContext";
 
 const KHOA_CAI_DAT = "noiTu";
 const SO_CAP_MOI_VONG = 5;
@@ -73,7 +74,8 @@ function NutGhep({ noiDung, lang, thuTu, phim, daGhep, dangChon, dangSai, onChon
  * Mỗi vòng tối đa 5 cặp. Thẻ bị ghép sai ít nhất một lần được tính là sai cho SRS.
  */
 function TrangNoiTu() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
+  const duongDanBo = useDuongDanBo();
   const boId = Number(deckId);
   const {
     bo,
@@ -411,7 +413,7 @@ function TrangNoiTu() {
           </button>
         )}
         <LinkTroVe
-          to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)}
+          to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))}
           className="ui-button ui-button--primary ui-study-empty-card__button"
         >
           Quay lại bộ từ
@@ -473,7 +475,7 @@ function TrangNoiTu() {
       {hieuUngThuong}
       <div className="ui-study-session relative z-10 mx-auto max-w-2xl">
         <div className="ui-study-toolbar mb-6">
-          <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, `/decks/${boId}${taoQueryBoLoc(boLocUrl)}`)} className="ui-back-btn">
+          <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))} className="ui-back-btn">
             <span className="ui-back-btn__arrow">&larr;</span> Trở về
           </LinkTroVe>
           <CaiDatPhienHoc
@@ -575,7 +577,7 @@ function TrangNoiTu() {
 }
 
 function TrangNoiTuWrapper() {
-  const { deckId } = useParams();
+  const deckId = useMaBoDangHoc();
   return <TrangNoiTu key={deckId} />;
 }
 

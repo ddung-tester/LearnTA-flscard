@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import StreakBadge from "../components/common/StreakBadge";
-import LinkTroVe from "../components/common/LinkTroVe";
 import NutDichCau from "../components/common/NutDichCau";
 import SoChayDan from "../components/common/SoChayDan";
 import { useParams, Link, useSearchParams } from "react-router-dom";
@@ -34,6 +33,8 @@ import {
   toggleFavoriteCard,
   xoaCard,
 } from "../services/cardApi";
+import LinkTroVe from "../components/common/LinkTroVe";
+import useChuyenBoKhoaHoc from "../hooks/useChuyenBoKhoaHoc";
 
 const FORM_TU_RONG = {
   word: "",
@@ -126,6 +127,8 @@ function TrangChiTietBo() {
   const [currentPlayingWordId, setCurrentPlayingWordId] = useState(null);
   const boId = Number(deckId);
   const [bo, setBo] = useState(null);
+  // Bộ của buổi học mở bằng /decks/...: chuyển sang đường dẫn dưới khoá học
+  useChuyenBoKhoaHoc(bo);
   const [danhSach, setDanhSach] = useState([]);
   const [dangTaiDuLieu, setDangTaiDuLieu] = useState(true);
   const [loiTaiDuLieu, setLoiTaiDuLieu] = useState("");

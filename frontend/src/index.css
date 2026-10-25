@@ -9574,3 +9574,43 @@ a.dash-lich__o:focus-visible {
     padding-inline: 0.9rem;
   }
 }
+
+/* Header khi học từ của một buổi: Khoá học › Buổi n › chế độ (BoCuc.hocTrongBuoi) — chỗ của các tab menu */
+.dash-nav__duong-dan {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--mau-chu-phu);
+  white-space: nowrap;
+}
+
+.dash-nav__duong-dan-muc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+a.dash-nav__duong-dan-muc {
+  color: var(--mau-chu-phu);
+  text-decoration: none;
+}
+
+a.dash-nav__duong-dan-muc:hover {
+  color: var(--mau-chinh);
+  text-decoration: underline;
+}
+
+.dash-nav__duong-dan-muc[aria-current="page"] {
+  font-weight: 600;
+  color: var(--mau-chu);
+}
+
+/* Điện thoại: bỏ "Khoá học ›", còn Buổi n › chế độ */
+@media (max-width: 480px) {
+  .dash-nav__duong-dan-muc--goc {
+    display: none;
+  }
+}

@@ -9,6 +9,8 @@ import { chuanBiAmThanh } from "../../utils/amThanh";
 import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
 import useNhoViTriCuon from "../../hooks/useNhoViTriCuon";
+import LinkTroVe from "./LinkTroVe";
+import { CHE_DO_HOC } from "../../contexts/BoDangHocContext";
 
 const MeoHocCung = lazy(() => import("./MeoHocCung"));
 
@@ -88,6 +90,13 @@ function BoCuc() {
   // Trang tổng quan / danh sách: rộng 72rem, thẳng hàng với header (laptop, PC). Trang đọc/làm bài giữ cột hẹp.
   const laTrangRong = /^\/(dashboard|stats|decks|khoa-hoc)\/?$/.test(viTri.pathname);
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
+  // Học từ của một buổi (/khoa-hoc/:c/bai/:n/hoc/:cheDo): header hiện đường dẫn Khoá học › Buổi n › chế độ
+  const khopHocTrongBuoi = /^\/khoa-hoc\/([^/]+)\/bai\/([^/]+)\/hoc\/([^/]+)$/.exec(viTri.pathname);
+  const hocTrongBuoi = khopHocTrongBuoi && {
+    khoa: khopHocTrongBuoi[1],
+    buoi: khopHocTrongBuoi[2],
+    cheDo: CHE_DO_HOC.find((cheDo) => cheDo.path === khopHocTrongBuoi[3])?.nhan ?? "",
+  };
   // Các trang học (flashcard, quiz, tự luận) cần ít padding hơn để vừa màn hình
   const laPhienHoc = /\/(flashcard|quiz|tu-luan|nghe-viet|ngu-canh|noi-tu|hon-hop|luyen-cau)$/.test(viTri.pathname);
   // Mèo học cùng: mọi màn có câu hỏi / thẻ để trả lời
@@ -245,6 +254,17 @@ function BoCuc() {
             {/* Khách, màn rất hẹp: chỉ giữ biểu tượng để header không tràn ngang */}
             <span className={isAuthenticated ? undefined : "max-[420px]:sr-only"}>Streak Drop</span>
           </Link>
+          {hocTrongBuoi && (
+            <nav className="dash-nav__duong-dan" aria-label="Đang học">
+              <LinkTroVe to="/khoa-hoc" className="dash-nav__duong-dan-muc dash-nav__duong-dan-muc--goc">Khoá học</LinkTroVe>
+              <span className="dash-nav__duong-dan-muc dash-nav__duong-dan-muc--goc" aria-hidden="true">›</span>
+              <LinkTroVe to={`/khoa-hoc/${hocTrongBuoi.khoa}/bai/${hocTrongBuoi.buoi}/tu-vung`} className="dash-nav__duong-dan-muc">
+                Buổi {hocTrongBuoi.buoi}
+              </LinkTroVe>
+              <span aria-hidden="true">›</span>
+              <span className="dash-nav__duong-dan-muc" aria-current="page">{hocTrongBuoi.cheDo}</span>
+            </nav>
+          )}
           {!laTrangAuth && !laPhienHoc && (
             <nav
               className={`dash-nav__links dash-nav__tabs${isAuthenticated ? " dash-nav__tabs--day-du" : ""}`}
