@@ -52,22 +52,35 @@ function LichBuoiHoc({ khoa, buoiTiep }) {
   );
 }
 
-function TheBuoiHoc({ khoaId, bai }) {
+// Một buổi trong danh sách: một dòng gọn (số · chủ đề · tiến độ), lưới bản đồ phía trên để nhảy nhanh
+function DongBuoiHoc({ khoaId, bai, laBuoiTiep }) {
   const tienDo = tienDoBuoiHoc(bai);
+  const trangThai = tienDo.xong ? "xong" : laBuoiTiep ? "tiep" : tienDo.daBatDau ? "dang" : "chua";
   return (
-    <Link to={`/khoa-hoc/${khoaId}/bai/${bai.lesson_number}`} className="kh-buoi" data-mo-rong>
+    <Link
+      to={`/khoa-hoc/${khoaId}/bai/${bai.lesson_number}`}
+      className={`kh-buoi kh-buoi--dong kh-buoi--${trangThai}`}
+      aria-current={laBuoiTiep ? "step" : undefined}
+      data-mo-rong
+    >
       <span className="kh-buoi__so" aria-hidden="true">{bai.lesson_number}</span>
       <span className="kh-buoi__chu">
-        <span className="kh-buoi__nhan">
-          Buổi {bai.lesson_number}
-          {tienDo.xong && <span className="kh-buoi__xong"> · Đã xong</span>}
+        <span className="kh-buoi__ten">
+          <span className="sr-only">Buổi {bai.lesson_number}: </span>
+          {bai.title}
         </span>
-        <span className="kh-buoi__ten">{bai.title}</span>
         <span className="kh-buoi__meta">
-          <span>Từ vựng {tienDo.tuDaHoc}/{tienDo.tongTu} đã học</span>
-          <span>Bài tập {tienDo.cauDung}/{tienDo.tongCau} câu đúng</span>
+          {tienDo.xong ? (
+            <span className="kh-buoi__xong">Đã xong</span>
+          ) : (
+            <>
+              {laBuoiTiep && <span className="kh-buoi__nhan-tiep">Đang học</span>}
+              <span>Từ vựng {tienDo.tuDaHoc}/{tienDo.tongTu}</span>
+              <span>Bài tập {tienDo.cauDung}/{tienDo.tongCau}</span>
+            </>
+          )}
         </span>
-        {tienDo.daBatDau && (
+        {tienDo.daBatDau && !tienDo.xong && (
           <span className="kh-buoi__thanh" aria-hidden="true">
             <span style={{ width: `${tienDo.phanTram}%` }} />
           </span>
@@ -77,9 +90,59 @@ function TheBuoiHoc({ khoaId, bai }) {
   );
 }
 
+// Thẻ đầu trang: buổi đang học + tiến độ 3 bước + tiến độ cả khoá — việc cần làm nằm trong màn đầu
+function TheDangHoc({ khoa, buoiTiep, cauCanOn, soBuoiXong, tongBuoi }) {
+  const goc = `/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}`;
+  const tienDo = tienDoBuoiHoc(buoiTiep);
+  const cacBuoc = [
+    { key: "tu-vung", nhan: "Từ vựng", giaTri: `${tienDo.tuDaHoc}/${tienDo.tongTu} từ`, xong: tienDo.tongTu > 0 && tienDo.tuDaHoc >= tienDo.tongTu },
+    { key: "ly-thuyet", nhan: "Lý thuyết", giaTri: "Đọc trước khi làm bài", xong: false },
+    { key: "bai-tap", nhan: "Bài tập", giaTri: `${tienDo.cauDung}/${tienDo.tongCau} câu đúng`, xong: tienDo.tongCau > 0 && tienDo.cauDung >= tienDo.tongCau },
+  ];
+  return (
+    <section className="kh-tiep" aria-labelledby="kh-tiep-ten">
+      <div className="kh-tiep__chinh">
+        <p className="kh-tiep__nhan">{tienDo.daBatDau ? "Đang học" : "Học tiếp"} · Buổi {buoiTiep.lesson_number}</p>
+        <h3 id="kh-tiep-ten" className="kh-tiep__ten">{buoiTiep.title}</h3>
+        <ol className="kh-tiep__cac-buoc">
+          {cacBuoc.map((buoc, i) => (
+            <li key={buoc.key}>
+              <Link to={`${goc}/${buoc.key}`} className={`kh-tiep__buoc${buoc.xong ? " kh-tiep__buoc--xong" : ""}`}>
+                <span className="kh-tiep__buoc-so" aria-hidden="true">{buoc.xong ? "✓" : i + 1}</span>
+                <span className="kh-tiep__buoc-chu">
+                  <span className="kh-tiep__buoc-ten">{buoc.nhan}</span>
+                  <span className="kh-tiep__buoc-gia-tri">{buoc.giaTri}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
+        <div className="kh-khoa__nut">
+          <Link to={goc} className="ui-button ui-button--primary px-5 py-2.5" data-mo-rong>
+            {tienDo.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
+          </Link>
+          {cauCanOn > 0 && (
+            <Link to="/review?loai=cau" className="ui-button ui-button--ghost px-5 py-2.5">
+              Ôn {cauCanOn} câu sai
+            </Link>
+          )}
+        </div>
+      </div>
+      <div className="kh-tiep__tong" aria-label={`Đã xong ${soBuoiXong} trên ${tongBuoi} buổi`}>
+        <span className="kh-tiep__tong-so">{soBuoiXong}<small>/{tongBuoi}</small></span>
+        <span className="kh-tiep__tong-nhan">buổi đã xong</span>
+        <span className="kh-buoi__thanh" aria-hidden="true">
+          <span style={{ width: `${tongBuoi ? (soBuoiXong / tongBuoi) * 100 : 0}%` }} />
+        </span>
+      </div>
+    </section>
+  );
+}
+
 function KhoaHocRieng({ khoa }) {
   const buoiTiep = timBuoiTiepTheo(khoa.lessons);
-  const { cauCanOn } = tongHopKhoaHoc(khoa);
+  const { cauCanOn, soBuoiXong } = tongHopKhoaHoc(khoa);
+  const tongBuoi = tongSoBuoiKhoaHoc(khoa.title, Math.max(0, ...khoa.lessons.map((bai) => bai.lesson_number)));
 
   return (
     <section className="kh-khoa" aria-labelledby={`khoa-${khoa.id}`}>
@@ -88,34 +151,36 @@ function KhoaHocRieng({ khoa }) {
         <p className="kh-khoa__mo-ta">
           Tài liệu riêng của bạn. Mỗi buổi học theo thứ tự: từ vựng, lý thuyết, rồi bài tập.
         </p>
-        {(buoiTiep || cauCanOn > 0) && (
-          <div className="kh-khoa__nut">
-            {buoiTiep && (
-              <Link
-                to={`/khoa-hoc/${khoa.id}/bai/${buoiTiep.lesson_number}`}
-                className="ui-button ui-button--primary px-5 py-2.5"
-              >
-                {tienDoBuoiHoc(buoiTiep).daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
-              </Link>
-            )}
-            {cauCanOn > 0 && (
-              <Link to="/review?loai=cau" className="ui-button ui-button--ghost px-5 py-2.5">
-                Ôn {cauCanOn} câu sai
-              </Link>
-            )}
-          </div>
-        )}
       </header>
 
-      <LichBuoiHoc khoa={khoa} buoiTiep={buoiTiep} />
+      {buoiTiep ? (
+        <TheDangHoc khoa={khoa} buoiTiep={buoiTiep} cauCanOn={cauCanOn} soBuoiXong={soBuoiXong} tongBuoi={tongBuoi} />
+      ) : (
+        <p className="kh-trong">Bạn đã học xong mọi buổi hiện có.</p>
+      )}
 
-      <ul className="kh-ds-buoi">
-        {khoa.lessons.map((bai) => (
-          <li key={bai.lesson_number}>
-            <TheBuoiHoc khoaId={khoa.id} bai={bai} />
-          </li>
-        ))}
-      </ul>
+      <section className="kh-ban-do" aria-labelledby={`ban-do-${khoa.id}`}>
+        <div className="kh-ban-do__dau">
+          <h3 id={`ban-do-${khoa.id}`} className="kh-ban-do__ten">{tongBuoi} buổi</h3>
+          <ul className="kh-chu-giai" aria-label="Chú giải">
+            <li><span className="kh-chu-giai__o kh-chu-giai__o--xong" aria-hidden="true" />Đã xong</li>
+            <li><span className="kh-chu-giai__o kh-chu-giai__o--tiep" aria-hidden="true" />Đang học</li>
+            <li><span className="kh-chu-giai__o" aria-hidden="true" />Chưa học</li>
+          </ul>
+        </div>
+        <LichBuoiHoc khoa={khoa} buoiTiep={buoiTiep} />
+      </section>
+
+      <section aria-labelledby={`ds-buoi-${khoa.id}`}>
+        <h3 id={`ds-buoi-${khoa.id}`} className="kh-ban-do__ten">Danh sách buổi</h3>
+        <ol className="kh-ds-buoi">
+          {khoa.lessons.map((bai) => (
+            <li key={bai.lesson_number}>
+              <DongBuoiHoc khoaId={khoa.id} bai={bai} laBuoiTiep={bai === buoiTiep} />
+            </li>
+          ))}
+        </ol>
+      </section>
     </section>
   );
 }

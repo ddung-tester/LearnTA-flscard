@@ -1431,29 +1431,45 @@
   margin-top: 0.35rem;
 }
 
+/* Bản đồ 48 buổi là lối nhảy nhanh (danh sách chi tiết ở dưới): điện thoại 8 cột, ô ~38px */
 @media (max-width: 480px) {
   .kh-lich {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    padding: 0.7rem;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 0.3rem;
+    padding: 0.6rem;
+  }
+
+  .kh-lich__o {
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
   }
 }
 
+/* Danh sách buổi: dòng gọn; máy tính 2 cột đọc từ trên xuống (1–24 | 25–48) */
 .kh-ds-buoi {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
   list-style: none;
   padding: 0;
 }
 
-@media (min-width: 600px) {
+@media (min-width: 1024px) {
   .kh-ds-buoi {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: block;
+    columns: 2;
+    column-gap: 0.75rem;
+  }
+
+  .kh-ds-buoi > li {
+    break-inside: avoid;
+    margin-bottom: 0.5rem;
   }
 }
 
 /* Trang Khoá học rộng 72rem trên laptop/PC (BoCuc.laTrangRong): lưới 48 buổi 8 cột thì ô ~135px, cao ~820px
-   → 12 cột từ 768px, 16 cột (3 hàng) từ 1024px; danh sách buổi 3 cột từ 1100px */
-@media (min-width: 768px) {
+   → 12 cột từ 561px (màn trong Galaxy Z Fold), 16 cột (3 hàng) từ 1024px */
+@media (min-width: 561px) {
   .kh-lich {
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
@@ -1465,11 +1481,6 @@
   }
 }
 
-@media (min-width: 1100px) {
-  .kh-ds-buoi {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 
 .kh-buoi {
   display: flex;
@@ -1546,6 +1557,280 @@
   height: 100%;
   border-radius: inherit;
   background: var(--mau-chinh);
+}
+
+/* Dòng buổi gọn (trang Khoá học) */
+.kh-buoi--dong {
+  position: relative;
+  gap: 0.85rem;
+  border-radius: 0.8rem;
+  padding: 0.6rem 0.9rem;
+}
+
+.kh-buoi--dong .kh-buoi__so {
+  min-width: 2.2rem;
+  font-size: 1.35rem;
+}
+
+.kh-buoi--dong .kh-buoi__ten {
+  overflow: hidden;
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kh-buoi--dong .kh-buoi__thanh {
+  height: 0.2rem;
+  margin-top: 0.3rem;
+}
+
+.kh-buoi--xong .kh-buoi__so {
+  color: var(--kh-dung-chu);
+}
+
+.kh-buoi--tiep {
+  border-color: var(--mau-chinh);
+  box-shadow: inset 4px 0 0 var(--mau-le-do);
+}
+
+.kh-buoi__nhan-tiep {
+  font-weight: 700;
+  color: var(--mau-le-do);
+}
+
+/* Thẻ "Đang học" đầu trang Khoá học */
+.kh-tiep {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1.1rem;
+  background: var(--mau-giay);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 3px 0 color-mix(in oklch, var(--mau-chinh) 16%, transparent);
+}
+
+.kh-tiep__chinh {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.kh-tiep__nhan {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--mau-le-do);
+}
+
+.kh-tiep__ten {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3.2vw, 1.6rem);
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--mau-chu);
+}
+
+.kh-tiep__cac-buoc {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.kh-tiep__buoc {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.8rem;
+  background: var(--mau-mat);
+  padding: 0.55rem 0.7rem;
+  color: var(--mau-chu);
+  text-decoration: none;
+}
+
+.kh-tiep__buoc:hover {
+  border-color: var(--mau-chinh);
+}
+
+.kh-tiep__buoc:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.kh-tiep__buoc-so {
+  display: inline-grid;
+  flex-shrink: 0;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 1.5px solid var(--mau-vien-manh);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--mau-chu-phu);
+}
+
+.kh-tiep__buoc--xong .kh-tiep__buoc-so {
+  border-color: var(--kh-dung-chu);
+  background: var(--kh-dung-chu);
+  color: var(--mau-chu-tren-chinh);
+}
+
+.kh-tiep__buoc-chu {
+  display: grid;
+  min-width: 0;
+}
+
+.kh-tiep__buoc-ten {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.kh-tiep__buoc-gia-tri {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mau-chu-phu);
+}
+
+.kh-tiep__tong {
+  display: grid;
+  align-content: center;
+  gap: 0.3rem;
+}
+
+.kh-tiep__tong-so {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--mau-chinh);
+  font-variant-numeric: tabular-nums;
+}
+
+.kh-tiep__tong-so small {
+  font-size: 1.1rem;
+  color: var(--mau-chu-mo);
+}
+
+.kh-tiep__tong-nhan {
+  font-size: 0.85rem;
+  color: var(--mau-chu-phu);
+}
+
+@media (min-width: 768px) {
+  .kh-tiep {
+    grid-template-columns: minmax(0, 1fr) 10rem;
+    align-items: center;
+    padding: 1.5rem 1.75rem;
+  }
+
+  .kh-tiep__tong {
+    border-left: 1px dashed var(--mau-vien);
+    padding-left: 1.5rem;
+  }
+}
+
+/* Điện thoại hẹp: 3 bước xếp dọc, gọn; tổng tiến độ thành một hàng */
+@media (max-width: 480px) {
+  .kh-tiep {
+    gap: 0.9rem;
+    padding: 1rem;
+  }
+
+  .kh-tiep__cac-buoc {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+
+  .kh-tiep__buoc {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .kh-tiep__buoc-chu {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.5rem;
+  }
+
+}
+
+/* Dưới 768px tổng tiến độ nằm dưới nút (không có cột phải): gọn thành một hàng */
+@media (max-width: 767px) {
+  .kh-tiep__tong {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    column-gap: 0.5rem;
+  }
+
+  .kh-tiep__tong-so {
+    font-size: 1.5rem;
+  }
+
+  .kh-tiep__tong .kh-buoi__thanh {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Bản đồ 48 buổi: tiêu đề + chú giải màu */
+.kh-ban-do {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.kh-ban-do__dau {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+
+.kh-ban-do__ten {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.kh-chu-giai {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  list-style: none;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--mau-chu-phu);
+}
+
+.kh-chu-giai li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.kh-chu-giai__o {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1.5px solid color-mix(in oklch, var(--mau-chinh) 45%, transparent);
+  border-radius: 0.2rem;
+  background: var(--mau-mat);
+}
+
+.kh-chu-giai__o--xong {
+  border-color: var(--kh-dung-chu);
+  background: var(--kh-dung-chu);
+}
+
+.kh-chu-giai__o--tiep {
+  border-color: var(--mau-chinh);
+  background: var(--mau-chinh);
+  outline: 2px solid var(--mau-le-do);
+  outline-offset: 1px;
 }
 
 @keyframes kh-hien {
