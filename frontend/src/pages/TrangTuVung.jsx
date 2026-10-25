@@ -7,7 +7,7 @@ const TAB_DA_CHUYEN = new Set(["buoi", "lo-trinh"]);
 
 /**
  * TrangTuVung — mục "Bộ từ": các bộ từ người học tự tạo (tạo, sửa, nhập từ, học).
- * Bộ từ của khoá học và lộ trình mẫu nằm ở mục "Học".
+ * Bộ từ của khoá học và lộ trình mẫu nằm ở mục "Khoá học".
  */
 function TrangTuVung() {
   const [searchParams] = useSearchParams();

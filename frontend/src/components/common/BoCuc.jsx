@@ -10,6 +10,7 @@ import NutAmThanh from "./NutAmThanh";
 import NutDenBan from "./NutDenBan";
 import useNhoViTriCuon from "../../hooks/useNhoViTriCuon";
 import LinkTroVe from "./LinkTroVe";
+import ThanhTabDay from "./ThanhTabDay";
 import { CHE_DO_HOC } from "../../contexts/BoDangHocContext";
 
 const MeoHocCung = lazy(() => import("./MeoHocCung"));
@@ -24,11 +25,11 @@ const laTrangHoc = (path, nguonBo) =>
   path.startsWith("/roadmap") ||
   (laTrangBo(path) && laBoCuaHoc(nguonBo));
 
-// Menu theo việc người học làm: Hôm nay → Học (khoá + lộ trình mẫu) → Bộ từ (tự tạo) → Ôn tập.
+// Menu theo việc người học làm: Hôm nay → Khoá học (khoá + lộ trình mẫu) → Bộ từ (tự tạo) → Ôn tập.
 // laActive(path, nguonBo): nguonBo = nguồn của bộ đang xem ở /decks/:id (null khi chưa biết)
 const DS_TAB_DIEU_HUONG = [
   { to: "/dashboard", nhan: "Hôm nay", laActive: (path) => path === "/dashboard" },
-  { to: "/khoa-hoc", nhan: "Học", laActive: laTrangHoc },
+  { to: "/khoa-hoc", nhan: "Khoá học", laActive: laTrangHoc },
   {
     to: "/decks",
     nhan: "Bộ từ",
@@ -38,8 +39,8 @@ const DS_TAB_DIEU_HUONG = [
   { to: "/review", nhan: "Ôn tập", laActive: laTrangOnTap, coSoDenHan: true },
 ];
 
-// Khách: lộ trình mẫu nằm ở mục Học
-const TAB_KHACH = [{ to: "/khoa-hoc", nhan: "Học", laActive: laTrangHoc }];
+// Khách: lộ trình mẫu nằm ở mục Khoá học
+const TAB_KHACH = [{ to: "/khoa-hoc", nhan: "Khoá học", laActive: laTrangHoc }];
 
 // Khoá dựng trang: bỏ đoạn bước của buổi học khỏi đường dẫn
 const khoaTrang = (path) => path.replace(/^(\/khoa-hoc\/[^/]+\/bai\/[^/]+)\/[^/]+$/, "$1");
@@ -148,6 +149,13 @@ function BoCuc() {
     };
   }, [isAuthenticated, viTri.pathname]);
   const soTuDenHan = isAuthenticated ? soTuDenHanLocal + soCauDenHan : 0;
+  // Điện thoại: 4 mục chính xuống đáy màn (CSS chỉ hiện ở ≤640px). body.co-tab-day: các phần tử nổi ở đáy
+  // (nút chat, mèo, thanh Tiếp tục, toast) nhích lên trên thanh
+  const coThanhTabDay = isAuthenticated && !laPhienHoc && !laTrangAuth;
+  useEffect(() => {
+    document.body.classList.toggle("co-tab-day", coThanhTabDay);
+    return () => document.body.classList.remove("co-tab-day");
+  }, [coThanhTabDay]);
   // Gạch chân trượt theo tab đang mở. Đo vị trí tab sau khi trình duyệt đã vẽ (bố cục đã tính sẵn,
   // không ép tính lại); trước đây layoutId của motion đo cả trang ngay lúc render (~80 ms trên
   // trang dài, CPU điện thoại). Lần đặt đầu không trượt.
@@ -244,6 +252,7 @@ function BoCuc() {
 
   return (
     <div className={laPhienHoc ? "app-shell app-shell--study" : "min-h-screen"}>
+      {coThanhTabDay && <ThanhTabDay dsTab={dsTab} laTabDangMo={laTabDangMo} soTuDenHan={soTuDenHan} />}
       <header className="app-shell-header app-shell-header--dashboard">
         <div className="app-shell-header__inner--dashboard mx-auto flex items-center justify-between gap-3 px-4 sm:px-6">
           <Link
@@ -256,8 +265,8 @@ function BoCuc() {
           </Link>
           {hocTrongBuoi && (
             <nav className="dash-nav__duong-dan" aria-label="Đang học">
-              <LinkTroVe to="/khoa-hoc" className="dash-nav__duong-dan-muc dash-nav__duong-dan-muc--goc">Khoá học</LinkTroVe>
-              <span className="dash-nav__duong-dan-muc dash-nav__duong-dan-muc--goc" aria-hidden="true">›</span>
+              <LinkTroVe to="/khoa-hoc" className="dash-nav__duong-dan-muc">Khoá học</LinkTroVe>
+              <span className="dash-nav__duong-dan-muc" aria-hidden="true">›</span>
               <LinkTroVe to={`/khoa-hoc/${hocTrongBuoi.khoa}/bai/${hocTrongBuoi.buoi}/tu-vung`} className="dash-nav__duong-dan-muc">
                 Buổi {hocTrongBuoi.buoi}
               </LinkTroVe>

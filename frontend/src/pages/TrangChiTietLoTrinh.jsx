@@ -21,7 +21,7 @@ function TrangChiTietLoTrinh() {
   const { slug } = useParams();
   const { isAuthenticated } = useAuth();
   // Lộ trình mẫu nằm ở mục Học (cạnh khoá học) cho cả khách và người đã đăng nhập
-  const noiQuayLai = { to: "/khoa-hoc", nhan: "Học" };
+  const noiQuayLai = { to: "/khoa-hoc", nhan: "Khoá học" };
   const { setPageDataLoading } = usePageTransition();
   const [trangThai, setTrangThai] = useState({ slug: null, loTrinh: null, loi: "" });
   const dangTai = trangThai.slug !== slug;

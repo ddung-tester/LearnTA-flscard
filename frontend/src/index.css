@@ -5729,6 +5729,23 @@ body.has-video-background--app .app-shell-header {
   }
 }
 
+/* 641–700px (vừa quá mốc thanh tab dưới đáy): tab "Khoá học" dài hơn → lề tab hẹp thêm để không tràn */
+@media (min-width: 561px) and (max-width: 700px) {
+  .dash-nav__link,
+  .dash-nav__user-btn {
+    padding: 0 0.45rem;
+  }
+
+  .dash-nav__link::after {
+    left: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .dash-nav__indicator {
+    --le: 0.45rem;
+  }
+}
+
 @media (max-width: 560px) {
   .dash-nav__indicator {
     --le: 0.625rem;
@@ -9608,9 +9625,130 @@ a.dash-nav__duong-dan-muc:hover {
   color: var(--mau-chu);
 }
 
-/* Điện thoại: bỏ "Khoá học ›", còn Buổi n › chế độ */
+/* Điện thoại: logo + 2 nút + tài khoản đã kín một hàng — trang học có sẵn nút Trở về, bỏ đường dẫn */
 @media (max-width: 480px) {
-  .dash-nav__duong-dan-muc--goc {
+  .dash-nav__duong-dan {
     display: none;
+  }
+}
+
+/* Thanh tab dưới đáy (components/common/ThanhTabDay) — chỉ điện thoại ≤640px; máy lớn dùng menu trên header */
+.thanh-tab-day {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  body.co-tab-day {
+    --cao-thanh-tab: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .thanh-tab-day {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: var(--cao-thanh-tab);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid oklch(47% 0.06 56/ 0.16);
+    background: oklch(97% 0.015 77/ 0.9);
+    backdrop-filter: blur(16px) saturate(1.15);
+    -webkit-backdrop-filter: blur(16px) saturate(1.15);
+    box-shadow: 0 -2px 12px oklch(23% 0.03 60/ 0.06);
+  }
+
+  .thanh-tab-day__muc {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    color: var(--mau-chu-phu);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .thanh-tab-day__muc:focus-visible {
+    outline: 2px solid var(--mau-chinh);
+    outline-offset: -4px;
+    border-radius: 0.75rem;
+  }
+
+  .thanh-tab-day__icon {
+    position: relative;
+    display: inline-grid;
+    width: 3.25rem;
+    height: 1.9rem;
+    place-items: center;
+    border-radius: 999px;
+    transition: background var(--tuong-tac-hover) var(--tuong-tac-ease);
+  }
+
+  .thanh-tab-day__icon svg {
+    width: 1.3rem;
+    height: 1.3rem;
+  }
+
+  .thanh-tab-day__muc--mo {
+    color: var(--mau-chinh);
+  }
+
+  .thanh-tab-day__muc--mo .thanh-tab-day__icon {
+    background: color-mix(in oklch, var(--mau-chinh) 14%, transparent);
+  }
+
+  .thanh-tab-day__nhan {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .thanh-tab-day__so {
+    position: absolute;
+    top: -0.2rem;
+    right: 0.35rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: var(--mau-le-do);
+    padding: 0 0.25rem;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.1rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Header còn một hàng: logo + tài khoản (tab đã xuống đáy) */
+  body.co-tab-day .dash-nav__tabs--day-du {
+    display: none;
+  }
+
+  /* Phần tử nổi ở đáy nhích lên trên thanh tab; trang chừa thêm đáy bằng chiều cao thanh */
+  body.co-tab-day .app-shell-main:not(.app-shell-main--study) {
+    padding-bottom: calc(6.5rem + var(--cao-thanh-tab));
+  }
+
+  body.co-tab-day .chatbot-bubble {
+    bottom: calc(18px + var(--cao-thanh-tab));
+  }
+
+  body.co-tab-day .meo-hoc {
+    bottom: calc(10px + var(--cao-thanh-tab));
+  }
+
+  body.co-tab-day .ui-thanh-tiep-tuc--co-dinh {
+    bottom: var(--cao-thanh-tab);
+  }
+
+  body.co-tab-day .ui-toast {
+    bottom: calc(1.25rem + var(--cao-thanh-tab));
   }
 }

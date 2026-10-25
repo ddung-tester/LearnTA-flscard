@@ -481,6 +481,13 @@
   box-shadow: 0 1px 14px rgba(0, 0, 0, 0.4);
 }
 
+/* Thanh tab dưới đáy (điện thoại): cùng kính mờ tối với header */
+:root[data-giao-dien="den-ban"] .thanh-tab-day {
+  border-top-color: rgba(246, 222, 180, 0.12);
+  background: oklch(19% 0.02 60 / 0.88);
+  box-shadow: 0 -1px 14px rgba(0, 0, 0, 0.4);
+}
+
 /* Phần xa đèn chìm vào bóng tối (dưới mèo, chatbot, modal) */
 .den-ban-bong {
   position: fixed;
