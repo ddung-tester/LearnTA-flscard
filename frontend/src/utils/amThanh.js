@@ -170,7 +170,7 @@ const BAN_AM = {
     nhieu(c, { dai: 0.45, to: 0.09, locTu: 900, locDen: 4200, q: 0.8 });
     not(c, { tanSo: 880, tanSoCuoi: 1320, dai: 0.4, to: 0.025 });
   },
-  // Hiệu ứng thưởng: vòng ấn bung mở cổng (hợp âm chuông mềm, ngân dài, không tiếng nổ)
+  // Hiệu ứng thưởng: quả cầu sáng nở thành cổng (hợp âm chuông mềm, ngân dài, không tiếng nổ)
   phepNo(c) {
     [659.25, 987.77, 1318.5, 1975.5].forEach((tanSo, i) => {
       not(c, { tanSo, batDau: i * 0.06, dai: 0.9 - i * 0.1, to: 0.06 - i * 0.008 });
