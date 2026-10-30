@@ -504,6 +504,10 @@ test("tachPhanDungCuaGiaiThich turns the right-answer explanation into the 'Đú
     "Đúng vì: **was** đi với số ít.\nNhớ: he + **was**"
   );
   assert.equal(tachPhanDungCuaGiaiThich("**Đúng rồi:** vì x\n**Nhớ:** y"), "Đúng vì: vì x\n**Nhớ:** y");
+  assert.equal(
+    tachPhanDungCuaGiaiThich("Đúng rồi: x\nNhớ: y\nVí dụ khác: He was ill. (Anh ấy ốm)"),
+    "Đúng vì: x\nNhớ: y\nVí dụ khác: He was ill. (Anh ấy ốm)"
+  );
   assert.equal(tachPhanDungCuaGiaiThich("Sai vì: x\nĐúng vì: y\nNhớ: z"), null);
   assert.equal(tachPhanDungCuaGiaiThich("Đúng rồi:\nNhớ: y"), null);
 });

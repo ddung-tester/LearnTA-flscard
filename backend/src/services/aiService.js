@@ -231,7 +231,9 @@ const LUAT_TRINH_BAY =
 const LUAT_NOI_DUNG = `- Chỉ giải thích đúng điểm mà CÂU NÀY kiểm tra (ngữ pháp, hay nghĩa/cách dùng của từ), dựa vào chính các từ trong câu và câu trả lời.
 - KHÔNG nhắc lại lý thuyết chung của bài, không mở đầu bằng định nghĩa hay tên chủ điểm.
 - Dòng đầu đi thẳng vào câu trả lời: trích đúng từ đó (in đậm) và nói vì sao nó đúng/sai trong câu này.
-- Dòng "Nhớ" là mẹo cho đúng trường hợp này (câu từ vựng: nghĩa/cách dùng của từ); ví dụ là một câu MỚI, không chép lại đề.`;
+- Chỉ ra DẤU HIỆU có trong chính câu dẫn tới đáp án (chủ ngữ, trạng từ, từ chỉ thời gian, từ đi kèm...), trích nguyên chữ đó (in đậm). Câu có nhiều chỗ trống thì nói lý do cho từng chỗ.
+- Dòng "Nhớ" là quy tắc/mẹo cho đúng trường hợp này (câu từ vựng: nghĩa/cách dùng của từ), KHÔNG kèm ví dụ.
+- Dòng "Ví dụ khác" là một câu tiếng Anh MỚI cùng cấu trúc với đáp án đúng, không chép lại đề, kèm nghĩa tiếng Việt trong ngoặc.`;
 
 /**
  * @param {{ lessonTitle: string, grammar: Array<{ title, pattern }>, question: object,
@@ -247,7 +249,7 @@ function buildCourseExplanationPrompt({ lessonTitle, grammar, question, learnerA
 
 ${moTaDeBai({ lessonTitle, grammar, question })}Người học trả lời: ${answer} → ${isCorrect ? "ĐÚNG" : "SAI"}
 ${banCu ? `\nBản giải thích trước người học thấy CHƯA ỔN (sai, lan man hoặc khó hiểu):\n${banCu}\nHãy viết lại: kiểm tra kỹ kiến thức, sửa chỗ chưa đúng, đi thẳng vào điểm câu này kiểm tra, diễn đạt khác bản trước.\n` : ""}
-Trả lời bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "2" : "3"} dòng theo mẫu:
+Trả lời bằng tiếng Việt, thật ngắn (tối đa 70 từ), dễ hiểu với người mất gốc, viết ĐÚNG ${isCorrect ? "3" : "4"} dòng theo mẫu:
 ${isCorrect ? MAU_GIAI_THICH_DUNG : MAU_GIAI_THICH_SAI}
 ${LUAT_NOI_DUNG}
 ${LUAT_TRINH_BAY}`;
@@ -283,18 +285,19 @@ function buildAllAnswersPrompt(input) {
 
 ${moTaDeBai(input)}
 Soạn lời giải thích cho: ${canSoan}.
-Mỗi lời giải thích bằng tiếng Việt, thật ngắn (tối đa 60 từ), dễ hiểu với người mất gốc, xuống dòng bằng \\n, và nói đúng vào lỗi của chính câu trả lời đó.
+Mỗi lời giải thích bằng tiếng Việt, thật ngắn (tối đa 70 từ), dễ hiểu với người mất gốc, xuống dòng bằng \\n, và nói đúng vào lỗi của chính câu trả lời đó.
 ${LUAT_NOI_DUNG}
-- Câu trả lời SAI viết đúng 3 dòng:
+- Câu trả lời SAI viết đúng 4 dòng:
 ${MAU_GIAI_THICH_SAI}
-- Câu trả lời ĐÚNG viết đúng 2 dòng:
+- Câu trả lời ĐÚNG viết đúng 3 dòng:
 ${MAU_GIAI_THICH_DUNG}
 ${LUAT_TRINH_BAY}
 
 Chỉ trả về JSON dạng: {"giai_thich": [{"tra_loi": "<${isMultipleChoice ? "chữ cái lựa chọn" : "câu trả lời như người học gõ"}>", "dung": true|false, "giai_thich": "<lời giải thích>"}]}`;
 }
 
-const MAU_NHO = "Nhớ: <quy tắc hoặc công thức ngắn> — ví dụ: <1 câu tiếng Anh ngắn> (<nghĩa>)";
+const MAU_NHO = `Nhớ: <quy tắc hoặc công thức ngắn>
+Ví dụ khác: <1 câu tiếng Anh ngắn> (<nghĩa>)`;
 const MAU_GIAI_THICH_DUNG = `Đúng rồi: <1 câu vì sao đáp án này hợp với chính câu này>
 ${MAU_NHO}`;
 const MAU_GIAI_THICH_SAI = `Sai vì: <1 câu chỉ ra chỗ sai cụ thể trong câu trả lời của người học>
@@ -325,7 +328,8 @@ const MODEL_VIET_LAI = [
   { model: "gemini-3.5-flash", generationConfig: THINKING_TOI_THIEU },
   { model: "gemini-flash-lite-latest" },
 ];
-const TOKEN_GIAI_THICH_TOI_DA = 260;
+// Thêm dòng "Ví dụ khác" riêng nên nới trần token (trước 260)
+const TOKEN_GIAI_THICH_TOI_DA = 340;
 
 /**
  * Giải thích một câu bài tập. onChunk (tuỳ chọn): nhận từng đoạn chữ ngay khi AI viết ra.
@@ -374,7 +378,7 @@ async function explainCourseQuestion(input, { onChunk, models = MODEL_GIAI_THICH
 // Câu điền từ: soạn sẵn nhiều lỗi hay gặp hơn để câu gõ sai thường đã có lời giải thích (hiện ngay)
 const SO_LOI_THUONG_GAP = 6;
 const THOI_HAN_SOAN_TRUOC_MS = 15000;
-const TOKEN_SOAN_TRUOC_TOI_DA = 1800;
+const TOKEN_SOAN_TRUOC_TOI_DA = 2400;
 
 function docJsonAI(text) {
   const clean = String(text || "").replace(/```json?\s*/gi, "").replace(/```/g, "").trim();
@@ -600,7 +604,71 @@ async function translateExampleSentence(input, { models = MODEL_GIAI_THICH_NHANH
   throw lastError;
 }
 
+// ── Dịch đề bài và các lựa chọn của câu bài tập khoá học (nút "Dịch") ─────────
+
+function buildQuestionTranslationPrompt({ lessonTitle, grammar = [], vocabulary = [], question }) {
+  const isMultipleChoice = question.type === "multiple_choice";
+  const options = isMultipleChoice
+    ? question.options.map((option) => `${option.key}. ${option.text}`).join("\n")
+    : "(không có)";
+  const nguPhap = grammar.map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`).join("\n");
+  const tuVung = vocabulary.map((tu) => `- ${tu.term_en}: ${tu.meaning_vi}`).join("\n");
+  return `Dịch một câu bài tập tiếng Anh sang tiếng Việt tự nhiên, dễ hiểu cho người mới học, ĐÚNG NGỮ CẢNH của câu và của bài học.
+
+Bài học: ${lessonTitle || "(không rõ)"}
+${nguPhap ? `Ngữ pháp của bài:\n${nguPhap}\n` : ""}${tuVung ? `Từ vựng của bài có trong câu (BẮT BUỘC dịch đúng nghĩa này):\n${tuVung}\n` : ""}${question.instruction ? `Yêu cầu của đề: ${question.instruction}\n` : ""}${question.listen_text ? `Lời thoại bài nghe: ${question.listen_text}\n` : ""}
+Đề bài: """${question.prompt}"""
+Các lựa chọn:
+${options}
+
+Quy tắc:
+- Hiểu cả câu trước rồi mới dịch: chọn nghĩa của từ hợp với ngữ cảnh câu (không dịch từng chữ, không lấy nghĩa đầu tiên trong từ điển).
+- Giữ nguyên chỗ trống (___) ở đúng vị trí, KHÔNG tự điền đáp án vào chỗ trống, không chỉ ra đáp án nào đúng.
+- Lựa chọn dịch theo nghĩa của nó khi đặt vào câu này.
+- Đề có nhiều dòng thì giữ xuống dòng như đề gốc.
+- Lựa chọn là từ/cụm từ: dịch nghĩa ngắn gọn. Lựa chọn chỉ là dạng ngữ pháp (vd "has - painted") thì ghi nghĩa gốc của từ, không giải thích ngữ pháp.
+Chỉ trả về JSON dạng: {"de_bai": "<bản dịch đề>", "lua_chon": {${isMultipleChoice ? question.options.map((option) => `"${option.key}": "<bản dịch>"`).join(", ") : ""}}}`;
+}
+
+/** Dịch đề + lựa chọn của một câu bài tập → { prompt, options: { [key]: bản dịch } } */
+async function translateCourseQuestion(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildQuestionTranslationPrompt(input);
+  const keys = new Set((input.question.options || []).map((option) => option.key));
+  let lastError;
+  for (const mucModel of xepTheoLuot(models)) {
+    try {
+      const model = genAI.getGenerativeModel(
+        {
+          model: mucModel.model,
+          generationConfig: { maxOutputTokens: 800, responseMimeType: "application/json", ...mucModel.generationConfig },
+        },
+        { timeout: THOI_HAN_GIAI_THICH_MS }
+      );
+      const result = await model.generateContent(prompt);
+      const duLieu = docJsonAI(result.response.text());
+      const deBai = String(duLieu?.de_bai ?? "").trim();
+      if (!deBai) throw new Error("AI trả về bản dịch trống");
+      const options = {};
+      for (const [key, banDich] of Object.entries(duLieu?.lua_chon || {})) {
+        const chu = String(banDich ?? "").trim();
+        if (keys.has(key.toUpperCase()) && chu) options[key.toUpperCase()] = chu.slice(0, 300);
+      }
+      return { prompt: deBai.slice(0, 2000), options };
+    } catch (error) {
+      ghiNhanLoi(mucModel, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
+  buildQuestionTranslationPrompt,
+  translateCourseQuestion,
   buildExampleTranslationPrompt,
   translateExampleSentence,
   MODEL_VIET_LAI,

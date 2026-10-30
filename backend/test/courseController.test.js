@@ -12,6 +12,7 @@ const {
   getLesson,
   prepareQuestion,
   rateExplanation,
+  translateQuestion,
   getQuestionAudio,
   listCourses,
   listDueQuestions,
@@ -705,4 +706,70 @@ test("an off-topic AI explanation is shown but not cached, so it is rewritten ne
 
   assert.deepEqual(res.body, { explanation: "Thì hiện tại đơn dùng cho thói quen.", cached: false });
   assert.equal(calls.length, 2);
+});
+
+test("translateQuestion translates with the lesson's own vocabulary and caches the result", async () => {
+  const cau = { ...CAU_TRAC_NGHIEM, id: 41, lesson_id: 3, prompt: "The lamp _____ on in the hall." };
+  const calls = fakePool([
+    [{ ...cau, lesson_title: "Bài 3", lesson_content: { grammar: [{ title: "to be" }] } }],
+    [
+      { term_en: "lamp", meaning_vi: "cái đèn" },
+      { term_en: "kitchen", meaning_vi: "nhà bếp" },
+    ],
+    [{ ...cau, lesson_title: "Bài 3", lesson_content: {} }],
+  ]);
+  let soLanGoi = 0;
+  let input;
+  aiService.translateCourseQuestion = async (value) => {
+    soLanGoi += 1;
+    input = value;
+    return { prompt: "Cái đèn _____ bật ở sảnh.", options: { A: "là", B: "là (số nhiều)" } };
+  };
+  const res = fakeRes();
+  await translateQuestion({ user: { id: 7 }, params: { questionId: "41" } }, res);
+
+  assert.deepEqual(calls[0].params, [41, 7]);
+  assert.equal(calls[1].params[0], 3);
+  // Chỉ gửi từ của bài có trong câu
+  assert.deepEqual(input.vocabulary, [{ term_en: "lamp", meaning_vi: "cái đèn" }]);
+  assert.equal(input.lessonTitle, "Bài 3");
+  assert.equal(res.body.prompt, "Cái đèn _____ bật ở sảnh.");
+
+  const res2 = fakeRes();
+  await translateQuestion({ user: { id: 7 }, params: { questionId: "41" } }, res2);
+  assert.equal(soLanGoi, 1);
+  assert.deepEqual(res2.body, res.body);
+});
+
+test("buildQuestionTranslationPrompt keeps blanks unanswered and pins the lesson vocabulary", () => {
+  const prompt = aiService.buildQuestionTranslationPrompt({
+    lessonTitle: "Bài 3",
+    grammar: [{ title: "Hiện tại hoàn thành", pattern: "have/has + V3" }],
+    vocabulary: [{ term_en: "paint", meaning_vi: "sơn" }],
+    question: {
+      type: "multiple_choice",
+      prompt: "My father _____ already _____ the wall.",
+      options: [
+        { key: "A", text: "have - painted" },
+        { key: "B", text: "has - painted" },
+      ],
+    },
+  });
+  assert.match(prompt, /paint: sơn/);
+  assert.match(prompt, /Hiện tại hoàn thành/);
+  assert.match(prompt, /KHÔNG tự điền đáp án/);
+  assert.match(prompt, /"A": "<bản dịch>", "B": "<bản dịch>"/);
+});
+
+test("explanation prompts put the extra example on its own 'Ví dụ khác' line", () => {
+  const prompt = aiService.buildCourseExplanationPrompt({
+    lessonTitle: "Bài 3",
+    grammar: [],
+    question: CAU_TRAC_NGHIEM,
+    learnerAnswer: "B",
+    isCorrect: false,
+  });
+  assert.match(prompt, /\nVí dụ khác: /);
+  assert.match(prompt, /DẤU HIỆU/);
+  assert.doesNotMatch(prompt, /— ví dụ:/);
 });

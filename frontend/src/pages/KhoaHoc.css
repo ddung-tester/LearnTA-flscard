@@ -755,6 +755,49 @@
   white-space: pre-line;
 }
 
+.kh-cau__de-noi-dung {
+  flex: 1;
+  min-width: 0;
+}
+
+.kh-cau__de-nut {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.kh-nut-loa:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* Bản dịch tiếng Việt (nút "Dịch"): nằm ngay dưới đề bài / dưới chữ của từng lựa chọn */
+.kh-dich {
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--mau-chu-phu);
+  white-space: pre-line;
+}
+
+.kh-dich--de {
+  margin-top: 0.4rem;
+}
+
+.kh-dich--lua-chon {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.kh-dich--loi {
+  margin-top: 0.4rem;
+  font-style: normal;
+  color: var(--mau-loi);
+}
+
 /* Bài nghe: trình phát file riêng tư hoặc nút đọc lời thoại */
 .kh-nghe {
   display: grid;
@@ -1033,6 +1076,32 @@
 }
 
 .kh-ai__van-ban strong {
+  color: var(--mau-chinh);
+}
+
+/* "Ví dụ khác" tách khỏi lời giải thích, nằm riêng bên dưới */
+.kh-ai__vi-du {
+  margin-top: 0.2rem;
+  border-top: 1px dashed var(--mau-vien);
+  padding-top: 0.5rem;
+}
+
+.kh-ai__vi-du-nhan {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mau-chu-phu);
+}
+
+.kh-ai__vi-du-cau {
+  margin-top: 0.15rem;
+  font-size: 0.975rem;
+  line-height: 1.6;
+  color: var(--mau-chu);
+}
+
+.kh-ai__vi-du-cau strong {
   color: var(--mau-chinh);
 }
 

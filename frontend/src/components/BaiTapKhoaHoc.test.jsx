@@ -4,6 +4,7 @@ import BaiTapKhoaHoc from "./BaiTapKhoaHoc";
 
 vi.mock("../services/courseApi", () => ({
   chuanBiGiaiThich: vi.fn(() => Promise.resolve({ ready: true })),
+  dichCauHoi: vi.fn(),
   giaiThichCauHoi: vi.fn(),
   layAudioCauHoi: vi.fn(),
   luuTraLoiCauHoi: vi.fn(),
@@ -38,6 +39,14 @@ describe("BaiTapKhoaHoc", () => {
     expect(html).not.toContain("Còn lại");
     expect(html).toContain("Câu một");
     expect(html).toContain("Câu <strong>1</strong> / 3");
+  });
+
+  it("offers a translate button next to the question, with the translation hidden until pressed", () => {
+    const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{}} />);
+
+    expect(html).toContain("Dịch câu hỏi và đáp án");
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).not.toContain("kh-dich");
   });
 
   it("resumes with the questions that are not correct yet", () => {

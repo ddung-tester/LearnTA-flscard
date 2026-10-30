@@ -6,7 +6,7 @@ import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import ThanhTiepTuc from "./common/ThanhTiepTuc";
 import useDuaONhapVaoTam from "../hooks/useDuaONhapVaoTam";
 import { useHoiLearnBot } from "../contexts/ChatbotContext";
-import { danhGiaGiaiThich, giaiThichCauHoi } from "../services/courseApi";
+import { danhGiaGiaiThich, dichCauHoi, giaiThichCauHoi } from "../services/courseApi";
 import { luuTraLoiCoHangCho, soCauDangCho, theoDoiHangCho } from "../services/hangChoTraLoi";
 import {
   capNhatGiaiThich,
@@ -25,6 +25,7 @@ import {
   phanBaiTap,
   phanTichLoiGo,
   tachChuDam,
+  tachViDuKhac,
   taoCauHoiLearnBot,
   timGiaiThichSan,
 } from "../utils/baiTapKhoaHoc";
@@ -51,6 +52,11 @@ const IconLoa = (props) => (
     <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
   </Icon>
 );
+const IconDich = (props) => (
+  <Icon {...props}>
+    <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" />
+  </Icon>
+);
 const IconGiaiThich = (props) => (
   <Icon {...props}>
     <path d="M9 18h6M10 22h4" />
@@ -61,6 +67,26 @@ const IconGiaiThich = (props) => (
 function DoanChuDam({ text }) {
   return tachChuDam(text).map((doan, index) =>
     doan.dam ? <strong key={index}>{doan.text}</strong> : <span key={index}>{doan.text}</span>
+  );
+}
+
+// Lời giải thích + câu "Ví dụ khác" tách thành khối riêng bên dưới
+function VanBanGiaiThich({ text }) {
+  const { chinh, viDu } = tachViDuKhac(text);
+  return (
+    <>
+      <p className="kh-ai__van-ban">
+        <DoanChuDam text={chinh} />
+      </p>
+      {viDu && (
+        <div className="kh-ai__vi-du">
+          <p className="kh-ai__vi-du-nhan">Ví dụ khác</p>
+          <p className="kh-ai__vi-du-cau">
+            <DoanChuDam text={viDu} />
+          </p>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -125,9 +151,7 @@ function GiaiThichAI({ trangThai, onThuLai, onDanhGia, onHoiThem }) {
             <span className="sr-only">Đang soạn lời giải thích</span>
           </>
         )}
-        <p className="kh-ai__van-ban">
-          <DoanChuDam text={trangThai.text ? `${trangThai.text.trim()}\n${trangThai.phanSau}` : trangThai.phanSau} />
-        </p>
+        <VanBanGiaiThich text={trangThai.text ? `${trangThai.text.trim()}\n${trangThai.phanSau}` : trangThai.phanSau} />
         <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} onHoiThem={onHoiThem} />
       </section>
     );
@@ -156,9 +180,7 @@ function GiaiThichAI({ trangThai, onThuLai, onDanhGia, onHoiThem }) {
         </p>
       ) : (
         <>
-          <p className="kh-ai__van-ban">
-            <DoanChuDam text={trangThai.text} />
-          </p>
+          <VanBanGiaiThich text={trangThai.text} />
           <DanhGiaGiaiThich trangThai={trangThai} onDanhGia={onDanhGia} onHoiThem={onHoiThem} />
         </>
       )}
@@ -316,6 +338,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const [chiSo, setChiSo] = useState(0);
   const [ketQua, setKetQua] = useState({});
   const [giaiThich, setGiaiThich] = useState({});
+  // Bản dịch đề + lựa chọn theo câu: { [questionId]: { hien, dangDich, loi, prompt, options } }
+  const [banDich, setBanDich] = useState({});
   const hoiLearnBot = useHoiLearnBot();
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
@@ -455,6 +479,25 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
         sua({ text: explanation, phanSau: "", danhGia: "da-viet" });
       })
       .catch(() => sua({ danhGia: "loi" }));
+  }
+
+  // Bấm "Dịch": hiện bản dịch dưới đề và dưới từng lựa chọn; bấm lại thì ẩn (đã dịch thì không hỏi lại)
+  async function bamDich(cauHienTai) {
+    const id = cauHienTai.id;
+    const sua = (thayDoi) => setBanDich((cu) => ({ ...cu, [id]: { ...cu[id], ...thayDoi } }));
+    const daCo = banDich[id];
+    if (daCo?.dangDich) return;
+    if (daCo?.prompt) {
+      sua({ hien: !daCo.hien });
+      return;
+    }
+    sua({ dangDich: true, loi: "" });
+    try {
+      const ketQua = await dichCauHoi(id);
+      sua({ dangDich: false, hien: true, prompt: ketQua.prompt, options: ketQua.options || {} });
+    } catch (error) {
+      sua({ dangDich: false, loi: error.message || "Chưa dịch được, thử lại nhé" });
+    }
   }
 
   function traLoiCau(traLoi) {
@@ -597,6 +640,8 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const dapAnDung = layDapAnHienThi(cau);
   const soDaLam = Object.keys(ketQua).length;
   const laTracNghiem = cau.type === "multiple_choice";
+  const dich = banDich[cau.id];
+  const hienDich = Boolean(dich?.hien && dich.prompt);
 
   return (
     <div className="kh-bt">
@@ -650,24 +695,50 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
           </div>
         )}
         <div className="kh-cau__de">
-          <p
-            id="kh-de-bai"
-            ref={deBaiRef}
-            tabIndex={-1}
-            className={`kh-cau__de-chu${cau.prompt.length > 90 || cau.prompt.includes("\n") ? " kh-cau__de-chu--dai" : ""}`}
-            lang="en"
-          >
-            {cau.prompt}
-          </p>
-          <button
-            type="button"
-            className={`kh-nut-loa${isPlaying ? " kh-nut-loa--dang-doc" : ""}`}
-            onClick={() => speak(cau.prompt.replace(/_{2,}/g, " blank "), "en-US")}
-            title="Nghe câu hỏi"
-          >
-            <IconLoa />
-            <span className="sr-only">Nghe câu hỏi</span>
-          </button>
+          <div className="kh-cau__de-noi-dung">
+            <p
+              id="kh-de-bai"
+              ref={deBaiRef}
+              tabIndex={-1}
+              className={`kh-cau__de-chu${cau.prompt.length > 90 || cau.prompt.includes("\n") ? " kh-cau__de-chu--dai" : ""}`}
+              lang="en"
+            >
+              {cau.prompt}
+            </p>
+            {hienDich && (
+              <p className="kh-dich kh-dich--de" lang="vi">
+                {dich.prompt}
+              </p>
+            )}
+            {dich?.loi && (
+              <p className="kh-dich kh-dich--loi" role="alert">
+                {dich.loi}
+              </p>
+            )}
+          </div>
+          <div className="kh-cau__de-nut">
+            <button
+              type="button"
+              className={`kh-nut-loa${isPlaying ? " kh-nut-loa--dang-doc" : ""}`}
+              onClick={() => speak(cau.prompt.replace(/_{2,}/g, " blank "), "en-US")}
+              title="Nghe câu hỏi"
+            >
+              <IconLoa />
+              <span className="sr-only">Nghe câu hỏi</span>
+            </button>
+            <button
+              type="button"
+              className={`kh-nut-loa${hienDich ? " kh-nut-loa--dang-doc" : ""}`}
+              onClick={() => bamDich(cau)}
+              disabled={Boolean(dich?.dangDich)}
+              aria-busy={Boolean(dich?.dangDich)}
+              aria-pressed={hienDich}
+              title={dich?.dangDich ? "Đang dịch…" : hienDich ? "Ẩn bản dịch" : "Dịch câu hỏi và đáp án"}
+            >
+              <IconDich />
+              <span className="sr-only">{dich?.dangDich ? "Đang dịch" : hienDich ? "Ẩn bản dịch" : "Dịch câu hỏi và đáp án"}</span>
+            </button>
+          </div>
         </div>
 
         {laTracNghiem ? (
@@ -690,7 +761,14 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
                     aria-keyshortcuts={`${index + 1} ${luaChon.key}`}
                   >
                     <span className="kh-lua-chon__chu" aria-hidden="true">{luaChon.key}</span>
-                    <span className="kh-lua-chon__noi-dung" lang="en">{luaChon.text}</span>
+                    <span className="kh-lua-chon__noi-dung">
+                      <span lang="en">{luaChon.text}</span>
+                      {hienDich && dich.options?.[luaChon.key] && (
+                        <span className="kh-dich kh-dich--lua-chon" lang="vi">
+                          {dich.options[luaChon.key]}
+                        </span>
+                      )}
+                    </span>
                     {laDung && <IconDung className="kh-lua-chon__icon" />}
                     {laChonSai && <IconSai className="kh-lua-chon__icon" />}
                     {(laDung || laChonSai) && (

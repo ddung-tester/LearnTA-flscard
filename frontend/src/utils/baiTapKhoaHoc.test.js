@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   taoCauHoiLearnBot,
   tachPhanDungCuaGiaiThich,
+  tachViDuKhac,
   timGiaiThichSan,
   chiaDongBuoi,
   chuanHoaTraLoi,
@@ -297,5 +298,23 @@ describe("taoCauHoiLearnBot", () => {
     const tin = taoCauHoiLearnBot({ type: "fill_blank", prompt: dai, accepted_answers: ["went"] }, "go", dai);
     expect(tin.length).toBeLessThanOrEqual(2000);
     expect(tin).toContain("Đáp án đúng: went.");
+  });
+});
+
+describe("tachViDuKhac", () => {
+  it("tách dòng 'Ví dụ khác' ra khỏi lời giải thích", () => {
+    expect(tachViDuKhac("Đúng rồi: **has** vì My father số ít.\nNhớ: has + V3\n**Ví dụ khác:** She has eaten. (Cô ấy đã ăn)")).toEqual({
+      chinh: "Đúng rồi: **has** vì My father số ít.\nNhớ: has + V3",
+      viDu: "She has eaten. (Cô ấy đã ăn)",
+    });
+  });
+  it("tách cả đuôi '— ví dụ:' trong dòng Nhớ của lời soạn theo mẫu cũ", () => {
+    expect(tachViDuKhac("Đúng rồi: x\nNhớ: he + **was** — ví dụ: She was tired (Cô ấy mệt)")).toEqual({
+      chinh: "Đúng rồi: x\nNhớ: he + **was**",
+      viDu: "She was tired (Cô ấy mệt)",
+    });
+  });
+  it("không có ví dụ thì giữ nguyên", () => {
+    expect(tachViDuKhac("Sai vì: x\nNhớ: y")).toEqual({ chinh: "Sai vì: x\nNhớ: y", viDu: "" });
   });
 });

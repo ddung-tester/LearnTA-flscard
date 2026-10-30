@@ -97,8 +97,9 @@ function cacTraLoiCanGiaiThich(cauHoi) {
 }
 
 /**
- * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …") lấy ra hai dòng dùng lại
- * cho một câu trả lời gõ sai: "Đúng vì: …" và "Nhớ: …". Khi đó AI chỉ cần viết dòng "Sai vì".
+ * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …" + "Ví dụ khác: …") lấy ra
+ * các dòng dùng lại cho một câu trả lời gõ sai: "Đúng vì: …", "Nhớ: …" và "Ví dụ khác: …" (nếu có).
+ * Khi đó AI chỉ cần viết dòng "Sai vì".
  * Không đúng khuôn thì trả null (gọi AI viết đủ như cũ).
  */
 function tachPhanDungCuaGiaiThich(giaiThich) {
@@ -106,12 +107,14 @@ function tachPhanDungCuaGiaiThich(giaiThich) {
   // Nhãn có thể được in đậm: "Đúng rồi:", "**Đúng rồi:**", "**Đúng rồi**:"
   const nhanDung = /^(\*\*)?đúng rồi(:\*\*|\*\*:|:)\s*/i;
   const nhanNho = /^(\*\*)?nhớ(:\*\*|\*\*:|:)/i;
+  const nhanViDu = /^(\*\*)?ví dụ khác(:\*\*|\*\*:|:)/i;
   const dongDung = cacDong.find((dong) => nhanDung.test(dong));
   const dongNho = cacDong.find((dong) => nhanNho.test(dong));
+  const dongViDu = cacDong.find((dong) => nhanViDu.test(dong));
   if (!dongDung || !dongNho) return null;
   const lyDo = dongDung.replace(nhanDung, "").trim();
   if (!lyDo) return null;
-  return `Đúng vì: ${lyDo}\n${dongNho}`;
+  return `Đúng vì: ${lyDo}\n${dongNho}${dongViDu ? `\n${dongViDu}` : ""}`;
 }
 
 const DO_DAI_GIAI_THICH_TOI_DA = 1200;

@@ -42,6 +42,14 @@ export async function chuanBiGiaiThich(questionId) {
   return response.data;
 }
 
+/** Bản dịch tiếng Việt của đề bài và các lựa chọn → { prompt, options: { [key]: bản dịch } } */
+export async function dichCauHoi(questionId) {
+  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/translate`, {}, {
+    timeout: THOI_GIAN_CHO_AI_MS,
+  });
+  return response.data;
+}
+
 /**
  * Người học chấm lời giải thích AI. tot=true: chỉ ghi nhận (trả null).
  * tot=false: AI viết lại, trả { explanation } bản mới (server đã ghi đè bản cũ).

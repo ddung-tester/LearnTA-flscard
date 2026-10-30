@@ -33,8 +33,9 @@ export function laTraLoiDung(cauHoi, traLoi) {
 }
 
 /**
- * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …") lấy ra hai dòng dùng lại
- * cho một câu trả lời gõ sai: "Đúng vì: …" và "Nhớ: …". Khi đó AI chỉ cần viết dòng "Sai vì".
+ * Từ lời giải thích soạn sẵn cho ĐÁP ÁN ĐÚNG ("Đúng rồi: …" + "Nhớ: …" + "Ví dụ khác: …") lấy ra
+ * các dòng dùng lại cho một câu trả lời gõ sai: "Đúng vì: …", "Nhớ: …" và "Ví dụ khác: …" (nếu có).
+ * Khi đó AI chỉ cần viết dòng "Sai vì".
  * Không đúng khuôn thì trả null (gọi AI viết đủ như cũ).
  */
 export function tachPhanDungCuaGiaiThich(giaiThich) {
@@ -42,12 +43,38 @@ export function tachPhanDungCuaGiaiThich(giaiThich) {
   // Nhãn có thể được in đậm: "Đúng rồi:", "**Đúng rồi:**", "**Đúng rồi**:"
   const nhanDung = /^(\*\*)?đúng rồi(:\*\*|\*\*:|:)\s*/i;
   const nhanNho = /^(\*\*)?nhớ(:\*\*|\*\*:|:)/i;
+  const nhanViDu = /^(\*\*)?ví dụ khác(:\*\*|\*\*:|:)/i;
   const dongDung = cacDong.find((dong) => nhanDung.test(dong));
   const dongNho = cacDong.find((dong) => nhanNho.test(dong));
+  const dongViDu = cacDong.find((dong) => nhanViDu.test(dong));
   if (!dongDung || !dongNho) return null;
   const lyDo = dongDung.replace(nhanDung, "").trim();
   if (!lyDo) return null;
-  return `Đúng vì: ${lyDo}\n${dongNho}`;
+  return `Đúng vì: ${lyDo}\n${dongNho}${dongViDu ? `\n${dongViDu}` : ""}`;
+}
+
+/**
+ * Tách lời giải thích thành phần chính và câu "Ví dụ khác" để hiện riêng bên dưới.
+ * Nhận cả dòng "Ví dụ khác: …" (mẫu mới) lẫn đuôi "— ví dụ: …" trong dòng "Nhớ" (lời soạn theo mẫu cũ).
+ */
+export function tachViDuKhac(text) {
+  const cacDong = String(text ?? "").split("\n");
+  const nhanViDu = /^\s*(\*\*)?ví dụ khác(:\*\*|\*\*:|:)\s*/i;
+  const viTri = cacDong.findIndex((dong) => nhanViDu.test(dong));
+  if (viTri >= 0) {
+    const viDu = cacDong[viTri].replace(nhanViDu, "").trim();
+    const conLai = cacDong.filter((_, i) => i !== viTri).join("\n").trim();
+    return { chinh: conLai, viDu };
+  }
+  const duoiCu = /\s*[—–-]\s*(\*\*)?ví dụ(\*\*)?:\s*(.+)$/i;
+  const viTriNho = cacDong.findIndex((dong) => /^\s*(\*\*)?nhớ/i.test(dong) && duoiCu.test(dong));
+  if (viTriNho >= 0) {
+    const khop = cacDong[viTriNho].match(duoiCu);
+    const ban = [...cacDong];
+    ban[viTriNho] = cacDong[viTriNho].replace(duoiCu, "");
+    return { chinh: ban.join("\n").trim(), viDu: khop[3].trim() };
+  }
+  return { chinh: String(text ?? ""), viDu: "" };
 }
 
 /** Khoá của một câu trả lời trong kho lời giải thích (giống answer_norm phía server) */

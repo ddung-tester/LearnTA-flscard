@@ -54,6 +54,13 @@ router.post(
   aiExplainLimiter,
   asyncHandler(courseController.explainQuestion)
 );
+// Dịch đề + lựa chọn (nút "Dịch"); đã dịch thì server trả bản giữ sẵn
+router.post(
+  "/course-questions/:questionId/translate",
+  requireAuth,
+  aiExplainLimiter,
+  asyncHandler(courseController.translateQuestion)
+);
 
 // Người học chấm lời giải thích; chê thì AI viết lại (mỗi lần 1 lượt gọi AI)
 const aiRewriteLimiter = rateLimit({

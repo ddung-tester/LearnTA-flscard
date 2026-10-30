@@ -58,7 +58,8 @@ function soNguyen(value) {
 
 // Lời giải thích soạn trước khi đổi prompt (aiService) bị coi là cũ: không gửi cho người học,
 // lần soạn trước sau sẽ viết lại bằng prompt mới (mỗi câu 1 lượt AI, rải dần theo lúc học).
-const GIAI_THICH_HOP_LE_TU = new Date("2026-10-09T15:30:00Z");
+// 2026-10-30: tách "Ví dụ khác" thành dòng riêng, bắt AI chỉ ra dấu hiệu trong chính câu.
+const GIAI_THICH_HOP_LE_TU = new Date("2026-10-30T11:00:00Z");
 
 /** Lời giải thích còn dùng được của các câu: Map question_id → { answer_norm: lời giải thích } */
 async function docGiaiThichCuaCacCau(questionIds) {
@@ -599,7 +600,55 @@ async function rateExplanation(req, res) {
   res.json({ explanation });
 }
 
+// Bản dịch đề + lựa chọn theo câu (giữ trong bộ nhớ server, khởi động lại thì AI dịch lại)
+const banDichCauHoi = new Map();
+const SO_BAN_DICH_GIU_TOI_DA = 2000;
+
+/** Từ vựng của buổi (bộ thẻ gắn với buổi) có xuất hiện trong đề/lựa chọn: để dịch đúng nghĩa đã học */
+async function docTuVungTrongCau(lessonId, question) {
+  const [rows] = await pool.query(
+    `SELECT c.term_en, c.meaning_vi FROM cards c
+     JOIN course_lessons l ON l.deck_id = c.deck_id
+     WHERE l.id = ?`,
+    [lessonId]
+  );
+  const chuCuaCau = [question.prompt, question.instruction, ...(question.options || []).map((o) => o.text)]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return rows
+    .filter((tu) => tu.term_en && chuCuaCau.includes(tu.term_en.trim().toLowerCase()))
+    .map((tu) => ({ term_en: tu.term_en.trim(), meaning_vi: tu.meaning_vi }));
+}
+
+// POST /course-questions/:id/translate — dịch đề bài và các lựa chọn (không lộ đáp án)
+async function translateQuestion(req, res) {
+  const questionId = parsePositiveInt(req.params.questionId, "questionId");
+  const { row, question } = await docCauCuaChuKhoa(questionId, req.user.id);
+  // Khoá gồm cả nội dung câu: sửa đề thì dịch lại
+  const khoa = `${questionId}:${question.prompt}:${JSON.stringify(question.options || [])}`;
+  const daCo = banDichCauHoi.get(khoa);
+  if (daCo) {
+    res.json(daCo);
+    return;
+  }
+  let banDich;
+  try {
+    banDich = await aiService.translateCourseQuestion({
+      ...nguCanhAI(row, question),
+      vocabulary: await docTuVungTrongCau(row.lesson_id, question),
+    });
+  } catch (error) {
+    console.error("translateCourseQuestion failed:", error.message);
+    throw createHttpError(502, "Chưa dịch được, thử lại sau");
+  }
+  if (banDichCauHoi.size >= SO_BAN_DICH_GIU_TOI_DA) banDichCauHoi.delete(banDichCauHoi.keys().next().value);
+  banDichCauHoi.set(khoa, banDich);
+  res.json(banDich);
+}
+
 module.exports = {
+  translateQuestion,
   rateExplanation,
   listCourses,
   getLesson,
