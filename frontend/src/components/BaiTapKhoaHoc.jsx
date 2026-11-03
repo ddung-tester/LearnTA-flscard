@@ -332,6 +332,8 @@ function khoiPhucLuot(luot, cauHoi) {
 const daQua = (kq) => Boolean(kq && (kq.dung || kq.daSua));
 // Trả lời sai, nhập lại đúng thì câu được hỏi lại sau chừng này câu (giống Tự luận)
 const HOI_LAI_SAU = 5;
+// Cùng mốc với CSS .kh-bt__khung (KhoaHoc.css): từ đây câu hỏi và phản hồi nằm hai cột
+const MOC_HAI_COT = "(min-width: 800px)";
 
 function coLuaChonNgan(options) {
   return options.length % 2 === 0
@@ -439,6 +441,28 @@ export default function BaiTapKhoaHoc({
     uuTienSoan(khoaCauSapToi.split(",").filter(Boolean).map(Number));
   }, [khoaCauSapToi]);
 
+  // Màn một cột: cuộn VỪA ĐỦ để thấy trọn phần kết quả + giải thích phía trên thanh "Câu tiếp theo" dính đáy,
+  // nhưng không đẩy đầu phần kết quả khuất dưới header (câu hỏi vẫn còn trong tầm nhìn nếu đủ chỗ).
+  // Màn hai cột: phản hồi nằm cạnh câu hỏi, không cuộn.
+  function duaPhanHoiVaoTam() {
+    const phanHoiEl = phanHoiRef.current;
+    if (!phanHoiEl || window.matchMedia?.(MOC_HAI_COT).matches) return;
+    const header = document.querySelector(".app-shell-header");
+    const dinh =
+      header && ["sticky", "fixed"].includes(getComputedStyle(header).position) ? header.getBoundingClientRect().bottom : 0;
+    // Thanh "Câu tiếp theo" có thể còn đang trượt lên: lấy chỗ nó sẽ nằm (chiều cao thật), không lấy vị trí lúc trượt
+    const thanh = document.querySelector(".ui-thanh-tiep-tuc--co-dinh");
+    const day = window.innerHeight - (thanh?.offsetHeight ?? 0);
+    // Đo khung bọc (.kh-bt__phai): phần kết quả đang chạy hiệu ứng hiện ra (transform) nên số đo của nó nhỏ hơn thật
+    const r = (phanHoiEl.parentElement ?? phanHoiEl).getBoundingClientRect();
+    // Khoảng trống cuối phần kết quả chỉ để thanh dính đáy không che chữ: không cần đưa vào tầm nhìn
+    const choTrong = phanHoiEl.querySelector(".ui-thanh-tiep-tuc__cho-trong")?.offsetHeight ?? 0;
+    const cuon = Math.min(r.bottom - choTrong + 12 - day, r.top - dinh - 12);
+    if (cuon <= 4) return;
+    const giamChuyenDong = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollBy({ top: cuon, behavior: giamChuyenDong ? "auto" : "smooth" });
+  }
+
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
   useEffect(() => {
     if (!phanHoi.lan) return undefined;
@@ -450,18 +474,26 @@ export default function BaiTapKhoaHoc({
       rungMay("sai");
       phatAm("sai");
     }
-    if (!phanHoi.cuon) return undefined;
-    // Đưa phần kết quả vào tầm nhìn. Màn hẹp (có thanh "Câu tiếp theo" dính đáy): kéo kết quả lên đầu
-    // để đọc trọn lời giải thích; máy tính: chỉ cuộn vừa đủ thấy
-    const khung = requestAnimationFrame(() => {
-      const giamChuyenDong = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-      const manHep = !window.matchMedia?.("(min-width: 1100px)").matches;
-      phanHoiRef.current?.scrollIntoView({
-        block: manHep ? "start" : "nearest",
-        behavior: giamChuyenDong ? "auto" : "smooth",
-      });
-    });
-    return () => cancelAnimationFrame(khung);
+    if (!phanHoi.cuon || window.matchMedia?.(MOC_HAI_COT).matches) return undefined;
+    // Lời giải thích hiện / AI viết dần làm phần kết quả dài ra: theo dõi một lúc và cuộn bù,
+    // người học tự cuộn / chạm thì thôi
+    const phanHoiEl = phanHoiRef.current;
+    const khung = requestAnimationFrame(duaPhanHoiVaoTam);
+    const theoDoi = typeof ResizeObserver === "function" ? new ResizeObserver(() => duaPhanHoiVaoTam()) : null;
+    if (phanHoiEl) theoDoi?.observe(phanHoiEl);
+    const thoi = () => {
+      theoDoi?.disconnect();
+      window.removeEventListener("wheel", thoi);
+      window.removeEventListener("touchstart", thoi);
+    };
+    window.addEventListener("wheel", thoi, { passive: true });
+    window.addEventListener("touchstart", thoi, { passive: true });
+    const hen = window.setTimeout(thoi, 8000);
+    return () => {
+      cancelAnimationFrame(khung);
+      window.clearTimeout(hen);
+      thoi();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi có lần trả lời mới
   }, [phanHoi.lan]);
 
@@ -819,295 +851,308 @@ export default function BaiTapKhoaHoc({
         </p>
       )}
 
-      <div className="kh-bt__tien-do">
-        <div
-          className="kh-bt__thanh"
-          role="progressbar"
-          aria-label="Số câu đã làm"
-          aria-valuemin={0}
-          aria-valuemax={danhSach.length}
-          aria-valuenow={soDaLam}
-        >
-          <span style={{ width: `${(soDaLam / danhSach.length) * 100}%` }} />
-        </div>
-        <p className="kh-bt__dem">
-          <span className="kh-bt__dieu-huong">
-            <button
-              type="button"
-              className="kh-bt__nut-chuyen"
-              onClick={() => denCau(chiSo - 1)}
-              disabled={chiSo === 0}
-              aria-label="Câu trước"
-              title="Câu trước (phím ←)"
+      {/* Màn hẹp: một cột. Màn rộng (≥800px: laptop, Fold màn trong xoay ngang): câu hỏi trái, phản hồi phải */}
+      <div className="kh-bt__khung">
+        <div className="kh-bt__trai">
+          <div className="kh-bt__tien-do">
+            <div
+              className="kh-bt__thanh"
+              role="progressbar"
+              aria-label="Số câu đã làm"
+              aria-valuemin={0}
+              aria-valuemax={danhSach.length}
+              aria-valuenow={soDaLam}
             >
-              &lsaquo;
-            </button>
-            <span>
-              Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
-            </span>
-            <button
-              type="button"
-              className="kh-bt__nut-chuyen"
-              onClick={() => denCau(chiSo + 1)}
-              disabled={chiSo >= chiSoXa}
-              aria-label="Câu sau"
-              title="Câu sau (phím →) — chỉ tới câu đã làm"
-            >
-              &rsaquo;
-            </button>
-          </span>
-          <span className="kh-bt__dem-ket-qua">
-            <span className="kh-bt__dem-dung">{soDung} đúng</span>
-            <span className="kh-bt__dem-sai">{soSai} sai</span>
-          </span>
-        </p>
-        {soCauChuaLuu > 0 && (
-          <p className="kh-bt__chua-luu" role="status">
-            Chưa lưu được {soCauChuaLuu} câu vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
-          </p>
-        )}
-      </div>
-
-      {/* Trình phát nằm ngoài phần đổi theo câu: các câu dùng chung một file nghe giữ nguyên chỗ đang nghe */}
-      {cau.audio_key && <NgheAudioCauHoi key={cau.audio_key} cau={cau} />}
-
-      <section key={cau.id} ref={cauRef} className="kh-cau" aria-labelledby="kh-de-bai">
-        <p className="kh-cau__phan">
-          {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
-          <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
-          {cau.__hoiLai && <span className="kh-cau__hoi-lai">Hỏi lại</span>}
-        </p>
-        {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
-        {cau.listen_text && (
-          <div className="kh-nghe">
-            <button
-              type="button"
-              className="ui-button ui-button--primary kh-nghe__nut"
-              onClick={() => speak(cau.listen_text, "en-US")}
-            >
-              {isPlaying ? "Đang đọc..." : "▶ Nghe lại"}
-            </button>
-          </div>
-        )}
-        <div className="kh-cau__de">
-          <div className="kh-cau__de-noi-dung">
-            <p
-              id="kh-de-bai"
-              ref={deBaiRef}
-              tabIndex={-1}
-              className={`kh-cau__de-chu${cau.prompt.length > 90 || cau.prompt.includes("\n") ? " kh-cau__de-chu--dai" : ""}`}
-              lang="en"
-            >
-              {cau.prompt}
-            </p>
-            {hienDich && (
-              <p className="kh-dich kh-dich--de" lang="vi">
-                {dich.prompt}
-              </p>
-            )}
-            {trangThaiDich?.loi && (
-              <p className="kh-dich kh-dich--loi" role="alert">
-                {trangThaiDich.loi}
-              </p>
-            )}
-          </div>
-          <div className="kh-cau__de-nut">
-            <button
-              type="button"
-              className={`kh-nut-loa${isPlaying ? " kh-nut-loa--dang-doc" : ""}`}
-              onClick={() => speak(cau.prompt.replace(/_{2,}/g, " blank "), "en-US")}
-              title="Nghe câu hỏi"
-            >
-              <IconLoa />
-              <span className="sr-only">Nghe câu hỏi</span>
-            </button>
-            {/* Bản dịch là câu đã điền đáp án đúng nên chỉ mở sau khi trả lời */}
-            {daTraLoi && (
-              <button
-                type="button"
-                className={`kh-nut-loa${hienDich ? " kh-nut-loa--dang-doc" : ""}`}
-                onClick={() => bamDich(cau)}
-                disabled={Boolean(trangThaiDich?.dangDich)}
-                aria-busy={Boolean(trangThaiDich?.dangDich)}
-                aria-pressed={hienDich}
-                title={trangThaiDich?.dangDich ? "Đang dịch…" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
-              >
-                <IconDich />
-                <span className="sr-only">
-                  {trangThaiDich?.dangDich ? "Đang dịch" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
+              <span style={{ width: `${(soDaLam / danhSach.length) * 100}%` }} />
+            </div>
+            <p className="kh-bt__dem">
+              <span className="kh-bt__dieu-huong">
+                <button
+                  type="button"
+                  className="kh-bt__nut-chuyen"
+                  onClick={() => denCau(chiSo - 1)}
+                  disabled={chiSo === 0}
+                  aria-label="Câu trước"
+                  title="Câu trước (phím ←)"
+                >
+                  &lsaquo;
+                </button>
+                <span>
+                  Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
                 </span>
-              </button>
+                <button
+                  type="button"
+                  className="kh-bt__nut-chuyen"
+                  onClick={() => denCau(chiSo + 1)}
+                  disabled={chiSo >= chiSoXa}
+                  aria-label="Câu sau"
+                  title="Câu sau (phím →) — chỉ tới câu đã làm"
+                >
+                  &rsaquo;
+                </button>
+              </span>
+              <span className="kh-bt__dem-ket-qua">
+                <span className="kh-bt__dem-dung">{soDung} đúng</span>
+                <span className="kh-bt__dem-sai">{soSai} sai</span>
+              </span>
+            </p>
+            {soCauChuaLuu > 0 && (
+              <p className="kh-bt__chua-luu" role="status">
+                Chưa lưu được {soCauChuaLuu} câu vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
+              </p>
             )}
           </div>
-        </div>
 
-        {laTracNghiem ? (
-          <ul className={`kh-lua-chon${coLuaChonNgan(cau.options) ? " kh-lua-chon--ngan" : ""}`}>
-            {cau.options.map((luaChon, index) => {
-              // Đang chọn lại: chỉ đánh dấu lựa chọn sai lúc nãy, các lựa chọn khác bấm được
-              const laDung = daTraLoi && !dangNhapLai && luaChon.key === cau.answer_key;
-              const laChonSai = daTraLoi && !daTraLoi.dung && luaChon.key === daTraLoi.traLoi;
-              const trangThai = laDung
-                ? " kh-lua-chon__nut--dung"
-                : laChonSai
-                  ? " kh-lua-chon__nut--sai"
-                  : daTraLoi && !dangNhapLai
-                    ? " kh-lua-chon__nut--mo"
-                    : "";
-              return (
-                <li key={luaChon.key}>
+          {/* Trình phát nằm ngoài phần đổi theo câu: các câu dùng chung một file nghe giữ nguyên chỗ đang nghe */}
+          {cau.audio_key && <NgheAudioCauHoi key={cau.audio_key} cau={cau} />}
+
+          <section key={cau.id} ref={cauRef} className="kh-cau" aria-labelledby="kh-de-bai">
+            <p className="kh-cau__phan">
+              {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
+              <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
+              {cau.__hoiLai && <span className="kh-cau__hoi-lai">Hỏi lại</span>}
+            </p>
+            {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
+            {cau.listen_text && (
+              <div className="kh-nghe">
+                <button
+                  type="button"
+                  className="ui-button ui-button--primary kh-nghe__nut"
+                  onClick={() => speak(cau.listen_text, "en-US")}
+                >
+                  {isPlaying ? "Đang đọc..." : "▶ Nghe lại"}
+                </button>
+              </div>
+            )}
+            <div className="kh-cau__de">
+              <div className="kh-cau__de-noi-dung">
+                <p
+                  id="kh-de-bai"
+                  ref={deBaiRef}
+                  tabIndex={-1}
+                  className={`kh-cau__de-chu${cau.prompt.length > 90 || cau.prompt.includes("\n") ? " kh-cau__de-chu--dai" : ""}`}
+                  lang="en"
+                >
+                  {cau.prompt}
+                </p>
+                {hienDich && (
+                  <p className="kh-dich kh-dich--de" lang="vi">
+                    {dich.prompt}
+                  </p>
+                )}
+                {trangThaiDich?.loi && (
+                  <p className="kh-dich kh-dich--loi" role="alert">
+                    {trangThaiDich.loi}
+                  </p>
+                )}
+              </div>
+              <div className="kh-cau__de-nut">
+                <button
+                  type="button"
+                  className={`kh-nut-loa${isPlaying ? " kh-nut-loa--dang-doc" : ""}`}
+                  onClick={() => speak(cau.prompt.replace(/_{2,}/g, " blank "), "en-US")}
+                  title="Nghe câu hỏi"
+                >
+                  <IconLoa />
+                  <span className="sr-only">Nghe câu hỏi</span>
+                </button>
+                {/* Bản dịch là câu đã điền đáp án đúng nên chỉ mở sau khi trả lời */}
+                {daTraLoi && (
                   <button
                     type="button"
-                    className={`kh-lua-chon__nut${trangThai}`}
-                    onClick={(e) => {
-                      // Mọi nút sẽ bị disabled ngay sau khi trả lời: bỏ focus trước để không ép layout cả trang lúc commit
-                      e.currentTarget.blur();
-                      traLoiCau(luaChon.key);
-                    }}
-                    disabled={!choTraLoi || laChonSai}
-                    aria-keyshortcuts={`${index + 1} ${luaChon.key}`}
+                    className={`kh-nut-loa${hienDich ? " kh-nut-loa--dang-doc" : ""}`}
+                    onClick={() => bamDich(cau)}
+                    disabled={Boolean(trangThaiDich?.dangDich)}
+                    aria-busy={Boolean(trangThaiDich?.dangDich)}
+                    aria-pressed={hienDich}
+                    title={trangThaiDich?.dangDich ? "Đang dịch…" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
                   >
-                    <span className="kh-lua-chon__chu" aria-hidden="true">{luaChon.key}</span>
-                    <span className="kh-lua-chon__noi-dung">
-                      <span lang="en">{luaChon.text}</span>
-                      {hienDich && dich.options?.[luaChon.key] && (
-                        <span className="kh-dich kh-dich--lua-chon" lang="vi">
-                          {dich.options[luaChon.key]}
-                        </span>
-                      )}
+                    <IconDich />
+                    <span className="sr-only">
+                      {trangThaiDich?.dangDich ? "Đang dịch" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
                     </span>
-                    {laDung && <IconDung className="kh-lua-chon__icon" />}
-                    {laChonSai && <IconSai className="kh-lua-chon__icon" />}
-                    {(laDung || laChonSai) && (
-                      <span className="sr-only">{laDung ? "(đáp án đúng)" : "(bạn chọn, chưa đúng)"}</span>
-                    )}
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <form
-            className="kh-dien"
-            onSubmit={(event) => {
-              event.preventDefault();
-              traLoiCau(nhap.trim());
-            }}
-          >
-            <label htmlFor="kh-o-nhap" className="sr-only">Câu trả lời</label>
-            <input
-              id="kh-o-nhap"
-              key={`${chiSo}-${dangNhapLai}`}
-              ref={oNhapRef}
-              autoFocus
-              autoComplete="off"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={200}
-              value={choTraLoi ? nhap : (daTraLoi.traLoiSua ?? daTraLoi.traLoi)}
-              onChange={(event) => {
-                setNhap(event.target.value);
-                if (loiNhapLai) setLoiNhapLai("");
-              }}
-              disabled={!choTraLoi}
-              placeholder={dangNhapLai ? "Gõ lại đáp án đúng" : "Nhập đáp án"}
-              lang="en"
-              className={`kh-dien__o${
-                choTraLoi ? "" : daQua(daTraLoi) ? " kh-dien__o--dung" : " kh-dien__o--sai"
-              }`}
-            />
-            <button
-              type="submit"
-              className="ui-button ui-button--primary px-5 py-2.5 whitespace-nowrap"
-              disabled={!choTraLoi || !nhap.trim()}
-            >
-              Kiểm tra
-            </button>
-          </form>
-        )}
+                )}
+              </div>
+            </div>
 
-        {!daTraLoi && (
-          <p className="kh-cau__phim">
-            {laTracNghiem
-              ? `Bấm vào đáp án, hoặc phím 1–${cau.options.length}`
-              : "Gõ đáp án rồi nhấn Enter"}
-          </p>
-        )}
-        {dangNhapLai && (
-          <p className="kh-cau__nhap-lai" role="status">
-            {loiNhapLai || (
-              <>
-                {laTracNghiem ? "Chọn lại" : "Gõ lại"} đáp án đúng để đi tiếp: <strong lang="en">{dapAnDung}</strong>
-              </>
-            )}
-          </p>
-        )}
-      </section>
-
-      {daTraLoi && (
-        <section
-          ref={phanHoiRef}
-          className={`kh-phan-hoi ${daTraLoi.dung ? "kh-phan-hoi--dung" : "kh-phan-hoi--sai"}`}
-          aria-live="polite"
-        >
-          <p className="kh-phan-hoi__ket-qua">
-            {daTraLoi.dung ? <IconDung className="kh-phan-hoi__icon" /> : <IconSai className="kh-phan-hoi__icon" />}
-            {daTraLoi.dung ? "Chính xác" : "Chưa đúng"}
-          </p>
-          {daTraLoi.daSua && (
-            <p className="kh-phan-hoi__goi-y">Bạn đã trả lời lại đúng. Câu này sẽ được hỏi lại sau {HOI_LAI_SAU} câu.</p>
-          )}
-          {!daTraLoi.dung &&
-            (laTracNghiem ? (
-              <p className="kh-phan-hoi__dap-an">
-                Đáp án đúng: <strong lang="en">{dapAnDung}</strong>
-              </p>
+            {laTracNghiem ? (
+              <ul className={`kh-lua-chon${coLuaChonNgan(cau.options) ? " kh-lua-chon--ngan" : ""}`}>
+                {cau.options.map((luaChon, index) => {
+                  // Đang chọn lại: chỉ đánh dấu lựa chọn sai lúc nãy, các lựa chọn khác bấm được
+                  const laDung = daTraLoi && !dangNhapLai && luaChon.key === cau.answer_key;
+                  const laChonSai = daTraLoi && !daTraLoi.dung && luaChon.key === daTraLoi.traLoi;
+                  const trangThai = laDung
+                    ? " kh-lua-chon__nut--dung"
+                    : laChonSai
+                      ? " kh-lua-chon__nut--sai"
+                      : daTraLoi && !dangNhapLai
+                        ? " kh-lua-chon__nut--mo"
+                        : "";
+                  return (
+                    <li key={luaChon.key}>
+                      <button
+                        type="button"
+                        className={`kh-lua-chon__nut${trangThai}`}
+                        onClick={(e) => {
+                          // Mọi nút sẽ bị disabled ngay sau khi trả lời: bỏ focus trước để không ép layout cả trang lúc commit
+                          e.currentTarget.blur();
+                          traLoiCau(luaChon.key);
+                        }}
+                        disabled={!choTraLoi || laChonSai}
+                        aria-keyshortcuts={`${index + 1} ${luaChon.key}`}
+                      >
+                        <span className="kh-lua-chon__chu" aria-hidden="true">{luaChon.key}</span>
+                        <span className="kh-lua-chon__noi-dung">
+                          <span lang="en">{luaChon.text}</span>
+                          {hienDich && dich.options?.[luaChon.key] && (
+                            <span className="kh-dich kh-dich--lua-chon" lang="vi">
+                              {dich.options[luaChon.key]}
+                            </span>
+                          )}
+                        </span>
+                        {laDung && <IconDung className="kh-lua-chon__icon" />}
+                        {laChonSai && <IconSai className="kh-lua-chon__icon" />}
+                        {(laDung || laChonSai) && (
+                          <span className="sr-only">{laDung ? "(đáp án đúng)" : "(bạn chọn, chưa đúng)"}</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <SoSanhChuGo traLoi={daTraLoi.traLoi} dapAnDung={cau.accepted_answers} />
-            ))}
-          {cau.listen_text && (
-            <p className="kh-phan-hoi__goi-y" lang="en">
-              Lời thoại: {cau.listen_text}
-            </p>
-          )}
-          {cau.explanation && <p className="kh-phan-hoi__goi-y">{cau.explanation}</p>}
-          <GiaiThichAI
-            trangThai={giaiThich[cau.id]}
-            onThuLai={() => hoiAI(cau, daTraLoi.traLoi)}
-            onDanhGia={(tot) => danhGiaAI(cau, daTraLoi.traLoi, tot)}
-            onHoiThem={
-              hoiLearnBot &&
-              (() => {
-                const trangThai = giaiThich[cau.id];
-                const text = [trangThai?.text?.trim(), trangThai?.phanSau].filter(Boolean).join("\n");
-                hoiLearnBot(taoCauHoiLearnBot(cau, daTraLoi.traLoi, text));
-              })
-            }
-          />
-          {/* Điện thoại: thanh dính đáy màn hình, nút luôn trong tầm ngón cái; máy tính: nút cuối phần kết quả */}
-          {/* Sai: phải trả lời lại đúng mới đi tiếp (giống Tự luận); đang trả lời lại thì ẩn nút */}
-          {!dangNhapLai && (
-            <div className="kh-phan-hoi__cuoi">
-              <ThanhTiepTuc
-                dung={daTraLoi.dung}
-                onTiepTuc={daQua(daTraLoi) ? sangCauTiep : batDauNhapLai}
-                nhanNut={!daQua(daTraLoi) ? "Trả lời lại" : chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
-                chiHienKhiCoDinh
+              <form
+                className="kh-dien"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  traLoiCau(nhap.trim());
+                }}
               >
-                <span className="ui-thanh-tiep-tuc__nhan">
-                  {daTraLoi.dung ? "Chính xác" : daTraLoi.daSua ? "Đã trả lời lại đúng" : "Chưa đúng"}
-                </span>
-                {!daTraLoi.dung && (
-                  <span className="ui-thanh-tiep-tuc__dap-an">
+                <label htmlFor="kh-o-nhap" className="sr-only">Câu trả lời</label>
+                <input
+                  id="kh-o-nhap"
+                  key={`${chiSo}-${dangNhapLai}`}
+                  ref={oNhapRef}
+                  autoFocus
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={200}
+                  value={choTraLoi ? nhap : (daTraLoi.traLoiSua ?? daTraLoi.traLoi)}
+                  onChange={(event) => {
+                    setNhap(event.target.value);
+                    if (loiNhapLai) setLoiNhapLai("");
+                  }}
+                  disabled={!choTraLoi}
+                  placeholder={dangNhapLai ? "Gõ lại đáp án đúng" : "Nhập đáp án"}
+                  lang="en"
+                  className={`kh-dien__o${
+                    choTraLoi ? "" : daQua(daTraLoi) ? " kh-dien__o--dung" : " kh-dien__o--sai"
+                  }`}
+                />
+                <button
+                  type="submit"
+                  className="ui-button ui-button--primary px-5 py-2.5 whitespace-nowrap"
+                  disabled={!choTraLoi || !nhap.trim()}
+                >
+                  Kiểm tra
+                </button>
+              </form>
+            )}
+
+            {!daTraLoi && (
+              <p className="kh-cau__phim">
+                {laTracNghiem
+                  ? `Bấm vào đáp án, hoặc phím 1–${cau.options.length}`
+                  : "Gõ đáp án rồi nhấn Enter"}
+              </p>
+            )}
+            {dangNhapLai && (
+              <p className="kh-cau__nhap-lai" role="status">
+                {loiNhapLai || (
+                  <>
+                    {laTracNghiem ? "Chọn lại" : "Gõ lại"} đáp án đúng để đi tiếp: <strong lang="en">{dapAnDung}</strong>
+                  </>
+                )}
+              </p>
+            )}
+          </section>
+        </div>
+        <div className="kh-bt__phai">
+          {daTraLoi ? (
+            <section
+              ref={phanHoiRef}
+              className={`kh-phan-hoi ${daTraLoi.dung ? "kh-phan-hoi--dung" : "kh-phan-hoi--sai"}`}
+              aria-live="polite"
+            >
+              <p className="kh-phan-hoi__ket-qua">
+                {daTraLoi.dung ? <IconDung className="kh-phan-hoi__icon" /> : <IconSai className="kh-phan-hoi__icon" />}
+                {daTraLoi.dung ? "Chính xác" : "Chưa đúng"}
+                {!daTraLoi.dung && laTracNghiem && (
+                  <span className="kh-phan-hoi__dap-an">
                     Đáp án: <strong lang="en">{dapAnDung}</strong>
                   </span>
                 )}
-              </ThanhTiepTuc>
-            </div>
+              </p>
+              {daTraLoi.daSua && (
+                <p className="kh-phan-hoi__goi-y">Bạn đã trả lời lại đúng. Câu này sẽ được hỏi lại sau {HOI_LAI_SAU} câu.</p>
+              )}
+              {!daTraLoi.dung && !laTracNghiem && (
+                <SoSanhChuGo traLoi={daTraLoi.traLoi} dapAnDung={cau.accepted_answers} />
+              )}
+              {cau.listen_text && (
+                <p className="kh-phan-hoi__goi-y" lang="en">
+                  Lời thoại: {cau.listen_text}
+                </p>
+              )}
+              {cau.explanation && <p className="kh-phan-hoi__goi-y">{cau.explanation}</p>}
+              <GiaiThichAI
+                trangThai={giaiThich[cau.id]}
+                onThuLai={() => hoiAI(cau, daTraLoi.traLoi)}
+                onDanhGia={(tot) => danhGiaAI(cau, daTraLoi.traLoi, tot)}
+                onHoiThem={
+                  hoiLearnBot &&
+                  (() => {
+                    const trangThai = giaiThich[cau.id];
+                    const text = [trangThai?.text?.trim(), trangThai?.phanSau].filter(Boolean).join("\n");
+                    hoiLearnBot(taoCauHoiLearnBot(cau, daTraLoi.traLoi, text));
+                  })
+                }
+              />
+              {/* Điện thoại: thanh dính đáy màn hình, nút luôn trong tầm ngón cái; máy tính: nút cuối phần kết quả */}
+              {/* Sai: phải trả lời lại đúng mới đi tiếp (giống Tự luận); đang trả lời lại thì ẩn nút */}
+              {!dangNhapLai && (
+                <div className="kh-phan-hoi__cuoi">
+                  <ThanhTiepTuc
+                    dung={daTraLoi.dung}
+                    onTiepTuc={daQua(daTraLoi) ? sangCauTiep : batDauNhapLai}
+                    nhanNut={!daQua(daTraLoi) ? "Trả lời lại" : chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
+                    chiHienKhiCoDinh
+                    // Hai cột: nút nằm cuối cột kết quả, không dính đáy che lời giải thích
+                    truyVanRong={MOC_HAI_COT}
+                  >
+                    <span className="ui-thanh-tiep-tuc__nhan">
+                      {daTraLoi.dung ? "Chính xác" : daTraLoi.daSua ? "Đã trả lời lại đúng" : "Chưa đúng"}
+                    </span>
+                    {!daTraLoi.dung && (
+                      <span className="ui-thanh-tiep-tuc__dap-an">
+                        Đáp án: <strong lang="en">{dapAnDung}</strong>
+                      </span>
+                    )}
+                  </ThanhTiepTuc>
+                </div>
+              )}
+            </section>
+          ) : (
+            // Màn rộng (2 cột): chỗ của kết quả + lời giải thích, cạnh câu hỏi — trả lời xong là thấy, khỏi cuộn
+            <p className="kh-bt__cho">
+              {laTracNghiem ? "Chọn một đáp án" : "Gõ đáp án rồi nhấn Enter"}: kết quả và lời giải thích hiện ở đây.
+            </p>
           )}
-        </section>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -89,7 +89,11 @@ function BoCuc() {
   const laTrangDangNhap = viTri.pathname === "/login";
   const laTrangDangKy = viTri.pathname === "/register";
   // Trang tổng quan / danh sách: rộng 72rem, thẳng hàng với header (laptop, PC). Trang đọc/làm bài giữ cột hẹp.
-  const laTrangRong = /^\/(dashboard|stats|decks|khoa-hoc)\/?$/.test(viTri.pathname);
+  // Làm bài tập khoá học (bước Bài tập, Ôn câu bài tập) cũng rộng: màn ≥800px chia câu hỏi | giải thích hai cột
+  const laTrangLamBaiTap =
+    /^\/khoa-hoc\/[^/]+\/bai\/[^/]+\/bai-tap\/?$/.test(viTri.pathname) ||
+    (viTri.pathname === "/review" && new URLSearchParams(viTri.search).get("loai") === "cau");
+  const laTrangRong = /^\/(dashboard|stats|decks|khoa-hoc)\/?$/.test(viTri.pathname) || laTrangLamBaiTap;
   const laTrangAuth = laTrangDangNhap || laTrangDangKy;
   // Học từ của một buổi (/khoa-hoc/:c/bai/:n/hoc/:cheDo): header hiện đường dẫn Khoá học › Buổi n › chế độ
   const khopHocTrongBuoi = /^\/khoa-hoc\/([^/]+)\/bai\/([^/]+)\/hoc\/([^/]+)$/.exec(viTri.pathname);

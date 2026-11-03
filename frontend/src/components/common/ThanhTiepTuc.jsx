@@ -10,6 +10,7 @@ import useManRong from "../../hooks/useManRong";
  * demNguocMs: trang tự chuyển câu sau chừng này — hiện vạch đếm ngược để người học biết.
  * nhanNut: chữ trên nút (mặc định "Tiếp tục").
  * chiHienKhiCoDinh: máy tính không hiện phần kết quả trong thanh (trang đã hiện kết quả ở chỗ khác).
+ * truyVanRong: từ mốc này thanh nằm trong luồng trang thay vì dính đáy (mặc định 1100px).
  */
 export default function ThanhTiepTuc({
   dung,
@@ -18,8 +19,9 @@ export default function ThanhTiepTuc({
   demNguocMs = 0,
   nhanNut = "Tiếp tục",
   chiHienKhiCoDinh = false,
+  truyVanRong,
 }) {
-  const manRong = useManRong();
+  const manRong = useManRong(truyVanRong);
   const coDinh = !manRong;
 
   // Nút chat nổi góc phải dưới: đẩy lên khi thanh đang hiện để không đè nút Tiếp tục.

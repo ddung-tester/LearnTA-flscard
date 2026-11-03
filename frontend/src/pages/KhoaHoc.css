@@ -2205,3 +2205,298 @@
   font-size: 0.9rem;
   color: var(--kh-sai-chu);
 }
+
+/* ══ Màn làm bài tập: câu hỏi + kết quả + lời giải thích nằm trong một màn ══════════════════
+   Laptop và màn trong Galaxy Z Fold (690×829 dọc, 829×690 ngang). Phần đầu thu gọn, phần phụ ẩn bớt. */
+
+/* Bộ lọc: nhóm và phần chung một hàng (tự xuống dòng khi hẹp), nút không giãn hết bề ngang */
+.kh-bt .kh-bt__loc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.kh-bt .kh-bt__nhom-tabs {
+  flex: 0 1 auto;
+}
+
+.kh-bt .kh-bt__nhom-tabs .ui-filter-tab {
+  flex: 0 0 auto;
+}
+
+.kh-bt .kh-bt__phan {
+  padding-left: 0;
+}
+
+.kh-bt .kh-bt__phan .kh-chip {
+  min-height: 2.25rem;
+}
+
+/* Tiến độ một hàng: ‹ Câu n / N › · thanh · đúng / sai */
+.kh-bt__tien-do {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+
+.kh-bt__dem {
+  display: contents;
+}
+
+.kh-bt__dieu-huong {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.kh-bt__tien-do .kh-bt__thanh {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.kh-bt__dem-ket-qua {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 0.875rem;
+}
+
+.kh-bt__chua-luu {
+  grid-column: 1 / -1;
+}
+
+/* Kết quả một dòng: "✕ Chưa đúng · Đáp án: works" */
+.kh-phan-hoi__ket-qua {
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+}
+
+.kh-phan-hoi__ket-qua .kh-phan-hoi__dap-an {
+  font-family: var(--font-body, inherit);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.kh-bt__khung,
+.kh-bt__trai {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.kh-bt__khung {
+  gap: 1rem;
+}
+
+/* Chỗ chờ kết quả: chỉ có nghĩa khi hai cột */
+.kh-bt__cho {
+  display: none;
+}
+
+/* Màn hẹp (màn trong Fold dọc 690px, điện thoại): hàng đầu = ← + tên buổi, hàng hai = 3 bước.
+   Đổi buổi không cần lúc đang làm bài nên ẩn; tên khoá chỉ còn mũi tên */
+@media (max-width: 799px) {
+  .kh-trang--lam-bai {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.5rem;
+    row-gap: 0.65rem;
+  }
+
+  .kh-trang--lam-bai > * {
+    grid-column: 1 / -1;
+  }
+
+  .kh-trang--lam-bai > .kh-thanh-tren {
+    display: contents;
+  }
+
+  .kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    justify-content: center;
+    padding-inline: 0.75rem;
+  }
+
+  .kh-trang--lam-bai .kh-thanh-tren__ten-khoa,
+  .kh-trang--lam-bai .kh-chuyen-buoi {
+    display: none;
+  }
+
+  .kh-trang--lam-bai > .kh-dau-bai {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__ten {
+    overflow: hidden;
+    font-size: 1.05rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__nut {
+    min-height: 2.75rem;
+  }
+
+  .kh-trang--lam-bai .kh-bt {
+    gap: 0.65rem;
+  }
+
+  .kh-trang--lam-bai .kh-cau {
+    padding-top: 0.9rem;
+    padding-bottom: 1rem;
+  }
+}
+
+/* Màn rộng (laptop, Fold màn trong xoay ngang 829px): phần đầu một hàng (← khoá · tên buổi · 3 bước · đổi buổi);
+   câu hỏi bên trái, kết quả + giải thích bên phải dính theo khi cuộn — trả lời xong là thấy ngay */
+@media (min-width: 800px) {
+  .kh-trang--lam-bai {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: 1rem;
+    row-gap: 0.75rem;
+  }
+
+  .kh-trang--lam-bai > * {
+    grid-column: 1 / -1;
+  }
+
+  .kh-trang--lam-bai > .kh-thanh-tren {
+    display: contents;
+  }
+
+  .kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .kh-trang--lam-bai > .kh-dau-bai {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__so,
+  .kh-trang--lam-bai .kh-dau-bai__nhan,
+  .kh-trang--lam-bai .kh-dai-buoi,
+  .kh-trang--lam-bai .kh-buoc__mo-ta {
+    display: none;
+  }
+
+  .kh-trang--lam-bai .kh-dau-bai__ten {
+    overflow: hidden;
+    font-size: 1.1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .kh-trang--lam-bai > .kh-buoc {
+    grid-column: 3;
+    grid-row: 1;
+    grid-template-columns: repeat(3, auto);
+  }
+
+  .kh-trang--lam-bai .kh-buoc__nut {
+    min-height: 2.6rem;
+    padding: 0.35rem 0.75rem;
+  }
+
+  .kh-trang--lam-bai .kh-chuyen-buoi {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  /* Cột phải bắt đầu ngang hàng bộ lọc (bộ lọc, câu hỏi xếp ở cột trái): kết quả lên cao hơn ~50px */
+  .kh-bt {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: start;
+  }
+
+  .kh-bt > *,
+  .kh-bt__khung > * {
+    grid-column: 1;
+  }
+
+  .kh-bt__khung {
+    display: contents;
+  }
+
+  .kh-bt .kh-bt__phai {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+
+  /* Kết quả gọn hơn khi nằm cạnh câu hỏi */
+  .kh-bt__phai .kh-phan-hoi {
+    gap: 0.55rem;
+    padding: 0.8rem 1rem 0.9rem;
+  }
+
+  .kh-bt__phai .kh-phan-hoi__ket-qua {
+    font-size: 1.05rem;
+  }
+
+  .kh-bt__phai .kh-ai {
+    padding: 0.65rem 0.85rem 0.75rem;
+  }
+
+  .kh-bt__phai {
+    position: sticky;
+    top: 4.5rem;
+    max-height: calc(100dvh - 5.25rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  /* Gợi ý phím đã ghi ở ô chờ bên phải */
+  .kh-bt__trai .kh-cau__phim {
+    display: none;
+  }
+
+  .kh-bt__cho {
+    display: grid;
+    place-items: center;
+    min-height: 10rem;
+    border: 1.5px dashed var(--mau-vien);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    color: var(--mau-chu-mo);
+    font-size: 0.925rem;
+    text-align: center;
+  }
+
+  /* Cột câu hỏi hẹp (Fold xoay ngang): giữ lưới 2×2 cho cả 4 lựa chọn nằm trong màn, bớt đệm để chữ không gãy */
+  .kh-bt__trai {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 440px) {
+    .kh-bt__trai .kh-cau {
+      padding-right: 0.9rem;
+    }
+
+    .kh-bt__trai .kh-lua-chon__nut {
+      gap: 0.5rem;
+      padding: 0.5rem 0.6rem;
+    }
+
+    /* Từ ngắn không gãy giữa chữ ("work-s"); cụm dài vẫn xuống dòng giữa các từ */
+    .kh-bt__trai .kh-lua-chon--ngan .kh-lua-chon__noi-dung {
+      overflow-wrap: normal;
+    }
+  }
+}
+
+@media (min-width: 800px) and (max-width: 1099px) {
+  /* Fold xoay ngang: 3 bước + tên buổi đủ chỗ, đổi buổi thì để trang buổi học */
+  .kh-trang--lam-bai .kh-chuyen-buoi {
+    display: none;
+  }
+}

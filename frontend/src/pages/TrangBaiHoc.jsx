@@ -422,7 +422,15 @@ function TrangBaiHoc() {
       )}
       {/* Đổi buổi nằm ở dòng trên cùng, tách khỏi phần làm bài để không lẫn với điều hướng câu hỏi */}
       <div className="kh-thanh-tren">
-        <LinkTroVe to="/khoa-hoc" className="ui-back-link ui-back-link--quiet">&larr; {bai.course.title}</LinkTroVe>
+        <LinkTroVe
+          to="/khoa-hoc"
+          className="ui-back-link ui-back-link--quiet"
+          aria-label={`Về ${bai.course.title}`}
+          title={bai.course.title}
+        >
+          {/* Đang làm bài trên màn hẹp chỉ còn mũi tên (CSS), nhường chỗ cho tên buổi cùng hàng */}
+          &larr; <span className="kh-thanh-tren__ten-khoa">{bai.course.title}</span>
+        </LinkTroVe>
         {(bai.prev_lesson || bai.next_lesson) && (
           <nav className="kh-chuyen-buoi" aria-label="Chuyển buổi">
             {bai.prev_lesson && (
