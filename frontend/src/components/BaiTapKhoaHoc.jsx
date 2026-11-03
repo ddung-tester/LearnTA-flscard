@@ -309,6 +309,18 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
 
 // Lựa chọn ngắn (một từ, cụm ngắn) và số chẵn: màn vừa xếp 2×2 được, câu dài vẫn một cột
 const DO_DAI_LUA_CHON_NGAN = 28;
+/** Dựng lại lượt làm dở đã lưu; bài đã đổi câu (thiếu câu) hoặc lượt đã xong thì bỏ */
+function khoiPhucLuot(luot, cauHoi) {
+  if (!luot || !Array.isArray(luot.ids) || luot.ids.length === 0) return null;
+  const theoId = new Map(cauHoi.map((c) => [c.id, c]));
+  const danhSach = luot.ids.map((id) => theoId.get(id));
+  if (danhSach.some((c) => !c)) return null;
+  const chiSo = Math.max(0, Number(luot.chiSo) || 0);
+  if (chiSo >= danhSach.length) return null;
+  const ketQua = Object.fromEntries(Object.entries(luot.ketQua || {}).filter(([id]) => theoId.has(Number(id))));
+  return { phan: luot.phan, danhSach, chiSo, ketQua };
+}
+
 function coLuaChonNgan(options) {
   return options.length % 2 === 0
     && options.every((luaChon) => String(luaChon.text ?? "").length <= DO_DAI_LUA_CHON_NGAN);
@@ -322,8 +334,19 @@ function coLuaChonNgan(options) {
  *
  * ketQuaGanNhat: { [questionId]: đúng/sai lần trả lời gần nhất }; onGhiNhan(questionId, dung) báo lên trang.
  * onTap: ôn câu đến hạn của nhiều buổi (trang Ôn câu bài tập) — làm hết các câu, không chia phần.
+ * luotDaLuu / onLuuLuot: lượt đang làm dở lần trước ({ phan, ids, chiSo, ketQua }) — mở lại đúng câu đã dừng;
+ *   onLuuLuot(null) khi lượt xong. baoTiepTuc: vừa bấm "Học tiếp" → báo "đang làm tiếp từ câu n". tuDau: người học chọn "Học lại từ đầu" → lượt mới gồm tất cả câu, từ câu 1.
  */
-export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, onTap = false }) {
+export default function BaiTapKhoaHoc({
+  cauHoi,
+  ketQuaGanNhat = {},
+  onGhiNhan,
+  onTap = false,
+  luotDaLuu = null,
+  tuDau = false,
+  baoTiepTuc: coBaoTiepTuc = false,
+  onLuuLuot,
+}) {
   const { speak, isPlaying } = useTTS();
   // Lời giải thích đã soạn sẵn giữ trên máy (utils/soanTruocGiaiThich): từ dữ liệu bài (server gửi kèm)
   // và kết quả soạn trước. Trả lời trúng câu đã có thì hiện ngay, không gọi server.
@@ -333,10 +356,14 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   const cauConLai = cauChinh.filter((c) => ketQuaGanNhat[c.id] !== true);
   // Chỉ có ý nghĩa khi đã làm một phần: chưa làm câu nào hoặc sai hết thì "Còn lại" = "Tất cả"
   const coPhanConLai = cauConLai.length > 0 && cauConLai.length < cauChinh.length;
-  const [phan, setPhan] = useState(coPhanConLai ? CON_LAI : TAT_CA);
-  const [danhSach, setDanhSach] = useState(coPhanConLai ? cauConLai : cauChinh);
-  const [chiSo, setChiSo] = useState(0);
-  const [ketQua, setKetQua] = useState({});
+  const [khoiDau] = useState(() => khoiPhucLuot(luotDaLuu, cauHoi));
+  const macDinhConLai = coPhanConLai && !tuDau;
+  const [phan, setPhan] = useState(khoiDau?.phan ?? (macDinhConLai ? CON_LAI : TAT_CA));
+  const [danhSach, setDanhSach] = useState(khoiDau?.danhSach ?? (macDinhConLai ? cauConLai : cauChinh));
+  const [chiSo, setChiSo] = useState(khoiDau?.chiSo ?? 0);
+  const [ketQua, setKetQua] = useState(khoiDau?.ketQua ?? {});
+  // Đang làm tiếp lượt cũ: báo "từ câu n" kèm nút làm lại từ câu 1
+  const [baoTiepTuc, setBaoTiepTuc] = useState(coBaoTiepTuc && Boolean(khoiDau?.chiSo));
   const [giaiThich, setGiaiThich] = useState({});
   // Bản dịch đề + lựa chọn theo câu: { [questionId]: { hien, dangDich, loi, prompt, options } }
   const [banDich, setBanDich] = useState({});
@@ -406,7 +433,16 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
     return () => cancelAnimationFrame(khung);
   }, [daTraLoi]);
 
+  // Nhớ lượt đang làm để lần sau mở lại đúng câu (câu đang hiện đã trả lời thì lần sau mở câu kế)
+  useEffect(() => {
+    if (!onLuuLuot) return;
+    const chiSoLuu = cau && ketQua[cau.id] ? chiSo + 1 : chiSo;
+    onLuuLuot(chiSoLuu >= danhSach.length ? null : { phan, ids: danhSach.map((c) => c.id), chiSo: chiSoLuu, ketQua });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ lưu khi lượt làm đổi
+  }, [phan, danhSach, chiSo, ketQua]);
+
   function batDauLuot(ds) {
+    setBaoTiepTuc(false);
     luotRef.current += 1;
     setDanhSach(ds);
     setChiSo(0);
@@ -646,6 +682,17 @@ export default function BaiTapKhoaHoc({ cauHoi, ketQuaGanNhat = {}, onGhiNhan, o
   return (
     <div className="kh-bt">
       {boChonPhan}
+
+      {baoTiepTuc && (
+        <p className="kh-bt__tiep-tuc" role="status">
+          <span>
+            Đang làm tiếp từ câu {khoiDau.chiSo + 1}/{danhSach.length} của lần trước.
+          </span>
+          <button type="button" className="kh-bt__tiep-tuc-nut" onClick={() => batDauLuot(danhSach)}>
+            Làm lại từ câu 1
+          </button>
+        </p>
+      )}
 
       <div className="kh-bt__tien-do">
         <div

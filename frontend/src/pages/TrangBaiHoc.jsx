@@ -14,6 +14,8 @@ import { ghiNoiVeBuoi } from "../utils/noiVeBuoi";
 import "./KhoaHoc.css";
 import { CHE_DO_HOC } from "../contexts/BoDangHocContext";
 import LinkTroVe from "../components/common/LinkTroVe";
+import { useAuth } from "../contexts/AuthContext";
+import { coChoDungDeTiep, docViTriBuoi, ghiViTriBuoi, hocLaiTuDau, khoaViTriBuoi } from "../utils/viTriHocBuoi";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
 const CAC_BUOC = [
@@ -194,7 +196,40 @@ function VoCuon({ grammar, notes, onDoc }) {
   );
 }
 
-function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
+function moTaChoDung(viTri) {
+  if (viTri.buoc === "bai-tap") {
+    const luot = viTri.baiTap;
+    return luot?.ids?.length ? `Bài tập · câu ${luot.chiSo + 1}/${luot.ids.length}` : "Bài tập";
+  }
+  if (viTri.buoc === "ly-thuyet") {
+    return viTri.trangLyThuyet > 0 ? `Lý thuyết · trang ${viTri.trangLyThuyet + 1}` : "Lý thuyết";
+  }
+  return "Từ vựng";
+}
+
+// Vào lại buổi đã học dở: chọn học tiếp chỗ đã dừng hay học lại từ đầu
+function HoiHocTiep({ viTri, onHocTiep, onHocLai }) {
+  return (
+    <section className="kh-hoi-tiep" aria-labelledby="kh-hoi-tiep-ten">
+      <div className="kh-hoi-tiep__chu">
+        <p id="kh-hoi-tiep-ten" className="kh-hoi-tiep__ten">
+          Lần trước bạn dừng ở <strong>{moTaChoDung(viTri)}</strong>
+        </p>
+        <p className="kh-hoi-tiep__phu">Học lại từ đầu: bắt đầu từ Từ vựng, bài tập làm lại từ câu 1. Kết quả đã lưu vẫn giữ.</p>
+      </div>
+      <div className="kh-hoi-tiep__nut">
+        <button type="button" className="ui-button ui-button--primary px-5 py-2.5" onClick={onHocTiep}>
+          Học tiếp
+        </button>
+        <button type="button" className="ui-button ui-button--ghost px-5 py-2.5" onClick={onHocLai}>
+          Học lại từ đầu
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang }) {
   const { grammar = [], notes = [] } = content || {};
   const [cachXem, setCachXem] = useState(docCachXemLyThuyet);
   if (grammar.length === 0 && notes.length === 0) {
@@ -234,7 +269,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc }) {
       </div>
 
       {cachXem === "so-tay" ? (
-        <SoTayLatTrang trang={cacTrang} nhan="Lý thuyết của buổi" />
+        <SoTayLatTrang trang={cacTrang} nhan="Lý thuyết của buổi" trangDau={trangDau} onDoiTrang={onDoiTrang} />
       ) : (
         <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} />
       )}
@@ -263,7 +298,9 @@ function TrangBaiHoc() {
   const huongLat = viTri.state?.latTrang;
   const { setPageDataLoading } = usePageTransition();
   const { speak } = useTTS();
+  const { user } = useAuth();
   const khoa = `${courseId}/${soBai}`;
+  const khoaViTri = khoaViTriBuoi(user?.id, courseId, soBai);
   // ketQuaCau: { [questionId]: đúng/sai ở lần trả lời gần nhất } — cập nhật ngay khi làm bài
   const [trangThai, setTrangThai] = useState({ khoa: null, bai: null, loi: "", ketQuaCau: {} });
   const [lanThu, setLanThu] = useState(0);
@@ -273,6 +310,10 @@ function TrangBaiHoc() {
   const buocCu = searchParams.get("tab");
   const buoc = laBuocHopLe(buocTrenDuongDan) ? buocTrenDuongDan : laBuocHopLe(buocCu) ? buocCu : "tu-vung";
   const duongDanBuoc = (key) => `/khoa-hoc/${courseId}/bai/${soBai}/${key}`;
+  // Chỗ dừng đọc lại mỗi lần vẽ: đổi bước trong buổi (Bài tập → Lý thuyết → Bài tập) mở lại đúng câu đang làm
+  const viTriLuu = docViTriBuoi(khoaViTri);
+  // Mở buổi bằng link chung (từ trang Khoá học, Buổi trước/sau) mà lần trước học dở → hỏi học tiếp hay học lại
+  const hoiHocTiep = !buocTrenDuongDan && !laBuocHopLe(buocCu) && coChoDungDeTiep(viTriLuu);
 
   useEffect(() => {
     if (buocTrenDuongDan || !laBuocHopLe(buocCu)) return;
@@ -306,6 +347,11 @@ function TrangBaiHoc() {
       dungSoanNen();
     };
   }, [courseId, soBai, khoa, lanThu]);
+
+  // Nhớ bước đang mở (trừ lúc còn đang hỏi học tiếp — chưa chọn thì giữ chỗ dừng cũ)
+  useEffect(() => {
+    if (!dangTai && trangThai.bai && !hoiHocTiep) ghiViTriBuoi(khoaViTri, { buoc });
+  }, [dangTai, trangThai.bai, hoiHocTiep, khoaViTri, buoc]);
 
   // Đang ở bước Bài tập mới soạn dần lời giải thích AI của cả buổi trong nền (câu chính trước, câu luyện
   // thêm sau), để trả lời xong là có lời ngay. Không soạn lúc đọc Từ vựng / Lý thuyết: hạn mức Gemini
@@ -348,8 +394,8 @@ function TrangBaiHoc() {
 
   const soBuoi = bai.lesson.lesson_number;
   const docTiengAnh = (text) => speak(text, "en-US");
-  const chuyenBuoc = (key) => {
-    dieuHuong(duongDanBuoc(key), { replace: true });
+  const chuyenBuoc = (key, state) => {
+    dieuHuong(duongDanBuoc(key), { replace: true, state });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const soTuDaHoc = bai.words.filter((tu) => tu.mastery_level !== null && tu.mastery_level !== undefined).length;
@@ -410,6 +456,18 @@ function TrangBaiHoc() {
         </div>
       </header>
 
+      {hoiHocTiep && (
+        <HoiHocTiep
+          viTri={viTriLuu}
+          // hocTiep: bài tập báo "đang làm tiếp từ câu n" kèm nút làm lại từ câu 1
+          onHocTiep={() => chuyenBuoc(viTriLuu.buoc || "tu-vung", { hocTiep: true })}
+          onHocLai={() => {
+            hocLaiTuDau(khoaViTri);
+            chuyenBuoc("tu-vung");
+          }}
+        />
+      )}
+
       <div className="kh-buoc" role="tablist" aria-label="Các bước học trong buổi">
         {CAC_BUOC.map((muc, index) => (
           <button
@@ -448,6 +506,8 @@ function TrangBaiHoc() {
             onDoc={docTiengAnh}
             soCauBaiTap={cauChinh.length}
             onSangBuoc={chuyenBuoc}
+            trangDau={viTriLuu?.trangLyThuyet ?? 0}
+            onDoiTrang={(trang) => ghiViTriBuoi(khoaViTri, { trangLyThuyet: trang })}
           />
         )}
         {buoc === "bai-tap" && (
@@ -456,6 +516,10 @@ function TrangBaiHoc() {
             cauHoi={bai.questions}
             ketQuaGanNhat={ketQuaCau}
             onGhiNhan={ghiNhanKetQua}
+            luotDaLuu={viTriLuu?.baiTap}
+            tuDau={Boolean(viTriLuu?.tuDau)}
+            baoTiepTuc={Boolean(viTri.state?.hocTiep)}
+            onLuuLuot={(luot) => ghiViTriBuoi(khoaViTri, { baiTap: luot, tuDau: false })}
           />
         )}
       </div>

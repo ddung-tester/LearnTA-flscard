@@ -14,10 +14,15 @@ const NGUONG_KEO = 0.28;
  * Giảm chuyển động: đổi trang ngay, không xoay.
  *
  * trang: mảng node (mỗi phần tử một trang). nhan: tên sổ cho trình đọc màn hình.
+ * trangDau: mở sổ ở trang này (học tiếp chỗ đã dừng); onDoiTrang(chiSo) báo mỗi khi sang trang.
  */
-function SoTayLatTrang({ trang, nhan }) {
+function SoTayLatTrang({ trang, nhan, trangDau = 0, onDoiTrang }) {
   const giamChuyenDong = useReducedMotion();
-  const [chiSo, setChiSo] = useState(0);
+  const [chiSo, setChiSo] = useState(() => Math.min(Math.max(0, trangDau), Math.max(0, trang.length - 1)));
+  useEffect(() => {
+    onDoiTrang?.(chiSo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ báo khi đổi trang
+  }, [chiSo]);
   // lat: { huong: 1 | -1, goc (độ, 0 = nằm phải, -180 = đã sang trái), dangKeo }
   const [lat, setLat] = useState(null);
   const latRef = useRef(null);

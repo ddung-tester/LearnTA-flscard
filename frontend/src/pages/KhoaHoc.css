@@ -2085,3 +2085,74 @@
     padding: 0.45rem 0.6rem;
   }
 }
+
+/* Vào lại buổi đã học dở: học tiếp chỗ đã dừng hay học lại từ đầu */
+.kh-hoi-tiep {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  border: 1px solid var(--mau-vien);
+  border-left: 4px solid var(--mau-chinh);
+  border-radius: 1rem;
+  background: var(--mau-giay);
+  padding: 0.9rem 1.1rem;
+}
+
+.kh-hoi-tiep__chu {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.kh-hoi-tiep__ten {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.kh-hoi-tiep__phu {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.kh-hoi-tiep__nut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .kh-hoi-tiep__nut,
+  .kh-hoi-tiep__nut .ui-button {
+    flex: 1 1 auto;
+  }
+}
+
+/* Bài tập mở lại lượt cũ sau khi bấm "Học tiếp" */
+.kh-bt__tiep-tuc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.9rem;
+  margin: 0 0 0.75rem;
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--mau-chinh) 10%, transparent);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+}
+
+.kh-bt__tiep-tuc-nut {
+  border: 0;
+  background: none;
+  padding: 0.2rem 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
