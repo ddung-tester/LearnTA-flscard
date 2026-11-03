@@ -356,6 +356,15 @@ CREATE TABLE IF NOT EXISTS course_question_explanations (
   CONSTRAINT unique_course_question_explanations UNIQUE (question_id, answer_norm)
 );
 
+-- Bản dịch tiếng Việt của câu bài tập (nút "Dịch" sau khi trả lời): câu đã điền đáp án đúng + nghĩa từng lựa chọn.
+-- Dùng chung mọi lần học; content_key = băm nội dung câu (sửa đề/lựa chọn/đáp án thì dịch lại)
+CREATE TABLE IF NOT EXISTS course_question_translations (
+  question_id BIGINT PRIMARY KEY REFERENCES course_questions(id) ON DELETE CASCADE,
+  content_key VARCHAR(64) NOT NULL,
+  translation JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Kết quả lần trả lời gần nhất của người học cho mỗi câu bài tập khoá học
 -- + lịch ôn SRS cho câu từng làm sai (next_review_at NULL = không nằm trong lịch ôn)
 CREATE TABLE IF NOT EXISTS course_question_progress (

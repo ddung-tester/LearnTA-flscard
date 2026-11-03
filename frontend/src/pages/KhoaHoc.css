@@ -2156,3 +2156,52 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
+
+/* Lùi xem lại câu đã làm / tiến tới câu đã tới (chưa làm thì không tiến được) */
+.kh-bt__dieu-huong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.kh-bt__nut-chuyen {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  background: var(--mau-giay);
+  color: var(--mau-chu);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kh-bt__nut-chuyen:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .kh-bt__nut-chuyen:not(:disabled):hover {
+    background: var(--mau-mat-hover);
+  }
+}
+
+/* Câu hỏi lại sau khi trả lời sai (giống Tự luận) */
+.kh-cau__hoi-lai {
+  margin-left: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--kh-sai-chu) 12%, transparent);
+  padding: 0.1rem 0.5rem;
+  color: var(--kh-sai-chu);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.kh-cau__nhap-lai {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--kh-sai-chu);
+}

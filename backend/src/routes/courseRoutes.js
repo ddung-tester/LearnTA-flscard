@@ -54,12 +54,12 @@ router.post(
   aiExplainLimiter,
   asyncHandler(courseController.explainQuestion)
 );
-// Dịch đề + lựa chọn (nút "Dịch"); đã dịch thì server trả bản giữ sẵn
+// Bản dịch câu bài tập (nút "Dịch" sau khi trả lời): câu đã dịch trả ngay, câu chưa có thì AI dịch rồi lưu
 router.post(
-  "/course-questions/:questionId/translate",
+  "/course-questions/translations",
   requireAuth,
   aiExplainLimiter,
-  asyncHandler(courseController.translateQuestion)
+  asyncHandler(courseController.translateQuestions)
 );
 
 // Người học chấm lời giải thích; chê thì AI viết lại (mỗi lần 1 lượt gọi AI)

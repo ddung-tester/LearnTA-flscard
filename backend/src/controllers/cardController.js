@@ -41,10 +41,14 @@ async function fillTenseExamplesBackground(cardId, termEn, meaningVi, partOfSpee
 
 // Dịch sẵn câu ví dụ ngầm (background) để nút "Xem tiếng Việt" chỉ việc hiện ra.
 // Chạy lần lượt từng thẻ (nhập 500 từ không bắn 500 lượt AI cùng lúc); lỗi thì để nút tự dịch khi bấm.
+// Thẻ đang được dịch: mở bộ từ nhiều lần liền không dịch trùng một thẻ
+const dangDichViDu = new Set();
+
 async function fillExampleTranslationsBackground(cards) {
   if (!process.env.GEMINI_API_KEY) return;
   for (const card of cards) {
-    if (!card?.example_sentence || card.example_translation) continue;
+    if (!card?.example_sentence || card.example_translation || dangDichViDu.has(card.id)) continue;
+    dangDichViDu.add(card.id);
     try {
       const banDich = await aiService.translateExampleSentence({
         sentence: card.example_sentence,
@@ -58,8 +62,18 @@ async function fillExampleTranslationsBackground(cards) {
       );
     } catch (err) {
       console.warn(`[AI] fillExampleTranslation failed for card ${card.id}:`, err.message);
+    } finally {
+      dangDichViDu.delete(card.id);
     }
   }
+}
+
+// Mở bộ từ để học: thẻ cũ có câu ví dụ mà chưa có bản dịch thì dịch bù trong nền (mỗi lần mở tối đa
+// SO_THE_DICH_BU thẻ), để lúc trả lời xong bấm "Xem tiếng Việt" là hiện ngay
+const SO_THE_DICH_BU = 30;
+function dichBuViDuKhiMoBo(rows) {
+  const canDich = rows.filter((row) => row.example_sentence && !row.example_translation).slice(0, SO_THE_DICH_BU);
+  if (canDich.length > 0) fillExampleTranslationsBackground(canDich);
 }
 
 function normalizeCard(row) {
@@ -290,6 +304,7 @@ async function listCardsByDeck(req, res) {
   );
 
   res.json(rows.map(normalizeCard));
+  dichBuViDuKhiMoBo(rows);
 }
 
 async function createCard(req, res) {

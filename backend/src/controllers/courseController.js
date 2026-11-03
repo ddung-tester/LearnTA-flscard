@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const aiService = require("../services/aiService");
 const audioStorage = require("../services/audioStorage");
 const { pipeline } = require("node:stream/promises");
+const crypto = require("node:crypto");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
 const {
   cacTraLoiCanGiaiThich,
@@ -85,11 +86,15 @@ async function docGiaiThichCuaCacCau(questionIds) {
  */
 async function ganGiaiThich(rows) {
   const theoCau = await docGiaiThichCuaCacCau(rows.map((row) => row.id));
-  return rows.map((row) => {
-    const question = normalizeQuestion(row);
+  const cacCau = rows.map(normalizeQuestion);
+  // Bản dịch đã có gửi kèm (nút "Dịch" hiện ngay); câu chưa dịch thì client nhờ dịch trong nền
+  const banDich = await docBanDichCuaCacCau(cacCau);
+  return rows.map((row, viTri) => {
+    const question = cacCau[viTri];
     const explanations = theoCau.get(row.id) ?? {};
     return {
       ...question,
+      translation: banDich.get(Number(row.id)) ?? null,
       explanations,
       explanations_ready: cacTraLoiCanGiaiThich(question).every((traLoi) => traLoi.answerNorm in explanations),
     };
@@ -600,19 +605,22 @@ async function rateExplanation(req, res) {
   res.json({ explanation });
 }
 
-// Bản dịch đề + lựa chọn theo câu (giữ trong bộ nhớ server, khởi động lại thì AI dịch lại)
-const banDichCauHoi = new Map();
-const SO_BAN_DICH_GIU_TOI_DA = 2000;
-
-/** Từ vựng của buổi (bộ thẻ gắn với buổi) có xuất hiện trong đề/lựa chọn: để dịch đúng nghĩa đã học */
-async function docTuVungTrongCau(lessonId, question) {
+/** Từ vựng của buổi (bộ thẻ gắn với buổi) có xuất hiện trong các câu: để dịch đúng nghĩa đã học */
+async function docTuVungTrongCacCau(lessonId, questions) {
   const [rows] = await pool.query(
     `SELECT c.term_en, c.meaning_vi FROM cards c
      JOIN course_lessons l ON l.deck_id = c.deck_id
      WHERE l.id = ?`,
     [lessonId]
   );
-  const chuCuaCau = [question.prompt, question.instruction, ...(question.options || []).map((o) => o.text)]
+  const chuCuaCau = questions
+    .flatMap((question) => [
+      question.prompt,
+      question.instruction,
+      question.listen_text,
+      ...(question.options || []).map((option) => option.text),
+      ...(question.accepted_answers || []),
+    ])
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -621,34 +629,151 @@ async function docTuVungTrongCau(lessonId, question) {
     .map((tu) => ({ term_en: tu.term_en.trim(), meaning_vi: tu.meaning_vi }));
 }
 
-// POST /course-questions/:id/translate — dịch đề bài và các lựa chọn (không lộ đáp án)
-async function translateQuestion(req, res) {
-  const questionId = parsePositiveInt(req.params.questionId, "questionId");
-  const { row, question } = await docCauCuaChuKhoa(questionId, req.user.id);
-  // Khoá gồm cả nội dung câu: sửa đề thì dịch lại
-  const khoa = `${questionId}:${question.prompt}:${JSON.stringify(question.options || [])}`;
-  const daCo = banDichCauHoi.get(khoa);
-  if (daCo) {
-    res.json(daCo);
-    return;
+// ── Bản dịch câu bài tập (nút "Dịch", hiện sau khi trả lời) ──
+// Lưu ở course_question_translations: mỗi câu dịch một lần, các lần học sau hiện ngay.
+// Khoá nội dung gồm đề, lựa chọn, đáp án và PHIEN_BAN_DICH: sửa câu hoặc đổi cách dịch thì dịch lại.
+const PHIEN_BAN_DICH = "2026-11-03";
+const SO_CAU_MOI_LUOT_DICH = 8;
+const SO_CAU_DICH_TOI_DA = 40;
+
+function khoaNoiDungDich(question) {
+  return crypto
+    .createHash("sha1")
+    .update(
+      JSON.stringify([
+        PHIEN_BAN_DICH,
+        question.instruction,
+        question.prompt,
+        question.options,
+        question.answer_key,
+        question.accepted_answers,
+        question.listen_text,
+      ])
+    )
+    .digest("hex");
+}
+
+// CSDL chưa chạy SQL tạo bảng: giữ tạm trong bộ nhớ (khởi động lại thì dịch lại), không làm hỏng trang học
+let coBangBanDich = true;
+const banDichTam = new Map();
+const laThieuBang = (error) => error?.pgCode === "42P01" || error?.code === "42P01";
+
+function boBangBanDich() {
+  coBangBanDich = false;
+  console.warn("Chưa có bảng course_question_translations: bản dịch câu bài tập chỉ giữ trong bộ nhớ");
+}
+
+/** Bản dịch còn đúng với nội dung câu: Map question_id → { prompt, options } */
+async function docBanDichCuaCacCau(questions) {
+  const ketQua = new Map();
+  if (questions.length === 0) return ketQua;
+  const khoa = new Map(questions.map((question) => [Number(question.id), khoaNoiDungDich(question)]));
+  if (coBangBanDich) {
+    try {
+      const [rows] = await pool.query(
+        "SELECT question_id, content_key, translation FROM course_question_translations WHERE question_id IN (?)",
+        [[...khoa.keys()]]
+      );
+      for (const row of rows) {
+        const banDich = docJson(row.translation, null);
+        if (banDich?.prompt && khoa.get(Number(row.question_id)) === row.content_key) {
+          ketQua.set(Number(row.question_id), banDich);
+        }
+      }
+    } catch (error) {
+      if (!laThieuBang(error)) throw error;
+      boBangBanDich();
+    }
   }
-  let banDich;
-  try {
-    banDich = await aiService.translateCourseQuestion({
-      ...nguCanhAI(row, question),
-      vocabulary: await docTuVungTrongCau(row.lesson_id, question),
-    });
-  } catch (error) {
-    console.error("translateCourseQuestion failed:", error.message);
+  for (const [id, khoaCau] of khoa) {
+    const tam = banDichTam.get(id);
+    if (!ketQua.has(id) && tam?.khoa === khoaCau) ketQua.set(id, tam.banDich);
+  }
+  return ketQua;
+}
+
+async function luuBanDich(question, banDich) {
+  const khoa = khoaNoiDungDich(question);
+  if (coBangBanDich) {
+    try {
+      await pool.query(
+        `INSERT INTO course_question_translations (question_id, content_key, translation) VALUES (?, ?, ?)
+         ON CONFLICT (question_id)
+         DO UPDATE SET content_key = EXCLUDED.content_key, translation = EXCLUDED.translation, created_at = CURRENT_TIMESTAMP`,
+        [question.id, khoa, JSON.stringify(banDich)]
+      );
+      return;
+    } catch (error) {
+      if (!laThieuBang(error)) throw error;
+      boBangBanDich();
+    }
+  }
+  if (banDichTam.size >= 2000) banDichTam.delete(banDichTam.keys().next().value);
+  banDichTam.set(Number(question.id), { khoa, banDich });
+}
+
+// POST /course-questions/translations { ids } — bản dịch các câu (đã điền đáp án đúng, theo ngữ cảnh buổi học).
+// Câu đã dịch trả ngay; câu chưa có thì AI dịch theo nhóm cùng buổi (mỗi lượt tối đa 8 câu) rồi lưu lại.
+// Câu không thuộc khoá của người dùng bị bỏ qua như không tồn tại.
+async function translateQuestions(req, res) {
+  const ids = [
+    ...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter((id) => Number.isInteger(id) && id > 0)),
+  ].slice(0, SO_CAU_DICH_TOI_DA);
+  if (ids.length === 0) throw createHttpError(400, "Thiếu danh sách câu cần dịch");
+
+  const [rows] = await pool.query(
+    `SELECT q.*, l.title AS lesson_title, l.content AS lesson_content
+     FROM course_questions q
+     JOIN course_lessons l ON l.id = q.lesson_id
+     JOIN courses c ON c.id = l.course_id
+     WHERE q.id IN (?) AND c.user_id = ?`,
+    [ids, req.user.id]
+  );
+  const cacCau = rows.map((row) => ({ row, question: normalizeQuestion(row) }));
+  const daCo = await docBanDichCuaCacCau(cacCau.map((cau) => cau.question));
+  const translations = Object.fromEntries(daCo);
+
+  const theoBuoi = new Map();
+  for (const cau of cacCau) {
+    if (daCo.has(Number(cau.question.id))) continue;
+    if (!theoBuoi.has(cau.row.lesson_id)) theoBuoi.set(cau.row.lesson_id, []);
+    theoBuoi.get(cau.row.lesson_id).push(cau);
+  }
+
+  let loi = null;
+  for (const [lessonId, nhom] of theoBuoi) {
+    const vocabulary = await docTuVungTrongCacCau(lessonId, nhom.map((cau) => cau.question));
+    const { lessonTitle, grammar } = nguCanhAI(nhom[0].row, null);
+    for (let i = 0; i < nhom.length; i += SO_CAU_MOI_LUOT_DICH) {
+      const phan = nhom.slice(i, i + SO_CAU_MOI_LUOT_DICH);
+      try {
+        const banDich = await aiService.translateCourseQuestions({
+          lessonTitle,
+          grammar,
+          vocabulary,
+          questions: phan.map((cau) => cau.question),
+        });
+        for (const cau of phan) {
+          const muc = banDich.get(Number(cau.question.id));
+          if (!muc) continue;
+          translations[cau.question.id] = muc;
+          await luuBanDich(cau.question, muc);
+        }
+      } catch (error) {
+        console.error("translateCourseQuestions failed:", error.message);
+        loi = error;
+      }
+    }
+  }
+
+  if (loi && Object.keys(translations).length === 0) {
     throw createHttpError(502, "Chưa dịch được, thử lại sau");
   }
-  if (banDichCauHoi.size >= SO_BAN_DICH_GIU_TOI_DA) banDichCauHoi.delete(banDichCauHoi.keys().next().value);
-  banDichCauHoi.set(khoa, banDich);
-  res.json(banDich);
+  res.json({ translations });
 }
 
 module.exports = {
-  translateQuestion,
+  translateQuestions,
   rateExplanation,
   listCourses,
   getLesson,

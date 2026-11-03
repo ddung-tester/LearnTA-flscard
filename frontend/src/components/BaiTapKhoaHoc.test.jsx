@@ -4,10 +4,15 @@ import BaiTapKhoaHoc from "./BaiTapKhoaHoc";
 
 vi.mock("../services/courseApi", () => ({
   chuanBiGiaiThich: vi.fn(() => Promise.resolve({ ready: true })),
-  dichCauHoi: vi.fn(),
+  layBanDichCauHoi: vi.fn(() => Promise.resolve({})),
   giaiThichCauHoi: vi.fn(),
   layAudioCauHoi: vi.fn(),
   luuTraLoiCauHoi: vi.fn(),
+}));
+
+// Thanh "Câu tiếp theo" đọc cỡ màn hình (không render được phía server): thay bằng nút đơn giản
+vi.mock("./common/ThanhTiepTuc", () => ({
+  default: ({ nhanNut }) => <button type="button">{nhanNut}</button>,
 }));
 
 // React SSR chèn <!-- --> giữa chữ và biểu thức
@@ -41,11 +46,10 @@ describe("BaiTapKhoaHoc", () => {
     expect(html).toContain("Câu <strong>1</strong> / 3");
   });
 
-  it("offers a translate button next to the question, with the translation hidden until pressed", () => {
+  it("keeps the translate button hidden until the question is answered (the translation fills in the answer)", () => {
     const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} ketQuaGanNhat={{}} />);
 
-    expect(html).toContain("Dịch câu hỏi và đáp án");
-    expect(html).toContain('aria-pressed="false"');
+    expect(html).not.toContain("Dịch câu sang tiếng Việt");
     expect(html).not.toContain("kh-dich");
   });
 
@@ -110,5 +114,55 @@ describe("BaiTapKhoaHoc", () => {
     expect(htmlLoiThoai).toContain("▶ Nghe lại");
     // Lời thoại chỉ hiện sau khi trả lời
     expect(htmlLoiThoai).not.toContain("J. I. L. L.");
+  });
+
+  it("asks to answer again after a wrong answer instead of moving on", () => {
+    const luot = { v: 2, phan: "tat-ca", ids: [1, 2, 3], chiSo: 0, ketQua: { 0: { traLoi: "B", dung: false } } };
+    const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} luotDaLuu={luot} />);
+
+    expect(html).toContain("Trả lời lại");
+    expect(html).not.toContain("Câu tiếp theo");
+  });
+
+  it("while answering again shows the correct answer and keeps the wrong choice locked", () => {
+    const luot = {
+      v: 2,
+      phan: "tat-ca",
+      ids: [1, 2, 3],
+      chiSo: 0,
+      ketQua: { 0: { traLoi: "B", dung: false, nhapLai: true } },
+    };
+    const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} luotDaLuu={luot} />);
+
+    expect(html).toContain("Chọn lại đáp án đúng để đi tiếp");
+    expect(html).not.toContain("Trả lời lại");
+    expect(html).toMatch(/kh-lua-chon__nut--sai"[^>]*disabled/);
+  });
+
+  it("lets the learner go back to answered questions but not skip ahead", () => {
+    const luot = { v: 2, phan: "tat-ca", ids: [1, 2, 3], chiSo: 1, ketQua: { 0: { traLoi: "A", dung: true } } };
+    const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} luotDaLuu={luot} />);
+
+    expect(html).toContain("Câu <strong>2</strong> / 3");
+    expect(html).toMatch(/aria-label="Câu trước"(?![^>]*disabled)/);
+    expect(html).toMatch(/disabled=""[^>]*aria-label="Câu sau"|aria-label="Câu sau"[^>]*disabled/);
+  });
+
+  it("restores a re-asked question from the saved round", () => {
+    const luot = {
+      v: 2,
+      phan: "tat-ca",
+      ids: [1, 2, 1],
+      hoiLai: [2],
+      chiSo: 2,
+      ketQua: { 0: { traLoi: "B", dung: false, daSua: true }, 1: { traLoi: "A", dung: true } },
+    };
+    const html = render(<BaiTapKhoaHoc cauHoi={CAU_HOI} luotDaLuu={luot} />);
+
+    expect(html).toContain("Hỏi lại");
+    expect(html).toContain("Câu một");
+    // Đếm theo lần trả lời đầu: 1 đúng, 1 sai
+    expect(html).toContain("1 đúng");
+    expect(html).toContain("1 sai");
   });
 });

@@ -12,7 +12,7 @@ const {
   getLesson,
   prepareQuestion,
   rateExplanation,
-  translateQuestion,
+  translateQuestions,
   getQuestionAudio,
   listCourses,
   listDueQuestions,
@@ -708,59 +708,88 @@ test("an off-topic AI explanation is shown but not cached, so it is rewritten ne
   assert.equal(calls.length, 2);
 });
 
-test("translateQuestion translates with the lesson's own vocabulary and caches the result", async () => {
-  const cau = { ...CAU_TRAC_NGHIEM, id: 41, lesson_id: 3, prompt: "The lamp _____ on in the hall." };
+test("translateQuestions returns saved translations and translates the rest with the lesson vocabulary", async () => {
+  const cau1 = { ...CAU_TRAC_NGHIEM, id: 41, lesson_id: 3, prompt: "The lamp _____ on in the hall." };
+  const cau2 = { ...CAU_TRAC_NGHIEM, id: 42, lesson_id: 3, prompt: "She _____ the kitchen every day." };
+  const nguCanh = { lesson_title: "Bài 3", lesson_content: { grammar: [{ title: "to be" }] } };
   const calls = fakePool([
-    [{ ...cau, lesson_title: "Bài 3", lesson_content: { grammar: [{ title: "to be" }] } }],
+    [{ ...cau1, ...nguCanh }, { ...cau2, ...nguCanh }],
+    [], // chưa có bản dịch nào
     [
       { term_en: "lamp", meaning_vi: "cái đèn" },
-      { term_en: "kitchen", meaning_vi: "nhà bếp" },
+      { term_en: "garden", meaning_vi: "khu vườn" },
     ],
-    [{ ...cau, lesson_title: "Bài 3", lesson_content: {} }],
   ]);
-  let soLanGoi = 0;
   let input;
-  aiService.translateCourseQuestion = async (value) => {
-    soLanGoi += 1;
+  aiService.translateCourseQuestions = async (value) => {
     input = value;
-    return { prompt: "Cái đèn _____ bật ở sảnh.", options: { A: "là", B: "là (số nhiều)" } };
+    return new Map([[41, { prompt: "Cái đèn ở sảnh đang bật.", options: { A: "là" } }]]);
   };
   const res = fakeRes();
-  await translateQuestion({ user: { id: 7 }, params: { questionId: "41" } }, res);
+  await translateQuestions({ user: { id: 7 }, body: { ids: [41, "42", 41, -1] } }, res);
 
-  assert.deepEqual(calls[0].params, [41, 7]);
-  assert.equal(calls[1].params[0], 3);
-  // Chỉ gửi từ của bài có trong câu
+  assert.deepEqual(calls[0].params, [[41, 42], 7]);
+  // Chỉ gửi từ của buổi có trong câu
   assert.deepEqual(input.vocabulary, [{ term_en: "lamp", meaning_vi: "cái đèn" }]);
   assert.equal(input.lessonTitle, "Bài 3");
-  assert.equal(res.body.prompt, "Cái đèn _____ bật ở sảnh.");
-
-  const res2 = fakeRes();
-  await translateQuestion({ user: { id: 7 }, params: { questionId: "41" } }, res2);
-  assert.equal(soLanGoi, 1);
-  assert.deepEqual(res2.body, res.body);
+  assert.deepEqual(input.questions.map((q) => q.id), [41, 42]);
+  assert.deepEqual(res.body, { translations: { 41: { prompt: "Cái đèn ở sảnh đang bật.", options: { A: "là" } } } });
+  // Lưu bản dịch câu AI trả về (câu AI bỏ sót thì không lưu)
+  const luu = calls.filter((call) => /INSERT INTO course_question_translations/.test(call.sql));
+  assert.equal(luu.length, 1);
+  assert.equal(luu[0].params[0], 41);
 });
 
-test("buildQuestionTranslationPrompt keeps blanks unanswered and pins the lesson vocabulary", () => {
+test("translateQuestions skips the AI when every translation is saved for the current content", async () => {
+  const cau = { ...CAU_TRAC_NGHIEM, id: 41, lesson_id: 3, lesson_title: "Bài 3", lesson_content: {} };
+  // Lần 1: AI dịch và lưu; đọc lại dòng đã lưu (cùng khoá nội dung) cho lần 2
+  let daLuu = null;
+  pool.query = async (sql, params) => {
+    if (/FROM course_questions q/.test(sql)) return [[cau]];
+    if (/SELECT question_id, content_key/.test(sql)) return [daLuu ? [daLuu] : []];
+    if (/INSERT INTO course_question_translations/.test(sql)) {
+      daLuu = { question_id: params[0], content_key: params[1], translation: JSON.parse(params[2]) };
+    }
+    return [[]];
+  };
+  let soLanGoi = 0;
+  aiService.translateCourseQuestions = async () => {
+    soLanGoi += 1;
+    return new Map([[41, { prompt: "Bản dịch", options: {} }]]);
+  };
+  await translateQuestions({ user: { id: 7 }, body: { ids: [41] } }, fakeRes());
+  const res = fakeRes();
+  await translateQuestions({ user: { id: 7 }, body: { ids: [41] } }, res);
+  assert.equal(soLanGoi, 1);
+  assert.deepEqual(res.body, { translations: { 41: { prompt: "Bản dịch", options: {} } } });
+});
+
+test("buildQuestionTranslationPrompt fills in the correct answer and pins the lesson vocabulary", () => {
   const prompt = aiService.buildQuestionTranslationPrompt({
     lessonTitle: "Bài 3",
     grammar: [{ title: "Hiện tại hoàn thành", pattern: "have/has + V3" }],
     vocabulary: [{ term_en: "paint", meaning_vi: "sơn" }],
-    question: {
-      type: "multiple_choice",
-      prompt: "My father _____ already _____ the wall.",
-      options: [
-        { key: "A", text: "have - painted" },
-        { key: "B", text: "has - painted" },
-      ],
-    },
+    questions: [
+      {
+        id: 9,
+        type: "multiple_choice",
+        prompt: "My father _____ already _____ the wall.",
+        options: [
+          { key: "A", text: "have - painted" },
+          { key: "B", text: "has - painted" },
+        ],
+        answer_key: "B",
+      },
+      { id: 10, type: "fill_blank", prompt: "I _____ (be) tired.", accepted_answers: ["am"] },
+    ],
   });
   assert.match(prompt, /paint: sơn/);
   assert.match(prompt, /Hiện tại hoàn thành/);
-  assert.match(prompt, /KHÔNG tự điền đáp án/);
-  assert.match(prompt, /"A": "<bản dịch>", "B": "<bản dịch>"/);
+  assert.match(prompt, /Câu id=9/);
+  assert.match(prompt, /Đáp án đúng: B\. has - painted/);
+  assert.match(prompt, /Đáp án đúng: am/);
+  assert.match(prompt, /điền ĐÁP ÁN ĐÚNG/);
 });
-
 test("explanation prompts put the extra example on its own 'Ví dụ khác' line", () => {
   const prompt = aiService.buildCourseExplanationPrompt({
     lessonTitle: "Bài 3",

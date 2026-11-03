@@ -42,12 +42,15 @@ export async function chuanBiGiaiThich(questionId) {
   return response.data;
 }
 
-/** Bản dịch tiếng Việt của đề bài và các lựa chọn → { prompt, options: { [key]: bản dịch } } */
-export async function dichCauHoi(questionId) {
-  const response = await api.post(`/course-questions/${encodeURIComponent(questionId)}/translate`, {}, {
-    timeout: THOI_GIAN_CHO_AI_MS,
+/**
+ * Bản dịch tiếng Việt của các câu (câu đã điền đáp án đúng + nghĩa từng lựa chọn), tối đa 40 câu một lần
+ * → { [questionId]: { prompt, options: { [key]: bản dịch } } }. Câu chưa dịch thì server nhờ AI dịch rồi lưu.
+ */
+export async function layBanDichCauHoi(questionIds) {
+  const response = await api.post("/course-questions/translations", { ids: questionIds }, {
+    timeout: THOI_GIAN_CHO_AI_MS * 2,
   });
-  return response.data;
+  return response.data?.translations || {};
 }
 
 /**

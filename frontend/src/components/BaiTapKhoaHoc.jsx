@@ -6,7 +6,7 @@ import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import ThanhTiepTuc from "./common/ThanhTiepTuc";
 import useDuaONhapVaoTam from "../hooks/useDuaONhapVaoTam";
 import { useHoiLearnBot } from "../contexts/ChatbotContext";
-import { danhGiaGiaiThich, dichCauHoi, giaiThichCauHoi } from "../services/courseApi";
+import { danhGiaGiaiThich, giaiThichCauHoi, layBanDichCauHoi } from "../services/courseApi";
 import { luuTraLoiCoHangCho, soCauDangCho, theoDoiHangCho } from "../services/hangChoTraLoi";
 import {
   capNhatGiaiThich,
@@ -224,8 +224,10 @@ function loiNhan(tiLe) {
   return "Nên đọc lại phần lý thuyết, sau đó làm lại các câu sai.";
 }
 
-function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
-  const cauSai = danhSach.filter((c) => !ketQua[c.id]?.dung);
+/** cacCau: [{ cau, kq }] — lần trả lời đầu của từng câu trong lượt (lượt hỏi lại không tính điểm) */
+function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau }) {
+  const danhSach = cacCau.map((muc) => muc.cau);
+  const cauSai = cacCau.filter((muc) => !muc.kq?.dung);
   const soDung = danhSach.length - cauSai.length;
 
   // Làm tốt (≥ 80%) thì ăn mừng một lần khi hiện tổng kết
@@ -239,8 +241,8 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
   }, []);
   const theoPhan = nhomPhanBaiTap(danhSach).flatMap((nhom) =>
     nhom.cacPhan.map((phan) => {
-      const cacCau = danhSach.filter((c) => phanBaiTap(c).khoa === phan.khoa);
-      return { ...phan, nguon: nhom.nguon, dung: cacCau.filter((c) => ketQua[c.id]?.dung).length };
+      const cuaPhan = cacCau.filter((muc) => phanBaiTap(muc.cau).khoa === phan.khoa);
+      return { ...phan, nguon: nhom.nguon, dung: cuaPhan.filter((muc) => muc.kq?.dung).length };
     })
   );
 
@@ -274,7 +276,7 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
 
       <div className="kh-tong-ket__hanh-dong">
         {cauSai.length > 0 && (
-          <button type="button" className="ui-button ui-button--primary px-5 py-2.5" onClick={() => onLamLaiCauSai(cauSai)}>
+          <button type="button" className="ui-button ui-button--primary px-5 py-2.5" onClick={() => onLamLaiCauSai(cauSai.map((muc) => muc.cau))}>
             Làm lại {cauSai.length} câu sai
           </button>
         )}
@@ -287,12 +289,12 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
         <div className="kh-tong-ket__sai">
           <h4 className="kh-tong-ket__sai-tieu-de">Các câu cần xem lại</h4>
           <ol>
-            {cauSai.map((c) => (
+            {cauSai.map(({ cau: c, kq }) => (
               <li key={c.id}>
                 <p className="kh-tong-ket__de" lang="en">{c.prompt}</p>
                 <p className="kh-tong-ket__so-sanh">
                   <span className="kh-tong-ket__cua-ban">
-                    Bạn trả lời: <s lang="en">{traLoiHienThi(c, ketQua[c.id]?.traLoi)}</s>
+                    Bạn trả lời: <s lang="en">{traLoiHienThi(c, kq?.traLoi)}</s>
                   </span>
                   <span className="kh-tong-ket__dung">
                     Đúng: <strong lang="en">{layDapAnHienThi(c)}</strong>
@@ -311,15 +313,25 @@ function TongKet({ danhSach, ketQua, onLamLaiCauSai, onLamLaiTuDau }) {
 const DO_DAI_LUA_CHON_NGAN = 28;
 /** Dựng lại lượt làm dở đã lưu; bài đã đổi câu (thiếu câu) hoặc lượt đã xong thì bỏ */
 function khoiPhucLuot(luot, cauHoi) {
-  if (!luot || !Array.isArray(luot.ids) || luot.ids.length === 0) return null;
+  // v2: kết quả theo vị trí trong lượt (một câu có thể xuất hiện lại để hỏi lại); bản lưu cũ thì bỏ
+  if (!luot || luot.v !== 2 || !Array.isArray(luot.ids) || luot.ids.length === 0) return null;
   const theoId = new Map(cauHoi.map((c) => [c.id, c]));
-  const danhSach = luot.ids.map((id) => theoId.get(id));
+  const hoiLai = new Set(luot.hoiLai || []);
+  const danhSach = luot.ids.map((id, viTri) => {
+    const c = theoId.get(id);
+    return c && hoiLai.has(viTri) ? { ...c, __hoiLai: true } : c;
+  });
   if (danhSach.some((c) => !c)) return null;
   const chiSo = Math.max(0, Number(luot.chiSo) || 0);
   if (chiSo >= danhSach.length) return null;
-  const ketQua = Object.fromEntries(Object.entries(luot.ketQua || {}).filter(([id]) => theoId.has(Number(id))));
+  const ketQua = Object.fromEntries(Object.entries(luot.ketQua || {}).filter(([viTri]) => Number(viTri) <= chiSo));
   return { phan: luot.phan, danhSach, chiSo, ketQua };
 }
+
+/** Câu ở vị trí này đã qua được: trả lời đúng, hoặc sai rồi đã nhập lại đúng */
+const daQua = (kq) => Boolean(kq && (kq.dung || kq.daSua));
+// Trả lời sai, nhập lại đúng thì câu được hỏi lại sau chừng này câu (giống Tự luận)
+const HOI_LAI_SAU = 5;
 
 function coLuaChonNgan(options) {
   return options.length % 2 === 0
@@ -360,13 +372,26 @@ export default function BaiTapKhoaHoc({
   const macDinhConLai = coPhanConLai && !tuDau;
   const [phan, setPhan] = useState(khoiDau?.phan ?? (macDinhConLai ? CON_LAI : TAT_CA));
   const [danhSach, setDanhSach] = useState(khoiDau?.danhSach ?? (macDinhConLai ? cauConLai : cauChinh));
+  // chiSo: câu đang xem; chiSoXa: câu xa nhất đã tới (mọi câu trước nó đã qua) — lùi xem lại được,
+  // tiến chỉ tới chiSoXa
   const [chiSo, setChiSo] = useState(khoiDau?.chiSo ?? 0);
+  const [chiSoXa, setChiSoXa] = useState(khoiDau?.chiSo ?? 0);
+  // Kết quả theo VỊ TRÍ trong lượt: { [viTri]: { traLoi, dung, nhapLai, daSua, traLoiSua } }
   const [ketQua, setKetQua] = useState(khoiDau?.ketQua ?? {});
+  // Lần trả lời vừa xong (âm thanh, pháo giấy, cuộn tới phần kết quả); không chạy khi lùi/tiến xem lại
+  const [phanHoi, setPhanHoi] = useState({ lan: 0, dung: false, cuon: false });
+  const [loiNhapLai, setLoiNhapLai] = useState("");
   // Đang làm tiếp lượt cũ: báo "từ câu n" kèm nút làm lại từ câu 1
   const [baoTiepTuc, setBaoTiepTuc] = useState(coBaoTiepTuc && Boolean(khoiDau?.chiSo));
   const [giaiThich, setGiaiThich] = useState({});
-  // Bản dịch đề + lựa chọn theo câu: { [questionId]: { hien, dangDich, loi, prompt, options } }
+  // Trạng thái nút Dịch theo câu: { [questionId]: { hien, dangDich, loi } }
   const [banDich, setBanDich] = useState({});
+  // Bản dịch có sẵn (server gửi kèm câu hoặc dịch trước trong nền): { [questionId]: { prompt, options } }
+  const [dichSan, setDichSan] = useState(() =>
+    Object.fromEntries(cauHoi.filter((c) => c.translation?.prompt).map((c) => [c.id, c.translation]))
+  );
+  // Lượt dịch trước đang chạy: questionId → promise (bấm Dịch lúc đó thì chờ chính lượt này, không gọi lại)
+  const dangDichTruocRef = useRef(new Map());
   const hoiLearnBot = useHoiLearnBot();
   const [nhap, setNhap] = useState("");
   const oNhapRef = useRef(null);
@@ -386,10 +411,15 @@ export default function BaiTapKhoaHoc({
 
   const nhomPhan = nhomPhanBaiTap(cauHoi);
   const cau = danhSach[chiSo];
-  const daTraLoi = cau ? ketQua[cau.id] : null;
+  const daTraLoi = cau ? ketQua[chiSo] : null;
+  // Sai và đã bấm "Trả lời lại": đang nhập / chọn lại đáp án đúng
+  const dangNhapLai = Boolean(daTraLoi && !daTraLoi.dung && daTraLoi.nhapLai && !daTraLoi.daSua);
+  const choTraLoi = !daTraLoi || dangNhapLai;
   const xong = chiSo >= danhSach.length;
-  const soDung = Object.values(ketQua).filter((k) => k.dung).length;
-  const soSai = Object.keys(ketQua).length - soDung;
+  // Đếm đúng/sai theo lần trả lời đầu của từng câu (lượt hỏi lại không tính)
+  const cacLanDau = danhSach.map((c, viTri) => ({ cau: c, kq: ketQua[viTri] })).filter((muc) => !muc.cau.__hoiLai);
+  const soDung = cacLanDau.filter((muc) => muc.kq?.dung).length;
+  const soSai = cacLanDau.filter((muc) => muc.kq && !muc.kq.dung).length;
   const soCauChuaLuu = useSyncExternalStore(theoDoiHangCho, soCauDangCho, () => 0);
 
   // Ôn câu sai (nhiều buổi): soạn nền mọi câu trong danh sách; ở trang bài học thì TrangBaiHoc đã soạn nền cả buổi
@@ -411,8 +441,8 @@ export default function BaiTapKhoaHoc({
 
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
   useEffect(() => {
-    if (!daTraLoi) return;
-    if (daTraLoi.dung) {
+    if (!phanHoi.lan) return undefined;
+    if (phanHoi.dung) {
       banPhaoGiay(cauRef.current?.querySelector(".kh-lua-chon__nut--dung, .kh-dien__o"));
       rungMay("dung");
       phatAm("dung");
@@ -420,6 +450,7 @@ export default function BaiTapKhoaHoc({
       rungMay("sai");
       phatAm("sai");
     }
+    if (!phanHoi.cuon) return undefined;
     // Đưa phần kết quả vào tầm nhìn. Màn hẹp (có thanh "Câu tiếp theo" dính đáy): kéo kết quả lên đầu
     // để đọc trọn lời giải thích; máy tính: chỉ cuộn vừa đủ thấy
     const khung = requestAnimationFrame(() => {
@@ -431,21 +462,35 @@ export default function BaiTapKhoaHoc({
       });
     });
     return () => cancelAnimationFrame(khung);
-  }, [daTraLoi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ chạy khi có lần trả lời mới
+  }, [phanHoi.lan]);
 
-  // Nhớ lượt đang làm để lần sau mở lại đúng câu (câu đang hiện đã trả lời thì lần sau mở câu kế)
+  // Nhớ lượt đang làm để lần sau mở lại đúng câu (câu xa nhất đã qua thì lần sau mở câu kế)
   useEffect(() => {
     if (!onLuuLuot) return;
-    const chiSoLuu = cau && ketQua[cau.id] ? chiSo + 1 : chiSo;
-    onLuuLuot(chiSoLuu >= danhSach.length ? null : { phan, ids: danhSach.map((c) => c.id), chiSo: chiSoLuu, ketQua });
+    const chiSoLuu = daQua(ketQua[chiSoXa]) ? chiSoXa + 1 : chiSoXa;
+    onLuuLuot(
+      chiSoLuu >= danhSach.length
+        ? null
+        : {
+            v: 2,
+            phan,
+            ids: danhSach.map((c) => c.id),
+            hoiLai: danhSach.flatMap((c, viTri) => (c.__hoiLai ? [viTri] : [])),
+            chiSo: chiSoLuu,
+            ketQua,
+          }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ lưu khi lượt làm đổi
-  }, [phan, danhSach, chiSo, ketQua]);
+  }, [phan, danhSach, chiSoXa, ketQua]);
 
   function batDauLuot(ds) {
     setBaoTiepTuc(false);
     luotRef.current += 1;
-    setDanhSach(ds);
+    setDanhSach(ds.map((c) => (c.__hoiLai ? { ...c, __hoiLai: undefined } : c)));
     setChiSo(0);
+    setChiSoXa(0);
+    setLoiNhapLai("");
     setKetQua({});
     setGiaiThich({});
     setNhap("");
@@ -517,29 +562,63 @@ export default function BaiTapKhoaHoc({
       .catch(() => sua({ danhGia: "loi" }));
   }
 
-  // Bấm "Dịch": hiện bản dịch dưới đề và dưới từng lựa chọn; bấm lại thì ẩn (đã dịch thì không hỏi lại)
+  // Dịch trước trong nền các câu chưa có bản dịch (mỗi câu chỉ dịch một lần, server lưu lại),
+  // để trả lời xong bấm "Dịch" là hiện ngay. Chờ một nhịp cho lời giải thích câu đầu được soạn trước.
+  const khoaCanDich = cauHoi
+    .filter((c) => !c.translation?.prompt)
+    .map((c) => c.id)
+    .join(",");
+  useEffect(() => {
+    const ids = khoaCanDich.split(",").filter(Boolean).map(Number);
+    if (ids.length === 0) return undefined;
+    const hen = window.setTimeout(() => {
+      for (let i = 0; i < ids.length; i += 40) {
+        const phan = ids.slice(i, i + 40).filter((id) => !dangDichTruocRef.current.has(id));
+        if (phan.length === 0) continue;
+        const loiHua = layBanDichCauHoi(phan)
+          .then((ketQua) => {
+            setDichSan((cu) => ({ ...cu, ...ketQua }));
+            return ketQua;
+          })
+          .finally(() => phan.forEach((id) => dangDichTruocRef.current.delete(id)));
+        loiHua.catch(() => {}); // lỗi thì lúc bấm "Dịch" hỏi lại riêng câu đó
+        phan.forEach((id) => dangDichTruocRef.current.set(id, loiHua));
+      }
+    }, 1200);
+    return () => window.clearTimeout(hen);
+  }, [khoaCanDich]);
+
+  // Bấm "Dịch" (sau khi trả lời): hiện bản dịch câu đã điền đáp án + nghĩa từng lựa chọn; bấm lại thì ẩn
   async function bamDich(cauHienTai) {
     const id = cauHienTai.id;
     const sua = (thayDoi) => setBanDich((cu) => ({ ...cu, [id]: { ...cu[id], ...thayDoi } }));
     const daCo = banDich[id];
     if (daCo?.dangDich) return;
-    if (daCo?.prompt) {
-      sua({ hien: !daCo.hien });
+    if (dichSan[id]) {
+      sua({ hien: !daCo?.hien, loi: "" });
       return;
     }
     sua({ dangDich: true, loi: "" });
     try {
-      const ketQua = await dichCauHoi(id);
-      sua({ dangDich: false, hien: true, prompt: ketQua.prompt, options: ketQua.options || {} });
+      let ketQua = await dangDichTruocRef.current.get(id)?.catch(() => null);
+      if (!ketQua?.[id]) ketQua = await layBanDichCauHoi([id]);
+      if (!ketQua?.[id]) throw new Error("Chưa dịch được, thử lại nhé");
+      setDichSan((cu) => ({ ...cu, [id]: ketQua[id] }));
+      sua({ dangDich: false, hien: true });
     } catch (error) {
       sua({ dangDich: false, loi: error.message || "Chưa dịch được, thử lại nhé" });
     }
   }
 
   function traLoiCau(traLoi) {
-    if (!cau || daTraLoi || !traLoi) return;
+    if (!cau || !traLoi || !choTraLoi) return;
+    if (dangNhapLai) {
+      nhapLaiCau(traLoi);
+      return;
+    }
     const dung = laTraLoiDung(cau, traLoi);
-    setKetQua((cu) => ({ ...cu, [cau.id]: { traLoi, dung } }));
+    setKetQua((cu) => ({ ...cu, [chiSo]: { traLoi, dung } }));
+    setPhanHoi((cu) => ({ lan: cu.lan + 1, dung, cuon: true }));
     onGhiNhan?.(cau.id, dung);
     // Lưu lỗi (mất mạng...) không chặn việc làm bài: câu trả lời vào hàng chờ và tự gửi lại
     luuTraLoiCoHangCho(cau.id, traLoi);
@@ -547,9 +626,45 @@ export default function BaiTapKhoaHoc({
     hoiAI(cau, traLoi);
   }
 
-  function sangCauTiep() {
+  // Sai rồi bấm "Trả lời lại": nhập / chọn lại đáp án đúng (đáp án vẫn hiện để nhìn) mới đi tiếp
+  function batDauNhapLai() {
+    if (!daTraLoi || daTraLoi.dung || daTraLoi.daSua) return;
+    setKetQua((cu) => ({ ...cu, [chiSo]: { ...cu[chiSo], nhapLai: true } }));
     setNhap("");
+    setLoiNhapLai("");
+  }
+
+  // Lần nhập lại không ghi lên server (đã thấy đáp án); đúng thì câu được hỏi lại sau HOI_LAI_SAU câu
+  function nhapLaiCau(traLoi) {
+    if (cau.type === "multiple_choice" && traLoi === daTraLoi.traLoi) return;
+    if (!laTraLoiDung(cau, traLoi)) {
+      setLoiNhapLai("Chưa đúng. Nhìn đáp án rồi trả lời lại nhé.");
+      setNhap("");
+      setPhanHoi((cu) => ({ lan: cu.lan + 1, dung: false, cuon: false }));
+      return;
+    }
+    setLoiNhapLai("");
+    setKetQua((cu) => ({ ...cu, [chiSo]: { ...cu[chiSo], daSua: true, traLoiSua: traLoi } }));
+    setDanhSach((cu) => {
+      const moi = [...cu];
+      moi.splice(Math.min(chiSo + 1 + HOI_LAI_SAU, moi.length), 0, { ...cau, __hoiLai: true });
+      return moi;
+    });
+    setPhanHoi((cu) => ({ lan: cu.lan + 1, dung: true, cuon: false }));
+  }
+
+  function denCau(viTri) {
+    setNhap("");
+    setLoiNhapLai("");
+    setChiSo(viTri);
+  }
+
+  function sangCauTiep() {
+    if (!daQua(ketQua[chiSo])) return;
+    setNhap("");
+    setLoiNhapLai("");
     setChiSo((cu) => cu + 1);
+    setChiSoXa((cu) => Math.max(cu, chiSo + 1));
     // Câu trắc nghiệm tiếp theo: đưa focus về đề bài để bàn phím và trình đọc màn hình theo kịp
     // (câu điền từ thì ô nhập tự focus)
     if (danhSach[chiSo + 1]?.type === "multiple_choice") {
@@ -570,12 +685,22 @@ export default function BaiTapKhoaHoc({
       const laONhap = event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA";
       // Bỏ qua phím gõ ở ô khác (vd chatbot)
       if (laONhap && event.target !== oNhapRef.current) return;
-      if (event.key === "Enter" && daTraLoi) {
+      if (event.key === "Enter" && daTraLoi && !dangNhapLai) {
         event.preventDefault();
-        sangCauTiep();
+        if (daQua(daTraLoi)) sangCauTiep();
+        else batDauNhapLai();
         return;
       }
-      if (laONhap || daTraLoi || cau.type !== "multiple_choice") return;
+      // ← / →: xem lại câu trước, quay lại câu đã tới
+      if (!laONhap && event.key === "ArrowLeft" && chiSo > 0) {
+        denCau(chiSo - 1);
+        return;
+      }
+      if (!laONhap && event.key === "ArrowRight" && chiSo < chiSoXa) {
+        denCau(chiSo + 1);
+        return;
+      }
+      if (laONhap || !choTraLoi || cau.type !== "multiple_choice") return;
       const theoSo = cau.options[Number(event.key) - 1];
       const theoChu = cau.options.find((luaChon) => luaChon.key === event.key.toUpperCase());
       const luaChon = theoSo || theoChu;
@@ -663,8 +788,7 @@ export default function BaiTapKhoaHoc({
       <div className="kh-bt">
         {boChonPhan}
         <TongKet
-          danhSach={danhSach}
-          ketQua={ketQua}
+          cacCau={cacLanDau}
           onLamLaiCauSai={batDauLuot}
           onLamLaiTuDau={() => chonPhan(phan)}
         />
@@ -674,10 +798,11 @@ export default function BaiTapKhoaHoc({
 
   const { nguon, phan: tenPhan } = phanBaiTap(cau);
   const dapAnDung = layDapAnHienThi(cau);
-  const soDaLam = Object.keys(ketQua).length;
+  const soDaLam = danhSach.filter((_, viTri) => daQua(ketQua[viTri])).length;
   const laTracNghiem = cau.type === "multiple_choice";
-  const dich = banDich[cau.id];
-  const hienDich = Boolean(dich?.hien && dich.prompt);
+  const trangThaiDich = banDich[cau.id];
+  const dich = trangThaiDich?.hien ? dichSan[cau.id] : null;
+  const hienDich = Boolean(daTraLoi && dich?.prompt);
 
   return (
     <div className="kh-bt">
@@ -706,8 +831,30 @@ export default function BaiTapKhoaHoc({
           <span style={{ width: `${(soDaLam / danhSach.length) * 100}%` }} />
         </div>
         <p className="kh-bt__dem">
-          <span>
-            Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
+          <span className="kh-bt__dieu-huong">
+            <button
+              type="button"
+              className="kh-bt__nut-chuyen"
+              onClick={() => denCau(chiSo - 1)}
+              disabled={chiSo === 0}
+              aria-label="Câu trước"
+              title="Câu trước (phím ←)"
+            >
+              &lsaquo;
+            </button>
+            <span>
+              Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
+            </span>
+            <button
+              type="button"
+              className="kh-bt__nut-chuyen"
+              onClick={() => denCau(chiSo + 1)}
+              disabled={chiSo >= chiSoXa}
+              aria-label="Câu sau"
+              title="Câu sau (phím →) — chỉ tới câu đã làm"
+            >
+              &rsaquo;
+            </button>
           </span>
           <span className="kh-bt__dem-ket-qua">
             <span className="kh-bt__dem-dung">{soDung} đúng</span>
@@ -728,6 +875,7 @@ export default function BaiTapKhoaHoc({
         <p className="kh-cau__phan">
           {cau.lesson_number && <span className="kh-cau__nguon">Buổi {cau.lesson_number} · </span>}
           <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
+          {cau.__hoiLai && <span className="kh-cau__hoi-lai">Hỏi lại</span>}
         </p>
         {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
         {cau.listen_text && (
@@ -757,9 +905,9 @@ export default function BaiTapKhoaHoc({
                 {dich.prompt}
               </p>
             )}
-            {dich?.loi && (
+            {trangThaiDich?.loi && (
               <p className="kh-dich kh-dich--loi" role="alert">
-                {dich.loi}
+                {trangThaiDich.loi}
               </p>
             )}
           </div>
@@ -773,27 +921,39 @@ export default function BaiTapKhoaHoc({
               <IconLoa />
               <span className="sr-only">Nghe câu hỏi</span>
             </button>
-            <button
-              type="button"
-              className={`kh-nut-loa${hienDich ? " kh-nut-loa--dang-doc" : ""}`}
-              onClick={() => bamDich(cau)}
-              disabled={Boolean(dich?.dangDich)}
-              aria-busy={Boolean(dich?.dangDich)}
-              aria-pressed={hienDich}
-              title={dich?.dangDich ? "Đang dịch…" : hienDich ? "Ẩn bản dịch" : "Dịch câu hỏi và đáp án"}
-            >
-              <IconDich />
-              <span className="sr-only">{dich?.dangDich ? "Đang dịch" : hienDich ? "Ẩn bản dịch" : "Dịch câu hỏi và đáp án"}</span>
-            </button>
+            {/* Bản dịch là câu đã điền đáp án đúng nên chỉ mở sau khi trả lời */}
+            {daTraLoi && (
+              <button
+                type="button"
+                className={`kh-nut-loa${hienDich ? " kh-nut-loa--dang-doc" : ""}`}
+                onClick={() => bamDich(cau)}
+                disabled={Boolean(trangThaiDich?.dangDich)}
+                aria-busy={Boolean(trangThaiDich?.dangDich)}
+                aria-pressed={hienDich}
+                title={trangThaiDich?.dangDich ? "Đang dịch…" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
+              >
+                <IconDich />
+                <span className="sr-only">
+                  {trangThaiDich?.dangDich ? "Đang dịch" : hienDich ? "Ẩn bản dịch" : "Dịch câu sang tiếng Việt"}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
         {laTracNghiem ? (
           <ul className={`kh-lua-chon${coLuaChonNgan(cau.options) ? " kh-lua-chon--ngan" : ""}`}>
             {cau.options.map((luaChon, index) => {
-              const laDung = daTraLoi && luaChon.key === cau.answer_key;
+              // Đang chọn lại: chỉ đánh dấu lựa chọn sai lúc nãy, các lựa chọn khác bấm được
+              const laDung = daTraLoi && !dangNhapLai && luaChon.key === cau.answer_key;
               const laChonSai = daTraLoi && !daTraLoi.dung && luaChon.key === daTraLoi.traLoi;
-              const trangThai = laDung ? " kh-lua-chon__nut--dung" : laChonSai ? " kh-lua-chon__nut--sai" : daTraLoi ? " kh-lua-chon__nut--mo" : "";
+              const trangThai = laDung
+                ? " kh-lua-chon__nut--dung"
+                : laChonSai
+                  ? " kh-lua-chon__nut--sai"
+                  : daTraLoi && !dangNhapLai
+                    ? " kh-lua-chon__nut--mo"
+                    : "";
               return (
                 <li key={luaChon.key}>
                   <button
@@ -804,7 +964,7 @@ export default function BaiTapKhoaHoc({
                       e.currentTarget.blur();
                       traLoiCau(luaChon.key);
                     }}
-                    disabled={Boolean(daTraLoi)}
+                    disabled={!choTraLoi || laChonSai}
                     aria-keyshortcuts={`${index + 1} ${luaChon.key}`}
                   >
                     <span className="kh-lua-chon__chu" aria-hidden="true">{luaChon.key}</span>
@@ -837,7 +997,7 @@ export default function BaiTapKhoaHoc({
             <label htmlFor="kh-o-nhap" className="sr-only">Câu trả lời</label>
             <input
               id="kh-o-nhap"
-              key={cau.id}
+              key={`${chiSo}-${dangNhapLai}`}
               ref={oNhapRef}
               autoFocus
               autoComplete="off"
@@ -845,17 +1005,22 @@ export default function BaiTapKhoaHoc({
               autoCorrect="off"
               spellCheck={false}
               maxLength={200}
-              value={nhap}
-              onChange={(event) => setNhap(event.target.value)}
-              disabled={Boolean(daTraLoi)}
-              placeholder="Nhập đáp án"
+              value={choTraLoi ? nhap : (daTraLoi.traLoiSua ?? daTraLoi.traLoi)}
+              onChange={(event) => {
+                setNhap(event.target.value);
+                if (loiNhapLai) setLoiNhapLai("");
+              }}
+              disabled={!choTraLoi}
+              placeholder={dangNhapLai ? "Gõ lại đáp án đúng" : "Nhập đáp án"}
               lang="en"
-              className={`kh-dien__o${daTraLoi ? (daTraLoi.dung ? " kh-dien__o--dung" : " kh-dien__o--sai") : ""}`}
+              className={`kh-dien__o${
+                choTraLoi ? "" : daQua(daTraLoi) ? " kh-dien__o--dung" : " kh-dien__o--sai"
+              }`}
             />
             <button
               type="submit"
               className="ui-button ui-button--primary px-5 py-2.5 whitespace-nowrap"
-              disabled={Boolean(daTraLoi) || !nhap.trim()}
+              disabled={!choTraLoi || !nhap.trim()}
             >
               Kiểm tra
             </button>
@@ -867,6 +1032,15 @@ export default function BaiTapKhoaHoc({
             {laTracNghiem
               ? `Bấm vào đáp án, hoặc phím 1–${cau.options.length}`
               : "Gõ đáp án rồi nhấn Enter"}
+          </p>
+        )}
+        {dangNhapLai && (
+          <p className="kh-cau__nhap-lai" role="status">
+            {loiNhapLai || (
+              <>
+                {laTracNghiem ? "Chọn lại" : "Gõ lại"} đáp án đúng để đi tiếp: <strong lang="en">{dapAnDung}</strong>
+              </>
+            )}
           </p>
         )}
       </section>
@@ -881,6 +1055,9 @@ export default function BaiTapKhoaHoc({
             {daTraLoi.dung ? <IconDung className="kh-phan-hoi__icon" /> : <IconSai className="kh-phan-hoi__icon" />}
             {daTraLoi.dung ? "Chính xác" : "Chưa đúng"}
           </p>
+          {daTraLoi.daSua && (
+            <p className="kh-phan-hoi__goi-y">Bạn đã trả lời lại đúng. Câu này sẽ được hỏi lại sau {HOI_LAI_SAU} câu.</p>
+          )}
           {!daTraLoi.dung &&
             (laTracNghiem ? (
               <p className="kh-phan-hoi__dap-an">
@@ -909,21 +1086,26 @@ export default function BaiTapKhoaHoc({
             }
           />
           {/* Điện thoại: thanh dính đáy màn hình, nút luôn trong tầm ngón cái; máy tính: nút cuối phần kết quả */}
-          <div className="kh-phan-hoi__cuoi">
-            <ThanhTiepTuc
-              dung={daTraLoi.dung}
-              onTiepTuc={sangCauTiep}
-              nhanNut={chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
-              chiHienKhiCoDinh
-            >
-              <span className="ui-thanh-tiep-tuc__nhan">{daTraLoi.dung ? "Chính xác" : "Chưa đúng"}</span>
-              {!daTraLoi.dung && (
-                <span className="ui-thanh-tiep-tuc__dap-an">
-                  Đáp án: <strong lang="en">{dapAnDung}</strong>
+          {/* Sai: phải trả lời lại đúng mới đi tiếp (giống Tự luận); đang trả lời lại thì ẩn nút */}
+          {!dangNhapLai && (
+            <div className="kh-phan-hoi__cuoi">
+              <ThanhTiepTuc
+                dung={daTraLoi.dung}
+                onTiepTuc={daQua(daTraLoi) ? sangCauTiep : batDauNhapLai}
+                nhanNut={!daQua(daTraLoi) ? "Trả lời lại" : chiSo + 1 < danhSach.length ? "Câu tiếp theo" : "Xem kết quả"}
+                chiHienKhiCoDinh
+              >
+                <span className="ui-thanh-tiep-tuc__nhan">
+                  {daTraLoi.dung ? "Chính xác" : daTraLoi.daSua ? "Đã trả lời lại đúng" : "Chưa đúng"}
                 </span>
-              )}
-            </ThanhTiepTuc>
-          </div>
+                {!daTraLoi.dung && (
+                  <span className="ui-thanh-tiep-tuc__dap-an">
+                    Đáp án: <strong lang="en">{dapAnDung}</strong>
+                  </span>
+                )}
+              </ThanhTiepTuc>
+            </div>
+          )}
         </section>
       )}
     </div>

@@ -604,60 +604,94 @@ async function translateExampleSentence(input, { models = MODEL_GIAI_THICH_NHANH
   throw lastError;
 }
 
-// ── Dịch đề bài và các lựa chọn của câu bài tập khoá học (nút "Dịch") ─────────
+// ── Dịch câu bài tập khoá học (nút "Dịch", hiện SAU KHI trả lời) ─────────────
+// Dịch câu ĐÃ ĐIỀN đáp án đúng: câu còn chỗ trống thì AI phải đoán nghĩa chỗ thiếu nên hay dịch sai.
 
-function buildQuestionTranslationPrompt({ lessonTitle, grammar = [], vocabulary = [], question }) {
-  const isMultipleChoice = question.type === "multiple_choice";
-  const options = isMultipleChoice
-    ? question.options.map((option) => `${option.key}. ${option.text}`).join("\n")
-    : "(không có)";
-  const nguPhap = grammar.map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`).join("\n");
-  const tuVung = vocabulary.map((tu) => `- ${tu.term_en}: ${tu.meaning_vi}`).join("\n");
-  return `Dịch một câu bài tập tiếng Anh sang tiếng Việt tự nhiên, dễ hiểu cho người mới học, ĐÚNG NGỮ CẢNH của câu và của bài học.
-
-Bài học: ${lessonTitle || "(không rõ)"}
-${nguPhap ? `Ngữ pháp của bài:\n${nguPhap}\n` : ""}${tuVung ? `Từ vựng của bài có trong câu (BẮT BUỘC dịch đúng nghĩa này):\n${tuVung}\n` : ""}${question.instruction ? `Yêu cầu của đề: ${question.instruction}\n` : ""}${question.listen_text ? `Lời thoại bài nghe: ${question.listen_text}\n` : ""}
-Đề bài: """${question.prompt}"""
-Các lựa chọn:
-${options}
-
-Quy tắc:
-- Hiểu cả câu trước rồi mới dịch: chọn nghĩa của từ hợp với ngữ cảnh câu (không dịch từng chữ, không lấy nghĩa đầu tiên trong từ điển).
-- Giữ nguyên chỗ trống (___) ở đúng vị trí, KHÔNG tự điền đáp án vào chỗ trống, không chỉ ra đáp án nào đúng.
-- Lựa chọn dịch theo nghĩa của nó khi đặt vào câu này.
-- Đề có nhiều dòng thì giữ xuống dòng như đề gốc.
-- Lựa chọn là từ/cụm từ: dịch nghĩa ngắn gọn. Lựa chọn chỉ là dạng ngữ pháp (vd "has - painted") thì ghi nghĩa gốc của từ, không giải thích ngữ pháp.
-Chỉ trả về JSON dạng: {"de_bai": "<bản dịch đề>", "lua_chon": {${isMultipleChoice ? question.options.map((option) => `"${option.key}": "<bản dịch>"`).join(", ") : ""}}}`;
+function dapAnDungCua(question) {
+  if (question.type === "multiple_choice") {
+    const dung = (question.options || []).find((option) => option.key === question.answer_key);
+    return dung ? `${dung.key}. ${dung.text}` : "";
+  }
+  return (question.accepted_answers || []).filter(Boolean).join(" / ");
 }
 
-/** Dịch đề + lựa chọn của một câu bài tập → { prompt, options: { [key]: bản dịch } } */
-async function translateCourseQuestion(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+/**
+ * Prompt dịch một nhóm câu cùng buổi học.
+ * @param {{ lessonTitle, grammar, vocabulary: Array<{term_en, meaning_vi}>, questions: object[] }} input
+ */
+function buildQuestionTranslationPrompt({ lessonTitle, grammar = [], vocabulary = [], questions }) {
+  const nguPhap = grammar.map((item) => `- ${item.title}${item.pattern ? `: ${item.pattern}` : ""}`).join("\n");
+  const tuVung = vocabulary.map((tu) => `- ${tu.term_en}: ${tu.meaning_vi}`).join("\n");
+  const cacCau = questions
+    .map((question) => {
+      const dong = [`### Câu id=${question.id}`];
+      if (question.instruction) dong.push(`Yêu cầu của đề: ${question.instruction}`);
+      if (question.listen_text) dong.push(`Lời thoại bài nghe: ${question.listen_text}`);
+      dong.push(`Đề: """${question.prompt}"""`);
+      if (question.type === "multiple_choice") {
+        dong.push(`Lựa chọn:\n${(question.options || []).map((option) => `${option.key}. ${option.text}`).join("\n")}`);
+      }
+      dong.push(`Đáp án đúng: ${dapAnDungCua(question) || "(không rõ)"}`);
+      return dong.join("\n");
+    })
+    .join("\n\n");
+  return `Bạn là giáo viên tiếng Anh người Việt. Dịch các câu bài tập dưới đây sang tiếng Việt chuẩn, tự nhiên, ĐÚNG NGỮ CẢNH của câu và của bài học. Người học xem bản dịch SAU KHI đã trả lời, để kiểm tra mình hiểu câu đúng chưa.
+
+Bài học: ${lessonTitle || "(không rõ)"}
+${nguPhap ? `Ngữ pháp của bài:\n${nguPhap}\n` : ""}${tuVung ? `Từ vựng của bài (từ nào có trong câu thì BẮT BUỘC dịch theo đúng nghĩa này):\n${tuVung}\n` : ""}
+${cacCau}
+
+Quy tắc:
+- "de_bai": điền ĐÁP ÁN ĐÚNG vào chỗ trống (___) rồi dịch TRỌN câu hoàn chỉnh. Đề là hội thoại / nhiều dòng thì dịch đủ, giữ xuống dòng và tên người nói như đề gốc.
+- Đề chỉ là một yêu cầu (vd "Choose the word that has a different stress") thì dịch yêu cầu đó.
+- Hiểu cả câu trước rồi mới dịch: chọn nghĩa hợp ngữ cảnh, không dịch từng chữ, không lấy nghĩa đầu tiên trong từ điển. Thể hiện đúng thì của động từ (đã / đang / sẽ / vừa...) khi tiếng Việt cần.
+- "lua_chon" (chỉ câu trắc nghiệm): nghĩa ngắn gọn của từng lựa chọn khi đặt vào câu này. Lựa chọn là dạng ngữ pháp (vd "has - painted") thì ghi nghĩa + tên thì, vd "đã sơn (hiện tại hoàn thành)". Tên riêng, số, ký hiệu phát âm thì giữ nguyên.
+- Không giải thích đúng sai, không thêm chú thích ngoài các trường trên.
+Chỉ trả về JSON dạng: {"cac_cau": [{"id": <id>, "de_bai": "<bản dịch>", "lua_chon": {"A": "<nghĩa>", "B": "<nghĩa>"}}]}`;
+}
+
+// Một lượt dịch tới 8 câu: dài hơn lượt soạn giải thích
+const THOI_HAN_DICH_MS = 30000;
+
+/** Dịch một nhóm câu cùng buổi → Map id → { prompt, options: { [key]: bản dịch } } (câu AI bỏ sót thì không có) */
+async function translateCourseQuestions(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const prompt = buildQuestionTranslationPrompt(input);
-  const keys = new Set((input.question.options || []).map((option) => option.key));
+  const theoId = new Map(input.questions.map((question) => [Number(question.id), question]));
   let lastError;
   for (const mucModel of xepTheoLuot(models)) {
     try {
       const model = genAI.getGenerativeModel(
         {
           model: mucModel.model,
-          generationConfig: { maxOutputTokens: 800, responseMimeType: "application/json", ...mucModel.generationConfig },
+          generationConfig: {
+            maxOutputTokens: 300 + 260 * input.questions.length,
+            responseMimeType: "application/json",
+            ...mucModel.generationConfig,
+          },
         },
-        { timeout: THOI_HAN_GIAI_THICH_MS }
+        { timeout: THOI_HAN_DICH_MS }
       );
       const result = await model.generateContent(prompt);
       const duLieu = docJsonAI(result.response.text());
-      const deBai = String(duLieu?.de_bai ?? "").trim();
-      if (!deBai) throw new Error("AI trả về bản dịch trống");
-      const options = {};
-      for (const [key, banDich] of Object.entries(duLieu?.lua_chon || {})) {
-        const chu = String(banDich ?? "").trim();
-        if (keys.has(key.toUpperCase()) && chu) options[key.toUpperCase()] = chu.slice(0, 300);
+      const ketQua = new Map();
+      for (const muc of Array.isArray(duLieu?.cac_cau) ? duLieu.cac_cau : []) {
+        const question = theoId.get(Number(muc?.id));
+        const deBai = String(muc?.de_bai ?? "").trim();
+        if (!question || !deBai) continue;
+        const keys = new Set((question.options || []).map((option) => option.key));
+        const options = {};
+        for (const [key, banDich] of Object.entries(muc.lua_chon || {})) {
+          const chu = String(banDich ?? "").trim();
+          if (keys.has(key.toUpperCase()) && chu) options[key.toUpperCase()] = chu.slice(0, 300);
+        }
+        ketQua.set(Number(question.id), { prompt: deBai.slice(0, 2000), options });
       }
-      return { prompt: deBai.slice(0, 2000), options };
+      if (ketQua.size === 0) throw new Error("AI trả về bản dịch trống");
+      return ketQua;
     } catch (error) {
       ghiNhanLoi(mucModel, error);
       lastError = error;
@@ -668,7 +702,7 @@ async function translateCourseQuestion(input, { models = MODEL_GIAI_THICH_NHANH 
 
 module.exports = {
   buildQuestionTranslationPrompt,
-  translateCourseQuestion,
+  translateCourseQuestions,
   buildExampleTranslationPrompt,
   translateExampleSentence,
   MODEL_VIET_LAI,
