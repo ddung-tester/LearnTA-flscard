@@ -136,7 +136,31 @@ function CongThuc({ text }) {
   );
 }
 
-function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false }) {
+// Bảng trong lý thuyết (động từ bất quy tắc, đại từ…): bảng rộng thì cuộn ngang trong khung, không tràn màn
+function BangLyThuyet({ bang, nhan }) {
+  return (
+    <div className="kh-bang" role="region" aria-label={nhan} tabIndex={0}>
+      <table>
+        <thead>
+          <tr>
+            {bang.columns.map((cot) => (
+              <th key={cot} scope="col">{cot}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {bang.rows.map((hang, i) => (
+            <tr key={i}>
+              {bang.columns.map((cot, j) => (j === 0 ? <th key={cot} scope="row">{hang[0]}</th> : <td key={cot}>{hang[j]}</td>))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false, duongDanBuoi }) {
   return (
     <section className="kh-vo__muc" aria-labelledby={`muc-${index}`} data-hien-khi-cuon={hienKhiCuon || undefined}>
       <span className="kh-vo__so" aria-hidden="true">{index + 1}</span>
@@ -148,6 +172,15 @@ function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false }) {
             <li key={quyTac}>{quyTac}</li>
           ))}
         </ul>
+      )}
+      {muc.table && <BangLyThuyet bang={muc.table} nhan={muc.title} />}
+      {muc.image && <img className="kh-vo__anh" src={muc.image.src} alt={muc.image.alt || muc.title} loading="lazy" />}
+      {muc.see_also && duongDanBuoi && (
+        <p className="kh-vo__xem-them">
+          <Link to={`${duongDanBuoi(muc.see_also.lesson_number)}/ly-thuyet`}>
+            Xem {muc.see_also.label || "lý thuyết"} – Buổi {muc.see_also.lesson_number} &rarr;
+          </Link>
+        </p>
       )}
       {muc.examples?.length > 0 && (
         <ul className="kh-vo__vi-du">
@@ -183,13 +216,13 @@ function GhiNho({ notes, hienKhiCuon = false }) {
 }
 
 // Vở dạng cuộn: mọi mục nối nhau, hiện dần khi cuộn tới
-function VoCuon({ grammar, notes, onDoc }) {
+function VoCuon({ grammar, notes, onDoc, duongDanBuoi }) {
   const voRef = useRef(null);
   useHienKhiCuon(voRef);
   return (
     <article ref={voRef} className="kh-vo">
       {grammar.map((muc, index) => (
-        <MucNguPhap key={muc.id || index} muc={muc} index={index} onDoc={onDoc} hienKhiCuon />
+        <MucNguPhap key={muc.id || index} muc={muc} index={index} onDoc={onDoc} duongDanBuoi={duongDanBuoi} hienKhiCuon />
       ))}
       {notes.length > 0 && <GhiNho notes={notes} hienKhiCuon />}
     </article>
@@ -229,7 +262,7 @@ function HoiHocTiep({ viTri, onHocTiep, onHocLai }) {
   );
 }
 
-function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang }) {
+function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang, duongDanBuoi }) {
   const { grammar = [], notes = [] } = content || {};
   const [cachXem, setCachXem] = useState(docCachXemLyThuyet);
   if (grammar.length === 0 && notes.length === 0) {
@@ -245,7 +278,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTran
   const cacTrang = [
     ...grammar.map((muc, index) => (
       <div key={muc.id || index} className="kh-vo kh-vo--trang">
-        <MucNguPhap muc={muc} index={index} onDoc={onDoc} />
+        <MucNguPhap muc={muc} index={index} onDoc={onDoc} duongDanBuoi={duongDanBuoi} />
       </div>
     )),
     ...(notes.length > 0
@@ -271,7 +304,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTran
       {cachXem === "so-tay" ? (
         <SoTayLatTrang trang={cacTrang} nhan="Lý thuyết của buổi" trangDau={trangDau} onDoiTrang={onDoiTrang} />
       ) : (
-        <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} />
+        <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} duongDanBuoi={duongDanBuoi} />
       )}
 
       {soCauBaiTap > 0 && (
@@ -515,6 +548,7 @@ function TrangBaiHoc() {
             soCauBaiTap={cauChinh.length}
             onSangBuoc={chuyenBuoc}
             trangDau={viTriLuu?.trangLyThuyet ?? 0}
+            duongDanBuoi={(so) => `/khoa-hoc/${courseId}/bai/${so}`}
             onDoiTrang={(trang) => ghiViTriBuoi(khoaViTri, { trangLyThuyet: trang })}
           />
         )}

@@ -2500,3 +2500,90 @@
     display: none;
   }
 }
+
+/* ── Bảng trong lý thuyết (động từ bất quy tắc, đại từ, chữ cái…) ── */
+.kh-bang {
+  margin-top: 0.85rem;
+  overflow-x: auto;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.75rem;
+  background: var(--mau-mat);
+}
+
+.kh-bang:focus-visible {
+  outline: 2px solid var(--mau-chinh);
+  outline-offset: 2px;
+}
+
+.kh-bang table {
+  width: 100%;
+  min-width: 18rem;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.kh-bang thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mau-mat-2);
+  padding: 0.55rem 0.75rem;
+  color: var(--mau-chu);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid var(--mau-vien);
+}
+
+.kh-bang tbody th,
+.kh-bang td {
+  padding: 0.45rem 0.75rem;
+  border-top: 1px solid var(--mau-vien);
+  vertical-align: top;
+  text-align: left;
+}
+
+.kh-bang tbody tr:first-child th,
+.kh-bang tbody tr:first-child td {
+  border-top: 0;
+}
+
+.kh-bang tbody th {
+  color: var(--mau-chu);
+  font-weight: 700;
+}
+
+.kh-bang td {
+  color: var(--mau-chu-phu);
+}
+
+/* Sổ tay lật trang: các trang chồng một ô nên trang dài nhất quyết định chiều cao cả sổ —
+   bảng dài (45 động từ) cuộn trong khung, tiêu đề cột đứng yên */
+.kh-vo--trang .kh-bang {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.kh-vo__anh {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+  margin-top: 0.85rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.kh-vo__xem-them {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.kh-vo__xem-them a {
+  color: var(--mau-chinh);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

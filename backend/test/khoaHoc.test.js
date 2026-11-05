@@ -511,3 +511,20 @@ test("tachPhanDungCuaGiaiThich turns the right-answer explanation into the 'Đú
   assert.equal(tachPhanDungCuaGiaiThich("Sai vì: x\nĐúng vì: y\nNhớ: z"), null);
   assert.equal(tachPhanDungCuaGiaiThich("Đúng rồi:\nNhớ: y"), null);
 });
+
+test("chuanHoaBaiHoc keeps optional theory tables, images and cross-lesson links", () => {
+  const files = taoBai();
+  files.lesson.grammar[0].table = {
+    columns: ["Động từ gốc", " Quá khứ "],
+    rows: [["go", "went"], ["", ""], "không phải hàng"],
+  };
+  files.lesson.grammar[0].image = { src: "/khoa-hoc/bang-phien-am.webp", alt: "Bảng phiên âm" };
+  files.lesson.grammar[0].see_also = { lesson_number: "15", label: "Bảng động từ bất quy tắc" };
+  const muc = chuanHoaBaiHoc(files).content.grammar[0];
+
+  assert.deepEqual(muc.table, { columns: ["Động từ gốc", "Quá khứ"], rows: [["go", "went"]] });
+  assert.deepEqual(muc.image, { src: "/khoa-hoc/bang-phien-am.webp", alt: "Bảng phiên âm" });
+  assert.deepEqual(muc.see_also, { lesson_number: 15, label: "Bảng động từ bất quy tắc" });
+  // Mục không có phần tuỳ chọn thì không thêm khoá rỗng
+  assert.equal("table" in chuanHoaBaiHoc(taoBai()).content.grammar[0], false);
+});

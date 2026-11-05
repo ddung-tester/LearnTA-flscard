@@ -173,8 +173,17 @@ function locGiaiThichHopLe(items, cauTheoKey) {
   return { hopLe, loi };
 }
 
+/** Bảng trong mục lý thuyết (vd. động từ bất quy tắc): { columns: [tiêu đề cột], rows: [[ô, …], …] } */
+function chuanHoaBang(bang) {
+  const columns = mangChuoi(bang?.columns);
+  const rows = (Array.isArray(bang?.rows) ? bang.rows : [])
+    .map((hang) => (Array.isArray(hang) ? hang.map(chuoi) : []))
+    .filter((hang) => hang.some(Boolean));
+  return columns.length > 0 && rows.length > 0 ? { columns, rows } : null;
+}
+
 function chuanHoaNguPhap(muc) {
-  return {
+  const ketQua = {
     id: chuoi(muc?.id),
     title: chuoi(muc?.title),
     pattern: chuoi(muc?.pattern),
@@ -183,6 +192,16 @@ function chuanHoaNguPhap(muc) {
       .map((vd) => ({ en: chuoi(vd?.en), vi: chuoi(vd?.vi) }))
       .filter((vd) => vd.en),
   };
+  // Phần tuỳ chọn: chỉ có trong mục cần (bảng, ảnh minh hoạ, liên kết sang buổi khác)
+  const bang = chuanHoaBang(muc?.table);
+  if (bang) ketQua.table = bang;
+  const anh = chuoi(muc?.image?.src);
+  if (anh) ketQua.image = { src: anh, alt: chuoi(muc?.image?.alt) };
+  const buoiXem = Number(muc?.see_also?.lesson_number);
+  if (Number.isInteger(buoiXem) && buoiXem > 0) {
+    ketQua.see_also = { lesson_number: buoiXem, label: chuoi(muc?.see_also?.label) };
+  }
+  return ketQua;
 }
 
 function chuanHoaCauHoi(cau, dapAn, index, lessonNumber) {
