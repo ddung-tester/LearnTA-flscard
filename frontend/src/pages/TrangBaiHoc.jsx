@@ -562,6 +562,7 @@ function TrangBaiHoc() {
             tuDau={Boolean(viTriLuu?.tuDau)}
             baoTiepTuc={Boolean(viTri.state?.hocTiep)}
             onLuuLuot={(luot) => ghiViTriBuoi(khoaViTri, { baiTap: luot, tuDau: false })}
+            nguPhap={bai.lesson.content?.grammar}
           />
         )}
       </div>

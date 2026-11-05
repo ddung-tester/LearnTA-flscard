@@ -943,6 +943,7 @@
 
 .kh-dien {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
 }
 
@@ -2410,26 +2411,43 @@
     grid-row: 1;
   }
 
-  /* Cột phải bắt đầu ngang hàng bộ lọc (bộ lọc, câu hỏi xếp ở cột trái): kết quả lên cao hơn ~50px */
+  /* Hàng 1 = thanh công cụ (bộ lọc trái · tiến độ phải); hàng 2 = câu hỏi | kết quả, thẳng mép trên.
+     Khung cố định, không đổi bố cục khi trả lời (không nhảy nội dung) */
   .kh-bt {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: 1rem;
+    row-gap: 0.85rem;
     align-items: start;
-  }
-
-  .kh-bt > *,
-  .kh-bt__khung > * {
-    grid-column: 1;
   }
 
   .kh-bt__khung {
     display: contents;
   }
 
+  .kh-bt > .kh-bt__loc {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .kh-bt > .kh-bt__tien-do {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  /* Ôn câu nhiều buổi: không có bộ lọc, tiến độ trải hết hàng */
+  .kh-bt--on-tap > .kh-bt__tien-do {
+    grid-column: 1 / -1;
+  }
+
+  .kh-bt .kh-bt__trai {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
   .kh-bt .kh-bt__phai {
     grid-column: 2;
-    grid-row: 1 / -1;
+    grid-row: 2;
   }
 
   /* Kết quả gọn hơn khi nằm cạnh câu hỏi */
@@ -2460,16 +2478,66 @@
     display: none;
   }
 
+  /* Trước khi trả lời: thẻ gọn nói việc cần làm + công thức của buổi (gập sẵn), không để khung trống lớn */
   .kh-bt__cho {
     display: grid;
-    place-items: center;
-    min-height: 10rem;
-    border: 1.5px dashed var(--mau-vien);
+    gap: 0.3rem;
+    border: 1px solid var(--mau-vien);
     border-radius: 1rem;
-    padding: 1.5rem;
-    color: var(--mau-chu-mo);
-    font-size: 0.925rem;
-    text-align: center;
+    background: var(--mau-mat-2);
+    padding: 1rem 1.15rem;
+  }
+
+  .kh-bt__cho-viec {
+    color: var(--mau-chu);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .kh-bt__cho-mo-ta {
+    color: var(--mau-chu-phu);
+    font-size: 0.9rem;
+  }
+
+  .kh-bt__cong-thuc {
+    margin-top: 0.5rem;
+    border-top: 1px dashed var(--mau-vien);
+    padding-top: 0.6rem;
+  }
+
+  .kh-bt__cong-thuc summary {
+    width: fit-content;
+    color: var(--mau-chinh);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .kh-bt__cong-thuc ul {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+    list-style: none;
+    padding: 0;
+  }
+
+  .kh-bt__cong-thuc li {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .kh-bt__cong-thuc-ten {
+    color: var(--mau-chu-phu);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .kh-bt__cong-thuc code {
+    color: var(--mau-chu);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
   }
 
   /* Cột câu hỏi hẹp (Fold xoay ngang): giữ lưới 2×2 cho cả 4 lựa chọn nằm trong màn, bớt đệm để chữ không gãy */
@@ -2586,4 +2654,12 @@
   color: var(--mau-chinh);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Câu nhiều chỗ trống: cách gõ đáp án, ngay dưới ô nhập */
+.kh-dien__goi-y {
+  flex-basis: 100%;
+  margin-top: 0.15rem;
+  color: var(--mau-chu-phu);
+  font-size: 0.85rem;
 }

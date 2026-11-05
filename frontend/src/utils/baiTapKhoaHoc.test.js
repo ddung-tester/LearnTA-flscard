@@ -17,6 +17,7 @@ import {
   tongHopKhoaHoc,
   nhomPhanBaiTap,
   phanBaiTap,
+  demChoTrong,
 } from "./baiTapKhoaHoc";
 
 const TRAC_NGHIEM = {
@@ -316,5 +317,22 @@ describe("tachViDuKhac", () => {
   });
   it("không có ví dụ thì giữ nguyên", () => {
     expect(tachViDuKhac("Sai vì: x\nNhớ: y")).toEqual({ chinh: "Sai vì: x\nNhớ: y", viDu: "" });
+  });
+});
+
+describe("câu nhiều chỗ trống và tên phần", () => {
+  it("đếm chỗ trống và chấp nhận 2 từ ngăn cách bằng dấu - hoặc dấu phẩy", () => {
+    const cau = { type: "fill_blank", prompt: "My father _____ already _____ the wall.", accepted_answers: ["has - painted"] };
+    expect(demChoTrong(cau.prompt)).toBe(2);
+    expect(demChoTrong("He _____ (live) here.")).toBe(1);
+    for (const traLoi of ["has - painted", "has, painted", "has-painted", "has painted", "Has – painted."]) {
+      expect(laTraLoiDung(cau, traLoi)).toBe(true);
+    }
+    expect(laTraLoiDung(cau, "have - painted")).toBe(false);
+  });
+
+  it("hiện mã phần không dấu thành Phần N", () => {
+    expect(phanBaiTap({ source: "exam", section: "phan_3" }).phan).toBe("Phần 3");
+    expect(phanBaiTap({ source: "exam", section: "quiz_2" }).phan).toBe("Quiz 2");
   });
 });

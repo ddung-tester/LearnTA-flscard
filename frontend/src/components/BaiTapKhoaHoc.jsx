@@ -23,6 +23,7 @@ import {
   layDapAnHienThi,
   nhomPhanBaiTap,
   phanBaiTap,
+  demChoTrong,
   phanTichLoiGo,
   tachChuDam,
   tachViDuKhac,
@@ -348,6 +349,7 @@ function coLuaChonNgan(options) {
  *
  * ketQuaGanNhat: { [questionId]: đúng/sai lần trả lời gần nhất }; onGhiNhan(questionId, dung) báo lên trang.
  * onTap: ôn câu đến hạn của nhiều buổi (trang Ôn câu bài tập) — làm hết các câu, không chia phần.
+ * nguPhap: các mục lý thuyết của buổi ({ title, pattern }) để nhắc công thức ở màn rộng.
  * luotDaLuu / onLuuLuot: lượt đang làm dở lần trước ({ phan, ids, chiSo, ketQua }) — mở lại đúng câu đã dừng;
  *   onLuuLuot(null) khi lượt xong. baoTiepTuc: vừa bấm "Học tiếp" → báo "đang làm tiếp từ câu n". tuDau: người học chọn "Học lại từ đầu" → lượt mới gồm tất cả câu, từ câu 1.
  */
@@ -360,7 +362,10 @@ export default function BaiTapKhoaHoc({
   tuDau = false,
   baoTiepTuc: coBaoTiepTuc = false,
   onLuuLuot,
+  nguPhap = [],
 }) {
+  // Công thức của buổi (mục có pattern), hiện gập sẵn ở cột kết quả lúc chưa trả lời
+  const congThuc = nguPhap.filter((muc) => muc?.pattern && muc?.title);
   const { speak, isPlaying } = useTTS();
   // Lời giải thích đã soạn sẵn giữ trên máy (utils/soanTruocGiaiThich): từ dữ liệu bài (server gửi kèm)
   // và kết quả soạn trước. Trả lời trúng câu đã có thì hiện ngay, không gọi server.
@@ -832,76 +837,78 @@ export default function BaiTapKhoaHoc({
   const dapAnDung = layDapAnHienThi(cau);
   const soDaLam = danhSach.filter((_, viTri) => daQua(ketQua[viTri])).length;
   const laTracNghiem = cau.type === "multiple_choice";
+  const soChoTrong = laTracNghiem ? 0 : demChoTrong(cau.prompt);
   const trangThaiDich = banDich[cau.id];
   const dich = trangThaiDich?.hien ? dichSan[cau.id] : null;
   const hienDich = Boolean(daTraLoi && dich?.prompt);
 
   return (
-    <div className="kh-bt">
+    <div className={`kh-bt${onTap ? " kh-bt--on-tap" : ""}`}>
       {boChonPhan}
 
-      {baoTiepTuc && (
-        <p className="kh-bt__tiep-tuc" role="status">
-          <span>
-            Đang làm tiếp từ câu {khoiDau.chiSo + 1}/{danhSach.length} của lần trước.
+
+      <div className="kh-bt__tien-do">
+        <div
+          className="kh-bt__thanh"
+          role="progressbar"
+          aria-label="Số câu đã làm"
+          aria-valuemin={0}
+          aria-valuemax={danhSach.length}
+          aria-valuenow={soDaLam}
+        >
+          <span style={{ width: `${(soDaLam / danhSach.length) * 100}%` }} />
+        </div>
+        <p className="kh-bt__dem">
+          <span className="kh-bt__dieu-huong">
+            <button
+              type="button"
+              className="kh-bt__nut-chuyen"
+              onClick={() => denCau(chiSo - 1)}
+              disabled={chiSo === 0}
+              aria-label="Câu trước"
+              title="Câu trước (phím ←)"
+            >
+              &lsaquo;
+            </button>
+            <span>
+              Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
+            </span>
+            <button
+              type="button"
+              className="kh-bt__nut-chuyen"
+              onClick={() => denCau(chiSo + 1)}
+              disabled={chiSo >= chiSoXa}
+              aria-label="Câu sau"
+              title="Câu sau (phím →) — chỉ tới câu đã làm"
+            >
+              &rsaquo;
+            </button>
           </span>
-          <button type="button" className="kh-bt__tiep-tuc-nut" onClick={() => batDauLuot(danhSach)}>
-            Làm lại từ câu 1
-          </button>
+          <span className="kh-bt__dem-ket-qua">
+            <span className="kh-bt__dem-dung">{soDung} đúng</span>
+            <span className="kh-bt__dem-sai">{soSai} sai</span>
+          </span>
         </p>
-      )}
+        {soCauChuaLuu > 0 && (
+          <p className="kh-bt__chua-luu" role="status">
+            Chưa lưu được {soCauChuaLuu} câu vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
+          </p>
+        )}
+      </div>
 
       {/* Màn hẹp: một cột. Màn rộng (≥800px: laptop, Fold màn trong xoay ngang): câu hỏi trái, phản hồi phải */}
       <div className="kh-bt__khung">
         <div className="kh-bt__trai">
-          <div className="kh-bt__tien-do">
-            <div
-              className="kh-bt__thanh"
-              role="progressbar"
-              aria-label="Số câu đã làm"
-              aria-valuemin={0}
-              aria-valuemax={danhSach.length}
-              aria-valuenow={soDaLam}
-            >
-              <span style={{ width: `${(soDaLam / danhSach.length) * 100}%` }} />
-            </div>
-            <p className="kh-bt__dem">
-              <span className="kh-bt__dieu-huong">
-                <button
-                  type="button"
-                  className="kh-bt__nut-chuyen"
-                  onClick={() => denCau(chiSo - 1)}
-                  disabled={chiSo === 0}
-                  aria-label="Câu trước"
-                  title="Câu trước (phím ←)"
-                >
-                  &lsaquo;
-                </button>
-                <span>
-                  Câu <strong>{chiSo + 1}</strong> / {danhSach.length}
-                </span>
-                <button
-                  type="button"
-                  className="kh-bt__nut-chuyen"
-                  onClick={() => denCau(chiSo + 1)}
-                  disabled={chiSo >= chiSoXa}
-                  aria-label="Câu sau"
-                  title="Câu sau (phím →) — chỉ tới câu đã làm"
-                >
-                  &rsaquo;
-                </button>
+          {baoTiepTuc && (
+            <p className="kh-bt__tiep-tuc" role="status">
+              <span>
+                Đang làm tiếp từ câu {khoiDau.chiSo + 1}/{danhSach.length} của lần trước.
               </span>
-              <span className="kh-bt__dem-ket-qua">
-                <span className="kh-bt__dem-dung">{soDung} đúng</span>
-                <span className="kh-bt__dem-sai">{soSai} sai</span>
-              </span>
+              <button type="button" className="kh-bt__tiep-tuc-nut" onClick={() => batDauLuot(danhSach)}>
+                Làm lại từ câu 1
+              </button>
             </p>
-            {soCauChuaLuu > 0 && (
-              <p className="kh-bt__chua-luu" role="status">
-                Chưa lưu được {soCauChuaLuu} câu vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
-              </p>
-            )}
-          </div>
+          )}
 
           {/* Trình phát nằm ngoài phần đổi theo câu: các câu dùng chung một file nghe giữ nguyên chỗ đang nghe */}
           {cau.audio_key && <NgheAudioCauHoi key={cau.audio_key} cau={cau} />}
@@ -1046,7 +1053,8 @@ export default function BaiTapKhoaHoc({
                     if (loiNhapLai) setLoiNhapLai("");
                   }}
                   disabled={!choTraLoi}
-                  placeholder={dangNhapLai ? "Gõ lại đáp án đúng" : "Nhập đáp án"}
+                  placeholder={dangNhapLai ? "Gõ lại đáp án đúng" : soChoTrong >= 2 ? "Từ 1 - Từ 2" : "Nhập đáp án"}
+              aria-describedby={soChoTrong >= 2 ? "kh-goi-y-nhieu-cho" : undefined}
                   lang="en"
                   className={`kh-dien__o${
                     choTraLoi ? "" : daQua(daTraLoi) ? " kh-dien__o--dung" : " kh-dien__o--sai"
@@ -1059,6 +1067,11 @@ export default function BaiTapKhoaHoc({
                 >
                   Kiểm tra
                 </button>
+                {soChoTrong >= 2 && choTraLoi && (
+                  <p id="kh-goi-y-nhieu-cho" className="kh-dien__goi-y">
+                    {soChoTrong} chỗ trống: gõ lần lượt từng từ, ngăn cách bằng dấu - hoặc dấu phẩy (vd: has - painted)
+                  </p>
+                )}
               </form>
             )}
 
@@ -1146,10 +1159,25 @@ export default function BaiTapKhoaHoc({
               )}
             </section>
           ) : (
-            // Màn rộng (2 cột): chỗ của kết quả + lời giải thích, cạnh câu hỏi — trả lời xong là thấy, khỏi cuộn
-            <p className="kh-bt__cho">
-              {laTracNghiem ? "Chọn một đáp án" : "Gõ đáp án rồi nhấn Enter"}: kết quả và lời giải thích hiện ở đây.
-            </p>
+            // Màn rộng (2 cột): chỗ của kết quả + lời giải thích, cạnh câu hỏi — trả lời xong là thấy, khỏi cuộn.
+            // Trước khi trả lời: việc cần làm + công thức của buổi (gập sẵn, mở khi cần nhắc lại)
+            <div className="kh-bt__cho">
+              <p className="kh-bt__cho-viec">{laTracNghiem ? "Chọn một đáp án" : "Gõ đáp án rồi nhấn Enter"}</p>
+              <p className="kh-bt__cho-mo-ta">Kết quả và lời giải thích sẽ hiện ở đây.</p>
+              {congThuc.length > 0 && (
+                <details className="kh-bt__cong-thuc">
+                  <summary>Xem lại công thức của buổi</summary>
+                  <ul>
+                    {congThuc.map((muc) => (
+                      <li key={muc.title}>
+                        <span className="kh-bt__cong-thuc-ten">{muc.title}</span>
+                        <code>{muc.pattern}</code>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
           )}
         </div>
       </div>

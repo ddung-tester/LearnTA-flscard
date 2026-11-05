@@ -157,11 +157,18 @@ export function layCauBaiChinh(cauHoi) {
 export function phanBaiTap(cauHoi) {
   const section = String(cauHoi.section || "");
   const quiz = /^quiz_(\d+)$/.exec(section);
+  // Mã phần trong dữ liệu không dấu ("phan_3") → hiện "Phần 3"
+  const phanSo = /^phan_?(\d+)$/i.exec(section.replace(/\s+/g, "_"));
   return {
     khoa: `${cauHoi.source}/${section}`,
     nguon: TEN_NGUON[cauHoi.source] || "Khác",
-    phan: quiz ? `Quiz ${quiz[1]}` : TEN_PHAN[section] || section.replace(/_/g, " "),
+    phan: quiz ? `Quiz ${quiz[1]}` : phanSo ? `Phần ${phanSo[1]}` : TEN_PHAN[section] || section.replace(/_/g, " "),
   };
+}
+
+/** Số chỗ trống (___) trong đề: câu có từ 2 chỗ trống thì gõ các từ ngăn cách bằng dấu - hoặc dấu phẩy */
+export function demChoTrong(deBai) {
+  return (String(deBai ?? "").match(/_{2,}/g) || []).length;
 }
 
 /** Các phần theo thứ tự xuất hiện, nhóm theo nguồn: [{ nguon, cacPhan: [{ khoa, phan, soCau }] }] */
