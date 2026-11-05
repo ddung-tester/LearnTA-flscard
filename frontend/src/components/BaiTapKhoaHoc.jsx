@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { cuonVuaDu } from "../utils/cuonVuaDu";
 import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import ThanhTiepTuc from "./common/ThanhTiepTuc";
@@ -452,20 +453,8 @@ export default function BaiTapKhoaHoc({
   function duaPhanHoiVaoTam() {
     const phanHoiEl = phanHoiRef.current;
     if (!phanHoiEl || window.matchMedia?.(MOC_HAI_COT).matches) return;
-    const header = document.querySelector(".app-shell-header");
-    const dinh =
-      header && ["sticky", "fixed"].includes(getComputedStyle(header).position) ? header.getBoundingClientRect().bottom : 0;
-    // Thanh "Câu tiếp theo" có thể còn đang trượt lên: lấy chỗ nó sẽ nằm (chiều cao thật), không lấy vị trí lúc trượt
-    const thanh = document.querySelector(".ui-thanh-tiep-tuc--co-dinh");
-    const day = window.innerHeight - (thanh?.offsetHeight ?? 0);
     // Đo khung bọc (.kh-bt__phai): phần kết quả đang chạy hiệu ứng hiện ra (transform) nên số đo của nó nhỏ hơn thật
-    const r = (phanHoiEl.parentElement ?? phanHoiEl).getBoundingClientRect();
-    // Khoảng trống cuối phần kết quả chỉ để thanh dính đáy không che chữ: không cần đưa vào tầm nhìn
-    const choTrong = phanHoiEl.querySelector(".ui-thanh-tiep-tuc__cho-trong")?.offsetHeight ?? 0;
-    const cuon = Math.min(r.bottom - choTrong + 12 - day, r.top - dinh - 12);
-    if (cuon <= 4) return;
-    const giamChuyenDong = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    window.scrollBy({ top: cuon, behavior: giamChuyenDong ? "auto" : "smooth" });
+    cuonVuaDu(phanHoiEl.parentElement ?? phanHoiEl);
   }
 
   // Phản hồi khi vừa trả lời: đúng thì pháo giấy bắn từ đáp án/ô nhập, sai thì rung
@@ -756,68 +745,42 @@ export default function BaiTapKhoaHoc({
   const nhomTrungTatCa = nhomPhan.find(
     (nhom) => soCauNhom(nhom) === cauChinh.length && cauChinh.every((c) => phanBaiTap(c).nguon === nhom.nguon)
   );
-  const tabNhom = nhomPhan.filter((nhom) => nhom !== nhomTrungTatCa);
-  // Nhóm đang chọn: chọn cả nhóm, hoặc chọn một phần thuộc nhóm đó
-  const nhomDangChon =
-    phan === TAT_CA
-      ? nhomTrungTatCa
-      : nhomPhan.find(
-          (nhom) => phan === TIEN_TO_NHOM + nhom.nguon || nhom.cacPhan.some((muc) => muc.khoa === phan)
-        );
-  const khoaCaNhom = nhomDangChon === nhomTrungTatCa ? TAT_CA : TIEN_TO_NHOM + nhomDangChon?.nguon;
+  // Một ô chọn "Phần" thay cho hàng tab nhóm + hàng chip phần: gọn một chỗ trên hàng tiến độ.
+  // Nhóm trùng "Tất cả" thì chỉ liệt kê các phần của nó; nhóm có một phần thì "Cả nhóm" là đủ
+  const luaChonChung = [
+    { khoa: TAT_CA, nhan: `Tất cả (${cauChinh.length})` },
+    ...(coPhanConLai || phan === CON_LAI ? [{ khoa: CON_LAI, nhan: `Còn lại – chưa đúng (${cauConLai.length})` }] : []),
+  ];
+  const nhomLuaChon = nhomPhan
+    .map((nhom) => ({
+      nguon: nhom.nguon,
+      cac: [
+        ...(nhom !== nhomTrungTatCa ? [{ khoa: TIEN_TO_NHOM + nhom.nguon, nhan: `Cả nhóm ${nhom.nguon} (${soCauNhom(nhom)})` }] : []),
+        ...(nhom.cacPhan.length > 1 ? nhom.cacPhan.map((muc) => ({ khoa: muc.khoa, nhan: `${muc.phan} (${muc.soCau})` })) : []),
+      ],
+    }))
+    .filter((nhom) => nhom.cac.length > 0);
 
-  // Hai tầng: hàng chính chọn nhóm; hàng phụ (chỉ khi nhóm có nhiều phần) chọn một phần trong nhóm
   const boChonPhan = onTap ? null : (
-    <div className="kh-bt__loc">
-      <div className="ui-filter-tabs ui-filter-tabs--deck kh-bt__nhom-tabs" role="group" aria-label="Chọn nhóm bài tập">
-        <button type="button" className="ui-filter-tab" aria-pressed={phan === TAT_CA} onClick={() => chonPhan(TAT_CA)}>
-          <span>Tất cả</span>
-          <span className="ui-filter-tab__count">{cauChinh.length}</span>
-        </button>
-        {(coPhanConLai || phan === CON_LAI) && (
-          <button type="button" className="ui-filter-tab" aria-pressed={phan === CON_LAI} onClick={() => chonPhan(CON_LAI)}>
-            <span>Còn lại</span>
-            <span className="ui-filter-tab__count">{cauConLai.length}</span>
-          </button>
-        )}
-        {tabNhom.map((nhom) => (
-          <button
-            key={nhom.nguon}
-            type="button"
-            className="ui-filter-tab"
-            aria-pressed={nhomDangChon === nhom}
-            onClick={() => chonPhan(TIEN_TO_NHOM + nhom.nguon)}
-          >
-            <span>{nhom.nguon}</span>
-            <span className="ui-filter-tab__count">{soCauNhom(nhom)}</span>
-          </button>
+    <label className="kh-bt__loc">
+      <span className="kh-bt__loc-nhan">Phần</span>
+      <select className="kh-bt__loc-chon" value={phan} onChange={(event) => chonPhan(event.target.value)}>
+        {luaChonChung.map((muc) => (
+          <option key={muc.khoa} value={muc.khoa}>
+            {muc.nhan}
+          </option>
         ))}
-      </div>
-
-      {nhomDangChon && nhomDangChon.cacPhan.length > 1 && (
-        <div className="kh-bt__phan" role="group" aria-label={`Chọn phần trong ${nhomDangChon.nguon}`}>
-          <button
-            type="button"
-            className="kh-chip"
-            aria-pressed={phan === khoaCaNhom}
-            onClick={() => chonPhan(khoaCaNhom)}
-          >
-            {khoaCaNhom === TAT_CA ? "Tất cả phần" : "Cả nhóm"}
-          </button>
-          {nhomDangChon.cacPhan.map((muc) => (
-            <button
-              key={muc.khoa}
-              type="button"
-              className="kh-chip"
-              aria-pressed={phan === muc.khoa}
-              onClick={() => chonPhan(muc.khoa)}
-            >
-              {muc.phan} <span className="kh-chip__so">{muc.soCau}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+        {nhomLuaChon.map((nhom) => (
+          <optgroup key={nhom.nguon} label={nhom.nguon}>
+            {nhom.cac.map((muc) => (
+              <option key={muc.khoa} value={muc.khoa}>
+                {muc.nhan}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
   );
 
   if (xong) {
@@ -838,16 +801,18 @@ export default function BaiTapKhoaHoc({
   const soDaLam = danhSach.filter((_, viTri) => daQua(ketQua[viTri])).length;
   const laTracNghiem = cau.type === "multiple_choice";
   const soChoTrong = laTracNghiem ? 0 : demChoTrong(cau.prompt);
+  // "(2 phút)" là thời gian làm bài của tài liệu giấy, không dùng trong app
+  const yeuCau = String(cau.instruction || "").replace(/\s*\(\s*\d+\s*phút\s*\)/gi, "").trim();
   const trangThaiDich = banDich[cau.id];
   const dich = trangThaiDich?.hien ? dichSan[cau.id] : null;
   const hienDich = Boolean(daTraLoi && dich?.prompt);
 
   return (
     <div className={`kh-bt${onTap ? " kh-bt--on-tap" : ""}`}>
-      {boChonPhan}
 
 
       <div className="kh-bt__tien-do">
+        {boChonPhan}
         <div
           className="kh-bt__thanh"
           role="progressbar"
@@ -919,7 +884,7 @@ export default function BaiTapKhoaHoc({
               <span className="kh-cau__nguon">{nguon}</span> {tenPhan}
               {cau.__hoiLai && <span className="kh-cau__hoi-lai">Hỏi lại</span>}
             </p>
-            {cau.instruction && <p className="kh-cau__yeu-cau">{cau.instruction}</p>}
+            {yeuCau && <p className="kh-cau__yeu-cau">{yeuCau}</p>}
             {cau.listen_text && (
               <div className="kh-nghe">
                 <button

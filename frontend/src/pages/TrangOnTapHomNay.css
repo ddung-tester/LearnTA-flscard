@@ -757,3 +757,134 @@
     padding-block: 1.25rem;
   }
 }
+
+/* ══ Đang ôn: phần đầu một thanh gọn, thẻ ôn hai cột (≥800px) — nút và câu ví dụ nằm trong màn đầu ══ */
+.review-thanh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.review-thanh .review-stats-bar {
+  flex: 1 1 16rem;
+}
+
+/* Bộ lọc mở bằng nút trên thanh: ẩn dòng tiêu đề của khối gập */
+.review-tuy-chon--gon:not([open]) {
+  display: none;
+}
+
+.review-tuy-chon--gon > .review-tuy-chon__tieu-de {
+  display: none;
+}
+
+.review-card__cap-tu {
+  margin: 0;
+  color: var(--mau-chu);
+  font-size: 1.05rem;
+}
+
+.review-card__ket-qua {
+  min-width: 0;
+}
+
+/* Màn một cột: khối kết quả nằm dưới các lựa chọn, có lề như phần thân thẻ */
+.review-card__ket-qua > .review-card__result,
+.review-card__ket-qua > .review-card__reveal,
+.review-card__ket-qua > .review-card__rating {
+  padding-inline: 1rem;
+}
+
+.review-card__ket-qua > :last-child {
+  padding-bottom: 1rem;
+}
+
+.review-cho {
+  display: none;
+}
+
+.review-card--hai-cot .review-card__cau {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (min-width: 800px) {
+  .review-page--dang-on {
+    width: min(100%, 72rem);
+    gap: 0.85rem;
+  }
+
+  .review-card--hai-cot {
+    width: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+
+  .review-card--hai-cot .review-card__word-section {
+    padding: 1.75rem 1.25rem 1.25rem;
+  }
+
+  .review-card--hai-cot .review-card__ket-qua {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    border-left: 1px solid var(--mau-vien);
+    background: color-mix(in oklch, var(--mau-mat-2) 55%, transparent);
+    padding: 1.25rem;
+  }
+
+  .review-card--hai-cot .review-card__ket-qua > * {
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+
+  .review-card--hai-cot .review-card__result {
+    align-items: flex-start;
+    margin-top: 0;
+    text-align: left;
+  }
+
+  .review-card--hai-cot .review-card__reveal {
+    margin-top: 0;
+  }
+
+  /* Nút Tiếp tục ở góc dưới phải cột kết quả */
+  .review-card--hai-cot .review-card__result {
+    flex: 1;
+  }
+
+  .review-card--hai-cot .review-card__result .ui-thanh-tiep-tuc {
+    align-self: flex-end;
+    margin-top: auto;
+  }
+
+  .review-card--hai-cot .review-card__rating {
+    margin-top: auto;
+    border-top: 0;
+  }
+
+  .review-cho {
+    display: grid;
+    gap: 0.35rem;
+    align-content: center;
+    min-height: 100%;
+    text-align: center;
+  }
+
+  .review-cho__viec {
+    margin: 0;
+    color: var(--mau-chu);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .review-cho__phim {
+    margin: 0;
+    color: var(--mau-chu-phu);
+    font-size: 0.875rem;
+  }
+}

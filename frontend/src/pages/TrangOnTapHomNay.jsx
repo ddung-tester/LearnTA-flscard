@@ -24,8 +24,9 @@ import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
 import NutDichCau from "../components/common/NutDichCau";
-import DanhSachDapAn, { PhanHoiSaiTracNghiem } from "../components/common/DanhSachDapAn";
+import DanhSachDapAn from "../components/common/DanhSachDapAn";
 import ThanhTiepTuc from "../components/common/ThanhTiepTuc";
+import { cuonVuaDu } from "../utils/cuonVuaDu";
 import "./TrangOnTapHomNay.css";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { phatAm } from "../utils/amThanh";
@@ -291,20 +292,47 @@ function useEnterDeTiepTuc(daTraLoi, onTiepTuc) {
   }, [daTraLoi, onTiepTuc]);
 }
 
-function KetQuaDungOnTap({ entry, onTiepTuc }) {
+// Từ 800px (laptop, PC, Fold xoay ngang) thẻ ôn chia hai cột: từ + lựa chọn | kết quả + câu ví dụ
+const MOC_HAI_COT = "(min-width: 800px)";
+
+/** Kết quả sau khi trả lời (đúng hoặc sai): từ – nghĩa, câu ví dụ, nút Tiếp tục. Màn rộng nằm ở cột phải */
+function KetQuaOnTap({ entry, dung, onTiepTuc }) {
   return (
-    <div className="review-card__result ui-feedback-pop">
-      <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
+    <div className={`review-card__result ui-feedback-pop review-card__result--${dung ? "dung" : "sai"}`}>
+      <span className={`ui-dau-cham ui-dau-cham--${dung ? "dung" : "sai"}`}>{dung ? "Chính xác!" : "Chưa đúng"}</span>
+      <p className="review-card__cap-tu">
+        <strong lang="en">{entry.word}</strong> · {entry.meaning}
+      </p>
       {entry.example && <p className="review-card__example" lang="en">{entry.example}</p>}
       {entry.example && <NutDichCau key={`dich-${entry.id}`} banDich={entry.exampleTranslation} cardId={entry.id} className="mt-2" />}
-      <ThanhTiepTuc dung onTiepTuc={onTiepTuc}>
-        <span className="ui-thanh-tiep-tuc__nhan">Chính xác!</span>
+      {/* Màn rộng: kết quả đã ghi ngay phía trên, thanh chỉ còn nút */}
+      <ThanhTiepTuc dung={dung} onTiepTuc={onTiepTuc} truyVanRong={MOC_HAI_COT} chiHienKhiCoDinh>
+        <span className="ui-thanh-tiep-tuc__nhan">{dung ? "Chính xác!" : "Chưa đúng"}</span>
         <span className="ui-thanh-tiep-tuc__dap-an">
           <strong>{entry.word}</strong> · {entry.meaning}
         </span>
       </ThanhTiepTuc>
     </div>
   );
+}
+
+/** Cột kết quả lúc chưa trả lời (chỉ hiện ở màn rộng): việc cần làm + phím tắt, không để khung trống */
+function ChoKetQua({ viec, phim }) {
+  return (
+    <div className="review-cho">
+      <p className="review-cho__viec">{viec}</p>
+      <p className="review-cho__phim">{phim}</p>
+    </div>
+  );
+}
+
+/** Màn một cột: trả lời xong cuộn vừa đủ cho thấy trọn kết quả (câu ví dụ, nút) */
+function useCuonToiKetQua(daTraLoi, ketQuaRef) {
+  useEffect(() => {
+    if (!daTraLoi || window.matchMedia?.(MOC_HAI_COT).matches) return undefined;
+    const khung = requestAnimationFrame(() => cuonVuaDu(ketQuaRef.current));
+    return () => cancelAnimationFrame(khung);
+  }, [daTraLoi, ketQuaRef]);
 }
 
 function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) {
@@ -317,30 +345,35 @@ function ReviewTracNghiem({ entry, dapAnLuaChon, onRate, onRemove, isLoading }) 
   }
 
   useEnterDeTiepTuc(daChon !== null, tiepTuc);
+  const ketQuaRef = useRef(null);
+  useCuonToiKetQua(daChon !== null, ketQuaRef);
 
   return (
-    <div className="review-card ui-content-enter">
+    <div className="review-card review-card--hai-cot ui-content-enter">
       {daChon !== null && <ChatbotTheDangHoc the={entry} />}
-      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
-      <div className="review-card__word-section">
-        <p className="review-card__term" lang="en">{entry.word}</p>
-        <p className="review-card__prompt">Chọn nghĩa đúng</p>
+      <div className="review-card__cau">
+        <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+        <div className="review-card__word-section">
+          <p className="review-card__term" lang="en">{entry.word}</p>
+          <p className="review-card__prompt">Chọn nghĩa đúng</p>
+        </div>
+        <div className="review-card__body">
+          <DanhSachDapAn
+            khoa={entry.id}
+            danhSachDapAn={dapAnLuaChon}
+            dapAnDung={entry.meaning}
+            dapAnDaChon={daChon}
+            onChon={setDaChon}
+            coAmDung
+          />
+        </div>
       </div>
-      <div className="review-card__body">
-        <DanhSachDapAn
-          khoa={entry.id}
-          danhSachDapAn={dapAnLuaChon}
-          dapAnDung={entry.meaning}
-          dapAnDaChon={daChon}
-          onChon={setDaChon}
-          coAmDung
-        />
-        {daChon !== null &&
-          (dung ? (
-            <KetQuaDungOnTap entry={entry} onTiepTuc={tiepTuc} />
-          ) : (
-            <PhanHoiSaiTracNghiem dapAnDung={entry.meaning} onTiepTuc={tiepTuc} />
-          ))}
+      <div className="review-card__ket-qua" ref={ketQuaRef}>
+        {daChon !== null ? (
+          <KetQuaOnTap entry={entry} dung={dung} onTiepTuc={tiepTuc} />
+        ) : (
+          <ChoKetQua viec="Chọn nghĩa đúng" phim="Phím 1–4 để chọn · Enter để sang từ tiếp theo" />
+        )}
       </div>
     </div>
   );
@@ -384,61 +417,69 @@ function ReviewGoTu({ entry, choGoiY, onRate, onRemove, isLoading, onGiuBanPhim 
     phatAm(dung ? "dung" : "sai");
   }
 
+  const ketQuaRef = useRef(null);
+  useCuonToiKetQua(Boolean(ketQua), ketQuaRef);
+
   return (
-    <div className="review-card ui-content-enter">
+    <div className="review-card review-card--hai-cot ui-content-enter">
       {ketQua && <ChatbotTheDangHoc the={entry} />}
-      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
-      <div className="review-card__word-section">
-        <p className="review-card__term">{entry.meaning}</p>
-        <p className="review-card__prompt">Gõ từ tiếng Anh</p>
-        {mucGoiY > 0 && !ketQua && (
-          <p className="review-card__hint" lang="en">{taoGoiY(entry.word, mucGoiY)}</p>
+      <div className="review-card__cau">
+        <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+        <div className="review-card__word-section">
+          <p className="review-card__term">{entry.meaning}</p>
+          <p className="review-card__prompt">Gõ từ tiếng Anh</p>
+          {mucGoiY > 0 && !ketQua && (
+            <p className="review-card__hint" lang="en">{taoGoiY(entry.word, mucGoiY)}</p>
+          )}
+        </div>
+        <form className="review-card__body" onSubmit={kiemTra}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={nhap}
+            onChange={(event) => {
+              if (!ketQua) setNhap(event.target.value);
+            }}
+            // Không readOnly: giữ bàn phím điện thoại mở để Enter sang từ tiếp theo
+            aria-readonly={Boolean(ketQua) || undefined}
+            placeholder="Gõ từ tiếng Anh..."
+            aria-label="Từ tiếng Anh"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            lang="en"
+            className={`review-input${ketQua === "dung" ? " review-input--dung" : ketQua === "sai" ? " review-input--sai" : ""}`}
+          />
+          {!ketQua ? (
+            <div className="review-card__actions">
+              {choGoiY && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMucGoiY((muc) => Math.min(MUC_GOI_Y_TOI_DA, muc + 1));
+                    inputRef.current?.focus();
+                  }}
+                  disabled={mucGoiY >= MUC_GOI_Y_TOI_DA}
+                  className="review-nav-btn"
+                >
+                  {mucGoiY > 0 ? "Gợi ý thêm" : "Gợi ý"}
+                </button>
+              )}
+              <button type="submit" className="ui-button ui-button--primary review-card__submit">
+                Kiểm tra
+              </button>
+            </div>
+          ) : null}
+        </form>
+      </div>
+      <div className="review-card__ket-qua" ref={ketQuaRef}>
+        {ketQua ? (
+          <KetQuaOnTap entry={entry} dung={ketQua === "dung"} onTiepTuc={tiepTuc} />
+        ) : (
+          <ChoKetQua viec="Gõ từ tiếng Anh" phim="Enter để kiểm tra · Enter lần nữa để sang từ tiếp theo" />
         )}
       </div>
-      <form className="review-card__body" onSubmit={kiemTra}>
-        <input
-          ref={inputRef}
-          type="text"
-          value={nhap}
-          onChange={(event) => {
-            if (!ketQua) setNhap(event.target.value);
-          }}
-          // Không readOnly: giữ bàn phím điện thoại mở để Enter sang từ tiếp theo
-          aria-readonly={Boolean(ketQua) || undefined}
-          placeholder="Gõ từ tiếng Anh..."
-          aria-label="Từ tiếng Anh"
-          autoComplete="off"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-          lang="en"
-          className={`review-input${ketQua === "dung" ? " review-input--dung" : ketQua === "sai" ? " review-input--sai" : ""}`}
-        />
-        {!ketQua ? (
-          <div className="review-card__actions">
-            {choGoiY && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMucGoiY((muc) => Math.min(MUC_GOI_Y_TOI_DA, muc + 1));
-                  inputRef.current?.focus();
-                }}
-                disabled={mucGoiY >= MUC_GOI_Y_TOI_DA}
-                className="review-nav-btn"
-              >
-                {mucGoiY > 0 ? "Gợi ý thêm" : "Gợi ý"}
-              </button>
-            )}
-            <button type="submit" className="ui-button ui-button--primary review-card__submit">
-              Kiểm tra
-            </button>
-          </div>
-        ) : ketQua === "dung" ? (
-          <KetQuaDungOnTap entry={entry} onTiepTuc={tiepTuc} />
-        ) : (
-          <PhanHoiSaiTracNghiem dapAnDung={entry.word} onTiepTuc={tiepTuc} />
-        )}
-      </form>
     </div>
   );
 }
@@ -496,24 +537,32 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
 
   const level = entry.level ?? 0;
   const levelKhiThuoc = Math.min(5, level + 1);
+  const ketQuaRef = useRef(null);
+  useCuonToiKetQua(revealed, ketQuaRef);
 
   return (
-    <div className="review-card ui-content-enter">
-      <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+    <div className="review-card review-card--hai-cot ui-content-enter">
+      <div className="review-card__cau">
+        <ReviewCardHeader entry={entry} onRemove={onRemove} isLoading={isLoading} />
+        <div className="review-card__word-section">
+          <p className="review-card__term">{entry.word}</p>
+          {!revealed && (
+            <button
+              type="button"
+              onClick={handleReveal}
+              className="review-card__reveal-btn"
+              id="btn-reveal-answer"
+            >
+              Xem nghĩa<span className="fc-mat__phim"> (Space)</span> →
+            </button>
+          )}
+        </div>
+      </div>
 
-      {/* Word */}
-      <div className="review-card__word-section">
-        <p className="review-card__term">{entry.word}</p>
-
+      {/* Nghĩa, câu ví dụ và nút đánh giá: màn rộng nằm ở cột phải */}
+      <div className="review-card__ket-qua" ref={ketQuaRef}>
         {!revealed ? (
-          <button
-            type="button"
-            onClick={handleReveal}
-            className="review-card__reveal-btn"
-            id="btn-reveal-answer"
-          >
-            Xem nghĩa<span className="fc-mat__phim"> (Space)</span> →
-          </button>
+          <ChoKetQua viec="Tự nhớ nghĩa của từ" phim="Space để xem nghĩa · 1 = Quên, 2 = Thuộc" />
         ) : (
           <div className="review-card__reveal ui-content-enter">
             <EmojiDong tu={entry.word} className="review-card__emoji" />
@@ -526,59 +575,59 @@ function ReviewCard({ entry, onRate, onRemove, isLoading }) {
             )}
           </div>
         )}
-      </div>
 
-      {/* Rating buttons — only show after reveal */}
-      {revealed && (
-        <div className="review-card__rating ui-content-enter">
-          <p className="review-card__rating-label">Bạn nhớ từ này không?</p>
-          <div className="review-card__rating-row">
-            <button
-              type="button"
-              onClick={danhGiaQuen}
-              disabled={isLoading}
-              aria-keyshortcuts="1"
-              className="review-btn review-btn--again"
-              id="btn-rate-wrong"
-            >
-              <span className="review-btn__label">Quên<span className="fc-mat__phim"> (1)</span></span>
-              <span className="review-btn__sub">Cấp {Math.max(0, level - 1)} · Ôn ngay</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => danhGiaThuoc(e.currentTarget)}
-              disabled={isLoading}
-              aria-keyshortcuts="2"
-              className="review-btn review-btn--easy"
-              id="btn-rate-correct"
-            >
-              <span className="review-btn__label">Thuộc<span className="fc-mat__phim"> (2)</span></span>
-              <span className="review-btn__sub">
-                Cấp {levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
-              </span>
-            </button>
-          </div>
-
-          <p className="review-card__rating-label review-card__rating-label--level">
-            Hoặc tự chọn level
-          </p>
-          <div className="review-card__level-row">
-            {CAC_LEVEL.map((lv) => (
+        {/* Rating buttons — only show after reveal */}
+        {revealed && (
+          <div className="review-card__rating ui-content-enter">
+            <p className="review-card__rating-label">Bạn nhớ từ này không?</p>
+            <div className="review-card__rating-row">
               <button
-                key={lv}
                 type="button"
-                onClick={() => handleRate(lv)}
+                onClick={danhGiaQuen}
                 disabled={isLoading}
-                className={`review-btn review-btn--level ${lv === level ? "review-btn--current" : ""}`}
-                id={`btn-rate-level-${lv}`}
+                aria-keyshortcuts="1"
+                className="review-btn review-btn--again"
+                id="btn-rate-wrong"
               >
-                <span className="review-btn__label">Cấp {lv}</span>
-                <span className="review-btn__sub">{moTaKhoangOn(lv)}</span>
+                <span className="review-btn__label">Quên<span className="fc-mat__phim"> (1)</span></span>
+                <span className="review-btn__sub">Cấp {Math.max(0, level - 1)} · Ôn ngay</span>
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={(e) => danhGiaThuoc(e.currentTarget)}
+                disabled={isLoading}
+                aria-keyshortcuts="2"
+                className="review-btn review-btn--easy"
+                id="btn-rate-correct"
+              >
+                <span className="review-btn__label">Thuộc<span className="fc-mat__phim"> (2)</span></span>
+                <span className="review-btn__sub">
+                  Cấp {levelKhiThuoc} · {moTaKhoangOn(levelKhiThuoc)}
+                </span>
+              </button>
+            </div>
+
+            <p className="review-card__rating-label review-card__rating-label--level">
+              Hoặc tự chọn level
+            </p>
+            <div className="review-card__level-row">
+              {CAC_LEVEL.map((lv) => (
+                <button
+                  key={lv}
+                  type="button"
+                  onClick={() => handleRate(lv)}
+                  disabled={isLoading}
+                  className={`review-btn review-btn--level ${lv === level ? "review-btn--current" : ""}`}
+                  id={`btn-rate-level-${lv}`}
+                >
+                  <span className="review-btn__label">Cấp {lv}</span>
+                  <span className="review-btn__sub">{moTaKhoangOn(lv)}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -620,6 +669,7 @@ function CompletionScreen({ total }) {
 function TrangOnTapHomNay() {
   const toast = useToast();
   const manRong = useManRong();
+  const [moBoLoc, setMoBoLoc] = useState(false);
 
   // Điện thoại: ẩn nút chat và mèo trang trí ở góc dưới để không che các đáp án (giống màn bài tập)
   useEffect(() => {
@@ -903,12 +953,44 @@ function TrangOnTapHomNay() {
     setSearch("");
   }
 
+  // Đang ôn một thẻ: phần đầu trang thu gọn, trang rộng ra cho thẻ hai cột
+  const dangOnThe = Boolean(!nothingDue && !isComplete && currentEntry);
+
   return (
-    <div className="review-page ui-content-enter">
+    <div className={`review-page ui-content-enter${dangOnThe ? " review-page--dang-on" : ""}`}>
       {/* Chế độ thẻ: xem được cả hai mặt. Trắc nghiệm / gõ từ: thẻ tự báo chatbot sau khi trả lời */}
       {cheDoHienTai === "the" && <ChatbotTheDangHoc the={currentEntry} />}
       <TabOnTap />
-      {/* Header */}
+      {/* Đang ôn: phần đầu thu thành một thanh gọn (tiến độ · Bộ lọc · Ôn câu bài tập), nhường chỗ cho thẻ ôn */}
+      {dangOnThe ? (
+        <div className="review-thanh">
+          <h1 className="sr-only">Ôn tập hôm nay</h1>
+          <StatsBar total={visibleFilteredCards.length} done={effectiveDone} remaining={remaining} />
+          <button
+            type="button"
+            className="review-nav-btn"
+            aria-expanded={moBoLoc}
+            aria-controls="review-tuy-chon"
+            onClick={() => setMoBoLoc((mo) => !mo)}
+          >
+            Bộ lọc
+          </button>
+          {soCauCanOn > 0 && (
+            <Link to="/review?loai=cau" className="review-nav-btn">
+              Ôn {soCauCanOn} câu bài tập
+            </Link>
+          )}
+          {!manRong && (
+            <button
+              type="button"
+              className="review-nav-btn"
+              onClick={() => document.querySelector(".chatbot-bubble")?.click()}
+            >
+              Hỏi LearnBot
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="review-header">
         <div>
           <h1 className="review-title ui-tieu-de-ve-tay">Ôn tập hôm nay<GachVeTay /></h1>
@@ -940,10 +1022,17 @@ function TrangOnTapHomNay() {
           </div>
         )}
       </div>
+      )}
 
       {/* Điện thoại, laptop màn thấp (1366×768: vùng nhìn ~657px): bộ lọc và chế độ ôn gập lại để thẻ ôn hiện
           ngay trong màn đầu; màn máy tính đủ rộng và cao mới mở sẵn */}
-      <details className="review-tuy-chon" {...(manRong && window.matchMedia("(min-height: 900px)").matches ? { open: true } : {})}>
+      {/* Luôn gập sẵn (kể cả màn cao) để thẻ ôn nằm trong màn đầu; lúc đang ôn mở bằng nút "Bộ lọc" trên thanh */}
+      <details
+        id="review-tuy-chon"
+        className={`review-tuy-chon${dangOnThe ? " review-tuy-chon--gon" : ""}`}
+        open={moBoLoc}
+        onToggle={(event) => setMoBoLoc(event.currentTarget.open)}
+      >
         <summary className="review-tuy-chon__tieu-de">Bộ lọc và chế độ ôn</summary>
         <ReviewFilters
           filterMode={filterMode}
@@ -968,7 +1057,7 @@ function TrangOnTapHomNay() {
       {dangTai && <p className="review-sync-note">Đang đồng bộ lịch ôn...</p>}
 
       {/* Progress bar */}
-      {!nothingDue && !isComplete && (
+      {!nothingDue && !isComplete && !dangOnThe && (
         <StatsBar
           total={visibleFilteredCards.length}
           done={effectiveDone}

@@ -2210,35 +2210,45 @@
 /* ══ Màn làm bài tập: câu hỏi + kết quả + lời giải thích nằm trong một màn ══════════════════
    Laptop và màn trong Galaxy Z Fold (690×829 dọc, 829×690 ngang). Phần đầu thu gọn, phần phụ ẩn bớt. */
 
-/* Bộ lọc: nhóm và phần chung một hàng (tự xuống dòng khi hẹp), nút không giãn hết bề ngang */
+/* Chọn phần (Tất cả / Còn lại / từng nhóm, từng phần): một ô chọn nhỏ ở đầu hàng tiến độ */
 .kh-bt .kh-bt__loc {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem 0.75rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
-.kh-bt .kh-bt__nhom-tabs {
-  flex: 0 1 auto;
+.kh-bt__loc-nhan {
+  color: var(--mau-chu-phu);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
-.kh-bt .kh-bt__nhom-tabs .ui-filter-tab {
-  flex: 0 0 auto;
-}
-
-.kh-bt .kh-bt__phan {
-  padding-left: 0;
-}
-
-.kh-bt .kh-bt__phan .kh-chip {
+.kh-bt__loc-chon {
+  min-width: 0;
+  max-width: 15rem;
   min-height: 2.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.65rem;
+  background: var(--mau-mat);
+  padding: 0.3rem 0.6rem;
+  color: var(--mau-chu);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-/* Tiến độ một hàng: ‹ Câu n / N › · thanh · đúng / sai */
+/* Hàng tiến độ: [Phần ▾] · ‹ Câu n / N › · thanh · đúng / sai */
 .kh-bt__tien-do {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0.75rem;
+}
+
+.kh-bt__tien-do > .kh-bt__loc {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .kh-bt__dem {
@@ -2246,19 +2256,27 @@
 }
 
 .kh-bt__dieu-huong {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.kh-bt__tien-do .kh-bt__thanh {
   grid-column: 2;
   grid-row: 1;
 }
 
-.kh-bt__dem-ket-qua {
+.kh-bt__tien-do .kh-bt__thanh {
   grid-column: 3;
   grid-row: 1;
+}
+
+.kh-bt__dem-ket-qua {
+  grid-column: 4;
+  grid-row: 1;
   font-size: 0.875rem;
+}
+
+/* Màn rất hẹp: ô chọn phần một hàng riêng */
+@media (max-width: 480px) {
+  .kh-bt__tien-do > .kh-bt__loc {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 }
 
 .kh-bt__chua-luu {
@@ -2424,20 +2442,9 @@
     display: contents;
   }
 
-  .kh-bt > .kh-bt__loc {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
   .kh-bt > .kh-bt__tien-do {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: center;
-  }
-
-  /* Ôn câu nhiều buổi: không có bộ lọc, tiến độ trải hết hàng */
-  .kh-bt--on-tap > .kh-bt__tien-do {
     grid-column: 1 / -1;
+    grid-row: 1;
   }
 
   .kh-bt .kh-bt__trai {
@@ -2662,4 +2669,35 @@
   margin-top: 0.15rem;
   color: var(--mau-chu-phu);
   font-size: 0.85rem;
+}
+
+/* Đang làm bài (mọi cỡ màn): bỏ phần không cần lúc làm bài — đổi buổi, tên khoá dài cạnh nút quay lại;
+   3 bước thu nhỏ. Nút quay lại vẫn có nhãn đầy đủ cho trình đọc màn hình (aria-label) */
+.kh-trang--lam-bai .kh-chuyen-buoi,
+.kh-trang--lam-bai .kh-thanh-tren__ten-khoa {
+  display: none;
+}
+
+.kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  justify-content: center;
+  padding-inline: 0.7rem;
+}
+
+@media (min-width: 800px) {
+  .kh-trang--lam-bai .kh-buoc__nut {
+    min-height: 2.4rem;
+    padding: 0.25rem 0.75rem 0.25rem 0.4rem;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__so {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.8rem;
+  }
+
+  .kh-trang--lam-bai .kh-buoc__ten {
+    font-size: 0.9rem;
+  }
 }
