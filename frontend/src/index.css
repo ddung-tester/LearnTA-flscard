@@ -9752,3 +9752,24 @@ a.dash-nav__duong-dan-muc:hover {
     bottom: calc(1.25rem + var(--cao-thanh-tab));
   }
 }
+
+/* Màn ngang thấp (laptop 1366×768, Fold màn trong xoay ngang): Nghe viết / Hỗn hợp gọn lại để
+   ô gõ, 3 nút và dòng phím tắt nằm trọn một màn */
+@media (orientation: landscape) and (max-height: 760px) {
+  .ui-the-cau-hoi--nghe {
+    padding-block: 0.9rem;
+  }
+
+  .ui-the-cau-hoi--nghe .ui-the-cau-hoi__nut-nghe {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .ui-study-session .ui-written-progress {
+    padding-top: 0.35rem;
+  }
+
+  .ui-study-session > .ui-study-toolbar {
+    margin-bottom: 0.5rem;
+  }
+}

@@ -2007,18 +2007,18 @@
   }
 
   /* Đầu buổi gọn lại ở bước Bài tập: còn tên buổi và 3 bước, ô trả lời lên gần đầu màn hình */
-  .kh-trang--lam-bai .kh-dau-bai__so,
-  .kh-trang--lam-bai .kh-dau-bai__nhan,
-  .kh-trang--lam-bai .kh-dai-buoi,
-  .kh-trang--lam-bai .kh-buoc__mo-ta {
+  .kh-trang--gon .kh-dau-bai__so,
+  .kh-trang--gon .kh-dau-bai__nhan,
+  .kh-trang--gon .kh-dai-buoi,
+  .kh-trang--gon .kh-buoc__mo-ta {
     display: none;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__ten {
+  .kh-trang--gon .kh-dau-bai__ten {
     font-size: 1.15rem;
   }
 
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     flex-direction: row;
     align-items: center;
     min-height: 2.75rem;
@@ -2043,16 +2043,16 @@
 /* Màn rất hẹp (màn ngoài Galaxy Z Fold ~344px): mỗi bước chỉ ~98px, vòng số chiếm chỗ làm
    "Lý thuyết" xuống dòng và chạm viền → bỏ vòng số, bước đang chọn vẫn có viền + gạch chân */
 @media (max-width: 400px) {
-  .kh-trang--lam-bai .kh-buoc__so {
+  .kh-trang--gon .kh-buoc__so {
     display: none;
   }
 
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     justify-content: center;
     text-align: center;
   }
 
-  .kh-trang--lam-bai .kh-buoc__ten {
+  .kh-trang--gon .kh-buoc__ten {
     white-space: nowrap;
   }
 }
@@ -2061,27 +2061,27 @@
    đầu buổi gọn như điện thoại và khoảng cách dọc thu lại để câu hỏi và cả 4 lựa chọn nằm trọn một màn.
    Mèo / nút chat chỉ ẩn ở màn thấp (khối trên) — PC vẫn hỏi LearnBot được */
 @media (orientation: landscape) and (max-height: 1000px) {
-  .kh-trang--lam-bai {
+  .kh-trang--gon {
     margin-top: -1.25rem;
     row-gap: 0.75rem;
   }
 
-  .kh-trang--lam-bai .kh-bt {
+  .kh-trang--gon .kh-bt {
     gap: 0.6rem;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__so,
-  .kh-trang--lam-bai .kh-dau-bai__nhan,
-  .kh-trang--lam-bai .kh-dai-buoi,
-  .kh-trang--lam-bai .kh-buoc__mo-ta {
+  .kh-trang--gon .kh-dau-bai__so,
+  .kh-trang--gon .kh-dau-bai__nhan,
+  .kh-trang--gon .kh-dai-buoi,
+  .kh-trang--gon .kh-buoc__mo-ta {
     display: none;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__ten {
+  .kh-trang--gon .kh-dau-bai__ten {
     font-size: 1.15rem;
   }
 
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     min-height: 2.75rem;
     padding: 0.45rem 0.6rem;
   }
@@ -2314,7 +2314,7 @@
 /* Màn hẹp (màn trong Fold dọc 690px, điện thoại): hàng đầu = ← + tên buổi, hàng hai = 3 bước.
    Đổi buổi không cần lúc đang làm bài nên ẩn; tên khoá chỉ còn mũi tên */
 @media (max-width: 799px) {
-  .kh-trang--lam-bai {
+  .kh-trang--gon {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
@@ -2322,15 +2322,15 @@
     row-gap: 0.65rem;
   }
 
-  .kh-trang--lam-bai > * {
+  .kh-trang--gon > * {
     grid-column: 1 / -1;
   }
 
-  .kh-trang--lam-bai > .kh-thanh-tren {
+  .kh-trang--gon > .kh-thanh-tren {
     display: contents;
   }
 
-  .kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+  .kh-trang--gon .kh-thanh-tren > .ui-back-link {
     grid-column: 1;
     grid-row: 1;
     min-width: 2.75rem;
@@ -2339,32 +2339,31 @@
     padding-inline: 0.75rem;
   }
 
-  .kh-trang--lam-bai .kh-thanh-tren__ten-khoa,
-  .kh-trang--lam-bai .kh-chuyen-buoi {
+  .kh-trang--gon .kh-thanh-tren__ten-khoa {
     display: none;
   }
 
-  .kh-trang--lam-bai > .kh-dau-bai {
+  .kh-trang--gon > .kh-dau-bai {
     grid-column: 2;
     grid-row: 1;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__ten {
+  .kh-trang--gon .kh-dau-bai__ten {
     overflow: hidden;
     font-size: 1.05rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     min-height: 2.75rem;
   }
 
-  .kh-trang--lam-bai .kh-bt {
+  .kh-trang--gon .kh-bt {
     gap: 0.65rem;
   }
 
-  .kh-trang--lam-bai .kh-cau {
+  .kh-trang--gon .kh-cau {
     padding-top: 0.9rem;
     padding-bottom: 1rem;
   }
@@ -2373,7 +2372,7 @@
 /* Màn rộng (laptop, Fold màn trong xoay ngang 829px): phần đầu một hàng (← khoá · tên buổi · 3 bước · đổi buổi);
    câu hỏi bên trái, kết quả + giải thích bên phải dính theo khi cuộn — trả lời xong là thấy ngay */
 @media (min-width: 800px) {
-  .kh-trang--lam-bai {
+  .kh-trang--gon {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
@@ -2381,50 +2380,50 @@
     row-gap: 0.75rem;
   }
 
-  .kh-trang--lam-bai > * {
+  .kh-trang--gon > * {
     grid-column: 1 / -1;
   }
 
-  .kh-trang--lam-bai > .kh-thanh-tren {
+  .kh-trang--gon > .kh-thanh-tren {
     display: contents;
   }
 
-  .kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+  .kh-trang--gon .kh-thanh-tren > .ui-back-link {
     grid-column: 1;
     grid-row: 1;
   }
 
-  .kh-trang--lam-bai > .kh-dau-bai {
+  .kh-trang--gon > .kh-dau-bai {
     grid-column: 2;
     grid-row: 1;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__so,
-  .kh-trang--lam-bai .kh-dau-bai__nhan,
-  .kh-trang--lam-bai .kh-dai-buoi,
-  .kh-trang--lam-bai .kh-buoc__mo-ta {
+  .kh-trang--gon .kh-dau-bai__so,
+  .kh-trang--gon .kh-dau-bai__nhan,
+  .kh-trang--gon .kh-dai-buoi,
+  .kh-trang--gon .kh-buoc__mo-ta {
     display: none;
   }
 
-  .kh-trang--lam-bai .kh-dau-bai__ten {
+  .kh-trang--gon .kh-dau-bai__ten {
     overflow: hidden;
     font-size: 1.1rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .kh-trang--lam-bai > .kh-buoc {
+  .kh-trang--gon > .kh-buoc {
     grid-column: 3;
     grid-row: 1;
     grid-template-columns: repeat(3, auto);
   }
 
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     min-height: 2.6rem;
     padding: 0.35rem 0.75rem;
   }
 
-  .kh-trang--lam-bai .kh-chuyen-buoi {
+  .kh-trang--gon .kh-chuyen-buoi {
     grid-column: 4;
     grid-row: 1;
   }
@@ -2571,7 +2570,7 @@
 
 @media (min-width: 800px) and (max-width: 1099px) {
   /* Fold xoay ngang: 3 bước + tên buổi đủ chỗ, đổi buổi thì để trang buổi học */
-  .kh-trang--lam-bai .kh-chuyen-buoi {
+  .kh-trang--gon .kh-chuyen-buoi {
     display: none;
   }
 }
@@ -2671,14 +2670,14 @@
   font-size: 0.85rem;
 }
 
-/* Đang làm bài (mọi cỡ màn): bỏ phần không cần lúc làm bài — đổi buổi, tên khoá dài cạnh nút quay lại;
-   3 bước thu nhỏ. Nút quay lại vẫn có nhãn đầy đủ cho trình đọc màn hình (aria-label) */
+/* Phần đầu gọn (kh-trang--gon: cả 3 bước của buổi): tên khoá dài cạnh nút quay lại chỉ còn mũi tên, 3 bước thu nhỏ.
+   Đang làm bài tập (kh-trang--lam-bai) thì ẩn thêm đổi buổi. Nút quay lại vẫn có nhãn đầy đủ cho trình đọc màn hình (aria-label) */
 .kh-trang--lam-bai .kh-chuyen-buoi,
-.kh-trang--lam-bai .kh-thanh-tren__ten-khoa {
+.kh-trang--gon .kh-thanh-tren__ten-khoa {
   display: none;
 }
 
-.kh-trang--lam-bai .kh-thanh-tren > .ui-back-link {
+.kh-trang--gon .kh-thanh-tren > .ui-back-link {
   min-width: 2.5rem;
   min-height: 2.5rem;
   justify-content: center;
@@ -2686,18 +2685,105 @@
 }
 
 @media (min-width: 800px) {
-  .kh-trang--lam-bai .kh-buoc__nut {
+  .kh-trang--gon .kh-buoc__nut {
     min-height: 2.4rem;
     padding: 0.25rem 0.75rem 0.25rem 0.4rem;
   }
 
-  .kh-trang--lam-bai .kh-buoc__so {
+  .kh-trang--gon .kh-buoc__so {
     width: 1.6rem;
     height: 1.6rem;
     font-size: 0.8rem;
   }
 
-  .kh-trang--lam-bai .kh-buoc__ten {
+  .kh-trang--gon .kh-buoc__ten {
     font-size: 0.9rem;
+  }
+}
+
+/* ══ Từ vựng / Lý thuyết: cùng phần đầu gọn như Bài tập, nội dung học lên sát đầu màn ══ */
+
+/* Màn hẹp (Fold dọc): đổi buổi nằm cuối hàng đầu, cạnh tên buổi */
+@media (max-width: 799px) {
+  .kh-trang--gon:not(.kh-trang--lam-bai) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .kh-trang--gon:not(.kh-trang--lam-bai) .kh-chuyen-buoi {
+    display: flex;
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+/* Thẻ từ: nhiều cột hơn trên màn rộng (6 từ một hàng ở laptop) */
+.kh-trang--gon .kh-the-tu-luoi {
+  grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+}
+
+/* Từ dài (neighbour, breakfast) không gãy giữa chữ */
+.kh-trang--gon .kh-the-tu__tu {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Nút sang bước kế nằm giữa: không bị nút chat nổi ở góc dưới phải che (Fold, laptop) */
+.kh-trang--gon:not(.kh-trang--lam-bai) .kh-sang-buoc {
+  justify-content: center;
+}
+
+@media (min-width: 800px) {
+  /* "N từ mới" + Học bằng thẻ + các chế độ luyện thêm chung một hàng */
+  .kh-trang--gon .kh-phan--tu-vung {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .kh-trang--gon .kh-phan--tu-vung > * {
+    grid-column: 1 / -1;
+  }
+
+  .kh-trang--gon .kh-phan--tu-vung > .kh-phan__dau {
+    grid-column: 1;
+    flex-wrap: nowrap;
+  }
+
+  .kh-trang--gon .kh-phan--tu-vung > .kh-che-do {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+}
+
+/* Lý thuyết dạng cuộn trên màn rộng: các mục xếp hai cột, đọc được nhiều hơn trong một màn */
+@media (min-width: 1024px) {
+  .kh-trang--gon .kh-vo:not(.kh-vo--trang) {
+    display: block;
+    columns: 2;
+    column-gap: 2.5rem;
+    column-rule: 1px dashed var(--mau-dong-ke);
+    background: var(--mau-giay);
+    padding: 1.5rem 1.75rem;
+  }
+
+  .kh-trang--gon .kh-vo:not(.kh-vo--trang) > * {
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+
+  .kh-trang--gon .kh-vo:not(.kh-vo--trang) .kh-vo__muc + .kh-vo__muc {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  /* Không còn lề đỏ của trang vở: số thứ tự mục nằm trong cột, trước tiêu đề */
+  .kh-trang--gon .kh-vo:not(.kh-vo--trang) .kh-vo__muc {
+    padding-left: 2.25rem;
+  }
+
+  .kh-trang--gon .kh-vo:not(.kh-vo--trang) .kh-vo__so {
+    left: 0;
+    width: 1.75rem;
+    text-align: left;
   }
 }

@@ -64,7 +64,7 @@ function TuVung({ words, deckId, duongVe, duongDanHoc, onDoc, onSangBuoc }) {
     return <p className="kh-trong">Buổi này chưa có từ vựng.</p>;
   }
   return (
-    <div className="kh-phan">
+    <div className="kh-phan kh-phan--tu-vung">
       <div className="kh-phan__dau">
         <p className="kh-phan__mo-ta">{words.length} từ mới. Bấm vào thẻ để nghe phát âm.</p>
         {deckId && (
@@ -445,7 +445,7 @@ function TrangBaiHoc() {
     setTrangThai((cu) => ({ ...cu, ketQuaCau: { ...cu.ketQuaCau, [cauId]: dung } }));
 
   return (
-    <div className={`ui-page-stack kh-trang${buoc === "bai-tap" ? " kh-trang--lam-bai" : ""}`}>
+    <div className={`ui-page-stack kh-trang kh-trang--gon${buoc === "bai-tap" ? " kh-trang--lam-bai" : ""}`}>
       {huongLat && (
         <TrangLatQua
           huong={huongLat}

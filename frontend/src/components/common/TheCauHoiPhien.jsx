@@ -69,7 +69,7 @@ export default function TheCauHoiPhien({
       style={{ "--nghieng-bo-goc": "0.75rem" }}
     >
     <section
-      className={`ui-question-flow ui-the-cau-hoi relative text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] ${laCauHoiLai ? "ui-the-cau-hoi--hoi-lai" : ""} ${className} ${dangRoiDi ? "ui-question-flow--leaving" : ""}`}
+      className={`ui-question-flow ui-the-cau-hoi relative text-center rounded-xl border border-[var(--mau-vien)] bg-[var(--mau-mat)] px-5 py-8 shadow-[var(--bong-card)] ${laCauHoiLai ? "ui-the-cau-hoi--hoi-lai" : ""} ${cheDoNghe ? "ui-the-cau-hoi--nghe" : ""} ${className} ${dangRoiDi ? "ui-question-flow--leaving" : ""}`}
     >
       {laCauHoiLai && <span style={KIEU_NHAN_HOI_LAI}>⚠ Lỗi sai trước đây</span>}
       {cheDoNghe ? (
@@ -79,7 +79,7 @@ export default function TheCauHoiPhien({
             onClick={doc}
             onMouseDown={chanSuKien}
             onPointerDown={chanSuKien}
-            className={`flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--mau-chinh)] bg-[var(--mau-mat-2)] text-[var(--mau-chinh)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2${dangDoc ? " scale-105" : ""}`}
+            className={`ui-the-cau-hoi__nut-nghe flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--mau-chinh)] bg-[var(--mau-mat-2)] text-[var(--mau-chinh)] transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--mau-chinh)] focus-visible:ring-offset-2${dangDoc ? " scale-105" : ""}`}
             aria-label="Nghe lại từ"
             title="Nghe lại từ"
           >

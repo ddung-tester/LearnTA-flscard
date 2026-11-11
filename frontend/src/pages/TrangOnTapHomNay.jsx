@@ -980,15 +980,6 @@ function TrangOnTapHomNay() {
               Ôn {soCauCanOn} câu bài tập
             </Link>
           )}
-          {!manRong && (
-            <button
-              type="button"
-              className="review-nav-btn"
-              onClick={() => document.querySelector(".chatbot-bubble")?.click()}
-            >
-              Hỏi LearnBot
-            </button>
-          )}
         </div>
       ) : (
       <div className="review-header">
