@@ -132,7 +132,7 @@ describe("tiến độ khoá học", () => {
   });
   const XONG = { learned_count: 10, answered_count: 20, correct_count: 20 };
 
-  it("tính phần trăm trên cả từ vựng và bài tập, xong khi đủ hết", () => {
+  it("tính phần trăm trên cả từ vựng và bài tập, xong khi học hết từ và đúng ≥80% câu", () => {
     expect(tienDoBuoiHoc(buoi(1))).toMatchObject({ phanTram: 0, daBatDau: false, xong: false });
     expect(tienDoBuoiHoc(buoi(1, { learned_count: 5, answered_count: 12, correct_count: 10 }))).toMatchObject({
       tuDaHoc: 5,
@@ -142,6 +142,10 @@ describe("tiến độ khoá học", () => {
       xong: false,
     });
     expect(tienDoBuoiHoc(buoi(1, XONG))).toMatchObject({ phanTram: 100, xong: true });
+    // Đúng 80% câu là xong (16/20), 15/20 thì chưa; chưa học hết từ thì chưa xong
+    expect(tienDoBuoiHoc(buoi(1, { learned_count: 10, answered_count: 20, correct_count: 16 })).xong).toBe(true);
+    expect(tienDoBuoiHoc(buoi(1, { learned_count: 10, answered_count: 20, correct_count: 15 })).xong).toBe(false);
+    expect(tienDoBuoiHoc(buoi(1, { learned_count: 9, answered_count: 20, correct_count: 20 })).xong).toBe(false);
     // Làm sai hết vẫn tính là đã bắt đầu
     expect(tienDoBuoiHoc(buoi(1, { answered_count: 3 })).daBatDau).toBe(true);
     // Buổi chưa có từ lẫn câu hỏi không bao giờ "xong"

@@ -34,6 +34,7 @@ const taiDuLieuDashboard = () =>
 const TrangChu = lazy(dangKyTrang("/", () => import("./pages/TrangChu")));
 const TrangTuVung = lazy(dangKyTrang("/decks", () => import("./pages/TrangTuVung")));
 const TrangDashboard = lazy(dangKyTrang("/dashboard", () => import("./pages/TrangDashboard"), taiDuLieuDashboard));
+const TrangHocHomNay = lazy(() => import("./pages/TrangHocHomNay"));
 const TrangChiTietBo = lazy(dangKyTrang("/decks/:deckId", () => import("./pages/TrangChiTietBo"), taiDuLieuBo));
 const TrangThemTu = lazy(dangKyTrang("/decks/:deckId/add-word", () => import("./pages/TrangThemTu")));
 // Trang học của một bộ: mở ở /decks/:deckId/<chế độ> hoặc dưới buổi học /khoa-hoc/:c/bai/:n/hoc/<chế độ>
@@ -174,6 +175,7 @@ function UngDung() {
           <Route path="/roadmap/:slug" element={<ChuyenLoTrinhCu />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<TrangDashboard />} />
+            <Route path="/hoc-hom-nay" element={<TrangHocHomNay />} />
             <Route path="/tu-sai" element={<ChuyenOnTapCu loai="nham" />} />
             <Route path="/review" element={<TrangOnTapTheoLoai />} />
             <Route path="/stats" element={<TrangThongKe />} />

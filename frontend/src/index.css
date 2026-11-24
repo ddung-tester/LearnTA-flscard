@@ -9856,3 +9856,38 @@ a.dash-nav__duong-dan-muc:hover {
   outline: 2px solid var(--mau-chinh, #823a0d);
   outline-offset: 3px;
 }
+
+/* Nút "Tiếp kế hoạch hôm nay" ở màn kết thúc của các bước */
+.nut-tiep-ke-hoach {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+/* Hôm nay: nút "Học hôm nay" là việc chính, vào thẳng buổi là lối phụ */
+.dash-cta-hang {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.2rem;
+}
+
+.dash-cta-phu {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mau-chinh);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Ôn tập lọc theo nguồn (?nguon=khoa|khac, mở từ "Học hôm nay") */
+.review-nguon {
+  font-size: 0.88rem;
+  color: var(--mau-chu-phu);
+}
+
+.review-nguon button {
+  font-weight: 600;
+  color: var(--mau-chinh);
+  text-decoration: underline;
+}

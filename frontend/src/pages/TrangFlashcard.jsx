@@ -43,6 +43,7 @@ import SongAm from "../components/common/SongAm";
 import ChuTheoGiong from "../components/common/ChuTheoGiong";
 import EmojiDong from "../components/common/EmojiDong";
 import { taiTruocEmoji } from "../utils/taiEmoji";
+import NutTiepKeHoach from "../components/common/NutTiepKeHoach";
 
 const DS_CHE_DO = [
   {
@@ -933,6 +934,7 @@ function TrangFlashcard() {
               Học lại từ đầu
             </button>
           </div>
+          <NutTiepKeHoach />
         </section>
       )}
       <div className="ui-study-toolbar">

@@ -28,7 +28,7 @@ const laTrangHoc = (path, nguonBo) =>
 // Menu theo việc người học làm: Hôm nay → Khoá học (khoá + lộ trình mẫu) → Bộ từ (tự tạo) → Ôn tập.
 // laActive(path, nguonBo): nguonBo = nguồn của bộ đang xem ở /decks/:id (null khi chưa biết)
 const DS_TAB_DIEU_HUONG = [
-  { to: "/dashboard", nhan: "Hôm nay", laActive: (path) => path === "/dashboard" },
+  { to: "/dashboard", nhan: "Hôm nay", laActive: (path) => path === "/dashboard" || path === "/hoc-hom-nay" },
   { to: "/khoa-hoc", nhan: "Khoá học", laActive: laTrangHoc },
   {
     to: "/decks",

@@ -188,6 +188,9 @@ export function nhomPhanBaiTap(danhSachCau) {
  * Tiến độ một buổi (một phần tử lessons của GET /courses): từ đã học + câu đang đúng trên tổng.
  * Buổi "xong" khi đã học hết từ và câu nào cũng đúng ở lần trả lời gần nhất.
  */
+/** Buổi tính là xong khi đã học hết từ và đúng từ 80% câu bài tập; câu còn sai nằm trong lịch ôn */
+export const NGUONG_XONG_BUOI = 0.8;
+
 export function tienDoBuoiHoc(bai) {
   const tongTu = bai.word_count || 0;
   const tongCau = bai.question_count || 0;
@@ -201,7 +204,7 @@ export function tienDoBuoiHoc(bai) {
     cauDung,
     phanTram: tong > 0 ? Math.round(((tuDaHoc + cauDung) / tong) * 100) : 0,
     daBatDau: (bai.learned_count || 0) + (bai.answered_count || 0) > 0,
-    xong: tong > 0 && tuDaHoc + cauDung === tong,
+    xong: tong > 0 && tuDaHoc >= tongTu && cauDung >= Math.ceil(tongCau * NGUONG_XONG_BUOI),
   };
 }
 

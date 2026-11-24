@@ -1,0 +1,146 @@
+/* Học hôm nay: một khối đầu (việc kế tiếp + tiến độ) và danh sách việc theo nhóm */
+.hhn {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.hhn__dau {
+  display: grid;
+  justify-items: start;
+  gap: 0.8rem;
+  border: 1px solid oklch(48% 0.10 54 / 0.32);
+  border-radius: 1.25rem;
+  background: oklch(99.5% 0.008 77 / 0.95);
+  padding: 1.5rem 1.6rem;
+}
+
+.hhn__eyebrow {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mau-chu-phu);
+}
+
+.hhn__tieu-de {
+  font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--mau-chu);
+}
+
+.hhn__thanh {
+  width: 100%;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: oklch(62% 0.06 60 / 0.18);
+  overflow: hidden;
+}
+
+.hhn__thanh > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--mau-progress-start), var(--mau-progress-end));
+  transition: width 600ms ease;
+}
+
+.hhn__dem {
+  font-size: 0.9rem;
+  color: var(--mau-chu-phu);
+}
+
+.hhn__nut {
+  margin-top: 0.3rem;
+  padding: 0.75rem 1.3rem;
+  font-weight: 700;
+}
+
+.hhn__hanh-dong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.hhn__nhom {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.hhn__ten-nhom {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--mau-chu-phu);
+}
+
+.hhn__ds {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.hhn__viec {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 0.9rem;
+  background: oklch(99.5% 0.008 77 / 0.85);
+  padding: 0.6rem 1rem;
+  color: var(--mau-chu);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.hhn__viec:hover {
+  border-color: var(--mau-vien-manh);
+  background: var(--mau-mat);
+}
+
+.hhn__viec--tiep {
+  border-color: var(--mau-chinh);
+  box-shadow: 0 0 0 1px var(--mau-chinh);
+}
+
+.hhn__dau-tich {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1.5px solid var(--mau-vien-manh);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.hhn__viec--xong .hhn__dau-tich {
+  border-color: var(--mau-thanh-cong);
+  background: var(--mau-thanh-cong);
+  color: #fff;
+}
+
+.hhn__viec--xong .hhn__nhan {
+  color: var(--mau-chu-mo);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.hhn__nhan {
+  font-weight: 600;
+}
+
+.hhn__phut {
+  font-size: 0.85rem;
+  color: var(--mau-chu-mo);
+  white-space: nowrap;
+}
+
+.hhn__ghi-chu,
+.hhn__trong {
+  font-size: 0.85rem;
+  color: var(--mau-chu-mo);
+}
+
+.hhn__lap-lai {
+  font-weight: 600;
+  color: var(--mau-chinh);
+  text-decoration: underline;
+}

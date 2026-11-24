@@ -20,7 +20,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { soTuDangCho, theoDoiHangChoOnTap } from "../services/hangChoOnTap";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import NutTiepKeHoach from "../components/common/NutTiepKeHoach";
 import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
 import { ChatbotNguCanhTrang, ChatbotTheDangHoc } from "../contexts/ChatbotContext";
@@ -262,7 +263,9 @@ function ReviewCardHeader({ entry, onRemove, isLoading }) {
   return (
     <div className="review-card__header">
       <span className={`review-badge ${badge.cls}`}>{badge.text} · Cấp {entry.level ?? 0}</span>
-      <span className="review-card__deck">{entry.deckTitle || `Bộ ${entry.deckId}`}</span>
+      <span className="review-card__deck">
+        {entry.buoiKhoa ? `Khoá học · Buổi ${entry.buoiKhoa}` : entry.deckTitle || `Bộ ${entry.deckId}`}
+      </span>
       <button
         type="button"
         onClick={() => onRemove(entry.id)}
@@ -662,6 +665,7 @@ function CompletionScreen({ total }) {
           Sổ từ sai
         </Link>
       </div>
+      <NutTiepKeHoach />
     </div>
   );
 }
@@ -700,6 +704,10 @@ function TrangOnTapHomNay() {
   const [entryOverrides, setEntryOverrides] = useState({});
   // Câu bài tập khoá học đến hạn ôn: hiện tiếp ngay dưới khi ôn xong từ (hoặc không có từ đến hạn)
   const [soCauCanOn, setSoCauCanOn] = useState(0);
+  // Từ của khoá học: deck_id của từng buổi → số buổi (lọc ?nguon=khoa|khac, ghi "Khoá học · Buổi N" trên thẻ)
+  const [buoiTheoBo, setBuoiTheoBo] = useState(null);
+  const [thamSo, setThamSo] = useSearchParams();
+  const nguon = ["khoa", "khac"].includes(thamSo.get("nguon")) ? thamSo.get("nguon") : "";
   const startedAtRef = useRef(new Date().toISOString());
   const daLuuSessionRef = useRef(false);
   const actionLockRef = useRef(false);
@@ -720,9 +728,17 @@ function TrangOnTapHomNay() {
     let conHieuLuc = true;
     layDanhSachKhoaHoc()
       .then((khoaHoc) => {
-        if (conHieuLuc) setSoCauCanOn(khoaHoc.reduce((tong, khoa) => tong + tongHopKhoaHoc(khoa).cauCanOn, 0));
+        if (!conHieuLuc) return;
+        setSoCauCanOn(khoaHoc.reduce((tong, khoa) => tong + tongHopKhoaHoc(khoa).cauCanOn, 0));
+        const theoBo = new Map();
+        for (const khoa of khoaHoc) {
+          for (const bai of khoa.lessons || []) if (bai.deck_id) theoBo.set(String(bai.deck_id), bai.lesson_number);
+        }
+        setBuoiTheoBo(theoBo);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (conHieuLuc) setBuoiTheoBo(new Map());
+      });
     return () => {
       conHieuLuc = false;
     };
@@ -764,22 +780,25 @@ function TrangOnTapHomNay() {
       ds = ds.filter((entry) => entry.status === "active");
     }
 
+    if (nguon && buoiTheoBo) {
+      ds = ds.filter((entry) => buoiTheoBo.has(String(entry.deckId)) === (nguon === "khoa"));
+    }
     if (deckFilter) ds = ds.filter((entry) => String(entry.deckId) === deckFilter);
     if (levelFilter !== "") ds = ds.filter((entry) => String(entry.level ?? 0) === levelFilter);
     ds = ds.filter((entry) => matchReviewSearch(entry, search));
 
     return [...ds].sort((a, b) => new Date(a.nextReviewAt || 0) - new Date(b.nextReviewAt || 0));
-  }, [allCards, filterMode, deckFilter, levelFilter, search]);
+  }, [allCards, filterMode, deckFilter, levelFilter, search, nguon, buoiTheoBo]);
 
   const entryMap = useMemo(
     () =>
       Object.fromEntries(
         filteredCards.map((card) => [
           card.id,
-          { ...card, ...(entryOverrides[card.id] || {}) },
+          { ...card, ...(entryOverrides[card.id] || {}), buoiKhoa: buoiTheoBo?.get(String(card.deckId)) ?? null },
         ])
       ),
-    [entryOverrides, filteredCards]
+    [entryOverrides, filteredCards, buoiTheoBo]
   );
 
   const visibleFilteredCards = useMemo(
@@ -808,7 +827,7 @@ function TrangOnTapHomNay() {
 
   // Global SRS stats (for header)
   const soTuChuaLuu = useSyncExternalStore(theoDoiHangChoOnTap, soTuDangCho, () => 0);
-  const dangLoc = Boolean(deckFilter || levelFilter || search.trim()) || filterMode !== "due";
+  const dangLoc = Boolean(nguon || deckFilter || levelFilter || search.trim()) || filterMode !== "due";
   // Lần ôn tiếp theo (từ chưa đến hạn sớm nhất) cho màn "không có từ đến hạn"
   const [mocBayGio] = useState(() => Date.now());
   const lanOnToi = useMemo(() => {
@@ -962,6 +981,7 @@ function TrangOnTapHomNay() {
   }, [correctCount, currentEntry?.deckId, filteredCards, isComplete, wrongCount]);
 
   function handleClearFilters() {
+    if (nguon) setThamSo((cu) => { const moi = new URLSearchParams(cu); moi.delete("nguon"); return moi; }, { replace: true });
     setFilterMode("due");
     setDeckFilter("");
     setLevelFilter("");
@@ -1036,6 +1056,13 @@ function TrangOnTapHomNay() {
       {/* Điện thoại, laptop màn thấp (1366×768: vùng nhìn ~657px): bộ lọc và chế độ ôn gập lại để thẻ ôn hiện
           ngay trong màn đầu; màn máy tính đủ rộng và cao mới mở sẵn */}
       {/* Luôn gập sẵn (kể cả màn cao) để thẻ ôn nằm trong màn đầu; lúc đang ôn mở bằng nút "Bộ lọc" trên thanh */}
+      {nguon && (
+        <p className="review-nguon">
+          {nguon === "khoa" ? "Đang ôn từ của khoá học" : "Đang ôn từ của lộ trình và bộ của tôi"} ·{" "}
+          <button type="button" onClick={handleClearFilters}>Ôn tất cả</button>
+        </p>
+      )}
+
       <details
         id="review-tuy-chon"
         className={`review-tuy-chon${dangOnThe ? " review-tuy-chon--gon" : ""}`}
@@ -1100,8 +1127,8 @@ function TrangOnTapHomNay() {
                 ? `Bạn đã có ${srsStats.total} từ trong lịch ôn.${lanOnToi ? ` Lần ôn tiếp theo: ${lanOnToi.ngay} (${lanOnToi.so} từ).` : ""} Trong lúc chờ, học tiếp buổi mới để thêm từ.`
                 : "Học một buổi hoặc làm một bài Trắc nghiệm, Tự luận để bắt đầu lịch ôn."
           }
-          action="Học tiếp khoá học"
-          onAction={() => navigateWithLoading("/khoa-hoc")}
+          action={dangLoc ? "Bỏ bộ lọc" : "Học tiếp khoá học"}
+          onAction={dangLoc ? handleClearFilters : () => navigateWithLoading("/khoa-hoc")}
         />
       ) : isComplete ? (
         <CompletionScreen total={effectiveDone} />
@@ -1135,6 +1162,8 @@ function TrangOnTapHomNay() {
           />
         )
       ) : null}
+
+      {nothingDue && <NutTiepKeHoach />}
 
       {(nothingDue || isComplete) && soCauCanOn > 0 && (
         <Suspense fallback={<p className="review-sync-note">Đang tải câu bài tập...</p>}>

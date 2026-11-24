@@ -13,6 +13,7 @@ import { tienDoBuoiHoc, timBuoiTiepTheo, tongHopKhoaHoc, tongSoBuoiKhoaHoc } fro
 import EmptyState from "../components/common/EmptyState";
 import DashIcon from "../components/DashIcon";
 import { usePageTransition } from "../contexts/PageTransitionContext";
+import { MUC_TIEU_PHUT } from "../utils/keHoachHomNay";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -255,21 +256,29 @@ function TrangDashboard() {
                     chiTiet={`${tienDoBuoi.cauDung}/${tienDoBuoi.tongCau} câu đúng`}
                   />
                 </ol>
-                <Link
-                  to={`/khoa-hoc/${khoaChinh.id}/bai/${buoiTiep.lesson_number}/${buocTiep}`}
-                  className="ui-button ui-button--primary dash-cta-primary"
-                >
-                  {tienDoBuoi.daBatDau ? "Học tiếp" : "Bắt đầu"} Buổi {buoiTiep.lesson_number}
-                </Link>
+                <div className="dash-cta-hang">
+                  <Link to="/hoc-hom-nay" className="ui-button ui-button--primary dash-cta-primary">
+                    Học hôm nay · {MUC_TIEU_PHUT} phút
+                  </Link>
+                  <Link
+                    to={`/khoa-hoc/${khoaChinh.id}/bai/${buoiTiep.lesson_number}/${buocTiep}`}
+                    className="dash-cta-phu"
+                  >
+                    {tienDoBuoi.daBatDau ? "Vào thẳng" : "Bắt đầu"} Buổi {buoiTiep.lesson_number} →
+                  </Link>
+                </div>
               </>
             ) : (
               <>
                 <h1 id="dash-buoi-tiep" className="dash-hom-nay__tieu-de">
                   Đã xong {khoaChinh.lessons.length} buổi hiện có
                 </h1>
-                <Link to="/khoa-hoc" className="ui-button ui-button--primary dash-cta-primary">
-                  Xem khoá học
-                </Link>
+                <div className="dash-cta-hang">
+                  <Link to="/hoc-hom-nay" className="ui-button ui-button--primary dash-cta-primary">
+                    Ôn tập hôm nay
+                  </Link>
+                  <Link to="/khoa-hoc" className="dash-cta-phu">Xem khoá học →</Link>
+                </div>
               </>
             )}
           </div>

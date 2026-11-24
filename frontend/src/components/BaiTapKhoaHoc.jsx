@@ -18,6 +18,7 @@ import {
   soanNen,
   uuTienSoan,
 } from "../utils/soanTruocGiaiThich";
+import NutTiepKeHoach from "./common/NutTiepKeHoach";
 import {
   khoaGiaiThich,
   laTraLoiDung,
@@ -297,6 +298,7 @@ function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau, buoiSau }) {
           </Link>
         )}
       </div>
+      <NutTiepKeHoach />
 
       {cauSai.length > 0 && (
         <div className="kh-tong-ket__sai">

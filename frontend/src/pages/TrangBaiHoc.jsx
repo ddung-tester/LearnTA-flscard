@@ -263,7 +263,7 @@ function HoiHocTiep({ viTri, onHocTiep, onHocLai }) {
   );
 }
 
-function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang, duongDanBuoi }) {
+function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang, onDaDoc, duongDanBuoi }) {
   const { grammar = [], notes = [] } = content || {};
   const [cachXem, setCachXem] = useState(docCachXemLyThuyet);
   if (grammar.length === 0 && notes.length === 0) {
@@ -303,15 +303,37 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTran
       </div>
 
       {cachXem === "so-tay" ? (
-        <SoTayLatTrang trang={cacTrang} nhan="Lý thuyết của buổi" trangDau={trangDau} onDoiTrang={onDoiTrang} />
+        <SoTayLatTrang
+          trang={cacTrang}
+          nhan="Lý thuyết của buổi"
+          trangDau={trangDau}
+          onDoiTrang={(trang) => {
+            onDoiTrang(trang);
+            // Lật tới trang cuối: tính là đã đọc lý thuyết (kế hoạch "Học hôm nay")
+            if (trang >= cacTrang.length - 1) onDaDoc();
+          }}
+        />
       ) : (
         <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} duongDanBuoi={duongDanBuoi} />
       )}
 
       {soCauBaiTap > 0 && (
-        <NutSangBuoc buoc="bai-tap" onChon={onSangBuoc}>
+        <NutSangBuoc
+          buoc="bai-tap"
+          onChon={(buoc) => {
+            onDaDoc();
+            onSangBuoc(buoc);
+          }}
+        >
           Làm {soCauBaiTap} câu bài tập
         </NutSangBuoc>
+      )}
+      {soCauBaiTap === 0 && (
+        <div className="kh-sang-buoc">
+          <button type="button" className="ui-button ui-button--primary px-5 py-2.5" onClick={onDaDoc}>
+            Đã đọc xong
+          </button>
+        </div>
       )}
     </div>
   );
@@ -552,6 +574,7 @@ function TrangBaiHoc() {
             trangDau={viTriLuu?.trangLyThuyet ?? 0}
             duongDanBuoi={(so) => `/khoa-hoc/${courseId}/bai/${so}`}
             onDoiTrang={(trang) => ghiViTriBuoi(khoaViTri, { trangLyThuyet: trang })}
+            onDaDoc={() => ghiViTriBuoi(khoaViTri, { daDocLyThuyet: true })}
           />
         )}
         {buoc === "bai-tap" && (
