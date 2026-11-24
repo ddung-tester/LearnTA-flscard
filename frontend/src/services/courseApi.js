@@ -81,15 +81,35 @@ export async function giaiThichCauHoi(questionId, answer, { onChunk, chiDongSai 
   // axios không đọc được luồng trong trình duyệt, nên dùng fetch
   const token = getStoredAuthToken();
   // chiDongSai: máy đã hiện sẵn "Đúng vì" + "Nhớ", server chỉ cần gửi dòng "Sai vì"
-  const response = await fetch(buildApiUrl(`/api${duongDan}?stream=1${chiDongSai ? "&chiDongSai=1" : ""}`), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ answer }),
-  });
+  // fetch không có thời gian chờ như axios: tự đặt, để không quay vòng mãi khi máy chủ ngủ / AI chậm
+  const huy = new AbortController();
+  const hen = setTimeout(() => huy.abort(), THOI_GIAN_CHO_AI_MS);
+  let response;
+  try {
+    response = await fetch(buildApiUrl(`/api${duongDan}?stream=1${chiDongSai ? "&chiDongSai=1" : ""}`), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ answer }),
+      signal: huy.signal,
+    });
+  } catch {
+    clearTimeout(hen);
+    throw new Error(
+      huy.signal.aborted
+        ? "AI phản hồi quá lâu. Thử lại sau ít phút."
+        : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại."
+    );
+  }
+  if (response.headers.get("X-Giai-Thich-Du-Phong") === "1") {
+    clearTimeout(hen);
+    const text = await response.text().catch(() => "");
+    return { explanation: text.trim(), duPhong: true };
+  }
   if (!response.ok) {
+    clearTimeout(hen);
     const loi = await response.json().catch(() => ({}));
     throw new Error(loi.message || "AI chưa giải thích được, thử lại sau");
   }
@@ -97,11 +117,17 @@ export async function giaiThichCauHoi(questionId, answer, { onChunk, chiDongSai 
   const doc = response.body.getReader();
   const giaiMa = new TextDecoder();
   let explanation = "";
-  for (;;) {
-    const { done, value } = await doc.read();
-    if (done) break;
-    explanation += giaiMa.decode(value, { stream: true });
-    onChunk(explanation.replace(DAU_LOI_LUONG, ""));
+  try {
+    for (;;) {
+      const { done, value } = await doc.read();
+      if (done) break;
+      explanation += giaiMa.decode(value, { stream: true });
+      onChunk(explanation.replace(DAU_LOI_LUONG, ""));
+    }
+  } catch {
+    throw new Error(huy.signal.aborted ? "AI phản hồi quá lâu. Thử lại sau ít phút." : "Lời giải thích bị ngắt giữa chừng.");
+  } finally {
+    clearTimeout(hen);
   }
   explanation += giaiMa.decode();
   // AI lỗi giữa chừng (server gắn ký hiệu cuối luồng) hoặc không viết được chữ nào: báo lỗi để hiện "Thử lại"

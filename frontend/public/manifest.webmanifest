@@ -6,8 +6,8 @@
   "id": "/",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
   "background_color": "#f7d492",
   "theme_color": "#f7d492",
   "icons": [

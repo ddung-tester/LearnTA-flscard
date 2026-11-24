@@ -17,7 +17,9 @@ import {
   useLayoutEffect,
   lazy,
   Suspense,
+  useSyncExternalStore,
 } from "react";
+import { soTuDangCho, theoDoiHangChoOnTap } from "../services/hangChoOnTap";
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -805,6 +807,19 @@ function TrangOnTapHomNay() {
   const nothingDue = visibleFilteredCards.length === 0;
 
   // Global SRS stats (for header)
+  const soTuChuaLuu = useSyncExternalStore(theoDoiHangChoOnTap, soTuDangCho, () => 0);
+  const dangLoc = Boolean(deckFilter || levelFilter || search.trim()) || filterMode !== "due";
+  // Lần ôn tiếp theo (từ chưa đến hạn sớm nhất) cho màn "không có từ đến hạn"
+  const [mocBayGio] = useState(() => Date.now());
+  const lanOnToi = useMemo(() => {
+    const hanSau = allCards
+      .map((entry) => entry.nextReviewAt)
+      .filter((han) => han && new Date(han).getTime() > mocBayGio)
+      .sort();
+    if (hanSau.length === 0) return null;
+    const ngay = hanSau[0];
+    return { ngay: new Date(ngay).toLocaleDateString("vi-VN"), so: hanSau.filter((han) => han.slice(0, 10) === ngay.slice(0, 10)).length };
+  }, [allCards, mocBayGio]);
   const srsStats = useMemo(
     () => tinhThongKeSRS(allCards.filter((card) => !removedIds.has(String(card.id)))),
     [allCards, removedIds]
@@ -987,7 +1002,9 @@ function TrangOnTapHomNay() {
           <h1 className="review-title ui-tieu-de-ve-tay">Ôn tập hôm nay<GachVeTay /></h1>
           <p className="review-subtitle">
             {nothingDue
-              ? "Không có từ nào phù hợp với bộ lọc hiện tại."
+              ? dangLoc
+                ? "Không có từ nào phù hợp với bộ lọc hiện tại."
+                : "Hôm nay không có từ đến hạn ôn."
               : isComplete
               ? "Đã ôn xong tất cả từ hôm nay!"
               : `${visibleFilteredCards.length} từ cần ôn · Tổng hàng ôn: ${srsStats.total} từ`}
@@ -1064,14 +1081,26 @@ function TrangOnTapHomNay() {
         autoComplete="off"
       />
 
+      {soTuChuaLuu > 0 && (
+        <p className="review-sync-note" role="status">
+          Chưa lưu được kết quả của {soTuChuaLuu} từ vì mất mạng. Ứng dụng sẽ tự gửi lại khi có mạng.
+        </p>
+      )}
+
       {/* Content */}
       {nothingDue ? (
         <EmptyState
           icon="search"
-          title="Hôm nay chưa có từ cần ôn"
-          description="Hoàn thành một bài Quiz hoặc Tự luận để bắt đầu xây dựng hàng ôn tập của bạn."
-          action="Xem bộ từ"
-          onAction={() => navigateWithLoading("/decks")}
+          title={dangLoc ? "Không có từ khớp bộ lọc" : "Hôm nay chưa có từ cần ôn"}
+          description={
+            dangLoc
+              ? "Bỏ bớt bộ lọc để thấy các từ đến hạn khác."
+              : srsStats.total > 0
+                ? `Bạn đã có ${srsStats.total} từ trong lịch ôn.${lanOnToi ? ` Lần ôn tiếp theo: ${lanOnToi.ngay} (${lanOnToi.so} từ).` : ""} Trong lúc chờ, học tiếp buổi mới để thêm từ.`
+                : "Học một buổi hoặc làm một bài Trắc nghiệm, Tự luận để bắt đầu lịch ôn."
+          }
+          action="Học tiếp khoá học"
+          onAction={() => navigateWithLoading("/khoa-hoc")}
         />
       ) : isComplete ? (
         <CompletionScreen total={effectiveDone} />

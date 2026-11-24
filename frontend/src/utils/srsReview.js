@@ -36,6 +36,7 @@ import {
   xoaReviewTheoCard,
 } from "../services/reviewApi";
 import { khoaKhoHocTap, layPhienKhoHocTap, laPhienKhoHienTai } from "./khoHocTap";
+import { boKhoiHangChoOnTap, nenGiuLai, themVaoHangChoOnTap } from "../services/hangChoOnTap";
 import { taoKhoTrenMay } from "./khoTrenMay";
 import { layStudySessionsLocal } from "./studySessionHistory";
 
@@ -91,8 +92,12 @@ function tinhNgayOnTheoLevel(level) {
  * @param {number} levelHienTai
  * @param {"correct"|"wrong"|number} ketQua - đúng/sai, hoặc level người học tự chọn
  */
-function apDungKetQua(levelHienTai, ketQua) {
+function apDungKetQua(levelHienTai, ketQua, hanOnHienTai = null) {
   const level = chuanHoaLevel(levelHienTai);
+  // Cùng luật với server (cardProgress.lichSauTraLoi): đúng khi chưa đến hạn thì giữ cấp và hạn ôn
+  if (ketQua === "correct" && hanOnHienTai && new Date(hanOnHienTai).getTime() > Date.now()) {
+    return { level, nextReviewAt: hanOnHienTai };
+  }
 
   if (typeof ketQua === "number") {
     const levelMoi = chuanHoaLevel(ketQua);
@@ -189,8 +194,14 @@ export function layLevelSRS(ids) {
 /**
  * Level sau khi áp dụng một kết quả, theo đúng luật SRS (không ghi gì).
  */
-export function levelSauKetQua(level, ketQua) {
-  return apDungKetQua(level ?? 0, ketQua).level;
+export function levelSauKetQua(level, ketQua, hanOn = null) {
+  return apDungKetQua(level ?? 0, ketQua, hanOn).level;
+}
+
+/** Hạn ôn hiện tại trong SRS local của từng card (null nếu chưa có / chưa hẹn). */
+export function layHanOnSRS(ids) {
+  const tatCa = docTatCa();
+  return Object.fromEntries(ids.map((id) => [String(id), tatCa[String(id)]?.nextReviewAt ?? null]));
 }
 
 /**
@@ -286,7 +297,7 @@ export function capNhatKetQuaOn(id, ketQua) {
   if (!cu) return null;
 
   const now = new Date().toISOString();
-  const tiepTheo = apDungKetQua(cu.level ?? 0, ketQua);
+  const tiepTheo = apDungKetQua(cu.level ?? 0, ketQua, cu.nextReviewAt);
   const updated = {
     ...cu,
     level: tiepTheo.level,
@@ -310,18 +321,22 @@ export async function capNhatKetQuaOnDongBo(id, ketQua) {
   const updatedLocal = capNhatKetQuaOn(id, ketQua);
   if (!updatedLocal || !laCardIdHopLe(id)) return updatedLocal;
 
+  const payload = typeof ketQua === "number" ? { level: ketQua } : { result: ketQua };
   try {
-    const payload = typeof ketQua === "number" ? { level: ketQua } : { result: ketQua };
     const backendResult = await capNhatReviewResultTheoCard(Number(id), payload);
     if (!laPhienKhoHienTai(phienKho)) return null;
+    boKhoiHangChoOnTap(Number(id));
     if (backendResult) {
       return (
         hopNhatSRSTuBackend([backendResult]).find((entry) => entry.id === String(id)) ??
         updatedLocal
       );
     }
-  } catch {
-    // Backend best-effort (vd: chưa đăng nhập). Local state đã được cập nhật.
+  } catch (error) {
+    // Mất mạng / máy chủ lỗi tạm thời: giữ kết quả và tự gửi lại, không âm thầm mất (khách thì chỉ lưu trên máy)
+    if (phienKho.chuSoHuu !== "guest" && laPhienKhoHienTai(phienKho) && nenGiuLai(error)) {
+      themVaoHangChoOnTap(Number(id), payload);
+    }
   }
 
   return updatedLocal;

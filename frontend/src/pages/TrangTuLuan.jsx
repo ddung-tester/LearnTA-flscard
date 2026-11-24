@@ -20,6 +20,7 @@ import usePhanThuongPhien from "../hooks/usePhanThuongPhien";
 import useTTS from "../hooks/useTTS";
 import useSoundEffect from "../hooks/useSoundEffect";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
+import { kiemTraGiongTiengAnh } from "../services/ttsService";
 import { phatAm } from "../utils/amThanh";
 import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc, sapXepTu } from "../utils/locTuVung";
 import { docCaiDatHocTap, luuCaiDatHocTap } from "../utils/caiDatHocTap";
@@ -146,12 +147,28 @@ function TrangTuLuan({ loai }) {
   const dangTrongCheDoGoiYRef = useRef(false); // đang sai trong khi hienGoiY=true
 
   const [dangChuyenCau, setDangChuyenCau] = useState(false);
+  // Nghe viết / Hỗn hợp: thiết bị không có giọng đọc tiếng Anh thì báo trước (false = không có)
+  const [coGiongDoc, setCoGiongDoc] = useState(true);
+  useEffect(() => {
+    if (loai === "tu-luan") return undefined;
+    let conHieuLuc = true;
+    kiemTraGiongTiengAnh().then((co) => {
+      if (conHieuLuc) setCoGiongDoc(co);
+    });
+    return () => {
+      conHieuLuc = false;
+    };
+  }, [loai]);
 
   const { combo, maxCombo, comboPhase, incrementCombo, resetCombo, resetAll } = useCombo();
   const phanThuong = usePhanThuongPhien({ batReward, soCauDungNhanThuong });
   const { hienReward, dangChoReward } = phanThuong;
   // Set lưu card_id đã bị sai ít nhất 1 lần trong session
   const [tapCardSai, setTapCardSai] = useState(() => new Set());
+  // Thẻ trả lời đúng nhờ gợi ý ở lần đầu: server giữ nguyên cấp SRS
+  const [tapCardGoiY, setTapCardGoiY] = useState(() => new Set());
+  // Câu hiện tại đã nhập lại sau khi xem đáp án / sai: không đóng dấu "Chính xác!"
+  const [daNhapLaiCauNay, setDaNhapLaiCauNay] = useState(false);
   // Danh sách card chỉ để học lại từ sai (null = học tất cả)
   const [danhSachHocLai, setDanhSachHocLai] = useState(null);
 
@@ -225,6 +242,7 @@ function TrangTuLuan({ loai }) {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
+    setDaNhapLaiCauNay(false);
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
@@ -538,6 +556,7 @@ function TrangTuLuan({ loai }) {
     setHienCanhBaoNhap(false);
     setNoiDungCanhBaoNhap("Vui lòng nhập đáp án");
     setDaBoQua(false);
+    setDaNhapLaiCauNay(false);
     setDangChuyenCau(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
@@ -561,8 +580,9 @@ function TrangTuLuan({ loai }) {
 
   // Chuyển sang câu kế tiếp sau khi nhập đúng ở chế độ nhập lại gợi ý (không ghi nhận tiến trình)
   // Không auto-chuyển — đặt cờ pendingRetry để hiện TenseExamplesCard, chờ user nhấn Enter hoặc Tiếp tục
-  function chuyenCauSauNhapLaiDung() {
+  function chuyenCauSauNhapLaiDung(nhan = "Đã nhập lại đúng") {
     pendingRetryCardRef.current = true;
+    setDaNhapLaiCauNay(nhan);
     // daKiemTra=true, ketQuaDung=true đã được caller set, TenseExamplesCard sẽ hiện
   }
 
@@ -743,6 +763,7 @@ function TrangTuLuan({ loai }) {
     if (dung) {
       if (hienGoiY) {
         // Có dùng Gợi ý và nhập đúng: chèn câu hỏi lại vào 5 câu sau, chưa ghi nhận tiến trình
+        setTapCardGoiY((prev) => new Set(prev).add(theHienTai.id));
         setDaKiemTra(true);
         setKetQuaDung(true);
         setHienGoiY(false);
@@ -758,12 +779,13 @@ function TrangTuLuan({ loai }) {
             dung: true,
             answerMeta: {
               mode: "hint-correct",
+              assisted: true,
               segment_index: theHienTai.__segmentIndex ?? 0,
               counts_toward_progress: false,
             },
           },
         ]);
-        chuyenCauSauNhapLaiDung();
+        chuyenCauSauNhapLaiDung("Đúng nhờ gợi ý");
       } else {
         // Trả lời đúng bình thường (hoặc đúng thẻ retry 5 câu sau)
         setDaKiemTra(true);
@@ -845,6 +867,22 @@ function TrangTuLuan({ loai }) {
 
   function xemDapAn() {
     if (dangChuyenCau || hienReward || dangChoReward) return;
+    // Xem đáp án = chưa nhớ: ghi lần trả lời đầu là sai (server hạ cấp SRS), tổng kết xếp vào "cần ôn lại"
+    const theXem = danhSachThe[chiSo];
+    if (theXem && !daBoQua) {
+      setTapCardSai((prev) => new Set(prev).add(theXem.id));
+      setDanhSachKetQua((hienTai) => [
+        ...hienTai,
+        {
+          id: theXem.id,
+          cauHoi: layCauHoi(theXem),
+          dapAnDung: layDapAnDung(theXem),
+          cauTraLoi: "",
+          dung: false,
+          answerMeta: { mode: "reveal", segment_index: theXem.__segmentIndex ?? 0, counts_toward_progress: false },
+        },
+      ]);
+    }
     setDaBoQua(true);
     setDaKiemTra(false);
     setKetQuaDung(false);
@@ -976,6 +1014,7 @@ function TrangTuLuan({ loai }) {
     setHienCanhBaoNhap(false);
     setDangChuyenCau(false);
     setDaBoQua(false);
+    setDaNhapLaiCauNay(false);
     setDangChoNhanEnterSauSai(false);
     setCheDoNhapLai({ active: false, dapAnDung: "" });
     setLuaChon(null);
@@ -1027,6 +1066,7 @@ function TrangTuLuan({ loai }) {
     setHienGoiY(false);
     setHienCanhBaoNhap(false);
     setDaBoQua(false);
+    setDaNhapLaiCauNay(false);
     setDangChoNhanEnterSauSai(false);
     setLuaChon(null);
     setSoCauDung(0);
@@ -1036,6 +1076,7 @@ function TrangTuLuan({ loai }) {
     setDangChuyenCau(false);
     resetAll();
     setTapCardSai(new Set());
+    setTapCardGoiY(new Set());
   }
 
   function lamLai() {
@@ -1100,7 +1141,7 @@ function TrangTuLuan({ loai }) {
   if (dangTaiDuLieu) return <TheTrangThaiPhien tieuDe="Đang tải dữ liệu..." />;
 
   if (loiTaiDuLieu) return (
-    <TheTrangThaiPhien tieuDe="Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.">
+    <TheTrangThaiPhien tieuDe="Chưa tải được dữ liệu. Kiểm tra kết nối mạng rồi thử lại.">
       <button
         type="button"
         onClick={taiDuLieuTuLuan}
@@ -1197,6 +1238,7 @@ function TrangTuLuan({ loai }) {
             }
             danhSachCardSai={danhSachCardSai}
             danhSachCardDung={danhSachCardDung}
+            idGiuCap={tapCardGoiY}
             laLamLai={danhSachHocLai !== null}
             mode={cauHinh.modeKetQua}
           />
@@ -1263,6 +1305,13 @@ function TrangTuLuan({ loai }) {
           onDoc={docCauHoiHienTai}
           cheDoNghe={loaiCauCua(theHienTai) === "nghe"}
         />
+
+        {!coGiongDoc && loaiCauCua(theHienTai) === "nghe" && (
+          <p className="ui-canh-bao-giong mb-4" role="alert">
+            Thiết bị chưa có giọng đọc tiếng Anh nên không phát được âm thanh. Mở bằng Chrome hoặc Safari,
+            hoặc bấm "Xem đáp án" để học tiếp.
+          </p>
+        )}
 
         {laCauChon ? (
           <>
@@ -1446,7 +1495,7 @@ function TrangTuLuan({ loai }) {
           </AnimatePresence>
 
           {/* Xem đáp án: nút tiếp tục sẽ validate input */}
-          {daBoQua && (
+          {daBoQua && !(daKiemTra && ketQuaDung) && (
             <m.div
               layout
               layoutDependency={phuThuocBoCuc}
@@ -1546,6 +1595,7 @@ function TrangTuLuan({ loai }) {
         {/* Đúng rồi: hiện câu mẫu + ví dụ các thì — nằm NGOÀI form để tránh browser tự focus và scroll */}
         {daKiemTra && ketQuaDung && (
           <PhanHoiDung
+            nhan={daNhapLaiCauNay || "Chính xác!"}
             className="pt-2 pb-4 text-center"
             the={theHienTai}
             termEn={theHienTai?.term_en}

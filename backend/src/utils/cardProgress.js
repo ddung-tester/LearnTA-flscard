@@ -57,13 +57,32 @@ async function writeProgress(connection, current, { userId, cardId, level, nextR
   return findProgress(connection, userId, cardId);
 }
 
-async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect, now = new Date() }) {
+/**
+ * Lịch ôn sau một câu trả lời (cùng luật với câu bài tập khoá học, utils/khoaHoc.lichOnCauHoi):
+ * - Sai: xuống 1 cấp, ôn lại ngay.
+ * - Đúng khi từ CHƯA đến hạn (học lại nhiều lần trong ngày, ôn ở 2 tab): giữ nguyên cấp và hạn ôn,
+ *   chỉ ghi nhận lượt ôn — không cho học dồn đẩy từ lên Lv5 trong vài phút.
+ * - Đúng nhờ trợ giúp (gợi ý): giữ cấp, hẹn lại theo khoảng của cấp hiện tại (giống trang Ôn tập).
+ * - Đúng khi đã đến hạn (hoặc từ mới): lên 1 cấp.
+ */
+function lichSauTraLoi(current, isCorrect, { coTroGiup = false, now = new Date() } = {}) {
+  const level = current?.mastery_level || 0;
+  if (!isCorrect) return scheduleAnswer(level, false, now);
+  const hanOn = current?.next_review_at ? new Date(current.next_review_at) : null;
+  if (current && hanOn && hanOn.getTime() > now.getTime()) {
+    return { level, nextReviewAt: hanOn };
+  }
+  if (coTroGiup) return scheduleLevel(level, now);
+  return scheduleAnswer(level, true, now);
+}
+
+async function updateProgressFromAnswer(connection, { userId, cardId, isCorrect, coTroGiup = false, now = new Date() }) {
   if (userId === null || userId === undefined) {
     return null;
   }
 
   const current = await findProgress(connection, userId, cardId, { lock: true });
-  const next = scheduleAnswer(current?.mastery_level || 0, isCorrect, now);
+  const next = lichSauTraLoi(current, isCorrect, { coTroGiup, now });
 
   return writeProgress(connection, current, {
     userId,
@@ -95,6 +114,7 @@ async function setProgressLevel(connection, { userId, cardId, level, now = new D
 }
 
 module.exports = {
+  lichSauTraLoi,
   findProgress,
   normalizeProgress,
   setProgressLevel,

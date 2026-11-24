@@ -44,26 +44,6 @@ export const TENSE_META = {
 };
 
 
-// ---------------------------------------------------------------------------
-// Bảng chia động từ bất quy tắc
-// ---------------------------------------------------------------------------
-const IRREGULAR_PAST = {
-  run: "ran", go: "went", eat: "ate", drink: "drank", buy: "bought",
-  sell: "sold", give: "gave", take: "took", find: "found", know: "knew",
-  think: "thought", see: "saw", come: "came", get: "got", feel: "felt",
-  become: "became", keep: "kept", put: "put", read: "read",
-  write: "wrote", speak: "spoke", build: "built", make: "made",
-  sit: "sat", stand: "stood", leave: "left", sleep: "slept",
-  bring: "brought", tell: "told", teach: "taught", sing: "sang",
-  swim: "swam", fly: "flew", draw: "drew", win: "won", meet: "met",
-  hear: "heard", pay: "paid", say: "said", send: "sent", show: "showed",
-  understand: "understood", begin: "began", break: "broke", choose: "chose",
-  cut: "cut", hit: "hit", let: "let", set: "set", fall: "fell", hold: "held",
-  lose: "lost", ride: "rode", rise: "rose", spend: "spent", wear: "wore",
-  catch: "caught", fight: "fought", throw: "threw",
-  drive: "drove", forget: "forgot", grow: "grew", hide: "hid",
-};
-
 // Động từ thông dụng — được kiểm tra trước suffix
 const COMMON_VERBS = new Set([
   // Động từ bất quy tắc cơ bản
@@ -153,69 +133,6 @@ const COMMON_ADJECTIVES = new Set([
 
 
 // ---------------------------------------------------------------------------
-// Hàm chia động từ
-// ---------------------------------------------------------------------------
-function getIngForm(verb) {
-  const v = verb.toLowerCase();
-  if (v.endsWith("ie")) return `${v.slice(0, -2)}ying`;
-  if (v === "be") return "being";
-  if (v.endsWith("e") && !v.endsWith("ee") && !v.endsWith("oe") && v !== "age") {
-    return `${v.slice(0, -1)}ing`;
-  }
-  // Nhân đôi phụ âm cuối (1 âm tiết, nguyên âm + phụ âm)
-  if (
-    v.length <= 6 &&
-    /[aeiou][bcdfghjklmnpqrstvwxyz]$/.test(v) &&
-    !/[wxy]$/.test(v)
-  ) {
-    return `${v}${v.slice(-1)}ing`;
-  }
-  return `${v}ing`;
-}
-
-function getPastForm(verb) {
-  const v = verb.toLowerCase();
-  if (IRREGULAR_PAST[v]) return IRREGULAR_PAST[v];
-  if (v.endsWith("e")) return `${v}d`;
-  if (v.endsWith("y") && !/[aeiou]y$/i.test(v)) return `${v.slice(0, -1)}ied`;
-  // Nhân đôi phụ âm cuối
-  if (
-    v.length <= 5 &&
-    /[aeiou][bcdfghjklmnpqrstvwxyz]$/.test(v) &&
-    !/[wxy]$/.test(v)
-  ) {
-    return `${v}${v.slice(-1)}ed`;
-  }
-  return `${v}ed`;
-}
-
-// V3 (past participle) — dùng cho Present Perfect
-function getV3Form(verb) {
-  // Bất quy tắc: dùng bảng IRREGULAR_PAST (V2 = V3 với hầu hết động từ bất quy tắc thông dụng)
-  const IRREGULAR_V3 = {
-    run: "run", go: "gone", eat: "eaten", drink: "drunk", buy: "bought",
-    sell: "sold", give: "given", take: "taken", find: "found", know: "known",
-    think: "thought", see: "seen", come: "come", get: "gotten", feel: "felt",
-    become: "become", keep: "kept", put: "put", read: "read",
-    write: "written", speak: "spoken", build: "built", make: "made",
-    sit: "sat", stand: "stood", leave: "left", sleep: "slept",
-    bring: "brought", tell: "told", teach: "taught", sing: "sung",
-    swim: "swum", fly: "flown", draw: "drawn", win: "won", meet: "met",
-    hear: "heard", pay: "paid", say: "said", send: "sent", show: "shown",
-    understand: "understood", begin: "begun", break: "broken", choose: "chosen",
-    cut: "cut", hit: "hit", let: "let", set: "set", fall: "fallen", hold: "held",
-    lose: "lost", ride: "ridden", rise: "risen", spend: "spent", wear: "worn",
-    catch: "caught", fight: "fought", throw: "thrown",
-    drive: "driven", forget: "forgotten", grow: "grown", hide: "hidden",
-    be: "been", do: "done", have: "had",
-  };
-  const v = verb.toLowerCase();
-  if (IRREGULAR_V3[v]) return IRREGULAR_V3[v];
-  return getPastForm(v); // quy tắc: V3 = V-ed
-}
-
-
-// ---------------------------------------------------------------------------
 // Nhận diện loại từ (POS) — thứ tự ưu tiên: to+verb > COMMON_VERBS > COMMON_ADJECTIVES > suffix verb > suffix adj > noun
 // ---------------------------------------------------------------------------
 function detectPOS(lower) {
@@ -280,180 +197,6 @@ export function getWordType(termEn, partOfSpeech) {
   const base = lower.startsWith("to ") ? lower.slice(3) : lower;
   const pos = chonPOS(base, partOfSpeech);
   return { pos, ...POS_META[pos] };
-}
-
-// ---------------------------------------------------------------------------
-// Sinh câu mẫu dự phòng — đơn giản, luôn chứa từ đang học
-// ---------------------------------------------------------------------------
-function generateFallbackExamples(termEn, meaningVi, partOfSpeech) {
-  const term = String(termEn || "").trim();
-  if (!term) return [];
-
-  const lower = term.toLowerCase();
-  const meaning = String(meaningVi || "").trim();
-  const pos = chonPOS(lower, partOfSpeech);
-
-  // --- ĐỘNG TỪ ---
-  if (pos === "verb") {
-    const base = lower.startsWith("to ") ? lower.slice(3) : lower;
-    const ing = getIngForm(base);
-    const past = getPastForm(base);
-    const v3 = getV3Form(base);
-    const meanLabel = meaning || base;
-
-    return [
-      {
-        tense: "present_simple",
-        formula: "S + V(s/es)",
-        sentence: `I ${base} every day.`,
-        highlight: base,
-        translation: `Tôi ${meanLabel} mỗi ngày.`,
-      },
-      {
-        tense: "present_continuous",
-        formula: "S + am/is/are + V-ing",
-        sentence: `She is ${ing} right now.`,
-        highlight: `is ${ing}`,
-        translation: `Cô ấy đang ${meanLabel} lúc này.`,
-      },
-      {
-        tense: "past_simple",
-        formula: "S + V2/V-ed",
-        sentence: `He ${past} yesterday.`,
-        highlight: past,
-        translation: `Anh ấy đã ${meanLabel} hôm qua.`,
-      },
-      {
-        tense: "past_continuous",
-        formula: "S + was/were + V-ing",
-        sentence: `She was ${ing} when I arrived.`,
-        highlight: `was ${ing}`,
-        translation: `Cô ấy đang ${meanLabel} khi tôi đến.`,
-      },
-      {
-        tense: "present_perfect",
-        formula: "S + have/has + V3",
-        sentence: `I have already ${v3} it.`,
-        highlight: `have ${v3}`,
-        translation: `Tôi đã ${meanLabel} rồi.`,
-      },
-      {
-        tense: "future_simple",
-        formula: "S + will + V",
-        sentence: `They will ${base} tomorrow.`,
-        highlight: `will ${base}`,
-        translation: `Họ sẽ ${meanLabel} vào ngày mai.`,
-      },
-    ];
-  }
-
-  // --- TÍNH TỪ ---
-  if (pos === "adjective") {
-    const meanLabel = meaning || lower;
-    return [
-      {
-        tense: "present_simple",
-        formula: "S + is/are + adj",
-        sentence: `She is very ${lower} today.`,
-        highlight: lower,
-        translation: `Cô ấy rất ${meanLabel} hôm nay.`,
-      },
-      {
-        tense: "present_continuous",
-        formula: "S + is/are + becoming + adj",
-        sentence: `The weather is becoming ${lower} now.`,
-        highlight: lower,
-        translation: `Thời tiết đang trở nên ${meanLabel} bây giờ.`,
-      },
-      {
-        tense: "past_simple",
-        formula: "S + was/were + adj",
-        sentence: `He was very ${lower} yesterday.`,
-        highlight: lower,
-        translation: `Anh ấy đã rất ${meanLabel} hôm qua.`,
-      },
-      {
-        tense: "past_continuous",
-        formula: "S + was/were + getting + adj",
-        sentence: `She was getting ${lower} during the meeting.`,
-        highlight: lower,
-        translation: `Cô ấy đang trở nên ${meanLabel} trong cuộc họn.`,
-      },
-      {
-        tense: "present_perfect",
-        formula: "S + have/has + been + adj",
-        sentence: `They have been ${lower} all week.`,
-        highlight: lower,
-        translation: `Họ đã ${meanLabel} cả tuần nay.`,
-      },
-      {
-        tense: "future_simple",
-        formula: "S + will + be + adj",
-        sentence: `It will be ${lower} tomorrow.`,
-        highlight: lower,
-        translation: `Ngày mai sẽ ${meanLabel}.`,
-      },
-    ];
-  }
-
-
-  // --- DANH TỪ / KHÁI NIỆM ---
-  const article = /^[aeiou]/i.test(lower) ? "an" : "a";
-  const meanLabel = meaning || lower;
-
-  // Phân nhóm danh từ để sinh câu tự nhiên hơn
-  const DIRECTION_WORDS = new Set(["north", "south", "east", "west", "left", "right", "center", "middle"]);
-  const ABSTRACT_WORDS = new Set(["time", "life", "love", "peace", "freedom", "truth", "success", "health", "wealth", "luck", "hope", "fear", "joy", "anger", "pride", "shame", "faith", "beauty", "power", "energy"]);
-  const PLACE_SUFFIXES = ["tion", "land", "side", "town", "city", "park", "road", "street", "way", "room", "ward", "yard", "field", "ground", "area"];
-  const isDirection = DIRECTION_WORDS.has(lower);
-  const isAbstract = ABSTRACT_WORDS.has(lower);
-  const isPlace = PLACE_SUFFIXES.some(s => lower.endsWith(s));
-
-  if (isDirection) {
-    // Dùng meanLabel làm nhãn dịch thuần tiếng Việt (VD: "đông", "tây").
-    // Tránh ghép "phía phía" hay "hướng phía" bằng cách dùng "về hướng" + lower tiếng Anh
-    // và dịch tiếng Việt ngắn gọn chỉ với meanLabel.
-    return [
-      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `The sun rises in the ${lower} every morning.`,      highlight: lower, translation: `Mặt trời mọc ở ${meanLabel} mỗi sáng.` },
-      { tense: "present_continuous", formula: "S + am/is/are + V-ing",  sentence: `We are heading ${lower} right now.`,                highlight: lower, translation: `Chúng tôi đang đi về ${meanLabel} lúc này.` },
-      { tense: "past_simple",        formula: "S + V2/V-ed",            sentence: `They traveled ${lower} last summer.`,                highlight: lower, translation: `Họ đã đi về ${meanLabel} mùa hè năm ngoái.` },
-      { tense: "past_continuous",    formula: "S + was/were + V-ing",   sentence: `We were driving ${lower} when it rained.`,           highlight: lower, translation: `Chúng tôi đang lái xe hướng ${meanLabel} khi trời mưa.` },
-      { tense: "present_perfect",    formula: "S + have/has + V3",      sentence: `I have traveled ${lower} many times before.`,       highlight: lower, translation: `Tôi đã đi về ${meanLabel} nhiều lần rồi.` },
-      { tense: "future_simple",      formula: "S + will + V",           sentence: `They will travel ${lower} next month.`,             highlight: lower, translation: `Họ sẽ đi về ${meanLabel} tháng sau.` },
-    ];
-  }
-
-  if (isAbstract) {
-    return [
-      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `Everyone values ${lower} in life.`,              highlight: lower, translation: `Mọi người đều trân trọng ${meanLabel} trong cuộc sống.` },
-      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is finding ${lower} in small things.`,        highlight: lower, translation: `Cô ấy đang tìm thấy ${meanLabel} trong những điều nhỏ bé.` },
-      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He learned the value of ${lower} last year.`,    highlight: lower, translation: `Anh ấy đã nhận ra giá trị của ${meanLabel} năm ngoái.` },
-      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `She was searching for ${lower} all along.`,      highlight: lower, translation: `Cô ấy đã đang tìm kiếm ${meanLabel} suốt thời gian qua.` },
-      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `They have found ${lower} in this journey.`,      highlight: lower, translation: `Họ đã tìm thấy ${meanLabel} trong cuộc hành trình này.` },
-      { tense: "future_simple",      formula: "S + will + V",            sentence: `We will achieve ${lower} together.`,            highlight: lower, translation: `Chúng ta sẽ đạt được ${meanLabel} cùng nhau.` },
-    ];
-  }
-
-  if (isPlace) {
-    return [
-      { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `I visit the ${lower} every weekend.`,            highlight: lower, translation: `Tôi đến ${meanLabel} mỗi cuối tuần.` },
-      { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is walking around the ${lower} right now.`,  highlight: lower, translation: `Cô ấy đang đi dạo quanh ${meanLabel} lúc này.` },
-      { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He visited the ${lower} last week.`,             highlight: lower, translation: `Anh ấy đã đến ${meanLabel} tuần trước.` },
-      { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `They were exploring the ${lower} yesterday.`,    highlight: lower, translation: `Họ đã đang khám phá ${meanLabel} hôm qua.` },
-      { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have been to the ${lower} many times.`,       highlight: lower, translation: `Tôi đã đến ${meanLabel} nhiều lần rồi.` },
-      { tense: "future_simple",      formula: "S + will + V",            sentence: `We will go to the ${lower} next week.`,         highlight: lower, translation: `Chúng tôi sẽ đến ${meanLabel} tuần tới.` },
-    ];
-  }
-
-  // Danh từ vật thể thông thường
-  return [
-    { tense: "present_simple",    formula: "S + V(s/es)",             sentence: `I use ${article} ${lower} every day.`,           highlight: lower, translation: `Tôi dùng ${meanLabel} mỗi ngày.` },
-    { tense: "present_continuous", formula: "S + am/is/are + V-ing",   sentence: `She is looking at the ${lower} right now.`,      highlight: lower, translation: `Cô ấy đang nhìn vào ${meanLabel} lúc này.` },
-    { tense: "past_simple",        formula: "S + V2/V-ed",             sentence: `He bought ${article} ${lower} yesterday.`,      highlight: lower, translation: `Anh ấy đã mua ${meanLabel} hôm qua.` },
-    { tense: "past_continuous",    formula: "S + was/were + V-ing",    sentence: `She was using the ${lower} when I called.`,     highlight: lower, translation: `Cô ấy đang dùng ${meanLabel} khi tôi gọi.` },
-    { tense: "present_perfect",    formula: "S + have/has + V3",       sentence: `I have never seen such ${article} ${lower}.`,   highlight: lower, translation: `Tôi chưa bao giờ thấy ${meanLabel} như vậy.` },
-    { tense: "future_simple",      formula: "S + will + V",            sentence: `They will buy ${article} ${lower} tomorrow.`,   highlight: lower, translation: `Họ sẽ mua ${meanLabel} vào ngày mai.` },
-  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -593,8 +336,6 @@ export function getTenseExamples(cardOrTerm) {
   if (!cardOrTerm) return [];
 
   const termEn = typeof cardOrTerm === "string" ? cardOrTerm : cardOrTerm.term_en || "";
-  const meaningVi = typeof cardOrTerm === "object" ? cardOrTerm.meaning_vi : "";
-  const partOfSpeech = typeof cardOrTerm === "object" ? cardOrTerm.part_of_speech : "";
   const cleanKey = termEn.trim().toLowerCase();
 
   // 1. Ưu tiên cao nhất: dùng câu mẫu AI/chuẩn đã lưu trong DB
@@ -618,13 +359,10 @@ export function getTenseExamples(cardOrTerm) {
     }
   }
 
-  // 3. Sinh fallback (luôn trả về 6)
-  const generated = generateFallbackExamples(termEn, meaningVi, partOfSpeech);
-
-  if (!base) return generated;
-
-  // Pad: nếu base chỉ có 3, ghép thêm 3 câu generated
-  if (base.length >= 6) return base;
-  return [...base, ...generated.slice(base.length)];
+  // 3. Không có câu soạn sẵn: không tự ghép câu theo khuôn nữa — khuôn cũ sinh câu sai ngữ pháp/vô nghĩa
+  //    ("I use a hour every day", "He bought a grandmother yesterday"), dạy sai người mới học
+  //    (audit 18/11/2026, BUG-06). Thẻ không có ví dụ 6 thì thì khối ví dụ ẩn đi; dùng
+  //    "Sinh câu ví dụ AI" ở trang Thêm từ hoặc script seed:ai-examples để có câu chuẩn.
+  return base || [];
 }
 

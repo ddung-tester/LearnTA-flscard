@@ -695,6 +695,8 @@ async function addStudyAnswers(req, res) {
           userId: session.user_id,
           cardId,
           isCorrect,
+          // Đúng nhờ gợi ý (Tự luận/Nghe viết/Hỗn hợp): giữ nguyên cấp, như trang Ôn tập
+          coTroGiup: answerMeta ? JSON.parse(answerMeta).assisted === true : false,
         });
       } catch (error) {
         if (error.code !== "ER_DUP_ENTRY") throw error;

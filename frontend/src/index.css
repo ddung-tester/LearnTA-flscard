@@ -9773,3 +9773,63 @@ a.dash-nav__duong-dan-muc:hover {
     margin-bottom: 0.5rem;
   }
 }
+
+/* Flashcard: tổng kết khi đã đánh giá hết thẻ (audit 18/11/2026, BUG-09) */
+.ui-flashcard-xong {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--mau-vien);
+  border-radius: 1rem;
+  background: var(--mau-mat);
+  box-shadow: var(--bong-card);
+  padding: 1rem 1.15rem;
+  color: var(--mau-chu-tren-the, #2c1608);
+}
+
+.ui-flashcard-xong__tieu-de {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.ui-flashcard-xong__so {
+  font-size: 0.95rem;
+}
+
+.ui-flashcard-xong__nut {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+/* Điện thoại / màn ngang thấp: mọi màn học (phiên học, buổi học, ôn tập) ẩn nút chat (khi chưa mở)
+   và mèo trang trí ở góc dưới — trước đây chỉ trang Bài tập ẩn, các màn khác bị che nút
+   "Kiểm tra", "Sau →" và chữ trên thẻ (audit 18/11/2026, BUG-08) */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 760px) {
+  html:has(.app-shell--study, .kh-trang, .review-card) .chatbot-bubble:not(.is-open),
+  html:has(.app-shell--study, .kh-trang, .review-card) .meo-hoc {
+    display: none;
+  }
+}
+
+/* Thẻ câu hỏi có nút loa ở góc phải: chừa chỗ để đề dài không đè lên nút (audit BUG-16) */
+.ui-the-cau-hoi:has(> .tts-speaker-btn--corner) {
+  padding-inline: 3.75rem;
+}
+
+@media (max-width: 480px) {
+  .ui-the-cau-hoi:has(> .tts-speaker-btn--corner) {
+    padding-inline: 3.25rem;
+  }
+}
+
+/* Nghe viết khi thiết bị không có giọng đọc tiếng Anh (audit BUG-13) */
+.ui-canh-bao-giong {
+  border: 1px solid color-mix(in srgb, var(--mau-loi) 35%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--mau-loi) 10%, var(--mau-mat));
+  padding: 0.65rem 0.85rem;
+  color: var(--mau-chu);
+  font-size: 0.9rem;
+}

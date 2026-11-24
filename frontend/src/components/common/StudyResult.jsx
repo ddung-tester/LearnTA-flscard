@@ -24,6 +24,7 @@ import {
   ghiNhanDungVaoSRS,
   ghiNhanSaiVaoSRS,
   layLevelSRS,
+  layHanOnSRS,
   levelSauKetQua,
   moTaKhoangOn,
 } from "../../utils/srsReview";
@@ -42,11 +43,15 @@ const TEN_CHE_DO = {
   "hon-hop": "hỗn hợp",
 };
 
-function DanhSachTuKetQua({ danhSach, dung, levelTruoc }) {
+function DanhSachTuKetQua({ danhSach, dung, levelTruoc, hanOnTruoc = {}, idGiuCap }) {
   return (
     <ul className="ui-card-list">
       {danhSach.map((card, i) => {
-        const level = levelSauKetQua(levelTruoc[String(card.id)], dung ? "correct" : "wrong");
+        const khoa = String(card.id);
+        // Đúng nhờ gợi ý: giữ nguyên cấp (cùng luật server)
+        const level = dung && idGiuCap?.has(card.id)
+          ? levelTruoc[khoa] ?? 0
+          : levelSauKetQua(levelTruoc[khoa], dung ? "correct" : "wrong", hanOnTruoc[khoa]);
 
         return (
           <li
@@ -190,12 +195,17 @@ function StudyResult({
   danhSachCardDung = [], // mảng card đúng — dùng để cập nhật SRS mastery
   laLamLai = false,
   mode = "quiz",
+  // Thẻ trả lời đúng nhờ gợi ý (Tự luận/Nghe viết/Hỗn hợp): giữ nguyên cấp SRS
+  idGiuCap,
 }) {
   const duongDanBo = useDuongDanBo();
   const tiLeDung = tongSoCau > 0 ? Math.round((soCauDung / tongSoCau) * 100) : 0;
   // Level SRS trước phiên (chỉ đọc) → hiển thị level mới theo đúng luật SRS
   const [levelTruoc] = useState(() =>
     layLevelSRS([...danhSachCardSai, ...danhSachCardDung].map((card) => card.id))
+  );
+  const [hanOnTruoc] = useState(() =>
+    layHanOnSRS([...danhSachCardSai, ...danhSachCardDung].map((card) => card.id))
   );
 
   // Lưu kết quả vào Mistake Notebook + SRS khi màn hình kết quả xuất hiện.
@@ -215,7 +225,7 @@ function StudyResult({
 
     // 2. Ghi nhận từ đúng → tăng SRS level
     if (danhSachCardDung.length > 0) {
-      ghiNhanDungVaoSRS(danhSachCardDung, deckInfo);
+      ghiNhanDungVaoSRS(danhSachCardDung.filter((card) => !idGiuCap?.has(card.id)), deckInfo);
 
       // 3. Nếu từ đúng đã đạt mastered → đánh dấu reviewed trong Mistake Notebook
       //    (nếu có trong notebook). Không xóa entry — chỉ đánh dấu.
@@ -365,7 +375,7 @@ function StudyResult({
             </svg>
             <span>Trả lời sai ({danhSachCardSai.length}) · cần ôn lại</span>
           </div>
-          <DanhSachTuKetQua danhSach={danhSachCardSai} dung={false} levelTruoc={levelTruoc} />
+          <DanhSachTuKetQua danhSach={danhSachCardSai} dung={false} levelTruoc={levelTruoc} hanOnTruoc={hanOnTruoc} />
           <div className="study-result__notebook-link">
             <Link to="/review?loai=nham" className="ui-link text-sm font-medium text-[var(--mau-chinh)] hover:underline">
               Xem sổ từ sai của bạn →
@@ -380,7 +390,7 @@ function StudyResult({
           <div className="study-result__wrong-header study-result__wrong-header--dung">
             <span>Trả lời đúng ({danhSachCardDung.length})</span>
           </div>
-          <DanhSachTuKetQua danhSach={danhSachCardDung} dung={true} levelTruoc={levelTruoc} />
+          <DanhSachTuKetQua danhSach={danhSachCardDung} dung={true} levelTruoc={levelTruoc} hanOnTruoc={hanOnTruoc} idGiuCap={idGiuCap} />
         </section>
       )}
     </div>

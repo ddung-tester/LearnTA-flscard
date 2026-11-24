@@ -31,7 +31,7 @@ import { apDungBoLoc, docBoLocTuUrl, taoQueryBoLoc } from "../utils/locTuVung";
 import { getStoredAuthToken } from "../services/api";
 import { layDeckTheoId } from "../services/deckApi";
 import { layCardsTheoDeck } from "../services/cardApi";
-import { luuKetQuaPhien, dongBoKetQuaPhien, taoStudySession } from "../services/studyApi";
+import { luuKetQuaPhien, dongBoKetQuaPhien, guiDapAnDoDang, taoStudySession } from "../services/studyApi";
 import {
   clampProgressPercent,
   getProgressColor,
@@ -334,6 +334,8 @@ function TrangFlashcard() {
   const [loiLuuKetQua, setLoiLuuKetQua] = useState("");
   const [dangLuuKetQua, setDangLuuKetQua] = useState(false);
   const daLuuKetQuaRef = useRef(false);
+  // Tổng kết khi đã đánh giá hết thẻ: { nho, chuaNho } (null = đang học)
+  const [tongKetThe, setTongKetThe] = useState(null);
   const dataRequestRef = useRef(0);
 
   function xoaTimerReward() {
@@ -718,6 +720,7 @@ function TrangFlashcard() {
     const sessionKey = sessionKeyRef.current;
     setDangLuuKetQua(true);
     const score = tongKetDapAnPhien(dapAnRef.current);
+    setTongKetThe({ nho: score.correct, chuaNho: score.review });
     let combo = 0;
     let maxCombo = 0;
     for (const answer of score.answers) {
@@ -751,6 +754,35 @@ function TrangFlashcard() {
     progressSegmentsPayload,
   ]);
 
+  // Rời trang / ẩn ứng dụng khi chưa đánh giá hết thẻ: gửi các thẻ đã đánh giá để không mất tiến độ SRS
+  useEffect(() => {
+    if (!studySessionId) return undefined;
+    let soDaGui = 0;
+    const guiNeuCo = () => {
+      if (daLuuKetQuaRef.current) return;
+      const { answers } = tongKetDapAnPhien(dapAnRef.current);
+      if (answers.length > soDaGui && guiDapAnDoDang(studySessionId, answers)) soDaGui = answers.length;
+    };
+    const khiAn = () => {
+      if (document.visibilityState === "hidden") guiNeuCo();
+    };
+    window.addEventListener("pagehide", guiNeuCo);
+    document.addEventListener("visibilitychange", khiAn);
+    return () => {
+      window.removeEventListener("pagehide", guiNeuCo);
+      document.removeEventListener("visibilitychange", khiAn);
+      guiNeuCo();
+    };
+  }, [studySessionId]);
+
+  function hocLaiTuDau() {
+    setTongKetThe(null);
+    setLanTron((n) => n + 1);
+    setChiSo(0);
+    setDaLat(false);
+    datLaiReward();
+  }
+
   const { nghiengRef: theRef, onPointerMove: nghiengThe, onPointerLeave: thoiNghiengThe } = useNghieng3D({ doNghieng: 7 });
 
   if (dangTaiDuLieu) {
@@ -768,7 +800,7 @@ function TrangFlashcard() {
       <div className="ui-study-empty-wrap">
         <section className="ui-study-empty-card">
           <h2 className="ui-study-empty-card__title">
-            Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.
+            Chưa tải được dữ liệu. Kiểm tra kết nối mạng rồi thử lại.
           </h2>
           <div className="ui-study-empty-card__actions">
             <button
@@ -886,6 +918,23 @@ function TrangFlashcard() {
       }}>Thử lưu lại</button>}
       {dangLuuKetQua && <p role="status">Đang đồng bộ kết quả...</p>}
       {soTheDaHoanTat === tongSoTheMucTieu && !loiLuuKetQua && !dangLuuKetQua && !getStoredAuthToken() && <p role="status">Kết quả được lưu trên thiết bị này. Đăng nhập trước khi học để lưu vào tài khoản.</p>}
+      {tongKetThe && (
+        <section className="ui-flashcard-xong ui-feedback-pop" aria-live="polite">
+          <p className="ui-flashcard-xong__tieu-de">Đã học hết {tongSoTheMucTieu} thẻ</p>
+          <p className="ui-flashcard-xong__so">
+            Đã nhớ <strong>{tongKetThe.nho}</strong> · Chưa nhớ <strong>{tongKetThe.chuaNho}</strong>
+            {tongKetThe.chuaNho > 0 ? " — các thẻ chưa nhớ đã vào lịch ôn ngay." : ""}
+          </p>
+          <div className="ui-flashcard-xong__nut">
+            <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))} className="ui-button ui-button--primary px-5 py-2.5">
+              Xong, quay lại
+            </LinkTroVe>
+            <button type="button" className="ui-button ui-button--ghost px-5 py-2.5" onClick={hocLaiTuDau}>
+              Học lại từ đầu
+            </button>
+          </div>
+        </section>
+      )}
       <div className="ui-study-toolbar">
         <div>
           <LinkTroVe kieu="noi-truoc"

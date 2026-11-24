@@ -87,6 +87,20 @@ function TrangThemTu() {
 
   if (dangTai) return <p role="status">Đang tải bộ từ...</p>;
 
+  // Bộ lộ trình / bộ của buổi học chỉ để học (server từ chối ghi): báo ngay thay vì để lưu rồi mới lỗi
+  if (bo && bo.source && bo.source !== "user") {
+    return (
+      <div className="text-center py-12">
+        <p role="alert" className="text-[var(--mau-chu-phu)]">
+          Bộ "{bo.title}" chỉ để học, không thêm từ được. Tạo bộ của riêng bạn để thêm từ.
+        </p>
+        <LinkTroVe to={`/decks/${boId}`} className="ui-back-link ui-back-link--quiet mt-4">
+          ← Quay lại bộ từ
+        </LinkTroVe>
+      </div>
+    );
+  }
+
   if (!bo) {
     return (
       <div className="text-center py-12">
@@ -108,7 +122,11 @@ function TrangThemTu() {
 
   async function xuLyGui(e) {
     e.preventDefault();
-    if (dangLuu || !tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()) return;
+    if (dangLuu) return;
+    if (!tuMoi.term_en.trim() || !tuMoi.meaning_vi.trim()) {
+      toast.error("Nhập từ tiếng Anh và nghĩa tiếng Việt (không chỉ có dấu cách).");
+      return;
+    }
     setDangLuu(true);
     try {
       const payload = { ...tuMoi };
@@ -147,11 +165,13 @@ function TrangThemTu() {
         className="ui-form-panel max-w-lg space-y-4 shadow-[var(--bong-card)]"
       >
         <div>
-          <label className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
+          <label htmlFor="them-tu-term_en" className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
             Từ tiếng Anh *
           </label>
           <input
             type="text"
+            id="them-tu-term_en"
+            maxLength={255}
             name="term_en"
             value={tuMoi.term_en}
             onChange={xuLyThayDoi}
@@ -162,11 +182,13 @@ function TrangThemTu() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
+          <label htmlFor="them-tu-meaning_vi" className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
             Nghĩa tiếng Việt *
           </label>
           <input
             type="text"
+            id="them-tu-meaning_vi"
+            maxLength={255}
             name="meaning_vi"
             value={tuMoi.meaning_vi}
             onChange={xuLyThayDoi}
@@ -177,11 +199,12 @@ function TrangThemTu() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
+          <label htmlFor="them-tu-example_sentence" className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
             Câu ví dụ (tuỳ chọn)
           </label>
           <input
             type="text"
+            id="them-tu-example_sentence"
             name="example_sentence"
             value={tuMoi.example_sentence}
             onChange={xuLyThayDoi}
@@ -192,11 +215,12 @@ function TrangThemTu() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
+          <label htmlFor="them-tu-note" className="block text-sm font-medium text-[var(--mau-chu)] mb-1">
             Ghi chú (tuỳ chọn)
           </label>
           <input
             type="text"
+            id="them-tu-note"
             name="note"
             value={tuMoi.note}
             onChange={xuLyThayDoi}
@@ -265,8 +289,8 @@ function TrangThemTu() {
           <ul className="space-y-1.5">
             {previewExamples.map((item) => (
               <li key={item.tense} className="text-xs flex items-start gap-2">
-                <span className="font-semibold text-[var(--mau-chinh)] min-w-[70px]">{TENSE_META[item.tense]?.labelVi || item.tense}:</span>
-                <span className="text-[var(--mau-chu)] italic">"{item.sentence}"</span>
+                <span className="font-semibold text-[var(--mau-chinh)] min-w-[70px]">{TENSE_META[item.tense]?.nameVi || item.tense}:</span>
+                <span className="min-w-0 break-words text-[var(--mau-chu)] italic">"{item.sentence}"</span>
               </li>
             ))}
           </ul>

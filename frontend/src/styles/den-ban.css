@@ -219,6 +219,8 @@
     .dash-deck-mini:not(.dash-deck-mini--loading),
     .ui-deck-card.ui-card-interactive,
     .ui-the-cau-hoi.ui-question-flow,
+    .kh-bt__cho,
+    .ui-flashcard-xong,
     .ui-word-row:not(.ui-word-row--editing),
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
     select,
@@ -435,6 +437,8 @@
     .dash-deck-mini:not(.dash-deck-mini--loading),
     .ui-deck-card.ui-card-interactive,
     .ui-the-cau-hoi.ui-question-flow,
+    .kh-bt__cho,
+    .ui-flashcard-xong,
     .ui-word-row:not(.ui-word-row--editing),
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
     select,
@@ -504,4 +508,13 @@
     0 0 0 1px rgb(255 214 150 / 0.08),
     0 18px 40px -10px rgb(0 0 0 / 0.65),
     0 0 60px -20px rgb(255 190 100 / 0.25);
+}
+
+/* Bộ đếm đúng/sai của bài tập nằm thẳng trên mặt bàn: màu sáng đủ tương phản (audit BUG-12) */
+:root[data-giao-dien="den-ban"] .kh-bt__dem-dung {
+  color: oklch(82% 0.14 142);
+}
+
+:root[data-giao-dien="den-ban"] .kh-bt__dem-sai {
+  color: oklch(78% 0.13 28);
 }

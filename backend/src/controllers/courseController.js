@@ -548,6 +548,8 @@ async function explainQuestion(req, res) {
     }
     // AI lỗi/quá hạn: dùng gợi ý có sẵn của câu hỏi (không lưu cache để lần sau vẫn thử AI)
     if (question.explanation) {
+      // Luồng chữ thuần không mang được cờ fallback: báo qua header để client không gắn nhãn "AI"
+      if (guiDan) res.setHeader("X-Giai-Thich-Du-Phong", "1");
       traVe(question.explanation, { cached: false, fallback: true });
       return;
     }

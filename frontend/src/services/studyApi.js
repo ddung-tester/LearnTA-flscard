@@ -1,4 +1,5 @@
-import api from "./api";
+import api, { getStoredAuthToken } from "./api";
+import { buildApiUrl } from "../config/api";
 import {
   capNhatStudySessionLocal,
   ketThucStudySessionLocal,
@@ -133,5 +134,28 @@ export async function dongBoKetQuaCho() {
     } catch {
       assertOwner(owner);
     }
+  }
+}
+
+/**
+ * Rời trang / ẩn ứng dụng giữa phiên: gửi ngay các câu đã trả lời (server cập nhật SRS) bằng
+ * fetch keepalive — vẫn đi được khi trang đang đóng. Server bỏ qua câu đã có của cùng phiên,
+ * nên lần lưu đầy đủ lúc xong phiên không cộng hai lần. Chỉ gửi khi đã có mã phiên trên server.
+ */
+export function guiDapAnDoDang(sessionId, answers) {
+  if (!answers?.length || layPhienKhoHocTap().chuSoHuu === "guest") return false;
+  const token = getStoredAuthToken();
+  const id = String(sessionId).startsWith("local-") ? draft(sessionId)?.sync?.remoteId : sessionId;
+  if (!token || !id) return false;
+  try {
+    fetch(buildApiUrl(`/api/study-sessions/${id}/answers`), {
+      method: "POST",
+      keepalive: true,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ answers }),
+    }).catch(() => {});
+    return true;
+  } catch {
+    return false;
   }
 }

@@ -121,7 +121,19 @@ export function tinhTienTrinh(danhSachTienTrinh, soCauDung) {
  * So sánh đáp án gõ tay: bỏ khoảng trắng thừa, không phân biệt hoa thường.
  */
 export function chuanHoaDapAn(text) {
-  return String(text || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return String(text || "")
+    .replace(/[’‘`´]/g, "'")
+    .toLowerCase()
+    .replace(/[-‐‑–—]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[\s.!?…]+$/, "")
+    .trim();
+}
+
+// Bỏ ghi chú trong ngoặc: "cái đèn (bàn, ngủ)" → "cái đèn", "(thuộc) dạy nghề" → "dạy nghề"
+function boGhiChuNgoac(text) {
+  return String(text || "").replace(/\([^)]*\)/g, " ");
 }
 
 /**
@@ -132,9 +144,13 @@ export function khopDapAn(cauTraLoi, dapAn) {
   const traLoi = chuanHoaDapAn(cauTraLoi);
   if (!traLoi) return false;
   if (traLoi === chuanHoaDapAn(dapAn)) return true;
-  return String(dapAn || "")
-    .split(/[,;/]/)
-    .some((nghia) => chuanHoaDapAn(nghia) === traLoi);
+  const khongNgoac = boGhiChuNgoac(dapAn);
+  return [dapAn, khongNgoac]
+    .flatMap((ban) => String(ban || "").split(/[,;/]/))
+    .some((nghia) => {
+      const chuan = chuanHoaDapAn(nghia);
+      return chuan === traLoi || (chuan && chuanHoaDapAn(boGhiChuNgoac(nghia)) === traLoi);
+    }) || chuanHoaDapAn(khongNgoac) === traLoi;
 }
 
 export const MUC_GOI_Y_TOI_DA = 3;

@@ -367,7 +367,7 @@ function TrangNoiTu() {
 
   if (loiTaiDuLieu) {
     return (
-      <TheTrangThaiPhien tieuDe="Không thể tải dữ liệu. Kiểm tra backend hoặc thử lại.">
+      <TheTrangThaiPhien tieuDe="Chưa tải được dữ liệu. Kiểm tra kết nối mạng rồi thử lại.">
         <button
           type="button"
           onClick={taiLai}

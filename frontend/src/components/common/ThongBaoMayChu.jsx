@@ -7,9 +7,30 @@ import { layMayChuCham, theoDoiMayChuCham } from "../../services/api";
  * miễn phí vừa ngủ dậy, mất 30–60 giây). Tự ẩn khi các lệnh đọc dữ liệu đã xong.
  * Gắn thẳng vào body để nằm trên cả màn chờ "Đang tải..." (PageLoadingOverlay).
  */
+function theoDoiMang(baoDoi) {
+  window.addEventListener("online", baoDoi);
+  window.addEventListener("offline", baoDoi);
+  return () => {
+    window.removeEventListener("online", baoDoi);
+    window.removeEventListener("offline", baoDoi);
+  };
+}
+
+const layMatMang = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
 export default function ThongBaoMayChu() {
   const dangCham = useSyncExternalStore(theoDoiMayChuCham, layMayChuCham, () => false);
-  if (!dangCham || typeof document === "undefined") return null;
+  const matMang = useSyncExternalStore(theoDoiMang, layMatMang, () => false);
+  if (typeof document === "undefined") return null;
+  if (matMang) {
+    return createPortal(
+      <div className="thong-bao-may-chu" role="status" aria-live="polite">
+        Mất kết nối mạng. Kết quả đang học được giữ trên máy và tự gửi lại khi có mạng.
+      </div>,
+      document.body
+    );
+  }
+  if (!dangCham) return null;
 
   return createPortal(
     <div className="thong-bao-may-chu" role="status" aria-live="polite">

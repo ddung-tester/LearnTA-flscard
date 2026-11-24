@@ -44,7 +44,7 @@ app.use(
     // (mỗi preflight là thêm một vòng mạng, rất chậm trên điện thoại). Chrome tối đa 2 giờ.
     maxAge: 7200,
     // Mốc đồng bộ lịch ôn (GET /reviews) để lần sau chỉ tải phần thay đổi
-    exposedHeaders: ["X-Dong-Bo-Luc"],
+    exposedHeaders: ["X-Dong-Bo-Luc", "X-Token-Moi", "X-Giai-Thich-Du-Phong"],
   })
 );
 // Nén JSON (danh sách thẻ/tiến độ ~90 KB/trang). Luồng giải thích AI đặt no-transform,

@@ -79,6 +79,13 @@ export function taiLaiTrangMotLan() {
 export function taiTrangAnToan(tai) {
   return () =>
     tai().catch((loi) => {
+      // Mất mạng (không phải file cũ sau deploy): tải lại trang sẽ rơi vào trang lỗi của trình duyệt
+      // và mất app đang mở. Chờ có mạng rồi tải lại riêng phần trang này (audit BUG-11).
+      if (laLoiTaiFileJs(loi) && typeof navigator !== "undefined" && navigator.onLine === false) {
+        return new Promise((xong, loiLai) => {
+          window.addEventListener("online", () => tai().then(xong, loiLai), { once: true });
+        });
+      }
       if (laLoiTaiFileJs(loi) && taiLaiTrangMotLan()) return new Promise(() => {});
       throw loi;
     });

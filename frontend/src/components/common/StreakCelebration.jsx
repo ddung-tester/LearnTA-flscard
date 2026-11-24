@@ -85,9 +85,13 @@ function StreakCelebration({ streak, onClose }) {
         </div>
 
         {/* Text */}
-        <p className="streak-cel__title">Streak tiếp tục!</p>
+        <p className="streak-cel__title">{streak > 1 ? "Streak tiếp tục!" : "Bắt đầu chuỗi ngày học!"}</p>
         <p className="streak-cel__subtitle">
-          Học liên tục <strong>{streak} ngày</strong> rồi đó — đừng dừng lại!
+          {streak > 1 ? (
+            <>Học liên tục <strong>{streak} ngày</strong> rồi đó — đừng dừng lại!</>
+          ) : (
+            <>Ngày học đầu tiên đã xong. Mai học tiếp để giữ chuỗi nhé!</>
+          )}
         </p>
 
         {/* Nút đóng */}

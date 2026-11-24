@@ -1,5 +1,8 @@
 # Báo cáo audit UI/UX ảnh hưởng đến trải nghiệm học tập — 18/11/2026
 
+> **Cập nhật 24/11/2026 — đã sửa:** BUG-01 → BUG-25 (trừ phần "học tiếp đúng câu" của BUG-01: tải lại vẫn bắt đầu lại phiên nhưng các câu đã làm đã được lưu SRS), BUG-26, PT-04, PT-06. Quyết định nghiệp vụ đã chốt: đúng khi chưa đến hạn thì giữ cấp; xem đáp án = sai; dùng gợi ý = giữ cấp; ẩn câu mẫu 6 thì sinh theo khuôn; token gia hạn trượt khi còn dưới 3 ngày. Thêm: manifest `display: fullscreen` để ẩn thanh trạng thái khi mở từ biểu tượng ngoài màn hình chính (bỏ khoá xoay dọc).
+
+
 Phạm vi: toàn bộ ứng dụng LearnTA (Streak Drop) trên nhánh `main` tại commit `1cf7fc9`. Đợt audit chỉ kiểm thử và đọc mã nguồn, **không sửa code, không đụng CSDL production**.
 
 Từ viết tắt dùng trong báo cáo:

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Link } from "react-router-dom";
 import useTTS from "../hooks/useTTS";
 import { banPhaoGiay, rungMay } from "../utils/hieuUng";
 import { cuonVuaDu } from "../utils/cuonVuaDu";
@@ -227,7 +228,8 @@ function loiNhan(tiLe) {
 }
 
 /** cacCau: [{ cau, kq }] — lần trả lời đầu của từng câu trong lượt (lượt hỏi lại không tính điểm) */
-function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau }) {
+// buoiSau: { to, nhan } — lối đi tiếp sang buổi kế (trang bài học truyền vào)
+function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau, buoiSau }) {
   const danhSach = cacCau.map((muc) => muc.cau);
   const cauSai = cacCau.filter((muc) => !muc.kq?.dung);
   const soDung = danhSach.length - cauSai.length;
@@ -285,6 +287,15 @@ function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau }) {
         <button type="button" className="ui-button ui-button--ghost px-5 py-2.5" onClick={onLamLaiTuDau}>
           Làm lại từ đầu
         </button>
+        {buoiSau && (
+          <Link
+            to={buoiSau.to}
+            data-lat-trang="1"
+            className={`ui-button ${cauSai.length === 0 ? "ui-button--primary" : "ui-button--ghost"} px-5 py-2.5`}
+          >
+            {buoiSau.nhan} &rsaquo;
+          </Link>
+        )}
       </div>
 
       {cauSai.length > 0 && (
@@ -364,6 +375,7 @@ export default function BaiTapKhoaHoc({
   baoTiepTuc: coBaoTiepTuc = false,
   onLuuLuot,
   nguPhap = [],
+  buoiSau = null,
 }) {
   // Công thức của buổi (mục có pattern), hiện gập sẵn ở cột kết quả lúc chưa trả lời
   const congThuc = nguPhap.filter((muc) => muc?.pattern && muc?.title);
@@ -561,7 +573,14 @@ export default function BaiTapKhoaHoc({
       // Chữ hiện dần ngay khi AI viết ra
       onChunk: (text) => datTrangThai(ghep(text)),
     })
-      .then((data) => datTrangThai({ ...ghep(data.explanation), xong: true }))
+      .then((data) => {
+        // AI lỗi, server trả gợi ý của tài liệu (đã hiện ngay phía trên): không lặp lại dưới nhãn "AI"
+        if (data.duPhong && data.explanation === String(cauHienTai.explanation || "").trim()) {
+          datTrangThai({ dangTai: false, text: "", loi: "AI đang bận, chưa giải thích thêm được.", phanSau });
+          return;
+        }
+        datTrangThai({ ...ghep(data.explanation), xong: !data.duPhong });
+      })
       .catch((error) =>
         datTrangThai({ dangTai: false, text: "", loi: error.message || "AI chưa giải thích được.", phanSau })
       );
@@ -749,7 +768,7 @@ export default function BaiTapKhoaHoc({
   // Nhóm trùng "Tất cả" thì chỉ liệt kê các phần của nó; nhóm có một phần thì "Cả nhóm" là đủ
   const luaChonChung = [
     { khoa: TAT_CA, nhan: `Tất cả (${cauChinh.length})` },
-    ...(coPhanConLai || phan === CON_LAI ? [{ khoa: CON_LAI, nhan: `Còn lại – chưa đúng (${cauConLai.length})` }] : []),
+    ...(coPhanConLai || phan === CON_LAI ? [{ khoa: CON_LAI, nhan: cauConLai.length ? `Còn lại – chưa đúng (${cauConLai.length})` : "Còn lại – đã đúng hết" }] : []),
   ];
   const nhomLuaChon = nhomPhan
     .map((nhom) => ({
@@ -785,12 +804,13 @@ export default function BaiTapKhoaHoc({
 
   if (xong) {
     return (
-      <div className="kh-bt">
+      <div className="kh-bt kh-bt--xong">
         {boChonPhan}
         <TongKet
           cacCau={cacLanDau}
           onLamLaiCauSai={batDauLuot}
           onLamLaiTuDau={() => chonPhan(phan)}
+          buoiSau={buoiSau}
         />
       </div>
     );

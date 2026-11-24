@@ -29,10 +29,22 @@ function cleanNullableText(value) {
   return text || null;
 }
 
+// Tên trường hiển thị cho người học trong thông báo lỗi (không lộ tên cột kỹ thuật)
+const TEN_TRUONG = {
+  term_en: "Từ tiếng Anh",
+  meaning_vi: "Nghĩa tiếng Việt",
+  example_sentence: "Câu ví dụ",
+  note: "Ghi chú",
+  title: "Tên bộ từ",
+  description: "Mô tả",
+  pronunciation: "Phiên âm",
+  part_of_speech: "Loại từ",
+};
+
 function cleanTextWithLimit(value, maxLength, fieldName = "value") {
   const text = cleanText(value);
   if ([...text].length > maxLength) {
-    throw createHttpError(400, `${fieldName} vuot qua ${maxLength} ky tu`);
+    throw createHttpError(400, `${TEN_TRUONG[fieldName] || fieldName} tối đa ${maxLength} ký tự`);
   }
   return text;
 }

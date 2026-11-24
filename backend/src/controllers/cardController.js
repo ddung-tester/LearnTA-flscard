@@ -187,7 +187,7 @@ async function ensureCardFavoritable(cardId, req) {
   }
 
   if (!isDeckOwner(deck, userId)) {
-    throw createHttpError(403, "Chi co the sua bo tu cua ban");
+    throw createHttpError(403, "Bộ từ này chỉ để học, không sửa hay thêm từ được");
   }
 }
 

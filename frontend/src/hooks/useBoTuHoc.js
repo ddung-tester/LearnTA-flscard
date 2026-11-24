@@ -28,7 +28,8 @@ export default function useBoTuHoc(boId, tenTrang) {
       if (requestId !== requestRef.current) return;
       setBo(null);
       setDanhSachGoc([]);
-      setLoi(error.message);
+      // 404 = bộ không tồn tại / không có quyền: trang hiện "Bộ từ này không tồn tại", không mời "Thử lại"
+      setLoi(error.status === 404 ? "" : error.message);
     } finally {
       if (requestId === requestRef.current) setDangTai(false);
     }

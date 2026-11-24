@@ -13,7 +13,19 @@ function readTokenFromStorage() {
   }
 }
 
+// Mã người dùng trong JWT (chỉ để so cùng tài khoản, không dùng để xác thực)
+function maNguoiDungTrongToken(token) {
+  try {
+    const phan = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(phan)).id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 let inMemoryAuthToken = readTokenFromStorage();
+// Các token cũ đã được gia hạn lặng lẽ trong phiên đăng nhập hiện tại (vẫn tính là "cùng phiên")
+let tokenDaGiaHan = new Set();
 let authRequests = new AbortController();
 
 // Bộ nhớ đệm GET ngắn hạn cho dữ liệu đọc nhiều (bộ từ, thẻ, khoá học, thống kê): quay lại trang
@@ -29,6 +41,7 @@ export function xoaBoNhoGet() {
 function updateToken(token) {
   const nextToken = token || null;
   if (nextToken === inMemoryAuthToken) return;
+  tokenDaGiaHan = new Set();
   xoaBoNhoGet();
   authRequests.abort();
   authRequests = new AbortController();
@@ -40,9 +53,21 @@ function updateToken(token) {
 if (typeof window !== "undefined") {
   window.addEventListener?.("storage", (event) => {
     if (event.key === AUTH_TOKEN_STORAGE_KEY || event.key === null) {
-      updateToken(readTokenFromStorage());
+      const tokenMoi = readTokenFromStorage();
+      // Tab khác vừa nhận token gia hạn của cùng tài khoản: thay lặng lẽ, không dựng lại trang
+      if (tokenMoi && inMemoryAuthToken && maNguoiDungTrongToken(tokenMoi) === maNguoiDungTrongToken(inMemoryAuthToken)) {
+        tokenDaGiaHan.add(inMemoryAuthToken);
+        inMemoryAuthToken = tokenMoi;
+        return;
+      }
+      updateToken(tokenMoi);
     }
   });
+}
+
+/** token là phiên đăng nhập hiện tại (chính nó, hoặc bản cũ đã được gia hạn lặng lẽ) */
+export function laTokenHienTai(token) {
+  return Boolean(token) && (token === inMemoryAuthToken || tokenDaGiaHan.has(token));
 }
 
 export function getStoredAuthToken() {
@@ -59,6 +84,19 @@ export function storeAuthToken(token) {
     }
   } catch {
     // Memory fallback keeps the current tab usable when storage is blocked.
+  }
+}
+
+// Server gia hạn token (header X-Token-Moi): thay lặng lẽ, không phát "auth:changed"
+// để trang đang học không bị dựng lại.
+function thayTokenLang(tokenMoi) {
+  if (!tokenMoi || tokenMoi === inMemoryAuthToken) return;
+  if (inMemoryAuthToken) tokenDaGiaHan.add(inMemoryAuthToken);
+  inMemoryAuthToken = tokenMoi;
+  try {
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, tokenMoi);
+  } catch {
+    // Bộ nhớ bị chặn: vẫn dùng token mới trong phiên đang mở
   }
 }
 
@@ -156,6 +194,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => {
     ketThucCho(response.config);
+    const tokenMoi = response.headers?.["x-token-moi"];
+    if (tokenMoi && response.config?.authToken && laTokenHienTai(response.config.authToken)) {
+      thayTokenLang(tokenMoi);
+    }
     // Xoá cả lúc ghi xong: GET chạy song song với request ghi có thể đã lưu bản trước khi ghi
     if (laRequestGhi(response.config)) xoaBoNhoGet();
     return response;
@@ -176,7 +218,12 @@ api.interceptors.response.use(
     const isCredentialAttempt = /^\/auth\/(login|register|google)$/.test(requestUrl);
 
     if (status === 401 && !isCredentialAttempt && getStoredAuthToken() &&
-        error.config?.authToken === getStoredAuthToken()) {
+        laTokenHienTai(error.config?.authToken)) {
+      try {
+        sessionStorage.setItem("hocTA.hetPhien", "1");
+      } catch {
+        // bỏ qua
+      }
       clearStoredAuthToken();
       window.dispatchEvent(new Event("auth:unauthorized"));
     }

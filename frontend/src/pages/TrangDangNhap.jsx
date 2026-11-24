@@ -24,7 +24,18 @@ function TrangDangNhap() {
   const [dangChoChuyenTrang, setDangChoChuyenTrang] = useState(false);
   const redirectTimerRef = useRef(null);
   const submitLockRef = useRef(false);
-  const redirectTo = location.state?.from?.pathname || "/dashboard";
+  const tuTrang = location.state?.from;
+  const redirectTo = tuTrang?.pathname ? `${tuTrang.pathname}${tuTrang.search || ""}` : "/dashboard";
+  // Bị đăng xuất vì phiên hết hạn (services/api.js đặt cờ khi gặp 401)
+  const [hetPhien] = useState(() => {
+    try {
+      const co = sessionStorage.getItem("hocTA.hetPhien") === "1";
+      sessionStorage.removeItem("hocTA.hetPhien");
+      return co;
+    } catch {
+      return false;
+    }
+  });
   const isLogoutRedirect = location.state?.loggedOut;
 
   useEffect(
@@ -170,6 +181,12 @@ function TrangDangNhap() {
                 placeholder="••••••••"
               />
             </div>
+
+            {hetPhien && !error && (
+              <p role="status" className="rounded-lg border border-[var(--mau-vien)] bg-[var(--mau-mat-2)] px-3 py-2 text-sm text-[var(--mau-chu)]">
+                Phiên đăng nhập đã hết hạn. Đăng nhập lại để lưu tiếp kết quả học.
+              </p>
+            )}
 
             {error && (
               <p

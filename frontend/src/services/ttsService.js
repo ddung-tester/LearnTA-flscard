@@ -260,3 +260,29 @@ if (typeof window !== "undefined") {
     }
   }
 }
+
+/**
+ * Thiết bị có giọng đọc tiếng Anh không (để Nghe viết báo trước thay vì im lặng).
+ * Danh sách giọng có thể nạp muộn: chờ sự kiện voiceschanged tối đa ~2 giây.
+ * @returns {Promise<boolean>}
+ */
+export function kiemTraGiongTiengAnh() {
+  const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+  if (!synth || typeof window.SpeechSynthesisUtterance === "undefined") return Promise.resolve(false);
+  const coGiong = () => synth.getVoices().some((giong) => /^en(-|_|$)/i.test(giong.lang || ""));
+  if (coGiong()) return Promise.resolve(true);
+  return new Promise((xong) => {
+    const khiDoi = () => {
+      if (coGiong()) {
+        synth.removeEventListener?.("voiceschanged", khiDoi);
+        clearTimeout(hen);
+        xong(true);
+      }
+    };
+    synth.addEventListener?.("voiceschanged", khiDoi);
+    const hen = setTimeout(() => {
+      synth.removeEventListener?.("voiceschanged", khiDoi);
+      xong(coGiong());
+    }, 2000);
+  });
+}

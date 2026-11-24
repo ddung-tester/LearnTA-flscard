@@ -69,6 +69,18 @@ const WELCOME = {
 
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
+
+  // Esc đóng hộp chat (role="dialog") và trả focus về nút mở
+  useEffect(() => {
+    if (!open) return undefined;
+    function dongBangEsc(event) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      document.querySelector(".chatbot-bubble")?.focus?.();
+    }
+    window.addEventListener("keydown", dongBangEsc);
+    return () => window.removeEventListener("keydown", dongBangEsc);
+  }, [open]);
   const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

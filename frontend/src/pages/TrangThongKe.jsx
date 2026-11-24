@@ -365,7 +365,7 @@ function TrangThongKe() {
       <section className="tk-section">
         <h2 className="tk-section__title">Tổng quan</h2>
         <div className="tk-stat-grid">
-          <TkStatCard icon="vocab" label="Tổng từ"    value={dangTai ? "…" : tongTu} />
+          <TkStatCard icon="vocab" label="Từ trong bộ của tôi"    value={dangTai ? "…" : tongTu} />
           <TkStatCard icon="mastered" label="Thành thạo" value={srsStats.mastered}
             sub={totalSrsItems > 0 ? "/ " + totalSrsItems + " trong SRS" : "Chưa có"}
             highlight={srsStats.mastered > 0} />

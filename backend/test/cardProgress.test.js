@@ -81,3 +81,32 @@ test("setProgressLevel stores the chosen level without touching correct/wrong co
   assert.deepEqual([mastery, correct, wrong, id], [4, 0, 0, 3]);
   assert.deepEqual(nextReviewAt, nextReviewAtForLevel(4, NOW));
 });
+
+test("đúng khi chưa đến hạn: giữ nguyên cấp và hạn ôn (không học dồn lên Lv5)", async () => {
+  const hanOn = new Date(NOW.getTime() + 3 * 24 * 3600 * 1000);
+  const connection = fakeConnection({ id: 4, mastery_level: 2, next_review_at: hanOn });
+  await updateProgressFromAnswer(connection, { userId: 1, cardId: 2, isCorrect: true, now: NOW });
+  const [mastery, correct, wrong, nextReviewAt] = connection.executed[0].params;
+  assert.deepEqual([mastery, correct, wrong], [2, 1, 0]);
+  assert.deepEqual(nextReviewAt, hanOn);
+});
+
+test("đúng khi đã đến hạn vẫn lên 1 cấp; sai khi chưa đến hạn vẫn hạ cấp", async () => {
+  const quaHan = new Date(NOW.getTime() - 3600 * 1000);
+  const c1 = fakeConnection({ id: 4, mastery_level: 2, next_review_at: quaHan });
+  await updateProgressFromAnswer(c1, { userId: 1, cardId: 2, isCorrect: true, now: NOW });
+  assert.equal(c1.executed[0].params[0], 3);
+
+  const chuaHan = new Date(NOW.getTime() + 3600 * 1000 * 48);
+  const c2 = fakeConnection({ id: 4, mastery_level: 2, next_review_at: chuaHan });
+  await updateProgressFromAnswer(c2, { userId: 1, cardId: 2, isCorrect: false, now: NOW });
+  assert.deepEqual([c2.executed[0].params[0], c2.executed[0].params[3]], [1, NOW]);
+});
+
+test("đúng nhờ gợi ý: giữ cấp, hẹn theo khoảng của cấp hiện tại", async () => {
+  const connection = fakeConnection({ id: 4, mastery_level: 2, next_review_at: null });
+  await updateProgressFromAnswer(connection, { userId: 1, cardId: 2, isCorrect: true, coTroGiup: true, now: NOW });
+  const [mastery, , , nextReviewAt] = connection.executed[0].params;
+  assert.equal(mastery, 2);
+  assert.deepEqual(nextReviewAt, nextReviewAtForLevel(2, NOW));
+});

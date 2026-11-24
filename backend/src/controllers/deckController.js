@@ -158,7 +158,7 @@ function assertDeckReadable(deck, userId) {
 
 function assertDeckWritable(deck, userId) {
   if (!isDeckOwner(deck, userId)) {
-    throw createHttpError(403, "Chi co the sua bo tu cua ban");
+    throw createHttpError(403, "Bộ từ này chỉ để học, không sửa hay thêm từ được");
   }
   if (!canWriteDeck(deck, userId)) {
     throw createHttpError(403, "Bo tu cua khoa hoc chi doc, khong sua duoc");

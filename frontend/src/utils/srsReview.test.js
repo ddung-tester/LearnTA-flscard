@@ -89,11 +89,20 @@ describe("capNhatKetQuaOn — one rule for every mode", () => {
     [5, 5, 30],
   ])("correct from Lv%i goes to Lv%i, due in %i days at midnight", (from, to, days) => {
     themVaoSRS([CARD], OPTS);
-    capNhatKetQuaOn(1, from);
+    // Thẻ đang đến hạn ở cấp `from`
+    hopNhatSRSTuBackend([{ card_id: 1, level: from, next_review_at: NOW.toISOString() }]);
     const entry = capNhatKetQuaOn(1, "correct");
 
     expect(entry.level).toBe(to);
     expect(entry.nextReviewAt).toBe(nuaDemSau(days));
+  });
+
+  it("correct while not due yet keeps level and due date (no cramming)", () => {
+    themVaoSRS([CARD], OPTS);
+    const daHen = capNhatKetQuaOn(1, 2);
+    const entry = capNhatKetQuaOn(1, "correct");
+    expect(entry.level).toBe(2);
+    expect(entry.nextReviewAt).toBe(daHen.nextReviewAt);
   });
 
   it("wrong lowers one level (min 0) and is due now", () => {
@@ -349,13 +358,13 @@ describe("ghi kho SRS sau khi phản hồi đã vẽ", () => {
   it("gộp nhiều lần ghi trong một lượt thành một lần ghi localStorage, đọc lại vẫn thấy ngay", () => {
     const setItem = vi.spyOn(localStorage, "setItem");
     ghiNhanDungVaoSRS([CARD], OPTS);
-    capNhatKetQuaOn(1, "correct");
-    expect(layLevelSRS([1])).toEqual({ 1: 2 });
+    capNhatKetQuaOn(1, "wrong");
+    expect(layLevelSRS([1])).toEqual({ 1: 0 });
     expect(setItem).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(1000);
     expect(setItem).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(2);
+    expect(JSON.parse(localStorage.getItem("streak_drop_srs_v1:guest"))["1"].level).toBe(0);
   });
 
   it("đổi tài khoản khi còn chờ ghi: phần cũ ghi vào đúng kho cũ", () => {

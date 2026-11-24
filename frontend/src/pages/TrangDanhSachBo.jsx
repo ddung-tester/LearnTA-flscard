@@ -314,7 +314,10 @@ function TrangDanhSachBo() {
     const name = formBo.name.trim();
     const description = formBo.description.trim();
 
-    if (!name) return;
+    if (!name) {
+      setLoiFormBo("Nhập tên bộ từ (không chỉ có dấu cách).");
+      return;
+    }
 
     const tenDaTonTai = danhSachDeck.some(
       (bo) =>

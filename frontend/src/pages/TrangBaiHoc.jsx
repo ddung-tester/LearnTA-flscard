@@ -563,6 +563,11 @@ function TrangBaiHoc() {
             baoTiepTuc={Boolean(viTri.state?.hocTiep)}
             onLuuLuot={(luot) => ghiViTriBuoi(khoaViTri, { baiTap: luot, tuDau: false })}
             nguPhap={bai.lesson.content?.grammar}
+            buoiSau={
+              bai.next_lesson
+                ? { to: `/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`, nhan: `Sang Buổi ${bai.next_lesson}` }
+                : { to: "/khoa-hoc", nhan: "Về khoá học" }
+            }
           />
         )}
       </div>

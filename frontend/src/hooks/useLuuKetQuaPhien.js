@@ -4,6 +4,7 @@ import { getUserStats } from "../services/userApi";
 import {
   luuKetQuaPhien,
   dongBoKetQuaPhien,
+  guiDapAnDoDang,
   taoStudySession,
 } from "../services/studyApi";
 import { SO_TU_MOI_TIEN_TRINH, taoDanhSachTienTrinh, tongKetDapAnPhien } from "../utils/phienHoc";
@@ -102,6 +103,31 @@ export default function useLuuKetQuaPhien({
     // khoaPhien đã gồm mọi tham số của payload
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bo, khoaPhien]);
+
+  // Rời trang / tải lại / ẩn ứng dụng giữa phiên: gửi các câu đã trả lời để không mất tiến độ SRS
+  const daHoanThanhRef = useRef(daHoanThanh);
+  useEffect(() => {
+    daHoanThanhRef.current = daHoanThanh;
+  }, [daHoanThanh]);
+  useEffect(() => {
+    if (!studySessionId) return undefined;
+    let soDaGui = 0;
+    const guiNeuCo = () => {
+      if (daHoanThanhRef.current) return;
+      const { answers } = tongKetDapAnPhien(ketQuaRef.current.ketQua?.answers || []);
+      if (answers.length > soDaGui && guiDapAnDoDang(studySessionId, answers)) soDaGui = answers.length;
+    };
+    const khiAn = () => {
+      if (document.visibilityState === "hidden") guiNeuCo();
+    };
+    window.addEventListener("pagehide", guiNeuCo);
+    document.addEventListener("visibilitychange", khiAn);
+    return () => {
+      window.removeEventListener("pagehide", guiNeuCo);
+      document.removeEventListener("visibilitychange", khiAn);
+      guiNeuCo(); // bấm "Trở về" / chuyển trang trong app
+    };
+  }, [studySessionId]);
 
   useEffect(() => {
     if (!bo || !daHoanThanh || tongSoCau === 0) return;

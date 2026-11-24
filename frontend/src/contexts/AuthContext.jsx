@@ -9,6 +9,7 @@ import {
 import {
   clearStoredAuthToken,
   getStoredAuthToken,
+  laTokenHienTai,
   storeAuthToken,
 } from "../services/api";
 import {
@@ -64,21 +65,21 @@ export function AuthProvider({ children }) {
 
       try {
         const currentUser = await layNguoiDungHienTai();
-        if (isMounted && token === getStoredAuthToken()) {
+        if (isMounted && laTokenHienTai(token)) {
           chonKhoHocTap(currentUser.id);
           setUser(currentUser);
           dongBoCaiDatTuDatabase();
           dongBoDuLieuHocTapLenBackend();
         }
       } catch (error) {
-        if (isMounted && token === getStoredAuthToken()) {
+        if (isMounted && laTokenHienTai(token)) {
           if (error.status === 401) clearStoredAuthToken();
           else setAuthError(error.message);
           setToken(getStoredAuthToken());
           setUser(null);
         }
       } finally {
-        if (isMounted && token === getStoredAuthToken()) {
+        if (isMounted && laTokenHienTai(token)) {
           setIsAuthReady(true);
         }
       }

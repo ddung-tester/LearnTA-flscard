@@ -4,6 +4,7 @@ import ThanhTiepTuc from "./ThanhTiepTuc";
 import useManRong from "../../hooks/useManRong";
 import useTTS from "../../hooks/useTTS";
 import { tachCauMau } from "../../utils/phienHoc";
+import { getTenseExamples } from "../../data/tenseExamples";
 
 function CauMau({ cau, tu, banDich, cardId }) {
   const { speak, isPlaying } = useTTS();
@@ -49,14 +50,18 @@ function CauMau({ cau, tu, banDich, cardId }) {
  * PhanHoiDung — phản hồi khi trả lời đúng, dùng chung cho các chế độ học:
  * "Chính xác!", câu mẫu của thẻ (nếu có) và ví dụ 6 thì kèm nút Tiếp tục.
  */
-export default function PhanHoiDung({ the, termEn, meaningVi, onTiepTuc, className = "" }) {
+// nhan: chữ trên dấu (vd. "Đã nhập lại đúng" khi người học đã xem đáp án)
+export default function PhanHoiDung({ the, termEn, meaningVi, onTiepTuc, className = "", nhan = "Chính xác!" }) {
   // Máy tính: TenseExamplesCard tự có nút Tiếp tục nổi giữa đáy. Màn hẹp: thanh dính đáy ở dưới.
   const manRong = useManRong();
+  // Nút Tiếp tục của máy tính nằm trong khối ví dụ 6 thì; thẻ không có ví dụ thì khối ẩn → dùng thanh dưới
+  const coViDu6Thi = getTenseExamples(the || termEn).length > 0;
+  const nutRieng = !manRong || !coViDu6Thi;
 
   return (
     <div className={className}>
       <div className="mb-3 text-center">
-        <span className="ui-dau-cham ui-dau-cham--dung">Chính xác!</span>
+        <span className="ui-dau-cham ui-dau-cham--dung">{nhan}</span>
       </div>
       <CauMau cau={the?.example_sentence} tu={termEn} banDich={the?.example_translation} cardId={the?.id} />
       <TenseExamplesCard
@@ -66,9 +71,9 @@ export default function PhanHoiDung({ the, termEn, meaningVi, onTiepTuc, classNa
         onTiepTuc={onTiepTuc}
         showContinueButton={manRong}
       />
-      {!manRong && (
+      {nutRieng && (
         <ThanhTiepTuc dung onTiepTuc={onTiepTuc}>
-          <span className="ui-thanh-tiep-tuc__nhan">Chính xác!</span>
+          <span className="ui-thanh-tiep-tuc__nhan">{nhan}</span>
           {termEn && (
             <span className="ui-thanh-tiep-tuc__dap-an">
               <strong>{termEn}</strong>

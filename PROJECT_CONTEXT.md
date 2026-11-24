@@ -230,6 +230,9 @@ POST /client-errors                                     cong khai, rate limit; f
 
 - Luat o `backend/src/utils/srs.js`, ban sao o `frontend/src/utils/srsReview.js`. Lv0-Lv5, khoang on 0/1/3/7/14/30 ngay (Lv>=1 den han luc 00:00 gio VN).
 - Dung: len 1 cap, on lai sau khoang cua cap moi. Sai: xuong 1 cap (toi thieu 0), on lai ngay. Tu chon level: on lai theo level do.
+- Từ 24/11/2026 (audit BUG-02/05): đúng khi từ CHƯA đến hạn thì giữ nguyên cấp và hạn ôn (không học dồn lên Lv5); đúng nhờ gợi ý (`answer_meta.assisted`) thì giữ cấp, hẹn theo khoảng của cấp hiện tại; "Xem đáp án" ở Tự luận/Nghe viết/Hỗn hợp tính là sai. Luật ở `backend/src/utils/cardProgress.js` (`lichSauTraLoi`) + bản sao `frontend/src/utils/srsReview.js` (`apDungKetQua`).
+- Rời trang/ẩn app giữa phiên: `useLuuKetQuaPhien` và Flashcard gửi các câu đã làm bằng `fetch keepalive` (`studyApi.guiDapAnDoDang`). Kết quả ôn từ lỗi mạng vào hàng chờ `services/hangChoOnTap.js`.
+- Phiên đăng nhập: token còn < 3 ngày thì backend trả header `X-Token-Moi`, frontend thay lặng lẽ (`api.js thayTokenLang`, `laTokenHienTai`).
 - Tu vung: nguon dung la `card_progress`. Quiz/Tu luan ghi qua `POST /study-sessions/:id/answers` (`utils/cardProgress.updateProgressFromAnswer`); Flashcard va trang On tap ghi qua `PATCH /reviews/by-card/:cardId/result`. Moi cau tra loi chi ghi 1 lan.
 - `POST /reviews/bulk` chi them tu chua co tien do (du lieu hoc luc chua dang nhap), khong ghi de level tren server.
 - Lv5 (`status: "mastered"`) van quay lai khi den han.

@@ -5,7 +5,7 @@
  *   - Đủ cột, cách bằng "|" hoặc Tab (dán từ Excel):
  *       từ | /phiên âm/ | loại từ | nghĩa | ví dụ | ghi chú   (cột nào trống cũng được)
  *   - 3 cột: từ | nghĩa | ví dụ
- *   - 2 cột: "từ - nghĩa", "từ, nghĩa", "từ | nghĩa", "từ<Tab>nghĩa"
+ *   - 2 cột: "từ - nghĩa" (hoặc – —), "từ, nghĩa", "từ: nghĩa", "từ | nghĩa", "từ<Tab>nghĩa"
  */
 
 const DO_DAI_TOI_DA = { term_en: 255, meaning_vi: 255, pronunciation: 255, part_of_speech: 50 };
@@ -23,7 +23,8 @@ function tachCot(noiDung) {
   if (noiDung.includes("|")) return noiDung.split("|").map((cot) => cot.trim());
   if (noiDung.includes("\t")) return noiDung.split("\t").map((cot) => cot.trim());
 
-  const hai = noiDung.match(/^(.+?)\s*(?:\s-\s|,)\s*(.+)$/);
+  // "từ - nghĩa" (cả gạch dài – — khi chép từ Word/ChatGPT), "từ, nghĩa", "từ: nghĩa"
+  const hai = noiDung.match(/^(.+?)\s*(?:\s[-–—]\s|,|:\s)\s*(.+)$/);
   return hai ? [hai[1].trim(), hai[2].trim()] : [noiDung];
 }
 

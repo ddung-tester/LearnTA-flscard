@@ -2787,3 +2787,23 @@
     text-align: left;
   }
 }
+
+/* Lượt bài tập đã xong: tổng kết chiếm cả hàng thay vì nằm ở cột phải, cột trái trống (audit BUG-10) */
+.kh-bt.kh-bt--xong > * {
+  grid-column: 1 / -1;
+}
+
+.kh-bt.kh-bt--xong .kh-tong-ket {
+  max-width: 44rem;
+}
+
+/* Từ dài (vd. "internationalization") không vừa khung: được ngắt, không tràn khỏi thẻ (audit BUG-15).
+   Từ thường vẫn không gãy giữa chữ vì chỉ ngắt khi không còn cách nào khác. */
+.kh-trang--gon .kh-the-tu__tu {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kh-the-tu__dong {
+  min-width: 0;
+}
