@@ -33,6 +33,7 @@ import { phatAm } from "../../utils/amThanh";
 import NutDichCau from "./NutDichCau";
 import LinkTroVe from "./LinkTroVe";
 import { useDuongDanBo } from "../../contexts/BoDangHocContext";
+import NutBuocTiepCuaBuoi from "./NutBuocTiepCuaBuoi";
 
 const TEN_CHE_DO = {
   quiz: "trắc nghiệm",
@@ -339,6 +340,7 @@ function StudyResult({
         </div>
 
         <div className="study-result__actions">
+          <NutBuocTiepCuaBuoi cheDo={mode} />
           {soCauSai > 0 && onHocLaiTuSai && (
             <button
               type="button"

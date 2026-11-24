@@ -70,8 +70,12 @@ function TuVung({ words, deckId, duongVe, duongDanHoc, onDoc, onSangBuoc }) {
         <p className="kh-phan__mo-ta">{words.length} từ mới. Bấm vào thẻ để nghe phát âm.</p>
         {deckId && (
           <div className="kh-phan__hanh-dong">
+            {/* Một lối học mặc định: lật thẻ rồi kiểm tra nhanh; các cách luyện khác gập trong "Luyện thêm" */}
             <Link to={`${duongDanHoc}/flashcard`} onClick={nhoNoiVe} className="ui-button ui-button--primary px-4 py-2.5">
-              Học bằng thẻ
+              1 · Học bằng thẻ
+            </Link>
+            <Link to={`${duongDanHoc}/quiz`} onClick={nhoNoiVe} className="ui-button ui-button--ghost px-4 py-2.5">
+              2 · Kiểm tra nhanh
             </Link>
           </div>
         )}
@@ -79,14 +83,16 @@ function TuVung({ words, deckId, duongVe, duongDanHoc, onDoc, onSangBuoc }) {
 
       {/* Luyện từ của buổi ngay trong khoá học (trước đây sang trang Luyện tập / bộ từ, menu nhảy sang "Bộ từ") */}
       {deckId && (
-        <nav className="kh-che-do" aria-label="Luyện từ của buổi">
-          <span className="kh-che-do__nhan">Luyện thêm</span>
-          {CHE_DO_HOC.filter((cheDo) => cheDo.path !== "flashcard").map((cheDo) => (
-            <Link key={cheDo.path} to={`${duongDanHoc}/${cheDo.path}`} onClick={nhoNoiVe} className="kh-che-do__nut">
-              {cheDo.nhan}
-            </Link>
-          ))}
-        </nav>
+        <details className="kh-che-do kh-che-do--gap">
+          <summary className="kh-che-do__nhan">Luyện thêm cách khác</summary>
+          <nav className="kh-che-do__ds" aria-label="Luyện từ của buổi">
+            {CHE_DO_HOC.filter((cheDo) => cheDo.path !== "flashcard" && cheDo.path !== "quiz").map((cheDo) => (
+              <Link key={cheDo.path} to={`${duongDanHoc}/${cheDo.path}`} onClick={nhoNoiVe} className="kh-che-do__nut">
+                {cheDo.nhan}
+              </Link>
+            ))}
+          </nav>
+        </details>
       )}
 
       <ul className="kh-the-tu-luoi">
@@ -461,7 +467,7 @@ function TrangBaiHoc() {
   const daLamCauChinh = cauChinh.some((cau) => cau.id in ketQuaCau);
   const moTaBuoc = {
     "tu-vung": soTuDaHoc > 0 ? `${soTuDaHoc}/${bai.words.length} từ đã học` : `${bai.words.length} từ`,
-    "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục`,
+    "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục${viTriLuu?.daDocLyThuyet ? " · đã đọc" : ""}`,
     "bai-tap": daLamCauChinh ? `${soCauDung}/${cauChinh.length} câu đúng` : `${cauChinh.length} câu`,
   };
   const ghiNhanKetQua = (cauId, dung) =>

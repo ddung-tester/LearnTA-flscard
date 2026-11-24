@@ -247,6 +247,41 @@
   gap: 0.4rem;
 }
 
+/* Luyện thêm gập lại: chỉ hiện tên, mở ra mới thấy các chế độ */
+.kh-che-do--gap {
+  display: block;
+}
+
+.kh-che-do--gap > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.kh-che-do--gap > summary::-webkit-details-marker {
+  display: none;
+}
+
+.kh-che-do--gap > summary::after {
+  content: "▾";
+  font-size: 0.75em;
+}
+
+.kh-che-do--gap[open] > summary::after {
+  content: "▴";
+}
+
+.kh-che-do__ds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
 .kh-che-do__nhan {
   margin-right: 0.25rem;
   font-size: 0.85rem;
@@ -2752,6 +2787,11 @@
   .kh-trang--gon .kh-phan--tu-vung > .kh-che-do {
     grid-column: 2;
     justify-content: flex-end;
+    text-align: right;
+  }
+
+  .kh-trang--gon .kh-phan--tu-vung > .kh-che-do .kh-che-do__ds {
+    justify-content: flex-end;
   }
 }
 
@@ -2806,4 +2846,53 @@
 
 .kh-the-tu__dong {
   min-width: 0;
+}
+
+/* Chốt buổi ở tổng kết bài tập: mốc 80%, các mục lý thuyết đã học */
+.kh-chot-buoi {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--mau-vien);
+  border-left: 4px solid var(--mau-canh-bao);
+  border-radius: 0.9rem;
+  background: var(--mau-giay);
+  padding: 0.9rem 1.1rem;
+  text-align: left;
+}
+
+.kh-chot-buoi--dat {
+  border-left-color: var(--mau-thanh-cong);
+}
+
+.kh-chot-buoi__tieu-de {
+  font-weight: 700;
+  color: var(--mau-chu);
+}
+
+.kh-chot-buoi__chu {
+  font-size: 0.92rem;
+  color: var(--mau-chu-phu);
+}
+
+.kh-chot-buoi__nhan {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mau-chu-mo);
+}
+
+.kh-chot-buoi__muc ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.kh-chot-buoi__muc li {
+  border: 1px solid var(--mau-vien);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.85rem;
+  color: var(--mau-chu);
 }

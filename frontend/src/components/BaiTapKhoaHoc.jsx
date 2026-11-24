@@ -32,6 +32,7 @@ import {
   tachViDuKhac,
   taoCauHoiLearnBot,
   timGiaiThichSan,
+  NGUONG_XONG_BUOI,
 } from "../utils/baiTapKhoaHoc";
 
 const TAT_CA = "tat-ca";
@@ -229,8 +230,40 @@ function loiNhan(tiLe) {
 }
 
 /** cacCau: [{ cau, kq }] — lần trả lời đầu của từng câu trong lượt (lượt hỏi lại không tính điểm) */
+// Chốt buổi (chỉ ở bài tập của buổi, không có ở trang ôn): tiến độ cả buổi so với mốc 80%,
+// các mục lý thuyết của buổi, câu sai đi đâu
+function ChotBuoi({ chotBuoi, coCauSai }) {
+  const { dung, tong, cacMuc } = chotBuoi;
+  const can = Math.ceil(tong * NGUONG_XONG_BUOI);
+  const dat = dung >= can;
+  return (
+    <div className={`kh-chot-buoi${dat ? " kh-chot-buoi--dat" : ""}`}>
+      <p className="kh-chot-buoi__tieu-de">{dat ? "Bài tập của buổi: đã đạt" : "Bài tập của buổi: chưa đạt mốc"}</p>
+      <p className="kh-chot-buoi__chu">
+        Cả buổi đúng {dung}/{tong} câu ({tong > 0 ? Math.round((dung / tong) * 100) : 0}%).{" "}
+        {dat
+          ? "Đã qua mốc 80% để hoàn thành buổi."
+          : `Cần đúng ít nhất ${can} câu để hoàn thành buổi (còn ${can - dung} câu).`}
+      </p>
+      {cacMuc.length > 0 && (
+        <div className="kh-chot-buoi__muc">
+          <p className="kh-chot-buoi__nhan">Buổi này đã học</p>
+          <ul>
+            {cacMuc.map((ten) => (
+              <li key={ten}>{ten}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {coCauSai && (
+        <p className="kh-chot-buoi__chu">Câu sai đã vào lịch ôn, sẽ quay lại ở phần Khởi động của "Học hôm nay".</p>
+      )}
+    </div>
+  );
+}
+
 // buoiSau: { to, nhan } — lối đi tiếp sang buổi kế (trang bài học truyền vào)
-function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau, buoiSau }) {
+function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau, buoiSau, chotBuoi = null }) {
   const danhSach = cacCau.map((muc) => muc.cau);
   const cauSai = cacCau.filter((muc) => !muc.kq?.dung);
   const soDung = danhSach.length - cauSai.length;
@@ -260,6 +293,8 @@ function TongKet({ cacCau, onLamLaiCauSai, onLamLaiTuDau, buoiSau }) {
         </p>
         <p className="kh-tong-ket__loi-nhan">{loiNhan(soDung / danhSach.length)}</p>
       </div>
+
+      {chotBuoi && <ChotBuoi chotBuoi={chotBuoi} coCauSai={cauSai.length > 0} />}
 
       {theoPhan.length > 1 && (
         <ul className="kh-tong-ket__phan">
@@ -813,6 +848,15 @@ export default function BaiTapKhoaHoc({
           onLamLaiCauSai={batDauLuot}
           onLamLaiTuDau={() => chonPhan(phan)}
           buoiSau={buoiSau}
+          chotBuoi={
+            onTap
+              ? null
+              : {
+                  dung: cauChinh.filter((c) => ketQuaGanNhat[c.id] === true).length,
+                  tong: cauChinh.length,
+                  cacMuc: nguPhap.map((muc) => muc?.title).filter(Boolean),
+                }
+          }
         />
       </div>
     );

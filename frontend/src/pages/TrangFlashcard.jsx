@@ -44,6 +44,7 @@ import ChuTheoGiong from "../components/common/ChuTheoGiong";
 import EmojiDong from "../components/common/EmojiDong";
 import { taiTruocEmoji } from "../utils/taiEmoji";
 import NutTiepKeHoach from "../components/common/NutTiepKeHoach";
+import NutBuocTiepCuaBuoi from "../components/common/NutBuocTiepCuaBuoi";
 
 const DS_CHE_DO = [
   {
@@ -927,6 +928,7 @@ function TrangFlashcard() {
             {tongKetThe.chuaNho > 0 ? " — các thẻ chưa nhớ đã vào lịch ôn ngay." : ""}
           </p>
           <div className="ui-flashcard-xong__nut">
+            <NutBuocTiepCuaBuoi cheDo="flashcard" />
             <LinkTroVe kieu="noi-truoc" to={layNoiVe(boId, duongDanBo(boId, taoQueryBoLoc(boLocUrl)))} className="ui-button ui-button--primary px-5 py-2.5">
               Xong, quay lại
             </LinkTroVe>
