@@ -1,5 +1,7 @@
 # Kế hoạch: lộ trình học liền mạch — 24/11/2026
 
+> Trạng thái 24/11: đã làm cả 4 đợt. Người dùng chốt: mục tiêu 60 phút/ngày; từ lộ trình mẫu và bộ của tôi để riêng ở Ôn tập; ngưỡng xong buổi 80%; liên kết câu ↔ mục lý thuyết dùng cột mới (cách B) do server tự gắn bằng AI, không cần soát tay.
+
 Vấn đề người dùng nêu: bài học và dữ liệu học đã có nhưng cảm giác học rời rạc, chưa hiệu quả.
 Văn bản này thay phần ưu tiên của `KE_HOACH_NANG_CAP_TRAI_NGHIEM_2026-11.md`; các mục kỹ thuật ở file đó (stream chat, sửa nền tiến độ) giữ nguyên, làm xen khi cần.
 

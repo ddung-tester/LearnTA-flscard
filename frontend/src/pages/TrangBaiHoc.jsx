@@ -6,7 +6,7 @@ import useHienKhiCuon from "../hooks/useHienKhiCuon";
 import SoTayLatTrang from "../components/common/SoTayLatTrang";
 import TrangLatQua from "../components/common/TrangLatQua";
 import useTTS from "../hooks/useTTS";
-import { layBaiHoc } from "../services/courseApi";
+import { danhDauDaDocLyThuyet, layBaiHoc } from "../services/courseApi";
 import { dungSoanNen, napCauHoi, soanNen } from "../utils/soanTruocGiaiThich";
 import { layCauBaiChinh, tachCongThuc, tenLoaiTu, tongSoBuoiKhoaHoc } from "../utils/baiTapKhoaHoc";
 import { docCachXemLyThuyet, luuCachXemLyThuyet } from "../utils/caiDatHocTap";
@@ -17,6 +17,7 @@ import LinkTroVe from "../components/common/LinkTroVe";
 import { ChatbotNguCanhTrang } from "../contexts/ChatbotContext";
 import { useAuth } from "../contexts/AuthContext";
 import { coChoDungDeTiep, docViTriBuoi, ghiViTriBuoi, hocLaiTuDau, khoaViTriBuoi } from "../utils/viTriHocBuoi";
+import CauThuNhanh from "../components/CauThuNhanh";
 
 // Thứ tự học trong một buổi: từ vựng trước, rồi lý thuyết, cuối cùng làm bài tập
 const CAC_BUOC = [
@@ -47,6 +48,9 @@ function DaiBuoiHoc({ tong, hienTai }) {
     </div>
   );
 }
+
+// Buổi đã báo server "đã đọc lý thuyết" trong lần mở app này (lật trang cuối nhiều lần chỉ gửi một lần)
+const daGuiDaDoc = new Set();
 
 function NutSangBuoc({ buoc, onChon, children }) {
   return (
@@ -167,7 +171,7 @@ function BangLyThuyet({ bang, nhan }) {
   );
 }
 
-function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false, duongDanBuoi }) {
+function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false, duongDanBuoi, cuoiMuc = null }) {
   return (
     <section className="kh-vo__muc" aria-labelledby={`muc-${index}`} data-hien-khi-cuon={hienKhiCuon || undefined}>
       <span className="kh-vo__so" aria-hidden="true">{index + 1}</span>
@@ -205,6 +209,7 @@ function MucNguPhap({ muc, index, onDoc, hienKhiCuon = false, duongDanBuoi }) {
           ))}
         </ul>
       )}
+      {cuoiMuc}
     </section>
   );
 }
@@ -223,13 +228,21 @@ function GhiNho({ notes, hienKhiCuon = false }) {
 }
 
 // Vở dạng cuộn: mọi mục nối nhau, hiện dần khi cuộn tới
-function VoCuon({ grammar, notes, onDoc, duongDanBuoi }) {
+function VoCuon({ grammar, notes, onDoc, duongDanBuoi, thuNgay }) {
   const voRef = useRef(null);
   useHienKhiCuon(voRef);
   return (
     <article ref={voRef} className="kh-vo">
       {grammar.map((muc, index) => (
-        <MucNguPhap key={muc.id || index} muc={muc} index={index} onDoc={onDoc} duongDanBuoi={duongDanBuoi} hienKhiCuon />
+        <MucNguPhap
+          key={muc.id || index}
+          muc={muc}
+          index={index}
+          onDoc={onDoc}
+          duongDanBuoi={duongDanBuoi}
+          hienKhiCuon
+          cuoiMuc={thuNgay(muc)}
+        />
       ))}
       {notes.length > 0 && <GhiNho notes={notes} hienKhiCuon />}
     </article>
@@ -269,9 +282,14 @@ function HoiHocTiep({ viTri, onHocTiep, onHocLai }) {
   );
 }
 
-function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang, onDaDoc, duongDanBuoi }) {
+function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTrang, onDaDoc, duongDanBuoi, cauTheoMuc, onGhiNhan }) {
   const { grammar = [], notes = [] } = content || {};
   const [cachXem, setCachXem] = useState(docCachXemLyThuyet);
+  // "Thử ngay": câu bài tập của chính mục này (đã gắn grammar_id), làm tại chỗ sau khi đọc
+  const thuNgay = (muc) => {
+    const cacCau = cauTheoMuc.get(String(muc.id)) || [];
+    return cacCau.length > 0 ? <CauThuNhanh key={muc.id} cacCau={cacCau} onGhiNhan={onGhiNhan} /> : null;
+  };
   if (grammar.length === 0 && notes.length === 0) {
     return <p className="kh-trong">Buổi này chưa có lý thuyết.</p>;
   }
@@ -285,7 +303,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTran
   const cacTrang = [
     ...grammar.map((muc, index) => (
       <div key={muc.id || index} className="kh-vo kh-vo--trang">
-        <MucNguPhap muc={muc} index={index} onDoc={onDoc} duongDanBuoi={duongDanBuoi} />
+        <MucNguPhap muc={muc} index={index} onDoc={onDoc} duongDanBuoi={duongDanBuoi} cuoiMuc={thuNgay(muc)} />
       </div>
     )),
     ...(notes.length > 0
@@ -320,7 +338,7 @@ function LyThuyet({ content, onDoc, soCauBaiTap, onSangBuoc, trangDau, onDoiTran
           }}
         />
       ) : (
-        <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} duongDanBuoi={duongDanBuoi} />
+        <VoCuon grammar={grammar} notes={notes} onDoc={onDoc} duongDanBuoi={duongDanBuoi} thuNgay={thuNgay} />
       )}
 
       {soCauBaiTap > 0 && (
@@ -465,13 +483,33 @@ function TrangBaiHoc() {
   const cauChinh = layCauBaiChinh(bai.questions);
   const soCauDung = cauChinh.filter((cau) => ketQuaCau[cau.id] === true).length;
   const daLamCauChinh = cauChinh.some((cau) => cau.id in ketQuaCau);
+  const daDocLyThuyet = Boolean(bai.lesson.theory_read || viTriLuu?.daDocLyThuyet);
   const moTaBuoc = {
     "tu-vung": soTuDaHoc > 0 ? `${soTuDaHoc}/${bai.words.length} từ đã học` : `${bai.words.length} từ`,
-    "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục${viTriLuu?.daDocLyThuyet ? " · đã đọc" : ""}`,
+    "ly-thuyet": `${bai.lesson.content?.grammar?.length || 0} mục${daDocLyThuyet ? " · đã đọc" : ""}`,
     "bai-tap": daLamCauChinh ? `${soCauDung}/${cauChinh.length} câu đúng` : `${cauChinh.length} câu`,
   };
   const ghiNhanKetQua = (cauId, dung) =>
     setTrangThai((cu) => ({ ...cu, ketQuaCau: { ...cu.ketQuaCau, [cauId]: dung } }));
+  // Câu của từng mục lý thuyết (grammar_id), bỏ câu nghe; câu chưa đúng (theo lúc mở buổi) xếp trước
+  const cauTheoMuc = new Map();
+  for (const cau of cauChinh) {
+    if (!cau.grammar_id || cau.audio_key || cau.listen_text) continue;
+    const ds = cauTheoMuc.get(cau.grammar_id) || [];
+    ds.push(cau);
+    cauTheoMuc.set(cau.grammar_id, ds);
+  }
+  for (const ds of cauTheoMuc.values()) ds.sort((a, b) => Number(a.last_correct === true) - Number(b.last_correct === true));
+  const danhDauDaDoc = () => {
+    ghiViTriBuoi(khoaViTri, { daDocLyThuyet: true });
+    const khoaGui = `${courseId}/${soBuoi}`;
+    if (!bai.lesson.theory_read && !daGuiDaDoc.has(khoaGui)) {
+      daGuiDaDoc.add(khoaGui);
+      danhDauDaDocLyThuyet(courseId, soBuoi).catch(() => daGuiDaDoc.delete(khoaGui));
+    }
+  };
+  // ?muc=2 (từ "Xem lại mục" ở bài tập): mở sổ tay đúng trang của mục đó
+  const mucCanXem = Number.parseInt(searchParams.get("muc") ?? "", 10);
 
   return (
     <div className={`ui-page-stack kh-trang kh-trang--gon${buoc === "bai-tap" ? " kh-trang--lam-bai" : ""}`}>
@@ -577,10 +615,12 @@ function TrangBaiHoc() {
             onDoc={docTiengAnh}
             soCauBaiTap={cauChinh.length}
             onSangBuoc={chuyenBuoc}
-            trangDau={viTriLuu?.trangLyThuyet ?? 0}
+            trangDau={Number.isInteger(mucCanXem) && mucCanXem >= 0 ? mucCanXem : (viTriLuu?.trangLyThuyet ?? 0)}
             duongDanBuoi={(so) => `/khoa-hoc/${courseId}/bai/${so}`}
             onDoiTrang={(trang) => ghiViTriBuoi(khoaViTri, { trangLyThuyet: trang })}
-            onDaDoc={() => ghiViTriBuoi(khoaViTri, { daDocLyThuyet: true })}
+            onDaDoc={danhDauDaDoc}
+            cauTheoMuc={cauTheoMuc}
+            onGhiNhan={ghiNhanKetQua}
           />
         )}
         {buoc === "bai-tap" && (
@@ -594,6 +634,7 @@ function TrangBaiHoc() {
             baoTiepTuc={Boolean(viTri.state?.hocTiep)}
             onLuuLuot={(luot) => ghiViTriBuoi(khoaViTri, { baiTap: luot, tuDau: false })}
             nguPhap={bai.lesson.content?.grammar}
+            duongDanMuc={(index) => `/khoa-hoc/${courseId}/bai/${soBuoi}/ly-thuyet?muc=${index}`}
             buoiSau={
               bai.next_lesson
                 ? { to: `/khoa-hoc/${bai.course.id}/bai/${bai.next_lesson}`, nhan: `Sang Buổi ${bai.next_lesson}` }

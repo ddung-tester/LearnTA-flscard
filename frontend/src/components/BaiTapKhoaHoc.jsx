@@ -234,6 +234,8 @@ function loiNhan(tiLe) {
 // các mục lý thuyết của buổi, câu sai đi đâu
 function ChotBuoi({ chotBuoi, coCauSai }) {
   const { dung, tong, cacMuc } = chotBuoi;
+  const hoiLearnBot = useHoiLearnBot();
+  const mucYeu = cacMuc.filter((muc) => muc.tong > 0 && muc.dung < Math.ceil(muc.tong * NGUONG_XONG_BUOI));
   const can = Math.ceil(tong * NGUONG_XONG_BUOI);
   const dat = dung >= can;
   return (
@@ -249,15 +251,41 @@ function ChotBuoi({ chotBuoi, coCauSai }) {
         <div className="kh-chot-buoi__muc">
           <p className="kh-chot-buoi__nhan">Buổi này đã học</p>
           <ul>
-            {cacMuc.map((ten) => (
-              <li key={ten}>{ten}</li>
-            ))}
+            {cacMuc.map((muc) => {
+              const vung = muc.tong > 0 && muc.dung >= Math.ceil(muc.tong * NGUONG_XONG_BUOI);
+              return (
+                <li key={muc.ten} className={muc.tong > 0 ? (vung ? "kh-chot-buoi__vung" : "kh-chot-buoi__yeu") : ""}>
+                  {muc.tong > 0 && <span aria-hidden="true">{vung ? "✓ " : "• "}</span>}
+                  {muc.ten}
+                  {muc.tong > 0 && (
+                    <span className="kh-chot-buoi__so">
+                      {vung ? " · vững" : ` · còn ${muc.tong - muc.dung} câu sai`}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
       {coCauSai && (
         <p className="kh-chot-buoi__chu">Câu sai đã vào lịch ôn, sẽ quay lại ở phần Khởi động của "Học hôm nay".</p>
       )}
+      <div>
+        <button
+          type="button"
+          className="kh-lien-ket"
+          onClick={() =>
+            hoiLearnBot(
+              `Tóm tắt giúp mình buổi này: 3 ý chính cần nhớ và 2 câu để mình tự đặt thử.${
+                mucYeu.length > 0 ? ` Mình còn yếu phần: ${mucYeu.map((muc) => muc.ten).join(", ")}.` : ""
+              }`
+            )
+          }
+        >
+          LearnBot tóm tắt buổi này →
+        </button>
+      </div>
     </div>
   );
 }
@@ -413,6 +441,8 @@ export default function BaiTapKhoaHoc({
   onLuuLuot,
   nguPhap = [],
   buoiSau = null,
+  // (index mục lý thuyết) → đường dẫn mở đúng mục; chỉ có ở bài tập của buổi
+  duongDanMuc = null,
 }) {
   // Công thức của buổi (mục có pattern), hiện gập sẵn ở cột kết quả lúc chưa trả lời
   const congThuc = nguPhap.filter((muc) => muc?.pattern && muc?.title);
@@ -854,7 +884,17 @@ export default function BaiTapKhoaHoc({
               : {
                   dung: cauChinh.filter((c) => ketQuaGanNhat[c.id] === true).length,
                   tong: cauChinh.length,
-                  cacMuc: nguPhap.map((muc) => muc?.title).filter(Boolean),
+                  // Từng mục lý thuyết: số câu (đã gắn grammar_id) đang đúng / tổng
+                  cacMuc: nguPhap
+                    .filter((muc) => muc?.title)
+                    .map((muc) => {
+                      const cuaMuc = cauChinh.filter((c) => c.grammar_id && String(c.grammar_id) === String(muc.id));
+                      return {
+                        ten: muc.title,
+                        tong: cuaMuc.length,
+                        dung: cuaMuc.filter((c) => ketQuaGanNhat[c.id] === true).length,
+                      };
+                    }),
                 }
           }
         />
@@ -1156,6 +1196,16 @@ export default function BaiTapKhoaHoc({
                 </p>
               )}
               {cau.explanation && <p className="kh-phan-hoi__goi-y">{cau.explanation}</p>}
+              {!daTraLoi.dung && duongDanMuc && cau.grammar_id && (() => {
+                const viTriMuc = nguPhap.findIndex((muc) => String(muc?.id) === String(cau.grammar_id));
+                return viTriMuc >= 0 ? (
+                  <p className="kh-phan-hoi__goi-y">
+                    <Link to={duongDanMuc(viTriMuc)} className="kh-lien-ket">
+                      Xem lại mục: {nguPhap[viTriMuc].title} →
+                    </Link>
+                  </p>
+                ) : null;
+              })()}
               <GiaiThichAI
                 trangThai={giaiThich[cau.id]}
                 onThuLai={() => hoiAI(cau, daTraLoi.traLoi)}

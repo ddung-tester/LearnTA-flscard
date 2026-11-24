@@ -9,6 +9,11 @@ export async function layBaiHoc(courseId, soBai) {
   return layCoBoNho(`/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}`);
 }
 
+/** Đã đọc xong lý thuyết của buổi: lưu lên tài khoản để máy khác cũng biết */
+export async function danhDauDaDocLyThuyet(courseId, soBai) {
+  await api.post(`/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(soBai)}/theory-read`);
+}
+
 /** Câu bài tập đến hạn ôn (từng làm sai) của mọi khoá, mỗi câu kèm lesson_number và course_id */
 export async function layCauHoiCanOn() {
   const response = await api.get("/course-questions/due");

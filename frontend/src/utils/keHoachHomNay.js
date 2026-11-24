@@ -134,6 +134,25 @@ export function danhDauXong(keHoach, { khoa, tuDenHan, cauDenHan, daDoc = () => 
   });
 }
 
+/**
+ * Dòng nối bài ở đầu "Học hôm nay": buổi học gần nhất và buổi hôm nay học, để thấy mạch giữa các ngày.
+ * Không gọi AI: lấy từ tên buổi và thời điểm học gần nhất.
+ */
+export function dongNoiBai(khoa) {
+  if (!khoa) return null;
+  const buoiTiep = timBuoiTiepTheo(khoa.lessons || []);
+  const daHoc = (khoa.lessons || [])
+    .filter((bai) => bai.last_activity_at)
+    .sort((a, b) => Date.parse(b.last_activity_at) - Date.parse(a.last_activity_at));
+  const ganNhat = daHoc[0] ?? null;
+  if (!buoiTiep) return ganNhat ? `Đã xong mọi buổi hiện có. Hôm nay ôn lại để nhớ lâu.` : null;
+  if (!ganNhat) return `Hôm nay bắt đầu Buổi ${buoiTiep.lesson_number}: ${buoiTiep.title}.`;
+  if (ganNhat.lesson_number === buoiTiep.lesson_number) {
+    return `Đang học dở Buổi ${buoiTiep.lesson_number}: ${buoiTiep.title}. Ôn bài cũ trước rồi học tiếp.`;
+  }
+  return `Lần trước: Buổi ${ganNhat.lesson_number} (${ganNhat.title}). Hôm nay: Buổi ${buoiTiep.lesson_number} (${buoiTiep.title}).`;
+}
+
 function khoaLuu(userId) {
   return `${KHOA_LUU}:${userId ?? "khach"}`;
 }

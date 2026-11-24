@@ -30,6 +30,11 @@ router.get(
   requireAuth,
   asyncHandler(courseController.getLesson)
 );
+router.post(
+  "/courses/:courseId/lessons/:lessonNumber/theory-read",
+  requireAuth,
+  asyncHandler(courseController.markTheoryRead)
+);
 router.get("/course-questions/due", requireAuth, asyncHandler(courseController.listDueQuestions));
 router.get(
   "/course-questions/:questionId/audio",

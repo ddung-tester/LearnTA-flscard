@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boCuaKhoaHoc, danhDauXong, demTuDenHan, lapKeHoach, ngayVN } from "./keHoachHomNay";
+import { boCuaKhoaHoc, danhDauXong, demTuDenHan, dongNoiBai, lapKeHoach, ngayVN } from "./keHoachHomNay";
 
 const buoi = (lesson_number, tienDo = {}) => ({
   lesson_number,
@@ -68,5 +68,13 @@ describe("keHoachHomNay", () => {
 
   it("ngày tính theo giờ Việt Nam", () => {
     expect(ngayVN(new Date("2026-11-24T17:30:00Z"))).toBe("2026-11-25");
+  });
+
+  it("dòng nối bài: buổi gần nhất và buổi hôm nay", () => {
+    const xong = { learned_count: 8, answered_count: 10, correct_count: 10, last_activity_at: "2026-11-23T10:00:00Z" };
+    expect(dongNoiBai(khoa([buoi(1, xong), buoi(2)]))).toBe("Lần trước: Buổi 1 (Bài 1). Hôm nay: Buổi 2 (Bài 2).");
+    expect(dongNoiBai(khoa([buoi(1, { learned_count: 2, last_activity_at: "2026-11-23T10:00:00Z" })]))).toMatch(/^Đang học dở Buổi 1/);
+    expect(dongNoiBai(khoa([buoi(1)]))).toBe("Hôm nay bắt đầu Buổi 1: Bài 1.");
+    expect(dongNoiBai(null)).toBeNull();
   });
 });

@@ -20,6 +20,11 @@
   color: var(--mau-chu-phu);
 }
 
+.hhn__noi-bai {
+  font-size: 0.95rem;
+  color: var(--mau-chu);
+}
+
 .hhn__tieu-de {
   font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.9rem);
   font-weight: 800;

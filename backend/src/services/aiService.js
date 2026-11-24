@@ -700,7 +700,82 @@ async function translateCourseQuestions(input, { models = MODEL_GIAI_THICH_NHANH
   throw lastError;
 }
 
+/**
+ * Gắn câu bài tập với mục lý thuyết của buổi (content.grammar[].id) để nối "đọc lý thuyết" với "làm bài".
+ * input: { lessonTitle, grammar: [{ id, title, pattern }], questions: [{ id, prompt, options, answer }] }
+ */
+function buildGrammarMappingPrompt({ lessonTitle, grammar, questions }) {
+  const cacMuc = grammar
+    .map((muc) => `- ${muc.id}: ${muc.title}${muc.pattern ? ` (công thức: ${muc.pattern})` : ""}`)
+    .join("\n");
+  const cacCau = questions
+    .map((cau) => {
+      const luaChon = (cau.options || []).map((o) => `${o.key}. ${o.text}`).join(" | ");
+      return `[${cau.id}] ${String(cau.prompt).slice(0, 400)}${luaChon ? ` — lựa chọn: ${luaChon}` : ""}${cau.answer ? ` — đáp án: ${cau.answer}` : ""}`;
+    })
+    .join("\n");
+  return `Bạn phân loại câu bài tập tiếng Anh theo mục ngữ pháp của bài.
+Bài học: ${lessonTitle || "(không rõ)"}
+Các mục ngữ pháp (mã: tên):
+${cacMuc}
+
+Các câu:
+${cacCau}
+
+Với mỗi câu, chọn MỘT mã mục ngữ pháp mà câu đó kiểm tra chính. Câu không thuộc mục nào (từ vựng, phát âm...) thì ghi null.
+Chỉ trả về JSON dạng: {"gan": [{"id": <id câu>, "muc": "<mã mục hoặc null>"}]}`;
+}
+
+/** Đọc kết quả AI → Map id câu → mã mục; bỏ mã không có trong danh sách và id lạ */
+function parseGrammarMapping(text, { grammarIds, questionIds }) {
+  const duLieu = docJsonAI(text);
+  const hopLeMuc = new Set(grammarIds.map(String));
+  const hopLeCau = new Set(questionIds.map(Number));
+  const ketQua = new Map();
+  for (const muc of Array.isArray(duLieu?.gan) ? duLieu.gan : []) {
+    const id = Number(muc?.id);
+    const ma = muc?.muc === null || muc?.muc === undefined ? null : String(muc.muc);
+    if (hopLeCau.has(id) && ma && hopLeMuc.has(ma)) ketQua.set(id, ma);
+  }
+  return ketQua;
+}
+
+async function mapQuestionsToGrammar(input, { models = MODEL_GIAI_THICH_NHANH } = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error("GEMINI_API_KEY chưa được cấu hình trong .env");
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const prompt = buildGrammarMappingPrompt(input);
+  let lastError;
+  for (const mucModel of xepTheoLuot(models)) {
+    try {
+      const model = genAI.getGenerativeModel(
+        {
+          model: mucModel.model,
+          generationConfig: {
+            maxOutputTokens: 200 + 30 * input.questions.length,
+            responseMimeType: "application/json",
+            ...mucModel.generationConfig,
+          },
+        },
+        { timeout: THOI_HAN_DICH_MS }
+      );
+      const result = await model.generateContent(prompt);
+      return parseGrammarMapping(result.response.text(), {
+        grammarIds: input.grammar.map((muc) => muc.id),
+        questionIds: input.questions.map((cau) => cau.id),
+      });
+    } catch (error) {
+      ghiNhanLoi(mucModel, error);
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 module.exports = {
+  buildGrammarMappingPrompt,
+  parseGrammarMapping,
+  mapQuestionsToGrammar,
   buildQuestionTranslationPrompt,
   translateCourseQuestions,
   buildExampleTranslationPrompt,

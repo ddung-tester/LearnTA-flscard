@@ -14,6 +14,7 @@ import {
   danhDauXong,
   demTuDenHan,
   docKeHoachDaChot,
+  dongNoiBai,
   lapKeHoach,
 } from "../utils/keHoachHomNay";
 import "./TrangHocHomNay.css";
@@ -52,7 +53,12 @@ function TrangHocHomNay() {
 
   const khoa = duLieu?.cacKhoa[0] ?? null;
   const daDoc = useCallback(
-    (soBuoi) => Boolean(khoa && docViTriBuoi(khoaViTriBuoi(user?.id, khoa.id, soBuoi))?.daDocLyThuyet),
+    (soBuoi) =>
+      Boolean(
+        khoa &&
+          ((khoa.lessons || []).find((bai) => bai.lesson_number === soBuoi)?.theory_read ||
+            docViTriBuoi(khoaViTriBuoi(user?.id, khoa.id, soBuoi))?.daDocLyThuyet)
+      ),
     [khoa, user?.id]
   );
 
@@ -107,6 +113,7 @@ function TrangHocHomNay() {
       <ChatbotNguCanhTrang trang="hom-nay" />
       <section className="hhn__dau" aria-labelledby="hhn-tieu-de">
         <p className="hhn__eyebrow">Học hôm nay · mục tiêu {MUC_TIEU_PHUT} phút</p>
+        {dongNoiBai(khoa) && <p className="hhn__noi-bai">{dongNoiBai(khoa)}</p>}
         <h1 id="hhn-tieu-de" className="hhn__tieu-de">
           {keHoach.length === 0
             ? "Hôm nay chưa có việc cần học"

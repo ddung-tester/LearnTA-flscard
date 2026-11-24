@@ -16,6 +16,7 @@ const {
   getQuestionAudio,
   listCourses,
   listDueQuestions,
+  markTheoryRead,
 } = require("../src/controllers/courseController");
 
 function fakePool(ketQuaTheoLan) {
@@ -376,6 +377,7 @@ test("listCourses returns lesson progress counts of the course owner as numbers"
     correct_count: 17,
     due_count: 2,
     last_activity_at: new Date("2026-10-19T11:23:00Z"),
+    theory_read: false,
   });
   // Lần học gần nhất = mới nhất của học từ và làm bài
   assert.match(calls[0].sql, /GREATEST\([\s\S]*MAX\(cp\.updated_at\)[\s\S]*MAX\(p\.updated_at\)/);
@@ -801,4 +803,37 @@ test("explanation prompts put the extra example on its own 'Ví dụ khác' line
   assert.match(prompt, /\nVí dụ khác: /);
   assert.match(prompt, /DẤU HIỆU/);
   assert.doesNotMatch(prompt, /— ví dụ:/);
+});
+
+test("markTheoryRead only saves a lesson of the signed-in owner's course", async () => {
+  const calls = fakePool([[{ id: 3 }], []]);
+  const res = fakeRes();
+  await markTheoryRead({ user: { id: 7 }, params: { courseId: "1", lessonNumber: "13" } }, res);
+  assert.deepEqual(calls[0].params, [1, 13, 7]);
+  assert.match(calls[0].sql, /c\.user_id = \?/);
+  assert.match(calls[1].sql, /INSERT INTO course_lesson_progress/);
+  assert.deepEqual(calls[1].params, [7, 3]);
+  assert.deepEqual(res.body, { theory_read: true });
+
+  fakePool([[]]);
+  await assert.rejects(
+    markTheoryRead({ user: { id: 7 }, params: { courseId: "1", lessonNumber: "99" } }, fakeRes()),
+    (error) => error.status === 404 || error.statusCode === 404
+  );
+});
+
+test("listCourses still works before course_lesson_progress exists (SQL not run yet)", async () => {
+  const calls = [];
+  pool.query = async (sql, params) => {
+    calls.push({ sql, params });
+    if (/course_lesson_progress/.test(sql)) {
+      const error = new Error('relation "course_lesson_progress" does not exist');
+      error.code = "42P01";
+      throw error;
+    }
+    return [[{ course_id: 1, slug: "k", course_title: "K", lesson_id: 3, lesson_number: 1, lesson_title: "B1" }]];
+  };
+  const res = fakeRes();
+  await listCourses({ user: { id: 7 } }, res);
+  assert.equal(res.body[0].lessons[0].theory_read, false);
 });

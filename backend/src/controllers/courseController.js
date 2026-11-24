@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const aiService = require("../services/aiService");
 const audioStorage = require("../services/audioStorage");
+const { ganNenNeuCan } = require("../services/ganMucLyThuyet");
 const { pipeline } = require("node:stream/promises");
 const crypto = require("node:crypto");
 const { cleanTextWithLimit, createHttpError, parsePositiveInt } = require("../utils/http");
@@ -47,6 +48,8 @@ function normalizeQuestion(row) {
     // audio_key: nhiều câu dùng chung một file; client dùng để khỏi tải lại
     audio_key: row.audio_path || null,
     listen_text: row.listen_text || null,
+    // Mục lý thuyết của buổi mà câu kiểm tra (content.grammar[].id); null = chưa gắn
+    grammar_id: row.grammar_id || null,
     // Kết quả lần trả lời gần nhất của người học: null = chưa làm
     last_correct:
       row.last_correct === null || row.last_correct === undefined ? null : Boolean(row.last_correct),
@@ -104,6 +107,22 @@ async function ganGiaiThich(rows) {
 // Tiến độ mỗi buổi của chủ khoá: từ "đã học" = có card_progress, "đã thuộc" = Lv5 (giống lộ trình);
 // câu "đúng" = lần trả lời gần nhất đúng. Câu luyện thêm (source = 'extra', AI sinh) là tuỳ chọn,
 // không tính vào tiến độ buổi.
+// Các buổi người học đã đọc lý thuyết (bảng course_lesson_progress).
+// Bảng chưa tạo (chưa chạy SQL trên Supabase) thì coi như chưa đọc buổi nào, không làm hỏng trang.
+async function docBuoiDaDoc(userId, lessonIds) {
+  if (lessonIds.length === 0) return new Set();
+  try {
+    const [rows] = await pool.query(
+      "SELECT lesson_id FROM course_lesson_progress WHERE user_id = ? AND lesson_id IN (?) AND theory_read_at IS NOT NULL",
+      [userId, lessonIds]
+    );
+    return new Set(rows.map((row) => Number(row.lesson_id)));
+  } catch (error) {
+    if (error.code === "42P01") return new Set();
+    throw error;
+  }
+}
+
 async function listCourses(req, res) {
   const [rows] = await pool.query(
     `SELECT
@@ -111,6 +130,7 @@ async function listCourses(req, res) {
        c.slug,
        c.title AS course_title,
        c.description,
+       l.id AS lesson_id,
        l.lesson_number,
        l.title AS lesson_title,
        l.deck_id,
@@ -155,6 +175,10 @@ async function listCourses(req, res) {
     [req.user.id]
   );
 
+  const daDoc = await docBuoiDaDoc(
+    req.user.id,
+    rows.filter((row) => row.lesson_id != null).map((row) => Number(row.lesson_id))
+  );
   const courses = new Map();
   for (const row of rows) {
     if (!courses.has(row.course_id)) {
@@ -180,6 +204,7 @@ async function listCourses(req, res) {
         correct_count: soNguyen(row.correct_count),
         due_count: soNguyen(row.due_count),
         last_activity_at: row.last_activity_at ?? null,
+        theory_read: daDoc.has(Number(row.lesson_id)),
       });
     }
   }
@@ -228,6 +253,11 @@ async function getLesson(req, res) {
 
   const soBai = cacBai.map((row) => row.lesson_number);
   const viTri = soBai.indexOf(lesson.lesson_number);
+  const content = docJson(lesson.content, { grammar: [], notes: [] });
+  // Câu chưa gắn mục lý thuyết: gắn nền (lần mở sau có liên kết "Xem lại mục" và câu thử ngay)
+  ganNenNeuCan(lesson, content.grammar, questions);
+  const cauHoi = await ganGiaiThich(questions);
+  const daDoc = await docBuoiDaDoc(req.user.id, [Number(lesson.id)]);
 
   res.json({
     course: { id: lesson.course_id, title: lesson.course_title },
@@ -236,13 +266,35 @@ async function getLesson(req, res) {
       lesson_number: lesson.lesson_number,
       title: lesson.title,
       deck_id: lesson.deck_id,
-      content: docJson(lesson.content, { grammar: [], notes: [] }),
+      content,
+      theory_read: daDoc.has(Number(lesson.id)),
     },
     words,
-    questions: await ganGiaiThich(questions),
+    questions: cauHoi,
     prev_lesson: viTri > 0 ? soBai[viTri - 1] : null,
     next_lesson: viTri >= 0 && viTri < soBai.length - 1 ? soBai[viTri + 1] : null,
   });
+}
+
+// Người học đọc xong lý thuyết của buổi (lật tới trang cuối / sang bài tập): lưu để đồng bộ giữa các máy
+async function markTheoryRead(req, res) {
+  const courseId = parsePositiveInt(req.params.courseId, "courseId");
+  const lessonNumber = parsePositiveInt(req.params.lessonNumber, "lessonNumber");
+  const [lessons] = await pool.query(
+    `SELECT l.id FROM course_lessons l
+     JOIN courses c ON c.id = l.course_id
+     WHERE l.course_id = ? AND l.lesson_number = ? AND c.user_id = ?
+     LIMIT 1`,
+    [courseId, lessonNumber, req.user.id]
+  );
+  if (!lessons[0]) throw createHttpError(404, "Khong tim thay bai hoc");
+  await pool.query(
+    `INSERT INTO course_lesson_progress (user_id, lesson_id, theory_read_at)
+     VALUES (?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT (user_id, lesson_id) DO UPDATE SET theory_read_at = COALESCE(course_lesson_progress.theory_read_at, EXCLUDED.theory_read_at)`,
+    [req.user.id, lessons[0].id]
+  );
+  res.json({ theory_read: true });
 }
 
 /**
@@ -775,6 +827,7 @@ async function translateQuestions(req, res) {
 }
 
 module.exports = {
+  markTheoryRead,
   translateQuestions,
   rateExplanation,
   listCourses,

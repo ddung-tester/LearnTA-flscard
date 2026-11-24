@@ -336,12 +336,15 @@ CREATE TABLE IF NOT EXISTS course_questions (
   audio_path VARCHAR(255) NULL,
   listen_text TEXT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  -- Mục lý thuyết của buổi mà câu kiểm tra (= content.grammar[].id); server tự gắn bằng AI khi mở buổi
+  grammar_id VARCHAR(80) NULL,
 
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT unique_course_questions_key UNIQUE (lesson_id, question_key)
 );
+ALTER TABLE course_questions ADD COLUMN IF NOT EXISTS grammar_id VARCHAR(80) NULL;
 CREATE INDEX IF NOT EXISTS idx_course_questions_order ON course_questions (lesson_id, sort_order);
 
 -- Lời giải thích của AI theo từng (câu hỏi, câu trả lời đã chuẩn hoá): gọi Gemini một lần rồi dùng lại
@@ -383,6 +386,18 @@ CREATE TABLE IF NOT EXISTS course_question_progress (
 CREATE INDEX IF NOT EXISTS idx_course_question_progress_due ON course_question_progress (user_id, next_review_at);
 CREATE INDEX IF NOT EXISTS idx_course_question_progress_question ON course_question_progress (question_id);
 
+-- Tiến độ từng buổi ngoài câu bài tập: đã đọc lý thuyết (đồng bộ giữa các máy)
+CREATE TABLE IF NOT EXISTS course_lesson_progress (
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  lesson_id BIGINT NOT NULL REFERENCES course_lessons(id) ON DELETE CASCADE,
+  theory_read_at TIMESTAMPTZ NULL,
+
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+
+  PRIMARY KEY (user_id, lesson_id)
+);
+
 DO $$
 DECLARE
   bang TEXT;
@@ -390,7 +405,7 @@ BEGIN
   FOREACH bang IN ARRAY ARRAY[
     'users', 'decks', 'cards', 'study_sessions', 'card_progress', 'mistake_words',
     'card_reviews', 'user_settings', 'roadmaps', 'courses', 'course_lessons',
-    'course_questions', 'course_question_progress'
+    'course_questions', 'course_question_progress', 'course_lesson_progress'
   ] LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON %1$I', bang);
     EXECUTE format(

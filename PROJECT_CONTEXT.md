@@ -229,6 +229,13 @@ POST /client-errors                                     cong khai, rate limit; f
 - Nut hanh dong: AI chen `[[mo:/path|Nhan]]` va `[[them-tu:word|nghia]]`; `tachHanhDong` chi giu duong dan trong danh sach server tao, toi da 4 nut. `them-tu` luu vao bo "Tu hoi LearnBot" (`services/tuHoiLearnBot.js`, tao neu chua co).
 - Boi den chu trong `main` (tru o nhap, dap an, de bai chua tra loi) → nut `HoiKhiChonChu` gui "Giai thich giup minh doan nay...".
 
+### Lo trinh hoc lien mach (2026-11-24)
+
+- `/hoc-hom-nay` (TrangHocHomNay, `utils/keHoachHomNay.js`): ke hoach ~60 phut chot theo ngay VN (localStorage `hocTA.keHoachHomNay:<user>`), trang thai xong tinh lai tu du lieu that. Man ket thuc cac buoc hien `NutTiepKeHoach` khi co sessionStorage `hocTA.dangTheoKeHoach`.
+- Xong buoi (`tienDoBuoiHoc`): hoc het tu + dung >= 80% cau chinh (`NGUONG_XONG_BUOI`).
+- `course_questions.grammar_id` = `content.grammar[].id`; `services/ganMucLyThuyet.ganNenNeuCan` gan nen khi GET buoi (bo qua neu cot chua co). `course_lesson_progress(user_id, lesson_id, theory_read_at)`; `listCourses`/`getLesson` tra `theory_read` (bang chua co → false).
+- Review `?nguon=khoa|khac` loc theo deck cua buoi khoa hoc.
+
 ### SRS (mot luat cho moi che do, giong luyentu)
 
 - Luat o `backend/src/utils/srs.js`, ban sao o `frontend/src/utils/srsReview.js`. Lv0-Lv5, khoang on 0/1/3/7/14/30 ngay (Lv>=1 den han luc 00:00 gio VN).
