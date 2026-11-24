@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { ChatbotNguCanhTrang } from "../contexts/ChatbotContext";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -232,6 +233,7 @@ function TrangKhoaHoc() {
 
   return (
     <div className="ui-page-stack kh-trang">
+      <ChatbotNguCanhTrang trang="khoa-hoc" />
       {trangThai.loiKhoaHoc && (
         <div className="kh-trong" role="alert">
           <p>Không tải được khoá học của bạn. Kiểm tra kết nối rồi thử lại.</p>

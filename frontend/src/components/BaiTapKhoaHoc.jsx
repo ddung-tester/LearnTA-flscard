@@ -7,7 +7,7 @@ import { phatAm } from "../utils/amThanh";
 import NgheAudioCauHoi from "./NgheAudioCauHoi";
 import ThanhTiepTuc from "./common/ThanhTiepTuc";
 import useDuaONhapVaoTam from "../hooks/useDuaONhapVaoTam";
-import { useHoiLearnBot } from "../contexts/ChatbotContext";
+import { ChatbotNguCanhTrang, useHoiLearnBot } from "../contexts/ChatbotContext";
 import { danhGiaGiaiThich, giaiThichCauHoi, layBanDichCauHoi } from "../services/courseApi";
 import { luuTraLoiCoHangCho, soCauDangCho, theoDoiHangCho } from "../services/hangChoTraLoi";
 import {
@@ -1078,6 +1078,10 @@ export default function BaiTapKhoaHoc({
             )}
           </section>
         </div>
+        {/* LearnBot chỉ biết câu này SAU khi đã trả lời (không lộ đáp án) */}
+        {daTraLoi && (
+          <ChatbotNguCanhTrang questionId={cau.id} traLoi={traLoiHienThi(cau, daTraLoi.traLoi)} />
+        )}
         <div className="kh-bt__phai">
           {daTraLoi ? (
             <section

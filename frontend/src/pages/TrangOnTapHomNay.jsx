@@ -23,7 +23,7 @@ import { soTuDangCho, theoDoiHangChoOnTap } from "../services/hangChoOnTap";
 import { Link } from "react-router-dom";
 import { useToast } from "../contexts/ToastContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
-import { ChatbotTheDangHoc } from "../contexts/ChatbotContext";
+import { ChatbotNguCanhTrang, ChatbotTheDangHoc } from "../contexts/ChatbotContext";
 import EmptyState from "../components/common/EmptyState";
 import NutDichCau from "../components/common/NutDichCau";
 import DanhSachDapAn from "../components/common/DanhSachDapAn";
@@ -973,6 +973,7 @@ function TrangOnTapHomNay() {
 
   return (
     <div className={`review-page ui-content-enter${dangOnThe ? " review-page--dang-on" : ""}`}>
+      <ChatbotNguCanhTrang trang="on-tap" />
       {/* Chế độ thẻ: xem được cả hai mặt. Trắc nghiệm / gõ từ: thẻ tự báo chatbot sau khi trả lời */}
       {cheDoHienTai === "the" && <ChatbotTheDangHoc the={currentEntry} />}
       <TabOnTap />

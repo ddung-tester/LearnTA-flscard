@@ -9833,3 +9833,26 @@ a.dash-nav__duong-dan-muc:hover {
   color: var(--mau-chu);
   font-size: 0.9rem;
 }
+
+/* Nút nổi khi bôi đen chữ: hỏi LearnBot về đoạn đó (kế hoạch AI sâu 11/2026) */
+.hoi-khi-chon-chu {
+  position: fixed;
+  z-index: 60;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 999px;
+  background: var(--mau-chinh, #823a0d);
+  color: var(--mau-chu-tren-chinh, #fff);
+  padding: 0.5rem 0.95rem;
+  min-height: 2.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: var(--bong-tuong-tac, 0 10px 24px rgba(0, 0, 0, 0.2));
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hoi-khi-chon-chu:focus-visible {
+  outline: 2px solid var(--mau-chinh, #823a0d);
+  outline-offset: 3px;
+}

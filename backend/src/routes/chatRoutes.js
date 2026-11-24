@@ -5,6 +5,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const pool = require("../config/db");
 const { optionalAuth } = require("../middleware/authMiddleware");
 const { buildChatContext } = require("../services/chatContextService");
+const { dungNguCanhHocTap, huongDanHanhDong, tachHanhDong } = require("../services/chatNguCanhHocTap");
 const { THINKING_TOI_THIEU } = require("../services/aiService");
 const { ghiNhanLoi, xepTheoLuot } = require("../services/luotGemini");
 
@@ -15,7 +16,8 @@ const MAX_HISTORY_MESSAGES = 20;
 // Model quá tải (503), hết lượt (429) hoặc chậm quá THOI_HAN_CHAT_MS thì chuyển model kế tiếp;
 // mỗi model có hạn mức miễn phí riêng. Đo 2026-09-29: flash-lite ~1.3s ổn định, còn các bản flash
 // ở gói miễn phí lúc 1.5s lúc 26s → flash-lite trước, flash (thinking "minimal") làm dự phòng.
-const TOKEN_CHAT_TOI_DA = 600;
+// Thêm chỗ cho nút hành động ở cuối câu trả lời (kế hoạch AI sâu 11/2026)
+const TOKEN_CHAT_TOI_DA = 900;
 const CHAT_MODELS = [
   { model: "gemini-flash-lite-latest" },
   { model: "gemini-3.6-flash", generationConfig: THINKING_TOI_THIEU },
@@ -42,7 +44,19 @@ const idSchema = z.coerce.number().int().positive().nullish();
 
 const chatBodySchema = z.object({
   messages: z.array(messageSchema).min(1).max(200),
-  context: z.object({ deckId: idSchema, cardId: idSchema }).optional(),
+  context: z
+    .object({
+      deckId: idSchema,
+      cardId: idSchema,
+      // Ngữ cảnh trang (chỉ id / mã; nội dung server tự đọc từ DB)
+      courseId: idSchema,
+      lessonNumber: idSchema,
+      buoc: z.enum(["tu-vung", "ly-thuyet", "bai-tap"]).nullish(),
+      questionId: idSchema,
+      traLoi: z.string().max(300).nullish(),
+      trang: z.string().max(40).nullish(),
+    })
+    .optional(),
 });
 
 /**
@@ -62,7 +76,9 @@ Your role:
 - Respond in Vietnamese when the user writes in Vietnamese, in English when they write in English
 - Keep answers concise (max 200 words) unless a detailed explanation is explicitly needed
 - Use emoji occasionally to be friendly 😊
-- If asked about unrelated topics, politely redirect to English learning`;
+- If asked about unrelated topics, politely redirect to English learning
+- You see the learner's current lesson, exercise and study data below. Use them: when the learner says "this", "câu này", "phần này", "bài này", answer about that item. Base study advice on the real numbers given; never invent progress, lessons or answers that are not in the data.
+- After explaining a mistake, give 1–2 similar practice sentences for the learner to try and check their reply in the next message.`;
 
 async function traLoiChat(genAI, { systemInstruction, history, text }) {
   let loiCuoi;
@@ -110,11 +126,28 @@ router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
       return res.status(503).json({ message: "AI service chưa được cấu hình" });
     }
 
+    const userId = req.user?.id ?? null;
     const learnerContext = await buildChatContext(pool, {
-      userId: req.user?.id ?? null,
+      userId,
       deckId: context.deckId,
       cardId: context.cardId,
     });
+    // Ngữ cảnh sâu (hồ sơ học tập, buổi học, câu vừa làm). Lỗi đọc thì vẫn trả lời bằng ngữ cảnh cơ bản
+    let nguCanhSau = { text: "", duongDan: [] };
+    try {
+      nguCanhSau = await dungNguCanhHocTap(pool, {
+        userId,
+        courseId: context.courseId,
+        lessonNumber: context.lessonNumber,
+        buoc: context.buoc,
+        questionId: context.questionId,
+        traLoi: context.traLoi || "",
+        trang: context.trang,
+      });
+    } catch (error) {
+      console.error("chat_context_failed:", error.message);
+    }
+    const coTheThemTu = Boolean(userId);
 
     // Tách tin nhắn cuối (user) và lịch sử trước đó
     const history = messages.slice(0, -1);
@@ -123,7 +156,8 @@ router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
     let reply;
     try {
       reply = await traLoiChat(new GoogleGenerativeAI(apiKey), {
-        systemInstruction: SYSTEM_INSTRUCTION + learnerContext,
+        systemInstruction:
+          SYSTEM_INSTRUCTION + learnerContext + nguCanhSau.text + huongDanHanhDong(nguCanhSau.duongDan, coTheThemTu),
         history,
         text: lastMessage.parts[0].text,
       });
@@ -135,7 +169,8 @@ router.post("/", chatLimiter, optionalAuth, async (req, res, next) => {
       throw error;
     }
 
-    res.json({ reply });
+    const { reply: loiDap, actions } = tachHanhDong(reply, { duongDan: nguCanhSau.duongDan, coTheThemTu });
+    res.json({ reply: loiDap, actions });
   } catch (err) {
     next(err);
   }

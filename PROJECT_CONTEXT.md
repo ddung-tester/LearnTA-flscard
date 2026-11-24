@@ -221,10 +221,13 @@ POST /client-errors                                     cong khai, rate limit; f
 
 ### Chatbot `/api/chat`
 
-- Body: `{ messages: [{ role: "user"|"model", parts: [{ text }] }], context?: { deckId?, cardId? } }`.
+- Body: `{ messages: [{ role: "user"|"model", parts: [{ text }] }], context?: { deckId?, cardId?, courseId?, lessonNumber?, buoc?, questionId?, traLoi?, trang? } }`. Tra ve `{ reply, actions }`.
 - Validate bang zod: toi da 200 tin, moi tin <= 2000 ky tu, tin cuoi phai la `user`. Server chi giu 20 tin gan nhat va bo cac tin `model` o dau (Gemini bat buoc history bat dau bang `user`).
 - `chatContextService` doc tu DB theo id (co check `canReadDeck`): the dang hoc, toi da 30 tu trong deck, toi da 10 tu sai nhieu nhat (neu dang nhap), roi noi vao system prompt. Khong tin noi dung client gui.
 - Frontend: trang hoc dat `<ChatbotTheDangHoc the={...} />` de bao the dang hien thi; widget lay `deckId` tu URL. **Chi bao the SAU KHI nguoi hoc da tra loi** (Quiz: `daTraLoi`, Tu luan: `daKiemTra`, On tap: the tu bao trong che do trac nghiem/go tu; Noi tu khong bao) — neu khong, goi y "Giai thich tu X" lo dap an. Flashcard va che do The o /review van bao ngay.
+- Ngu canh hoc tap (2026-11-24): `services/chatNguCanhHocTap.js` — ho so hoc (streak, so tu den han/da thuoc, buoi dang hoc, cau bai tap den han), buoi hoc dang mo (kiem tra `courses.user_id`), cau vua tra loi. Trang dat `<ChatbotNguCanhTrang courseId lessonNumber buoc questionId traLoi trang />` (ChatbotContext); cau bai tap chi bao sau khi tra loi. Khach chi co vi tri trang.
+- Nut hanh dong: AI chen `[[mo:/path|Nhan]]` va `[[them-tu:word|nghia]]`; `tachHanhDong` chi giu duong dan trong danh sach server tao, toi da 4 nut. `them-tu` luu vao bo "Tu hoi LearnBot" (`services/tuHoiLearnBot.js`, tao neu chua co).
+- Boi den chu trong `main` (tru o nhap, dap an, de bai chua tra loi) → nut `HoiKhiChonChu` gui "Giai thich giup minh doan nay...".
 
 ### SRS (mot luat cho moi che do, giong luyentu)
 

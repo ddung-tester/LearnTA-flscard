@@ -14,6 +14,7 @@ import { ghiNoiVeBuoi } from "../utils/noiVeBuoi";
 import "./KhoaHoc.css";
 import { CHE_DO_HOC } from "../contexts/BoDangHocContext";
 import LinkTroVe from "../components/common/LinkTroVe";
+import { ChatbotNguCanhTrang } from "../contexts/ChatbotContext";
 import { useAuth } from "../contexts/AuthContext";
 import { coChoDungDeTiep, docViTriBuoi, ghiViTriBuoi, hocLaiTuDau, khoaViTriBuoi } from "../utils/viTriHocBuoi";
 
@@ -446,6 +447,7 @@ function TrangBaiHoc() {
 
   return (
     <div className={`ui-page-stack kh-trang kh-trang--gon${buoc === "bai-tap" ? " kh-trang--lam-bai" : ""}`}>
+      <ChatbotNguCanhTrang courseId={Number(courseId)} lessonNumber={soBuoi} buoc={buoc} />
       {huongLat && (
         <TrangLatQua
           huong={huongLat}

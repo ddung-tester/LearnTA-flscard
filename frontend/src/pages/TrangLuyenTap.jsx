@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { ChatbotNguCanhTrang } from "../contexts/ChatbotContext";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { usePageTransition } from "../contexts/PageTransitionContext";
@@ -171,6 +172,7 @@ function TrangLuyenTap() {
   return (
     <div className="ui-page-stack">
       <div className="ui-page-header">
+      <ChatbotNguCanhTrang trang="luyen-tap" />
         <div className="ui-page-header__title">
           <h2 className="ui-tieu-de-ve-tay text-2xl font-semibold text-[var(--mau-chu)]">Luyện tập<GachVeTay /></h2>
         </div>

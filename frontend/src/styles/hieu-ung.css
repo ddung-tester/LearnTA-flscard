@@ -1765,9 +1765,8 @@ body.has-video-background--app .roadmap-card {
   position: relative;
   perspective: 2200px;
   margin-left: 14px;
-  /* Kéo ngang để lật, kéo dọc vẫn cuộn trang */
+  /* Kéo ngang để lật, kéo dọc vẫn cuộn trang; vẫn bôi đen được chữ để hỏi LearnBot */
   touch-action: pan-y;
-  user-select: none;
 }
 
 /* Gáy lò xo: các vòng thép nhỏ dọc mép trái */

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { matchPath, useLocation } from "react-router-dom";
+import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import api, { THOI_GIAN_CHO_AI_MS } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheDangHoc, useYeuCauHoiLearnBot } from "../contexts/ChatbotContext";
+import { useNguCanhTrang, useTheDangHoc, useYeuCauHoiLearnBot } from "../contexts/ChatbotContext";
+import { useToast } from "../contexts/ToastContext";
+import { luuTuHoiLearnBot, TEN_BO_HOI_LEARNBOT } from "../services/tuHoiLearnBot";
 import "./ChatbotWidget.css";
 
 // Dấu chân mèo: đệm chân + 4 đệm ngón (avatar của LearnBot)
@@ -47,15 +49,30 @@ const SUGGESTIONS = [
   "Giải thích phrasal verb: 'give up'",
 ];
 
-function taoGoiY({ tuDangHoc, coDeck, daDangNhap }) {
+const TEN_BUOC = { "tu-vung": "Từ vựng", "ly-thuyet": "Lý thuyết", "bai-tap": "Bài tập" };
+
+// Gợi ý câu hỏi theo đúng chỗ người học đang đứng (kế hoạch AI sâu 11/2026)
+function taoGoiY({ tuDangHoc, coDeck, daDangNhap, nguCanh }) {
   const goiY = [];
+  if (nguCanh?.questionId) {
+    goiY.push("Vì sao câu này chọn như vậy?", "Cho mình 2 câu tương tự để luyện", "Mẹo nhớ để không sai lại");
+  } else if (nguCanh?.lessonNumber) {
+    if (nguCanh.buoc === "ly-thuyet") goiY.push("Tóm tắt lý thuyết buổi này thật ngắn", "Lỗi người Việt hay mắc ở phần này?");
+    else if (nguCanh.buoc === "bai-tap") goiY.push("Nhắc lại công thức của buổi này", "Mình đang sai những câu nào?");
+    else goiY.push("Đặt câu ví dụ với các từ của buổi này", "Kiểm tra nhanh mình 5 từ của buổi này");
+    goiY.push("Cho mình 3 câu luyện tập về buổi này");
+  } else if (nguCanh?.trang === "hom-nay" || nguCanh?.trang === "khoa-hoc") {
+    goiY.push("Hôm nay mình nên học gì?", "Mình đang yếu phần nào?");
+  } else if (nguCanh?.trang === "on-tap") {
+    goiY.push("Giải thích nhanh các từ mình hay sai", "Mẹo ôn từ cho nhớ lâu");
+  }
   if (tuDangHoc) {
     goiY.push(`Giải thích từ "${tuDangHoc}"`, `Đặt 3 câu với "${tuDangHoc}"`, `Mẹo nhớ từ "${tuDangHoc}"`);
   } else if (coDeck) {
     goiY.push("Tóm tắt các từ trong bộ này", "Viết đoạn văn ngắn dùng các từ trong bộ");
   }
-  if (daDangNhap) goiY.push("Giúp mình ôn các từ hay sai");
-  return goiY.length > 0 ? goiY : SUGGESTIONS;
+  if (daDangNhap && goiY.length < 4) goiY.push("Giúp mình ôn các từ hay sai");
+  return goiY.length > 0 ? goiY.slice(0, 4) : SUGGESTIONS;
 }
 
 const WELCOME = {
@@ -94,15 +111,33 @@ export default function ChatbotWidget() {
   const { pathname } = useLocation();
   const { isAuthenticated } = useAuth();
   const theDangHoc = useTheDangHoc();
+  const nguCanhTrangDaBao = useNguCanhTrang();
   const { yeuCauHoi, xongYeuCauHoi } = useYeuCauHoiLearnBot();
+  const dieuHuong = useNavigate();
+  const toast = useToast();
   const deckId = Number(matchPath("/decks/:deckId/*", pathname)?.params.deckId) || null;
+  // Học từ của buổi (/khoa-hoc/:c/bai/:n/hoc/...) không qua trang buổi học: đọc buổi từ đường dẫn
+  const khopBuoi = matchPath("/khoa-hoc/:courseId/bai/:soBai/*", pathname)?.params;
+  const nguCanh = {
+    ...(khopBuoi && Number(khopBuoi.courseId) > 0
+      ? { courseId: Number(khopBuoi.courseId), lessonNumber: Number(khopBuoi.soBai) || null }
+      : {}),
+    ...(nguCanhTrangDaBao || {}),
+  };
   const cardId = theDangHoc?.id ?? null;
-  const nhanNguCanh = theDangHoc?.tu
-    ? `📌 Đang học: ${theDangHoc.tu}`
-    : deckId
-      ? "📘 Theo bộ từ hiện tại"
-      : "Hỏi đáp tiếng Anh miễn phí";
-  const goiY = taoGoiY({ tuDangHoc: theDangHoc?.tu, coDeck: Boolean(deckId), daDangNhap: isAuthenticated });
+  const nhanNguCanh = nguCanh.questionId
+    ? `📌 Câu bài tập vừa làm${nguCanh.lessonNumber ? ` · Buổi ${nguCanh.lessonNumber}` : ""}`
+    : theDangHoc?.tu
+      ? `📌 Đang học: ${theDangHoc.tu}`
+      : nguCanh.lessonNumber
+        ? `📘 Buổi ${nguCanh.lessonNumber}${TEN_BUOC[nguCanh.buoc] ? ` · ${TEN_BUOC[nguCanh.buoc]}` : ""}`
+        : deckId
+          ? "📘 Theo bộ từ hiện tại"
+          : isAuthenticated
+            ? "Biết tiến độ học của bạn"
+            : "Hỏi đáp tiếng Anh miễn phí";
+  const goiY = taoGoiY({ tuDangHoc: theDangHoc?.tu, coDeck: Boolean(deckId), daDangNhap: isAuthenticated, nguCanh });
+  const khoaNguCanh = JSON.stringify(nguCanh);
 
   // Auto-scroll khi có tin mới hoặc vừa mở khung. Khung đóng thì bỏ qua: scrollIntoView ép tính
   // bố cục cả trang (~100 ms trên điện thoại) ngay lúc trang đang tải
@@ -156,12 +191,12 @@ export default function ChatbotWidget() {
         // Bỏ tin báo lỗi: không phải lời thật của bot, và có thể làm hai tin "model" đứng liền nhau
         const { data } = await api.post("/chat", {
           messages: updatedMessages.filter((tin) => !tin.laLoi).slice(-20),
-          context: { deckId, cardId },
+          context: { deckId, cardId, ...JSON.parse(khoaNguCanh) },
         }, { timeout: THOI_GIAN_CHO_AI_MS });
 
         setMessages((prev) => [
           ...prev,
-          { role: "model", parts: [{ text: data.reply }] },
+          { role: "model", parts: [{ text: data.reply }], actions: Array.isArray(data.actions) ? data.actions : [] },
         ]);
 
         // Nếu panel đóng → hiện badge unread
@@ -180,7 +215,7 @@ export default function ChatbotWidget() {
         setLoading(false);
       }
     },
-    [messages, loading, open, deckId, cardId]
+    [messages, loading, open, deckId, cardId, khoaNguCanh]
   );
 
   // Trang học nhờ hỏi (vd "Hỏi LearnBot thêm" dưới lời giải thích): mở khung và gửi luôn
@@ -197,6 +232,29 @@ export default function ChatbotWidget() {
       sendMessage(input);
     }
   };
+
+  // Nút trong câu trả lời: mở trang trong app (server đã kiểm tra đường dẫn) hoặc lưu từ mới
+  const [dangLuuTu, setDangLuuTu] = useState({});
+  async function bamHanhDong(hanhDong) {
+    if (hanhDong.loai === "mo") {
+      dieuHuong(hanhDong.to);
+      if (!window.matchMedia?.("(min-width: 768px)").matches) setOpen(false);
+      return;
+    }
+    if (hanhDong.loai === "them-tu") {
+      const khoa = hanhDong.tu.toLowerCase();
+      if (dangLuuTu[khoa]) return;
+      setDangLuuTu((cu) => ({ ...cu, [khoa]: "dang-luu" }));
+      try {
+        const { daCo } = await luuTuHoiLearnBot(hanhDong);
+        setDangLuuTu((cu) => ({ ...cu, [khoa]: "xong" }));
+        toast.success(daCo ? `"${hanhDong.tu}" đã có trong bộ ${TEN_BO_HOI_LEARNBOT}` : `Đã lưu "${hanhDong.tu}" vào bộ ${TEN_BO_HOI_LEARNBOT}`);
+      } catch (error) {
+        setDangLuuTu((cu) => ({ ...cu, [khoa]: undefined }));
+        toast.error(error.message || "Chưa lưu được từ, thử lại nhé");
+      }
+    }
+  }
 
   const handleClear = () => {
     setMessages([WELCOME]);
@@ -278,6 +336,31 @@ export default function ChatbotWidget() {
                     __html: renderMarkdown(msg.parts[0].text),
                   }}
                 />
+                {msg.actions?.length > 0 && (
+                  <div className="chatbot-actions">
+                    {msg.actions.map((hanhDong) => {
+                      const trangThai = hanhDong.loai === "them-tu" ? dangLuuTu[hanhDong.tu.toLowerCase()] : null;
+                      return (
+                        <button
+                          key={`${hanhDong.loai}-${hanhDong.to || hanhDong.tu}`}
+                          type="button"
+                          className={`chatbot-action-btn${hanhDong.loai === "them-tu" ? " chatbot-action-btn--tu" : ""}`}
+                          onClick={() => bamHanhDong(hanhDong)}
+                          disabled={trangThai === "dang-luu" || trangThai === "xong"}
+                          title={hanhDong.loai === "them-tu" ? `Lưu vào bộ ${TEN_BO_HOI_LEARNBOT}` : hanhDong.to}
+                        >
+                          {hanhDong.loai === "mo"
+                            ? `${hanhDong.nhan} →`
+                            : trangThai === "xong"
+                              ? `✓ Đã lưu "${hanhDong.tu}"`
+                              : trangThai === "dang-luu"
+                                ? "Đang lưu..."
+                                : `+ Lưu từ "${hanhDong.tu}"${hanhDong.nghia ? ` (${hanhDong.nghia})` : ""}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
             {loading && (

@@ -81,6 +81,8 @@ function SoTayLatTrang({ trang, nhan, trangDau = 0, onDoiTrang }) {
   // Kéo trang: sang trái = lật tới, sang phải = lật lui
   function batDauKeo(e) {
     if (lat || giamChuyenDong || e.button !== 0) return;
+    // Chuột dùng để bôi đen chữ (lật bằng nút hoặc phím mũi tên); kéo lật chỉ cho cảm ứng
+    if (e.pointerType === "mouse") return;
     if (e.target.closest("button, a, input, textarea, select")) return;
     keoRef.current = { x: e.clientX, y: e.clientY, rong: soRef.current.offsetWidth, huong: 0, id: e.pointerId };
   }

@@ -5,6 +5,7 @@ import BoCuc from "./components/common/BoCuc";
 import TuongTacNho from "./components/common/TuongTacNho";
 import DenBan from "./components/common/DenBan";
 import ThongBaoMayChu from "./components/common/ThongBaoMayChu";
+import HoiKhiChonChu from "./components/common/HoiKhiChonChu";
 import VideoBackground from "./components/VideoBackground";
 
 import { useAuth } from "./contexts/AuthContext";
@@ -217,6 +218,7 @@ function UngDung() {
       {!laTrangImmersive && (
         <Suspense fallback={null}>
           <ChatbotWidget />
+          <HoiKhiChonChu />
         </Suspense>
       )}
     </VideoBackground>

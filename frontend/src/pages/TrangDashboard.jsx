@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { ChatbotNguCanhTrang } from "../contexts/ChatbotContext";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { layDanhSachDeck } from "../services/deckApi";
@@ -221,6 +222,7 @@ function TrangDashboard() {
   return (
     <>
       <div className="ui-content-enter ui-page-stack dash-page">
+      <ChatbotNguCanhTrang trang="hom-nay" />
 
       {/* ── A. Hôm nay: buổi học tiếp theo của khoá ── */}
       {khoaChinh ? (
